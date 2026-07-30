@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.egg-info/
+.env
+data/
+.copied-dashboard-git/
+dashboard/dev.stdout.log
+dashboard/dev.stderr.log
+dashboard/tsconfig.tsbuildinfo
+.api.pid
+.web.pid
