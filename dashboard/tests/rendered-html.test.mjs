@@ -12,7 +12,7 @@ test("ships the BTC 5M strategy monitor", async () => {
     readFile(new URL("../README.md", import.meta.url), "utf8"),
   ]);
   assert.match(page, /BTC 5M LAB/);
-  assert.match(page, /type StrategyView = "live-m0w" \| "research" \| "lead-observer" \| "m-series" \| "pair-arb" \| "legacy" \| "paused"/);
+  assert.match(page, /type StrategyView = "live-m0w" \| "research" \| "reliability-shadow" \| "lead-observer" \| "m-series" \| "pair-arb" \| "legacy" \| "paused"/);
   assert.match(page, /useState<StrategyView>\("m-series"\)/);
   assert.match(page, /M 系列主實驗/);
   assert.match(page, /正式實單監視與規則/);
@@ -99,6 +99,20 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.doesNotMatch(page, /id="m0-exit-tab"/);
   assert.match(page, /id="research-tab"/);
   assert.match(page, /id="research-panel"/);
+  assert.match(page, /id="reliability-shadow-tab"/);
+  assert.match(page, /id="reliability-shadow-panel"/);
+  assert.match(page, /<ReliabilityShadowPanel \/>/);
+  assert.match(page, /模型可靠／失準影子標籤/);
+  assert.match(page, /只記錄、不阻擋/);
+  assert.match(page, /RC_LOW_ENTRY/);
+  assert.match(page, /RC_STALE_QUOTE/);
+  assert.match(page, /FL_DIRECTION/);
+  assert.match(page, /MP_LATE_WINDOW/);
+  assert.match(page, /MP_FRESH_BOOK/);
+  assert.match(page, /MP_MIDPRICE_WEAK/);
+  assert.match(page, /前向樣本：尚未接入/);
+  assert.match(styles, /\.reliability-shadow-panel/);
+  assert.match(styles, /repeat\(8,minmax\(0,1fr\)\)/);
   assert.match(page, /id="lead-observer-tab"/);
   assert.match(page, /id="lead-observer-panel"/);
   assert.match(page, /<FuturesLeadObserverPanel data=\{state\.researchForward\}/);

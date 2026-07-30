@@ -61,7 +61,7 @@ type M0HourlyPerformance = {
   settledTrades?: number; hours?: M0HourlyBucket[];
 };
 type ResetState = { status: "loading" | "success" | "error"; message: string };
-type StrategyView = "live-m0w" | "research" | "lead-observer" | "m-series" | "pair-arb" | "legacy" | "paused";
+type StrategyView = "live-m0w" | "research" | "reliability-shadow" | "lead-observer" | "m-series" | "pair-arb" | "legacy" | "paused";
 const TEMPORARILY_STOPPED_THRESHOLD_USDT = -500;
 const TEMPORARILY_STOPPED_STRATEGIES: StrategyId[] = ["A", "C", "D", "J", "L", "M", "M2", "M4", "M5", "M6"];
 const ALL_MX_SUFFIXES = ["T60", "T70", "T80", "T90", "T98", "P50", "P10", "REV"] as const;
@@ -542,7 +542,7 @@ function parseDashboardSession(raw: string | null): DashboardSessionState | null
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<DashboardSessionState>;
-    const validViews: StrategyView[] = ["live-m0w", "research", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];
+    const validViews: StrategyView[] = ["live-m0w", "research", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];
     if (!parsed.strategyView || !validViews.includes(parsed.strategyView)) return null;
     return {
       strategyView: parsed.strategyView,
@@ -1117,6 +1117,169 @@ function M01OFilterExperimentPanel({ data, observer }: {
       })}
     </div>
   </section>;
+}
+
+type ReliabilityShadowStatus = "candidate" | "warning" | "limited";
+type ReliabilityShadowSplit = { label: string; samples: number; returnOnStake: string };
+type ReliabilityShadowTag = {
+  id: string;
+  strategy: string;
+  title: string;
+  status: ReliabilityShadowStatus;
+  condition: string;
+  finding: string;
+  splits: ReliabilityShadowSplit[];
+  daily: string;
+  caution: string;
+};
+
+const RELIABILITY_SHADOW_TAGS: ReliabilityShadowTag[] = [
+  {
+    id: "RC_LOW_ENTRY",
+    strategy: "R_CALIBRATED_VALUE",
+    title: "低進場價可靠區",
+    status: "candidate",
+    condition: "entry_price ≤ 0.376875",
+    finding: "三個時間切分皆維持正值，是目前最一致的價位型可靠候選。",
+    splits: [
+      { label: "開發", samples: 13, returnOnStake: "+12.4%" },
+      { label: "驗證", samples: 10, returnOnStake: "+7.8%" },
+      { label: "留後", samples: 15, returnOnStake: "+15.1%" },
+    ],
+    daily: "7 日中 6 日為正",
+    caution: "門檻只由開發段建立；仍需新的前向樣本確認。",
+  },
+  {
+    id: "RC_STALE_QUOTE",
+    strategy: "R_CALIBRATED_VALUE",
+    title: "報價過舊失準警戒",
+    status: "warning",
+    condition: "book_age_ms > 828.5",
+    finding: "開發與驗證段呈負值，留後段接近零，較像訊號品質退化條件。",
+    splits: [
+      { label: "開發", samples: 13, returnOnStake: "−2.5%" },
+      { label: "驗證", samples: 9, returnOnStake: "−5.3%" },
+      { label: "留後", samples: 10, returnOnStake: "+0.5%" },
+    ],
+    daily: "7 日中僅 3 日為正",
+    caution: "目前只做警戒標籤，不直接阻擋訊號。",
+  },
+  {
+    id: "FL_DIRECTION",
+    strategy: "R_FUTURES_LEAD",
+    title: "方向差異觀測",
+    status: "limited",
+    condition: "signal side = DOWN（另列 UP 對照）",
+    finding: "DOWN 在三段皆為正；UP 從開發負值轉為後段正值，方向效果並不穩定。",
+    splits: [
+      { label: "開發", samples: 4, returnOnStake: "+19.8%" },
+      { label: "驗證", samples: 9, returnOnStake: "+27.2%" },
+      { label: "留後", samples: 9, returnOnStake: "+32.4%" },
+    ],
+    daily: "DOWN 開發段僅 4 筆",
+    caution: "樣本太少，不應升級成方向阻擋；UP 留後仍為 +6.0%。",
+  },
+  {
+    id: "MP_LATE_WINDOW",
+    strategy: "R_MICROPRICE",
+    title: "較晚進場可靠區",
+    status: "candidate",
+    condition: "seconds_left ≤ 178.432",
+    finding: "三個時間切分皆為正，晚於原始 180 秒附近的觸發品質較好。",
+    splits: [
+      { label: "開發", samples: 11, returnOnStake: "+41.0%" },
+      { label: "驗證", samples: 8, returnOnStake: "+20.7%" },
+      { label: "留後", samples: 11, returnOnStake: "+20.6%" },
+    ],
+    daily: "有交易的 6 日中 5 日為正",
+    caution: "與新鮮簿標籤分開追蹤，不能把兩者效果相加。",
+  },
+  {
+    id: "MP_FRESH_BOOK",
+    strategy: "R_MICROPRICE",
+    title: "新鮮訂單簿可靠區",
+    status: "candidate",
+    condition: "book_age_ms ≤ 422.5",
+    finding: "三個時間切分皆為正，但留後優勢縮小，適合繼續累積而非立即套用。",
+    splits: [
+      { label: "開發", samples: 11, returnOnStake: "+25.5%" },
+      { label: "驗證", samples: 7, returnOnStake: "+15.9%" },
+      { label: "留後", samples: 7, returnOnStake: "+7.7%" },
+    ],
+    daily: "留後仍正、但效果遞減",
+    caution: "與晚進場樣本交集很小，必須視為獨立假說。",
+  },
+  {
+    id: "MP_MIDPRICE_WEAK",
+    strategy: "R_MICROPRICE",
+    title: "中低價開發假象警戒",
+    status: "warning",
+    condition: "0.286425 < entry_price ≤ 0.39195",
+    finding: "開發段漂亮，但驗證與留後皆轉負，是典型樣本內有效、樣本外失準。",
+    splits: [
+      { label: "開發", samples: 14, returnOnStake: "+21.0%" },
+      { label: "驗證", samples: 10, returnOnStake: "−6.2%" },
+      { label: "留後", samples: 10, returnOnStake: "−12.8%" },
+    ],
+    daily: "後兩段連續失效",
+    caution: "保留作反過度擬合警報，不應當成進場條件。",
+  },
+];
+
+const RELIABILITY_STATUS_LABEL: Record<ReliabilityShadowStatus, string> = {
+  candidate: "候選可靠區",
+  warning: "失準警戒",
+  limited: "樣本不足",
+};
+
+function ReliabilityShadowPanel() {
+  const counts = RELIABILITY_SHADOW_TAGS.reduce((current, tag) => {
+    current[tag.status] += 1;
+    return current;
+  }, { candidate: 0, warning: 0, limited: 0 });
+
+  return <div className="reliability-shadow-panel" role="tabpanel" id="reliability-shadow-panel" aria-labelledby="reliability-shadow-tab">
+    <section className="shadow-tag-guard">
+      <div>
+        <span className="eyebrow">FIXED 7-DAY MARKET REPLAY · RESEARCH ONLY</span>
+        <h3>模型可靠／失準影子標籤</h3>
+        <p>只記錄、不阻擋；不修改策略、Observer、回撤、冷卻、金額或實單。此頁是固定七日市場情境回放的研究基準，不是上線許可。</p>
+      </div>
+      <span className="shadow-tag-badge">SHADOW ONLY</span>
+    </section>
+
+    <section className="shadow-tag-summary" aria-label="影子標籤摘要">
+      <article><span>研究標籤</span><strong>{RELIABILITY_SHADOW_TAGS.length}</strong><small>每條假說獨立追蹤</small></article>
+      <article className="candidate"><span>候選可靠區</span><strong>{counts.candidate}</strong><small>三段皆維持正值</small></article>
+      <article className="warning"><span>失準警戒</span><strong>{counts.warning}</strong><small>樣本外衰退或轉負</small></article>
+      <article className="limited"><span>樣本不足</span><strong>{counts.limited}</strong><small>不得升級成阻擋</small></article>
+    </section>
+
+    <div className="shadow-tag-grid">
+      {RELIABILITY_SHADOW_TAGS.map(tag => <article className={`shadow-tag-card ${tag.status}`} key={tag.id}>
+        <div className="shadow-tag-card-head">
+          <div><span>{tag.strategy}</span><h4>{tag.title}</h4></div>
+          <strong>{RELIABILITY_STATUS_LABEL[tag.status]}</strong>
+        </div>
+        <code>{tag.id} · {tag.condition}</code>
+        <p>{tag.finding}</p>
+        <div className="shadow-tag-splits">
+          {tag.splits.map(split => <div key={split.label}>
+            <span>{split.label} · n={split.samples}</span>
+            <strong className={split.returnOnStake.startsWith("−") ? "negative" : "positive"}>{split.returnOnStake}</strong>
+            <small>已實現損益／本金</small>
+          </div>)}
+        </div>
+        <div className="shadow-tag-foot"><span>{tag.daily}</span><small>{tag.caution}</small></div>
+      </article>)}
+    </div>
+
+    <section className="shadow-tag-method">
+      <div><span className="eyebrow">EVIDENCE BOUNDARY</span><h3>目前只建立歷史基準</h3></div>
+      <p>門檻由較早的開發段決定，再原封不動套到驗證與留後段。前向標籤累積尚未接線，因此畫面不會冒充即時樣本；下一階段應把每次命中與未命中的反事實結果寫入獨立研究帳本，再用全新資料判斷是否晉級。</p>
+      <span className="shadow-tag-forward-state">前向樣本：尚未接入</span>
+    </section>
+  </div>;
 }
 
 const RESEARCH_STRATEGY_CARDS: Array<{ id: StrategyId; title: string; rule: string; tone: string; shadow?: boolean }> = [
@@ -2648,9 +2811,10 @@ export default function Home() {
   const latest = state.latest;
   const status = apiDown ? "OFFLINE" : state.connection.status;
   const isLiveView = strategyView === "live-m0w";
+  const isReliabilityView = strategyView === "reliability-shadow";
   const isPairView = strategyView === "pair-arb";
   const isPausedView = strategyView === "paused";
-  const isNonConfigView = isLiveView;
+  const isNonConfigView = isLiveView || isReliabilityView;
   const activeLivePositions = isLiveView && latest
     ? (state.liveM0W?.activePositions ?? []).filter(position => (
         position.market_id === latest.market_id
@@ -2701,10 +2865,11 @@ export default function Home() {
       </OptionalPanel>
 
       <form onSubmit={save}>
-        <div className="section-heading strategy-console-heading"><div><span className="eyebrow">{strategyView === "live-m0w" ? `REAL MONEY · ${state.liveM0W?.strategy ?? "M0W"}` : strategyView === "lead-observer" ? "OBSERVER · EIGHT SHADOWS" : strategyView === "research" ? "FIVE PRIMARY + EIGHT SHADOWS · PAPER" : strategyView === "m-series" ? "M SERIES · PRIMARY" : strategyView === "pair-arb" ? "COMPLEMENTARY PAIR · NEW" : strategyView === "paused" ? "TEMPORARILY STOPPED" : "LEGACY A–L"}</span><h2>{strategyView === "live-m0w" ? "正式實單監視與規則" : strategyView === "lead-observer" ? "Observer 版本與策略組合觀測" : strategyView === "research" ? "五組主策略＋八組 Shadow" : strategyView === "m-series" ? "M 系列策略控制台" : strategyView === "pair-arb" ? "UP＋DOWN 互補測試" : strategyView === "paused" ? "暫時停止觀測" : "舊策略控制台"}</h2></div>{!isNonConfigView && <div className="save-box"><span>{saveState}</span><button type="submit">儲存參數</button></div>}</div>
+        <div className="section-heading strategy-console-heading"><div><span className="eyebrow">{strategyView === "live-m0w" ? `REAL MONEY · ${state.liveM0W?.strategy ?? "M0W"}` : strategyView === "reliability-shadow" ? "MODEL RELIABILITY · SHADOW TAGS" : strategyView === "lead-observer" ? "OBSERVER · EIGHT SHADOWS" : strategyView === "research" ? "FIVE PRIMARY + EIGHT SHADOWS · PAPER" : strategyView === "m-series" ? "M SERIES · PRIMARY" : strategyView === "pair-arb" ? "COMPLEMENTARY PAIR · NEW" : strategyView === "paused" ? "TEMPORARILY STOPPED" : "LEGACY A–L"}</span><h2>{strategyView === "live-m0w" ? "正式實單監視與規則" : strategyView === "reliability-shadow" ? "模型可靠／失準研究標籤" : strategyView === "lead-observer" ? "Observer 版本與策略組合觀測" : strategyView === "research" ? "五組主策略＋八組 Shadow" : strategyView === "m-series" ? "M 系列策略控制台" : strategyView === "pair-arb" ? "UP＋DOWN 互補測試" : strategyView === "paused" ? "暫時停止觀測" : "舊策略控制台"}</h2></div>{!isNonConfigView && <div className="save-box"><span>{saveState}</span><button type="submit">儲存參數</button></div>}</div>
         <div className="strategy-tabs" role="tablist" aria-label="策略系列">
           <button type="button" role="tab" id="live-m0w-tab" aria-controls="live-m0w-panel" aria-selected={strategyView === "live-m0w"} className={strategyView === "live-m0w" ? "active live" : "live"} onClick={() => setStrategyView("live-m0w")}><strong>{state.liveM0W?.strategy ?? "M0W"} 正式實單</strong><span>{liveRulesDirty ? "有尚未套用的實單規則草稿" : "策略、金額與時段門檻可調整"}</span></button>
           <button type="button" role="tab" id="research-tab" aria-controls="research-panel" aria-selected={strategyView === "research"} className={strategyView === "research" ? "active" : ""} onClick={() => setStrategyView("research")}><strong>5 主策略＋8 Shadow</strong><span>實際第一檔 · 主策略共享 100 USDT · Shadow paper only</span></button>
+          <button type="button" role="tab" id="reliability-shadow-tab" aria-controls="reliability-shadow-panel" aria-selected={strategyView === "reliability-shadow"} className={strategyView === "reliability-shadow" ? "active shadow-tag" : "shadow-tag"} onClick={() => setStrategyView("reliability-shadow")}><strong>可靠／失準標籤</strong><span>固定七日市場回放 · 只記錄不阻擋</span></button>
           <button type="button" role="tab" id="lead-observer-tab" aria-controls="lead-observer-panel" aria-selected={strategyView === "lead-observer"} className={strategyView === "lead-observer" ? "active" : ""} onClick={() => setStrategyView("lead-observer")}><strong>Observer 組合</strong><span>Lead 5 版＋其他策略 4 組</span></button>
           <button type="button" role="tab" id="m-series-tab" aria-controls="m-series-panel" aria-selected={strategyView === "m-series"} className={strategyView === "m-series" ? "active" : ""} onClick={() => setStrategyView("m-series")}><strong>M 系列主實驗</strong><span>M01 時間／市況過濾、Floor／Rebound、M1／M3／M7</span></button>
           <button type="button" role="tab" id="pair-arb-tab" aria-controls="pair-arb-panel" aria-selected={strategyView === "pair-arb"} className={strategyView === "pair-arb" ? "active exit" : ""} onClick={() => setStrategyView("pair-arb")}><strong>互補測試</strong><span>UP＋DOWN · 0.010 / 0.020 / 有限風險</span></button>
@@ -2712,7 +2877,7 @@ export default function Home() {
           <button type="button" role="tab" id="paused-tab" aria-controls="paused-panel" aria-selected={strategyView === "paused"} className={strategyView === "paused" ? "active paused" : "paused"} onClick={() => setStrategyView("paused")}><strong>暫時停止觀測</strong><span>{TEMPORARILY_STOPPED_STRATEGIES.length + ALL_MX_SUFFIXES.length * 2} 組 · 含 M／M0 出場分支</span></button>
         </div>
 
-        {strategyView === "live-m0w" ? <LiveM0WPanel data={state.liveM0W} controlState={liveControlState} rulesSaveState={liveRulesSaveState} rulesDraft={liveRulesDraft} rulesDirty={liveRulesDirty} onControl={controlLive} onRulesUpdate={updateLiveRulesDraft} onRulesReset={resetLiveRulesDraft} onRulesSave={saveLiveRules} /> : strategyView === "lead-observer" ? <FuturesLeadObserverPanel data={state.researchForward} summaries={state.summaries} config={draft} observer={state.marketObserver} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "research" ? <ResearchForwardPanel data={state.researchForward} summaries={state.summaries} config={draft} live={state.liveM0W} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "m-series" ? <div role="tabpanel" id="m-series-panel" aria-labelledby="m-series-tab">
+        {strategyView === "live-m0w" ? <LiveM0WPanel data={state.liveM0W} controlState={liveControlState} rulesSaveState={liveRulesSaveState} rulesDraft={liveRulesDraft} rulesDirty={liveRulesDirty} onControl={controlLive} onRulesUpdate={updateLiveRulesDraft} onRulesReset={resetLiveRulesDraft} onRulesSave={saveLiveRules} /> : strategyView === "reliability-shadow" ? <ReliabilityShadowPanel /> : strategyView === "lead-observer" ? <FuturesLeadObserverPanel data={state.researchForward} summaries={state.summaries} config={draft} observer={state.marketObserver} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "research" ? <ResearchForwardPanel data={state.researchForward} summaries={state.summaries} config={draft} live={state.liveM0W} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "m-series" ? <div role="tabpanel" id="m-series-panel" aria-labelledby="m-series-tab">
           <div className="strategy-family-intro">
             <div><span className="eyebrow">18 ACTIVE OBSERVATION IDS</span><h3>持續觀測的開盤方向與延遲實驗</h3></div>
             <p>已跌到 -500 USDT 以下的策略移至「暫時停止觀測」。其餘每個 ID 仍有自己的交易摘要與歸零起點；Prediction 訂單簿只負責模擬執行。</p>
