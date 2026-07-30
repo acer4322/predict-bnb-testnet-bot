@@ -29,6 +29,7 @@ from predict_bot.professionalization import (  # noqa: E402
     selected_composite_trades,
     select_development_exit_candidate,
     sha256_file,
+    sha256_normalized_text,
     stable_hash,
     strategy_local_sizing_research,
     summarize_execution_stress,
@@ -259,10 +260,10 @@ def build_report(replay_report: Path, simulation_db: Path, output_dir: Path) -> 
     config = {
         "schemaVersion": "professionalization-v1",
         "implementationHashes": {
-            "professionalizationModuleSha256": sha256_file(
+            "professionalizationModuleSha256": sha256_normalized_text(
                 ROOT / "src" / "predict_bot" / "professionalization.py"
             ),
-            "orchestratorSha256": sha256_file(Path(__file__).resolve()),
+            "orchestratorSha256": sha256_normalized_text(Path(__file__).resolve()),
         },
         "sourceReplaySchemaVersion": source_report.get("schemaVersion"),
         "horizonsSeconds": [3, 10, 30, 60, 120],

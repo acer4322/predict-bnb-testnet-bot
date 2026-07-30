@@ -15,8 +15,11 @@ Acceptance status:
 
 ## Isolation and frozen scope
 
-- Branch: `feature/professionalization-v1`
-- Worktree: `predict-bnb-professionalization-v1`
+- Development branch: `feature/professionalization-v1`
+- Merged target branch: `feature/regime-guard`
+- Merge commit: `112ed36`
+- Original empty nested `dashboard/.git` was moved recoverably to
+  `.copied-dashboard-git`; Dashboard source content was unchanged.
 - Baseline snapshot: `9793cfd`
 - Original live branch retained: `feature/regime-guard`
 - Historical `simulation.db` is opened with SQLite `mode=ro` and
@@ -35,9 +38,9 @@ Acceptance status:
 
 ## Reproducibility identity
 
-- Experiment ID: `c3ef65026f9e00c356de4b8f`
+- Experiment ID: `4b4721f33f7153ff4242b38b`
 - Deterministic report-core SHA-256:
-  `8d7272bd6c19142a928c3342fe40e082f497fd8f0e4ef97c44b7e09a5d19af6f`
+  `fb5e68ec8544aeb05c78489475e4e3577ff69c53be51bd532cb1908c7e2cb1af`
 - Replay SHA-256:
   `bd66b78b893b6d1a43d69f6b8b8ebcca51bd29c2900db7aa9c80683ad26718f5`
 - Dataset identity includes the fixed replay, fixed-end market-data aggregates,
@@ -184,8 +187,8 @@ settlement. No global Observer score is calculated.
 
 ## Verification
 
-- New focused suite: 14 passed.
-- Full Python suite after implementation: 591 passed, 31 failed.
+- New focused suite: 15 passed.
+- Full Python suite after merge: 592 passed, 31 failed.
 - Baseline before implementation: 577 passed, 31 failed.
 - Regression decision: pass; the 31 stale legacy failures are unchanged. They
   concern an old 50-strategy count and legacy A/C/D/J/L/M enabled-by-default
@@ -193,6 +196,8 @@ settlement. No global Observer score is calculated.
 - Dashboard build and rendered HTML test: 1 passed, 0 failed.
 - Determinism: two consecutive fixed-window executions returned the same
   experiment ID and report-core hash while the source collector continued.
+  Source-code hashes normalize LF/CRLF line endings, so equivalent Git content
+  retains the same identity across Windows worktrees.
 
 ## Live isolation audit
 

@@ -18,6 +18,7 @@ from predict_bot.professionalization import (
     infer_selected_side_probability,
     platform_risk_registry,
     selected_composite_trades,
+    sha256_normalized_text,
     select_development_exit_candidate,
     strategy_local_sizing_research,
     wilson_interval,
@@ -144,6 +145,14 @@ def test_read_only_connector_rejects_write(tmp_path: Path) -> None:
     with connect_read_only(path) as connection:
         with pytest.raises(sqlite3.OperationalError):
             connection.execute("INSERT INTO values_table VALUES(1)")
+
+
+def test_source_hash_is_independent_of_line_endings(tmp_path: Path) -> None:
+    lf = tmp_path / "lf.py"
+    crlf = tmp_path / "crlf.py"
+    lf.write_bytes(b"value = 1\nprint(value)\n")
+    crlf.write_bytes(b"value = 1\r\nprint(value)\r\n")
+    assert sha256_normalized_text(lf) == sha256_normalized_text(crlf)
 
 
 def test_coverage_audit_uses_fixed_inclusive_end(tmp_path: Path) -> None:

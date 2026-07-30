@@ -65,6 +65,15 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def sha256_normalized_text(path: Path) -> str:
+    """Hash UTF-8 source independently of LF/CRLF checkout settings."""
+
+    normalized = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace(
+        "\r", "\n"
+    )
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def stable_hash(value: Any) -> str:
     encoded = json.dumps(
         value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
