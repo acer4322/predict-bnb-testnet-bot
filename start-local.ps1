@@ -1,3 +1,7 @@
+param(
+    [switch]$NoBrowser
+)
+
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Dashboard = Join-Path $Root "dashboard"
@@ -152,7 +156,9 @@ if ($LanIp) {
 else {
     Write-Warning "No LAN IPv4 address was found. Localhost is still available."
 }
-Start-Process $LocalUrl
+if (-not $NoBrowser) {
+    Start-Process $LocalUrl
+}
 Write-Host "READY: the website is running in the background. You can type another command now."
 if ($env:PREDICT_LIVE_ENABLED -match '^(1|true|yes|on)$') {
     try {

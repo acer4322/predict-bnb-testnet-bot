@@ -30,6 +30,8 @@ from .live_trading import LiveM0WEngine, M01O_F1_MIN_SECONDS_LEFT
 from .market_observer import MarketStateObserver, summarize_m01_settled_fills
 from .supervisor import API_RESTART_EXIT_CODE
 from .research_forward import (
+    CONTINUOUS_CALIBRATION_RULES,
+    CONTINUOUS_CALIBRATION_STRATEGIES,
     FUTURES_LEAD_EXPERIMENT_STRATEGIES,
     FUTURES_LEAD_EXIT_STRATEGIES,
     FUTURES_LEAD_OBSERVER_STRATEGIES,
@@ -41,6 +43,7 @@ from .research_forward import (
     RESEARCH_STRATEGIES,
     SHADOW_RESEARCH_STRATEGIES,
     ResearchSampleBuffer,
+    continuous_calibration_decision,
     execution_candidate as research_execution_candidate,
     futures_lead_observer_decision,
     regime_futures_lead_signal as research_regime_futures_lead_signal,
@@ -322,6 +325,8 @@ DEFAULT_CONFIG: dict[str, float | bool] = {
     "strategy_r_ofi_event_cum_filtered_stake": 5.0,
     "strategy_r_futures_lead_enabled": True,
     "strategy_r_futures_lead_stake": 5.0,
+    "strategy_r_futures_lead_continuous_v2_enabled": True,
+    "strategy_r_futures_lead_continuous_v2_stake": 5.0,
     "strategy_r_futures_lead_reverse_enabled": True,
     "strategy_r_futures_lead_reverse_stake": 5.0,
     "strategy_r_futures_lead_regime_reverse_3l_enabled": True,
@@ -354,6 +359,8 @@ DEFAULT_CONFIG: dict[str, float | bool] = {
     "strategy_r_calibrated_value_observer_v6_stake": 5.0,
     "strategy_r_calibrated_value_enabled": True,
     "strategy_r_calibrated_value_stake": 5.0,
+    "strategy_r_calibrated_value_continuous_v2_enabled": True,
+    "strategy_r_calibrated_value_continuous_v2_stake": 5.0,
     "strategy_r_consensus_enabled": True,
     "strategy_r_consensus_stake": 5.0,
     "strategy_research_shared_cap_usdt": 100.0,
@@ -4596,6 +4603,69 @@ class Store:
         ).fetchone()
         return float(row[0] or 0.0)
 
+    def _research_continuous_calibration_history(
+        self,
+        source_strategy: str,
+        *,
+        before_market_id: int,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """Return only earlier source trades with an official known outcome."""
+        rows = self.db.execute(
+            """SELECT t.market_id, t.side, t.model_probability,
+                      t.diagnostics_json, s.official_winner
+                 FROM trades AS t
+                 JOIN market_settlements AS s ON s.market_id=t.market_id
+                WHERE t.strategy=? AND t.market_id < ?
+                  AND s.status='OFFICIAL' AND s.official_winner IS NOT NULL
+                ORDER BY t.market_id DESC, t.id DESC
+                LIMIT ?""",
+            (source_strategy, int(before_market_id), max(1, int(limit))),
+        ).fetchall()
+        history: list[dict[str, Any]] = []
+        for row in reversed(rows):
+            try:
+                diagnostics = json.loads(str(row["diagnostics_json"] or "{}"))
+                signal = float(diagnostics["signal"])
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                continue
+            side = str(row["side"])
+            history.append(
+                {
+                    "market_id": int(row["market_id"]),
+                    "side": side,
+                    "signal": signal,
+                    "model_probability": row["model_probability"],
+                    "won": int(side == str(row["official_winner"])),
+                }
+            )
+        return history
+
+    def _research_continuous_calibration_state(
+        self, strategy: str
+    ) -> dict[str, Any]:
+        params = RESEARCH_PARAMETERS[strategy]
+        source_strategy = CONTINUOUS_CALIBRATION_RULES[strategy]
+        history = self._research_continuous_calibration_history(
+            source_strategy,
+            before_market_id=2**63 - 1,
+            limit=int(params["history_window"]),
+        )
+        minimum = int(params["min_history"])
+        return {
+            "status": "READY" if len(history) >= minimum else "WARMUP",
+            "sourceStrategy": source_strategy,
+            "officialSourceSamples": len(history),
+            "officialSourceWins": sum(int(row["won"]) for row in history),
+            "minimumHistory": minimum,
+            "minimumBucketHistory": int(params["min_bucket_history"]),
+            "historyWindow": int(params["history_window"]),
+            "priorStrength": float(params["prior_strength"]),
+            "minimumEdge": float(params["min_edge"]),
+            "officialOnly": True,
+            "causalNextMarketOnly": True,
+        }
+
     @staticmethod
     def _research_experiment_segment(sample_index: int) -> str:
         if sample_index <= 60:
@@ -4845,20 +4915,25 @@ class Store:
             regime_history = None
             regime_direction_control = None
             observer_decision = None
+            calibration_decision = None
             source_strategy = None
             if strategy in {
+                *CONTINUOUS_CALIBRATION_STRATEGIES,
                 "R_FUTURES_LEAD_REVERSE",
                 "R_FUTURES_LEAD_REGIME_REVERSE_3L",
                 *FUTURES_LEAD_OBSERVER_STRATEGIES,
                 *OBSERVER_COMBINATION_STRATEGIES,
             }:
                 source_strategy = (
-                    OBSERVER_COMBINATION_STRATEGY_RULES[strategy][0]
+                    CONTINUOUS_CALIBRATION_RULES[strategy]
+                    if strategy in CONTINUOUS_CALIBRATION_STRATEGIES
+                    else OBSERVER_COMBINATION_STRATEGY_RULES[strategy][0]
                     if strategy in OBSERVER_COMBINATION_STRATEGIES
                     else "R_FUTURES_LEAD"
                 )
                 source_trade = self.db.execute(
-                    """SELECT id, side, opened_at, diagnostics_json
+                    """SELECT id, side, opened_at, entry_price, stake, shares,
+                              fees, model_probability, diagnostics_json
                          FROM trades
                         WHERE market_id=? AND strategy=?
                         ORDER BY id ASC LIMIT 1""",
@@ -4873,7 +4948,44 @@ class Store:
                     source_signal = float(source_diagnostics["signal"])
                 except (KeyError, TypeError, ValueError, json.JSONDecodeError):
                     continue
-                if strategy in {
+                if strategy in CONTINUOUS_CALIBRATION_STRATEGIES:
+                    source_shares = float(source_trade["shares"])
+                    if source_shares <= 0:
+                        continue
+                    effective_cost = float(source_trade["entry_price"]) + (
+                        float(source_trade["fees"]) / source_shares
+                    )
+                    calibration_history = (
+                        self._research_continuous_calibration_history(
+                            source_strategy,
+                            before_market_id=market_id,
+                            limit=int(params["history_window"]),
+                        )
+                    )
+                    calibration_decision = continuous_calibration_decision(
+                        strategy,
+                        source_side=str(source_trade["side"]),
+                        source_signal=source_signal,
+                        source_probability=source_trade["model_probability"],
+                        effective_cost=effective_cost,
+                        history=calibration_history,
+                    )
+                    if calibration_decision["allowed"] is not True:
+                        continue
+                    signal = {
+                        "side": str(source_trade["side"]),
+                        "signal": float(calibration_decision["calibrated_edge"]),
+                        "source_strategy": source_strategy,
+                        "source_side": str(source_trade["side"]),
+                        "source_signal": source_signal,
+                        "model_probability": float(
+                            calibration_decision["calibrated_probability"]
+                        ),
+                        "model_edge": float(
+                            calibration_decision["calibrated_edge"]
+                        ),
+                    }
+                elif strategy in {
                     *FUTURES_LEAD_OBSERVER_STRATEGIES,
                     *OBSERVER_COMBINATION_STRATEGIES,
                 }:
@@ -5005,9 +5117,20 @@ class Store:
             )
             if candidate is None:
                 continue
+            if strategy in CONTINUOUS_CALIBRATION_STRATEGIES:
+                actual_effective_cost = float(candidate["entry"]) + taker_fee(
+                    1.0, float(candidate["entry"]), fee_bps
+                )
+                actual_edge = float(candidate["model_probability"]) - actual_effective_cost
+                if actual_edge < float(params["min_edge"]):
+                    continue
+                candidate["model_edge"] = actual_edge
+                calibration_decision["actual_effective_cost"] = actual_effective_cost
+                calibration_decision["actual_calibrated_edge"] = actual_edge
             sample_index = None
             sample_segment = None
             if strategy in {
+                *CONTINUOUS_CALIBRATION_STRATEGIES,
                 *FUTURES_LEAD_EXPERIMENT_STRATEGIES,
                 *FUTURES_LEAD_OBSERVER_STRATEGIES,
                 *OBSERVER_COMBINATION_STRATEGIES,
@@ -5140,6 +5263,24 @@ class Store:
                         "direction_reversed": False,
                     }
                 )
+            if strategy in CONTINUOUS_CALIBRATION_STRATEGIES:
+                diagnostics.update(
+                    {
+                        "continuous_calibration": calibration_decision,
+                        "source_strategy": source_strategy,
+                        "source_side": str(source_trade["side"]),
+                        "source_signal": source_signal,
+                        "source_trade_id": int(source_trade["id"]),
+                        "source_trade_opened_at": source_trade["opened_at"],
+                        "dependency_rule": (
+                            f"open_only_after_same_market_{source_strategy}_trade_"
+                            "and_causal_rolling_calibration_allows"
+                        ),
+                        "direction_reversed": False,
+                        "official_history_only": True,
+                        "current_market_excluded_from_history": True,
+                    }
+                )
             if strategy in OBSERVER_COMBINATION_STRATEGIES:
                 diagnostics.update(
                     {
@@ -5171,6 +5312,7 @@ class Store:
                 strategy_version=(
                     f"{strategy}_shadow_paper_v2"
                     if strategy in {
+                        *CONTINUOUS_CALIBRATION_STRATEGIES,
                         "R_FUTURES_LEAD_REVERSE",
                         "R_FUTURES_LEAD_REGIME_REVERSE_3L",
                     }
@@ -5213,7 +5355,16 @@ class Store:
                     "model_edge": candidate.get("model_edge"),
                     "event_ofi_count": candidate.get("event_ofi_count"),
                 }
-            if strategy == "R_FUTURES_LEAD_REVERSE":
+            if strategy in CONTINUOUS_CALIBRATION_STRATEGIES:
+                opened_candidate.update(
+                    {
+                        "source_strategy": source_strategy,
+                        "source_side": str(source_trade["side"]),
+                        "source_trade_id": int(source_trade["id"]),
+                        "continuous_calibration": calibration_decision,
+                    }
+                )
+            elif strategy == "R_FUTURES_LEAD_REVERSE":
                 opened_candidate.update(
                     {
                         "dependent_live_pair": True,
@@ -9143,11 +9294,21 @@ class Store:
                     "chronologicalValidation": (
                         self._research_experiment_validation_state(strategy)
                         if strategy in {
+                            *CONTINUOUS_CALIBRATION_STRATEGIES,
                             *FUTURES_LEAD_EXPERIMENT_STRATEGIES,
                             *FUTURES_LEAD_OBSERVER_STRATEGIES,
                             *OBSERVER_COMBINATION_STRATEGIES,
                         }
                         else None
+                    ),
+                    **(
+                        {
+                            "continuousCalibration": (
+                                self._research_continuous_calibration_state(strategy)
+                            )
+                        }
+                        if strategy in CONTINUOUS_CALIBRATION_STRATEGIES
+                        else {}
                     ),
                     **(
                         {"directionControl": regime_direction_control}

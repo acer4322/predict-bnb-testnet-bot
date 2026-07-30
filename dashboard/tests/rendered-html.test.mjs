@@ -154,6 +154,12 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.match(page, /R_OFI_EVENT_CUM/);
   assert.match(page, /R_OFI_EVENT_CUM_FILTERED/);
   assert.match(page, /R_FUTURES_LEAD_REVERSE/);
+  assert.match(page, /R_FUTURES_LEAD_CONTINUOUS_V2/);
+  assert.match(page, /R_CALIBRATED_VALUE_CONTINUOUS_V2/);
+  assert.match(page, /持續校準 V2/);
+  assert.match(page, /只使用當前市場以前已官方結算的最近 200 筆/);
+  assert.match(page, /下一市場才生效/);
+  assert.match(styles, /\.continuous-calibration-state/);
   assert.match(page, /R_FUTURES_LEAD_REGIME_REVERSE_3L/);
   assert.match(page, /目前有效：/);
   assert.match(page, /強制正方向/);
@@ -162,7 +168,7 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.match(page, /R_FUTURES_LEAD_EXIT30/);
   assert.match(page, /R_FUTURES_LEAD_DISTANCE/);
   assert.match(page, /R_FUTURES_LEAD_EXIT30_DISTANCE/);
-  assert.match(page, /五組主策略＋八組獨立 Shadow/);
+  assert.match(page, /五組主策略＋十組獨立 Shadow/);
   assert.match(page, /固定 chronological cohort/);
   assert.match(page, /R_FUTURES_LEAD/);
   assert.match(page, /R_CALIBRATED_VALUE/);

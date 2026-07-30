@@ -12,7 +12,7 @@ function apiUrl(path: string) {
 type NumericConfig = Record<string, number | boolean>;
 type StrategyId = "A" | "B" | "B2" | "C" | "D" | "E" | "F" | "E2" | "G" | "H" | "I" | "J" | "K" | "L" | "M"
   | "M0" | "M01" | "M01T180" | "M01T180D" | "M01TASYM" | "M01O" | "M01O_F1" | "M01O_LIVE" | "M01F" | "M01R" | "M0W" | "M01W" | "M1" | "M2" | "M3" | "M4" | "M5" | "M6" | "M7_1" | "M7_2" | "M7_3" | "M7_5"
-  | "R_MICROPRICE" | "R_OFI" | "R_OFI_MIN040" | "R_OFI_EVENT_CUM" | "R_OFI_EVENT_CUM_FILTERED" | "R_FUTURES_LEAD" | "R_FUTURES_LEAD_REVERSE" | "R_FUTURES_LEAD_REGIME_REVERSE_3L" | "R_FUTURES_LEAD_EXIT30" | "R_FUTURES_LEAD_DISTANCE" | "R_FUTURES_LEAD_EXIT30_DISTANCE" | "R_FUTURES_LEAD_OBSERVER_F1" | "R_FUTURES_LEAD_OBSERVER_V2" | "R_FUTURES_LEAD_OBSERVER_V3" | "R_FUTURES_LEAD_OBSERVER_V4" | "R_FUTURES_LEAD_OBSERVER_V6" | "R_OFI_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V6" | "R_CALIBRATED_VALUE_OBSERVER_V6" | "R_CALIBRATED_VALUE" | "R_CONSENSUS";
+  | "R_MICROPRICE" | "R_OFI" | "R_OFI_MIN040" | "R_OFI_EVENT_CUM" | "R_OFI_EVENT_CUM_FILTERED" | "R_FUTURES_LEAD" | "R_FUTURES_LEAD_CONTINUOUS_V2" | "R_FUTURES_LEAD_REVERSE" | "R_FUTURES_LEAD_REGIME_REVERSE_3L" | "R_FUTURES_LEAD_EXIT30" | "R_FUTURES_LEAD_DISTANCE" | "R_FUTURES_LEAD_EXIT30_DISTANCE" | "R_FUTURES_LEAD_OBSERVER_F1" | "R_FUTURES_LEAD_OBSERVER_V2" | "R_FUTURES_LEAD_OBSERVER_V3" | "R_FUTURES_LEAD_OBSERVER_V4" | "R_FUTURES_LEAD_OBSERVER_V6" | "R_OFI_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V6" | "R_CALIBRATED_VALUE_OBSERVER_V6" | "R_CALIBRATED_VALUE" | "R_CALIBRATED_VALUE_CONTINUOUS_V2" | "R_CONSENSUS";
 type Observation = {
   timestamp: string; topic_id: number; market_id: number; title: string;
   start_price: number; spot_price: number; seconds_left: number;
@@ -297,11 +297,13 @@ const LIVE_STRATEGY_LABELS: Record<string, string> = {
   PAIR_ARB_020: "互補 0.020 · UP＋DOWN 含費淨邊際",
   PAIR_ARB_RISK_020: "有限風險互補 · 含費最多 -0.020/share",
   R_FUTURES_LEAD: "研究實單 · 永續領先現貨",
+  R_FUTURES_LEAD_CONTINUOUS_V2: "Shadow · Lead 持續校準 V2",
   R_FUTURES_LEAD_REVERSE: "研究實單 2 · 永續領先反向避險",
   R_FUTURES_LEAD_REGIME_REVERSE_3L: "研究實單 · Lead 連敗三筆正反切換",
   R_MICROPRICE: "研究實單 · Microprice 深度失衡",
   R_OFI: "研究實單 · 10 秒訂單流不平衡",
   R_CALIBRATED_VALUE: "研究實單 · 校準機率價值",
+  R_CALIBRATED_VALUE_CONTINUOUS_V2: "Shadow · Value 持續校準 V2",
   R_OFI_EVENT_CUM: "研究實單 · 累積事件級 OFI",
 };
 const LIVE_OBSERVER_STRATEGIES = new Set([
@@ -493,6 +495,12 @@ type ResearchStrategyState = {
     splitRule?: string; thresholdsFrozen?: boolean;
     groups?: Record<string, { target?: number; samples?: number; settled?: number; wins?: number; losses?: number; realizedPnl?: number }>;
   } | null;
+  continuousCalibration?: {
+    status?: string; sourceStrategy?: string; officialSourceSamples?: number;
+    officialSourceWins?: number; minimumHistory?: number; minimumBucketHistory?: number;
+    historyWindow?: number; priorStrength?: number; minimumEdge?: number;
+    officialOnly?: boolean; causalNextMarketOnly?: boolean;
+  };
 };
 type ResearchForwardState = {
   status?: string; paperOnly?: boolean; liveOrdersAffected?: boolean;
@@ -587,12 +595,12 @@ const initial: State = {
     M7_3: { ...EMPTY_SUMMARY }, M7_5: { ...EMPTY_SUMMARY },
     R_MICROPRICE: { ...EMPTY_SUMMARY }, R_OFI: { ...EMPTY_SUMMARY },
     R_OFI_MIN040: { ...EMPTY_SUMMARY }, R_OFI_EVENT_CUM: { ...EMPTY_SUMMARY }, R_OFI_EVENT_CUM_FILTERED: { ...EMPTY_SUMMARY },
-    R_FUTURES_LEAD: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_REVERSE: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_REGIME_REVERSE_3L: { ...EMPTY_SUMMARY },
+    R_FUTURES_LEAD: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_CONTINUOUS_V2: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_REVERSE: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_REGIME_REVERSE_3L: { ...EMPTY_SUMMARY },
     R_FUTURES_LEAD_EXIT30: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_DISTANCE: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_EXIT30_DISTANCE: { ...EMPTY_SUMMARY },
     R_FUTURES_LEAD_OBSERVER_F1: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_OBSERVER_V2: { ...EMPTY_SUMMARY },
     R_FUTURES_LEAD_OBSERVER_V3: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_OBSERVER_V4: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_OBSERVER_V6: { ...EMPTY_SUMMARY },
     R_OFI_OBSERVER_V3: { ...EMPTY_SUMMARY }, R_MICROPRICE_OBSERVER_V3: { ...EMPTY_SUMMARY }, R_MICROPRICE_OBSERVER_V6: { ...EMPTY_SUMMARY }, R_CALIBRATED_VALUE_OBSERVER_V6: { ...EMPTY_SUMMARY },
-    R_CALIBRATED_VALUE: { ...EMPTY_SUMMARY },
+    R_CALIBRATED_VALUE: { ...EMPTY_SUMMARY }, R_CALIBRATED_VALUE_CONTINUOUS_V2: { ...EMPTY_SUMMARY },
     R_CONSENSUS: { ...EMPTY_SUMMARY },
   },
 };
@@ -1288,6 +1296,8 @@ const RESEARCH_STRATEGY_CARDS: Array<{ id: StrategyId; title: string; rule: stri
   { id: "R_FUTURES_LEAD", title: "永續領先現貨", rule: "剩餘 180 秒，永續 3 秒報酬幅度領先現貨至少 0.25 bps 才進場。", tone: "blue" },
   { id: "R_CALIBRATED_VALUE", title: "校準機率價值", rule: "剩餘 60 秒，以凍結校準係數估計勝率，扣除成交價與費用後仍有淨優勢才進場。", tone: "purple" },
   { id: "R_CONSENSUS", title: "五訊號共識", rule: "剩餘 180 秒，Microprice、OFI、永續、現貨與機率價格至少四票同向。", tone: "amber" },
+  { id: "R_CALIBRATED_VALUE_CONTINUOUS_V2", title: "Calibrated Value · 持續校準 V2", rule: "依賴式 Shadow：來源 Value 紙上單成立後，只使用當前市場以前已官方結算的最近 200 筆；依方向與機率十分位持續更新，總歷史至少 20 筆、同桶至少 5 筆且校準後淨 edge ≥0.01 才跟單。", tone: "purple", shadow: true },
+  { id: "R_FUTURES_LEAD_CONTINUOUS_V2", title: "Futures Lead · 持續校準 V2", rule: "依賴式 Shadow：來源 Lead 紙上單成立後，只使用當前市場以前已官方結算的最近 200 筆；依方向與 lead 強度桶持續更新，總歷史至少 20 筆、同桶至少 5 筆且校準後淨 edge ≥0.01 才跟單。", tone: "blue", shadow: true },
   { id: "R_OFI_MIN040", title: "OFI＋最低價 0.40", rule: "獨立 Shadow：沿用原 OFI 訊號，但進場側實際 Ask 必須至少 0.40。", tone: "mint", shadow: true },
   { id: "R_OFI_EVENT_CUM", title: "累積事件級 OFI", rule: "獨立 Shadow：累加最近 10 秒每筆 Prediction 訂單簿事件的正規化 OFI，不使用單一端點差。", tone: "cyan", shadow: true },
   { id: "R_OFI_EVENT_CUM_FILTERED", title: "累積 OFI 強訊號過濾", rule: "獨立 Shadow：保留累積事件級 OFI，僅接受 |OFI| ≥ 2.0 且實際 Ask 介於 0.40–0.69。", tone: "green", shadow: true },
@@ -1311,8 +1321,8 @@ function ResearchForwardPanel({ data, summaries, config, live, onConfig, onReset
   const exposure = Number(data?.openExposureUsdt ?? 0);
   return <div className="m-exit-experiment research-forward-panel" role="tabpanel" id="research-panel" aria-labelledby="research-tab">
     <section className="strategy-family-intro m-exit-intro">
-      <div><span className="eyebrow">FORWARD PAPER · FIVE PRIMARY + EIGHT SHADOWS</span><h3>五組主策略＋八組獨立 Shadow</h3></div>
-      <p>五組主策略共用 100 USDT 模擬曝險；八組 Shadow 各自獨立做反事實對照。只有明確列入 live executor 白名單且由使用者選取者才可能送出實單。</p>
+      <div><span className="eyebrow">FORWARD PAPER · FIVE PRIMARY + TEN SHADOWS</span><h3>五組主策略＋十組獨立 Shadow</h3></div>
+      <p>五組主策略共用 100 USDT 模擬曝險；十組 Shadow 各自獨立做反事實對照。兩組持續校準 V2 只跟隨同市場已開出的來源 paper 單，且永遠不在 live executor 白名單。</p>
     </section>
     <section className="m-exit-rules" aria-label="研究策略資金安全設定">
       <div className="m-exit-rules-head"><div><span className="eyebrow">SHARED CAPITAL GUARD</span><h3>資金與成交安全</h3></div><span className="m-exit-api-state live">{data?.status ?? "等待 API"}</span></div>
@@ -1341,6 +1351,7 @@ function ResearchForwardPanel({ data, summaries, config, live, onConfig, onReset
         const settled = summary.wins + summary.losses;
         const parameters = data?.strategies?.[card.id]?.selectedBacktestParameters ?? {};
         const validation = data?.strategies?.[card.id]?.chronologicalValidation;
+        const continuousCalibration = data?.strategies?.[card.id]?.continuousCalibration;
         const directionControl = data?.strategies?.[card.id]?.directionControl;
         const savedDirectionMode = directionControl?.configuredMode ?? "AUTO";
         const directionModeCode = Number(
@@ -1378,6 +1389,11 @@ function ResearchForwardPanel({ data, summaries, config, live, onConfig, onReset
             </div>
             <small className={directionDirty ? "pending" : ""}>{directionDirty ? "方向模式有未儲存變更；按上方「儲存參數」後才會同時套用 paper 與後續實單訊號。" : "此方向同時套用 paper 與後續實單訊號；不修改已送出的訂單。"}</small>
             <small>最近原始 Lead：{directionControl?.recentLeadResults?.length ? directionControl.recentLeadResults.map(result => result === "SETTLED_LOSS" ? "敗" : "勝").join(" → ") : "尚無三筆已結算歷史"}</small>
+          </div>}
+          {continuousCalibration && <div className={`continuous-calibration-state ${continuousCalibration.status === "READY" ? "ready" : "warmup"}`}>
+            <span>持續校準 {continuousCalibration.status === "READY" ? "READY" : "WARMUP"}</span>
+            <strong>{continuousCalibration.officialSourceSamples ?? 0} / {continuousCalibration.minimumHistory ?? 20} 筆官方來源結果</strong>
+            <small>來源 {continuousCalibration.sourceStrategy} · 最近 {continuousCalibration.historyWindow ?? 200} 筆 · 同方向／同區間至少 {continuousCalibration.minimumBucketHistory ?? 5} 筆 · 下一市場才生效</small>
           </div>}
           <div className="fields"><NumberField label="每筆模擬本金" name={stakeKey} value={stake} step={1} suffix="USDT" onChange={onConfig} /></div>
           <p>{card.rule}</p>
@@ -2865,10 +2881,10 @@ export default function Home() {
       </OptionalPanel>
 
       <form onSubmit={save}>
-        <div className="section-heading strategy-console-heading"><div><span className="eyebrow">{strategyView === "live-m0w" ? `REAL MONEY · ${state.liveM0W?.strategy ?? "M0W"}` : strategyView === "reliability-shadow" ? "MODEL RELIABILITY · SHADOW TAGS" : strategyView === "lead-observer" ? "OBSERVER · EIGHT SHADOWS" : strategyView === "research" ? "FIVE PRIMARY + EIGHT SHADOWS · PAPER" : strategyView === "m-series" ? "M SERIES · PRIMARY" : strategyView === "pair-arb" ? "COMPLEMENTARY PAIR · NEW" : strategyView === "paused" ? "TEMPORARILY STOPPED" : "LEGACY A–L"}</span><h2>{strategyView === "live-m0w" ? "正式實單監視與規則" : strategyView === "reliability-shadow" ? "模型可靠／失準研究標籤" : strategyView === "lead-observer" ? "Observer 版本與策略組合觀測" : strategyView === "research" ? "五組主策略＋八組 Shadow" : strategyView === "m-series" ? "M 系列策略控制台" : strategyView === "pair-arb" ? "UP＋DOWN 互補測試" : strategyView === "paused" ? "暫時停止觀測" : "舊策略控制台"}</h2></div>{!isNonConfigView && <div className="save-box"><span>{saveState}</span><button type="submit">儲存參數</button></div>}</div>
+        <div className="section-heading strategy-console-heading"><div><span className="eyebrow">{strategyView === "live-m0w" ? `REAL MONEY · ${state.liveM0W?.strategy ?? "M0W"}` : strategyView === "reliability-shadow" ? "MODEL RELIABILITY · SHADOW TAGS" : strategyView === "lead-observer" ? "OBSERVER · EIGHT SHADOWS" : strategyView === "research" ? "FIVE PRIMARY + TEN SHADOWS · PAPER" : strategyView === "m-series" ? "M SERIES · PRIMARY" : strategyView === "pair-arb" ? "COMPLEMENTARY PAIR · NEW" : strategyView === "paused" ? "TEMPORARILY STOPPED" : "LEGACY A–L"}</span><h2>{strategyView === "live-m0w" ? "正式實單監視與規則" : strategyView === "reliability-shadow" ? "模型可靠／失準研究標籤" : strategyView === "lead-observer" ? "Observer 版本與策略組合觀測" : strategyView === "research" ? "五組主策略＋十組 Shadow" : strategyView === "m-series" ? "M 系列策略控制台" : strategyView === "pair-arb" ? "UP＋DOWN 互補測試" : strategyView === "paused" ? "暫時停止觀測" : "舊策略控制台"}</h2></div>{!isNonConfigView && <div className="save-box"><span>{saveState}</span><button type="submit">儲存參數</button></div>}</div>
         <div className="strategy-tabs" role="tablist" aria-label="策略系列">
           <button type="button" role="tab" id="live-m0w-tab" aria-controls="live-m0w-panel" aria-selected={strategyView === "live-m0w"} className={strategyView === "live-m0w" ? "active live" : "live"} onClick={() => setStrategyView("live-m0w")}><strong>{state.liveM0W?.strategy ?? "M0W"} 正式實單</strong><span>{liveRulesDirty ? "有尚未套用的實單規則草稿" : "策略、金額與時段門檻可調整"}</span></button>
-          <button type="button" role="tab" id="research-tab" aria-controls="research-panel" aria-selected={strategyView === "research"} className={strategyView === "research" ? "active" : ""} onClick={() => setStrategyView("research")}><strong>5 主策略＋8 Shadow</strong><span>實際第一檔 · 主策略共享 100 USDT · Shadow paper only</span></button>
+          <button type="button" role="tab" id="research-tab" aria-controls="research-panel" aria-selected={strategyView === "research"} className={strategyView === "research" ? "active" : ""} onClick={() => setStrategyView("research")}><strong>5 主策略＋10 Shadow</strong><span>新增兩組持續校準 V2 · 全部 paper only</span></button>
           <button type="button" role="tab" id="reliability-shadow-tab" aria-controls="reliability-shadow-panel" aria-selected={strategyView === "reliability-shadow"} className={strategyView === "reliability-shadow" ? "active shadow-tag" : "shadow-tag"} onClick={() => setStrategyView("reliability-shadow")}><strong>可靠／失準標籤</strong><span>固定七日市場回放 · 只記錄不阻擋</span></button>
           <button type="button" role="tab" id="lead-observer-tab" aria-controls="lead-observer-panel" aria-selected={strategyView === "lead-observer"} className={strategyView === "lead-observer" ? "active" : ""} onClick={() => setStrategyView("lead-observer")}><strong>Observer 組合</strong><span>Lead 5 版＋其他策略 4 組</span></button>
           <button type="button" role="tab" id="m-series-tab" aria-controls="m-series-panel" aria-selected={strategyView === "m-series"} className={strategyView === "m-series" ? "active" : ""} onClick={() => setStrategyView("m-series")}><strong>M 系列主實驗</strong><span>M01 時間／市況過濾、Floor／Rebound、M1／M3／M7</span></button>

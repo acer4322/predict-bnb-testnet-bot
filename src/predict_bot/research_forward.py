@@ -18,6 +18,8 @@ PRIMARY_RESEARCH_STRATEGIES = (
 )
 
 SHADOW_RESEARCH_STRATEGIES = (
+    "R_CALIBRATED_VALUE_CONTINUOUS_V2",
+    "R_FUTURES_LEAD_CONTINUOUS_V2",
     "R_FUTURES_LEAD_REVERSE",
     "R_FUTURES_LEAD_REGIME_REVERSE_3L",
     "R_FUTURES_LEAD_EXIT30",
@@ -38,6 +40,12 @@ SHADOW_RESEARCH_STRATEGIES = (
 )
 
 RESEARCH_STRATEGIES = (*PRIMARY_RESEARCH_STRATEGIES, *SHADOW_RESEARCH_STRATEGIES)
+
+CONTINUOUS_CALIBRATION_RULES = {
+    "R_CALIBRATED_VALUE_CONTINUOUS_V2": "R_CALIBRATED_VALUE",
+    "R_FUTURES_LEAD_CONTINUOUS_V2": "R_FUTURES_LEAD",
+}
+CONTINUOUS_CALIBRATION_STRATEGIES = tuple(CONTINUOUS_CALIBRATION_RULES)
 
 FUTURES_LEAD_EXPERIMENT_STRATEGIES = (
     "R_FUTURES_LEAD_EXIT30",
@@ -130,6 +138,17 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "min_lead_bps": 0.25,
         "max_ask": 0.55,
     },
+    "R_FUTURES_LEAD_CONTINUOUS_V2": {
+        "horizon": 180.0,
+        "lag": 3.0,
+        "min_lead_bps": 0.25,
+        "max_ask": 0.55,
+        "history_window": 200.0,
+        "min_history": 20.0,
+        "min_bucket_history": 5.0,
+        "prior_strength": 10.0,
+        "min_edge": 0.01,
+    },
     "R_FUTURES_LEAD_REVERSE": {
         "horizon": 180.0,
         "lag": 3.0,
@@ -199,6 +218,15 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "max_ask": 0.70,
         "beta_0": -0.15376836312439016,
         "beta_1": 0.9895606377583307,
+    },
+    "R_CALIBRATED_VALUE_CONTINUOUS_V2": {
+        "horizon": 60.0,
+        "min_edge": 0.01,
+        "max_ask": 0.70,
+        "history_window": 200.0,
+        "min_history": 20.0,
+        "min_bucket_history": 5.0,
+        "prior_strength": 10.0,
     },
     "R_CONSENSUS": {"horizon": 180.0, "lag": 10.0, "votes": 4.0, "max_ask": 0.85},
 }
@@ -705,6 +733,156 @@ def terminal_probability_from_distance(
     }
 
 
+def _probability_bucket(probability: float) -> str:
+    index = min(9, max(0, int(probability * 10)))
+    return f"p{index / 10:.1f}-{(index + 1) / 10:.1f}"
+
+
+def _lead_strength_bucket(signal: float) -> str:
+    strength = abs(signal)
+    if strength < 0.50:
+        return "lead0.25-0.50bps"
+    if strength < 1.00:
+        return "lead0.50-1.00bps"
+    return "lead1.00+bps"
+
+
+def continuous_calibration_decision(
+    strategy: str,
+    *,
+    source_side: str,
+    source_signal: float,
+    source_probability: float | None,
+    effective_cost: float,
+    history: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build a causal rolling calibration decision from prior official results.
+
+    The caller must provide only source trades from earlier markets whose
+    official outcomes were already available.  Fixed buckets and sample
+    thresholds keep this forward test stable while every new settlement can
+    update the next market's estimate.
+    """
+    if strategy not in CONTINUOUS_CALIBRATION_RULES:
+        raise ValueError(f"unsupported continuous calibration strategy: {strategy}")
+    source_side = str(source_side).upper()
+    if source_side not in {"UP", "DOWN"} or not _finite(
+        source_signal, effective_cost
+    ):
+        return {"allowed": False, "reason": "INVALID_SOURCE"}
+    params = RESEARCH_PARAMETERS[strategy]
+    window = int(params["history_window"])
+    usable = []
+    for row in history[-window:]:
+        try:
+            side = str(row["side"]).upper()
+            signal = float(row["signal"])
+            won = int(row["won"])
+            probability = row.get("model_probability")
+            probability = float(probability) if probability is not None else None
+        except (KeyError, TypeError, ValueError):
+            continue
+        if side not in {"UP", "DOWN"} or won not in {0, 1} or not _finite(signal):
+            continue
+        if probability is not None and not (
+            _finite(probability) and 0 < probability < 1
+        ):
+            probability = None
+        usable.append(
+            {
+                "side": side,
+                "signal": signal,
+                "won": won,
+                "model_probability": probability,
+                "market_id": row.get("market_id"),
+            }
+        )
+
+    source_strategy = CONTINUOUS_CALIBRATION_RULES[strategy]
+    if source_strategy == "R_CALIBRATED_VALUE":
+        if source_probability is None or not _finite(source_probability):
+            return {"allowed": False, "reason": "SOURCE_PROBABILITY_UNAVAILABLE"}
+        source_probability = min(1 - 1e-6, max(1e-6, float(source_probability)))
+        bucket = _probability_bucket(source_probability)
+        local = [
+            row
+            for row in usable
+            if row["side"] == source_side
+            and row["model_probability"] is not None
+            and _probability_bucket(float(row["model_probability"])) == bucket
+        ]
+        prior_center = source_probability
+    else:
+        bucket = _lead_strength_bucket(float(source_signal))
+        local = [
+            row
+            for row in usable
+            if row["side"] == source_side
+            and _lead_strength_bucket(float(row["signal"])) == bucket
+        ]
+        prior_center = (
+            (sum(int(row["won"]) for row in usable) + 2.0)
+            / (len(usable) + 4.0)
+            if usable
+            else 0.5
+        )
+
+    local_wins = sum(int(row["won"]) for row in local)
+    prior_strength = float(params["prior_strength"])
+    calibrated_probability = (
+        local_wins + prior_strength * prior_center
+    ) / (len(local) + prior_strength)
+    calibrated_probability = min(1 - 1e-6, max(1e-6, calibrated_probability))
+    calibrated_edge = calibrated_probability - float(effective_cost)
+    history_ready = len(usable) >= int(params["min_history"])
+    bucket_ready = len(local) >= int(params["min_bucket_history"])
+    allowed = bool(
+        history_ready
+        and bucket_ready
+        and calibrated_edge >= float(params["min_edge"])
+    )
+    reason = (
+        "HISTORY_WARMUP"
+        if not history_ready
+        else "BUCKET_WARMUP"
+        if not bucket_ready
+        else "CALIBRATED_EDGE_BELOW_MINIMUM"
+        if not allowed
+        else "ALLOW"
+    )
+    return {
+        "allowed": allowed,
+        "reason": reason,
+        "source_strategy": source_strategy,
+        "source_side": source_side,
+        "source_signal": float(source_signal),
+        "source_probability": source_probability,
+        "calibration_bucket": f"{source_side}:{bucket}",
+        "history_samples": len(usable),
+        "history_wins": sum(int(row["won"]) for row in usable),
+        "bucket_samples": len(local),
+        "bucket_wins": local_wins,
+        "history_window": window,
+        "minimum_history": int(params["min_history"]),
+        "minimum_bucket_history": int(params["min_bucket_history"]),
+        "prior_center": prior_center,
+        "prior_strength": prior_strength,
+        "calibrated_probability": calibrated_probability,
+        "effective_cost": float(effective_cost),
+        "calibrated_edge": calibrated_edge,
+        "minimum_edge": float(params["min_edge"]),
+        "history_max_market_id": max(
+            (
+                int(row["market_id"])
+                for row in usable
+                if row.get("market_id") is not None
+            ),
+            default=None,
+        ),
+        "causal_prior_official_only": True,
+    }
+
+
 def signal_for_strategy(
     strategy: str,
     current: dict[str, float],
@@ -718,6 +896,7 @@ def signal_for_strategy(
 ) -> dict[str, Any] | None:
     params = RESEARCH_PARAMETERS[strategy]
     if strategy in {
+        *CONTINUOUS_CALIBRATION_STRATEGIES,
         "R_FUTURES_LEAD_REVERSE",
         "R_FUTURES_LEAD_REGIME_REVERSE_3L",
         *FUTURES_LEAD_OBSERVER_STRATEGIES,

@@ -10,6 +10,7 @@ from predict_bot.m_realtime import (
     LIVE_FORWARDABLE_PAPER_STRATEGIES,
 )
 from predict_bot.research_forward import (
+    CONTINUOUS_CALIBRATION_STRATEGIES,
     FUTURES_LEAD_EXPERIMENT_STRATEGIES,
     FUTURES_LEAD_OBSERVER_STRATEGIES,
     FUTURES_LEAD_OBSERVER_VERSIONS,
@@ -17,6 +18,7 @@ from predict_bot.research_forward import (
     RESEARCH_STRATEGIES,
     ResearchSampleBuffer,
     confirmed_futures_lead_signal,
+    continuous_calibration_decision,
     execution_candidate,
     futures_lead_observer_decision,
     regime_futures_lead_signal,
@@ -824,6 +826,177 @@ def test_minimum_stake_floor_and_live_isolation(tmp_path) -> None:
         strategy not in LIVE_FORWARDABLE_PAPER_STRATEGIES
         for strategy in OBSERVER_COMBINATION_STRATEGIES
     )
+    assert all(
+        strategy not in LIVE_FORWARDABLE_PAPER_STRATEGIES
+        for strategy in CONTINUOUS_CALIBRATION_STRATEGIES
+    )
+
+
+def test_continuous_calibration_requires_causal_total_and_bucket_warmup() -> None:
+    history = [
+        {
+            "market_id": index,
+            "side": "UP",
+            "signal": 0.3 if index < 4 else 1.2,
+            "model_probability": None,
+            "won": int(index % 2 == 0),
+        }
+        for index in range(20)
+    ]
+
+    decision = continuous_calibration_decision(
+        "R_FUTURES_LEAD_CONTINUOUS_V2",
+        source_side="UP",
+        source_signal=0.3,
+        source_probability=None,
+        effective_cost=0.40,
+        history=history,
+    )
+
+    assert decision["allowed"] is False
+    assert decision["reason"] == "BUCKET_WARMUP"
+    assert decision["history_samples"] == 20
+    assert decision["bucket_samples"] == 4
+    assert decision["causal_prior_official_only"] is True
+
+
+def test_continuous_calibration_updates_value_and_lead_probabilities() -> None:
+    value_history = [
+        {
+            "market_id": index,
+            "side": "DOWN",
+            "signal": 0.1,
+            "model_probability": 0.65,
+            "won": int(index < 15),
+        }
+        for index in range(20)
+    ]
+    value = continuous_calibration_decision(
+        "R_CALIBRATED_VALUE_CONTINUOUS_V2",
+        source_side="DOWN",
+        source_signal=0.1,
+        source_probability=0.65,
+        effective_cost=0.55,
+        history=value_history,
+    )
+    assert value["allowed"] is True
+    assert value["reason"] == "ALLOW"
+    assert value["calibrated_probability"] == pytest.approx(21.5 / 30)
+    assert value["calibration_bucket"] == "DOWN:p0.6-0.7"
+
+    lead_history = [
+        {
+            "market_id": index,
+            "side": "UP",
+            "signal": 0.3,
+            "model_probability": None,
+            "won": int(index < 14),
+        }
+        for index in range(20)
+    ]
+    lead = continuous_calibration_decision(
+        "R_FUTURES_LEAD_CONTINUOUS_V2",
+        source_side="UP",
+        source_signal=0.3,
+        source_probability=None,
+        effective_cost=0.50,
+        history=lead_history,
+    )
+    assert lead["allowed"] is True
+    assert lead["reason"] == "ALLOW"
+    assert lead["history_max_market_id"] == 19
+    assert lead["calibrated_probability"] > 0.68
+
+
+def test_continuous_lead_shadow_uses_only_prior_official_source_trades(
+    tmp_path,
+) -> None:
+    store = Store(tmp_path / "simulation.db")
+    values = {key: False for key in DEFAULT_CONFIG if key.endswith("_enabled")}
+    values["strategy_r_futures_lead_enabled"] = True
+    values["strategy_r_futures_lead_continuous_v2_enabled"] = True
+    store.update_config(values)
+    for index in range(20):
+        market_id = 100 + index
+        store.open_trade(
+            strategy="R_FUTURES_LEAD",
+            topic_id=market_id,
+            market_id=market_id,
+            side="UP",
+            entry=0.42,
+            target=None,
+            stake=5.0,
+            fee_rate_bps=200,
+            note="continuous calibration history",
+            diagnostics={"signal": 10.0},
+        )
+        store.settle_market(
+            market_id,
+            winner="UP" if index < 14 else "DOWN",
+            official=True,
+            topic_id=market_id,
+            start_price=100.0,
+            end_price=101.0 if index < 14 else 99.0,
+        )
+    store.open_trade(
+        strategy="R_FUTURES_LEAD",
+        topic_id=999,
+        market_id=999,
+        side="UP",
+        entry=0.42,
+        target=None,
+        stake=5.0,
+        fee_rate_bps=200,
+        note="future market must be excluded",
+        diagnostics={"signal": 10.0},
+    )
+    store.settle_market(
+        999,
+        winner="UP",
+        official=True,
+        topic_id=999,
+        start_price=100.0,
+        end_price=101.0,
+    )
+
+    previous = sample(
+        timestamp_ns=10_000_000_000, seconds_left=184.0, current=False
+    )
+    current = sample(
+        timestamp_ns=14_000_000_000, seconds_left=180.0, current=True
+    )
+    previous.update({"market_id": 200, "topic_id": 200})
+    current.update({"market_id": 200, "topic_id": 200})
+    store.maybe_enter_m_series(
+        previous, 200, realtime_context=prediction_context(1)
+    )
+    opened = store.maybe_enter_m_series(
+        current, 200, realtime_context=prediction_context(2)
+    )
+
+    assert [item["strategy"] for item in opened] == [
+        "R_FUTURES_LEAD",
+        "R_FUTURES_LEAD_CONTINUOUS_V2",
+    ]
+    shadow = store.db.execute(
+        "SELECT strategy_version, diagnostics_json FROM trades "
+        "WHERE strategy='R_FUTURES_LEAD_CONTINUOUS_V2'"
+    ).fetchone()
+    diagnostics = json.loads(shadow["diagnostics_json"])
+    calibration = diagnostics["continuous_calibration"]
+    assert shadow["strategy_version"].endswith("shadow_paper_v2")
+    assert calibration["history_samples"] == 20
+    assert calibration["history_max_market_id"] == 119
+    assert diagnostics["official_history_only"] is True
+    assert diagnostics["current_market_excluded_from_history"] is True
+    assert diagnostics["source_trade_id"] > 0
+    state = store._research_continuous_calibration_state(
+        "R_FUTURES_LEAD_CONTINUOUS_V2"
+    )
+    assert state["status"] == "READY"
+    assert state["officialSourceSamples"] == 21
+    assert state["officialOnly"] is True
+    assert state["causalNextMarketOnly"] is True
 
 
 def observer_gate(**overrides) -> dict:

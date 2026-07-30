@@ -61,7 +61,7 @@ Observer 的歷史輪只會在該市場最後一筆快照處理完後才加入�
 
 ## 五組研究策略 forward paper
 
-`R_MICROPRICE`、`R_OFI`、`R_FUTURES_LEAD`、`R_CALIBRATED_VALUE`、`R_CONSENSUS` 是五組主策略；另有八組既有 Shadow、五組 Lead Observer Shadow（`R_FUTURES_LEAD_OBSERVER_F1/V2/V3/V4/V6`），以及 `R_OFI_OBSERVER_V3`、`R_MICROPRICE_OBSERVER_V3/V6`、`R_CALIBRATED_VALUE_OBSERVER_V6` 四組策略搭配。九組 Observer 都只能在同市場來源策略已實際開出模擬單後，以相同方向與相同可執行成交模型進場；各組資金獨立，門檻預先凍結，並各自累積 100–200 筆 chronological validation。共二十二組研究策略都先寫入自己的 paper 帳本；四組策略搭配固定為 paper only，不在 live 轉送白名單。`R_FUTURES_LEAD_REGIME_REVERSE_3L` 的正反控制與 `R_FUTURES_LEAD_REVERSE` 的依賴式兩腿安全規則維持不變。
+`R_MICROPRICE`、`R_OFI`、`R_FUTURES_LEAD`、`R_CALIBRATED_VALUE`、`R_CONSENSUS` 是五組主策略；另有十組主研究頁 Shadow、五組 Lead Observer Shadow（`R_FUTURES_LEAD_OBSERVER_F1/V2/V3/V4/V6`），以及 `R_OFI_OBSERVER_V3`、`R_MICROPRICE_OBSERVER_V3/V6`、`R_CALIBRATED_VALUE_OBSERVER_V6` 四組策略搭配。新增的 `R_CALIBRATED_VALUE_CONTINUOUS_V2` 與 `R_FUTURES_LEAD_CONTINUOUS_V2` 只依賴同市場已開出的來源 paper 單，使用當前市場以前、已官方結算的最近 200 筆來源結果做固定分箱與 Beta 收縮；總歷史至少 20 筆、同方向／同區間至少 5 筆且校準後含費淨 edge 至少 0.01 才開 Shadow。每次新官方結算只會影響下一市場，兩組皆不在 live 轉送白名單。九組 Observer 仍只能在同市場來源策略已實際開出模擬單後，以相同方向與相同可執行成交模型進場。共二十四組研究策略都先寫入自己的 paper 帳本。
 
 三組新 Futures Lead shadow 共用預先凍結的訊號規則：spot／futures 最新成交 age 不得超過 500ms、Prediction book age 不得超過 1000ms；連續兩個 3 秒窗都必須是 spot 與 futures 同方向，且 `futures_return - spot_return` 的 signed residual 沿 futures 方向至少 0.25 bps。距離版用最近 60 秒 causal spot realized variance，將 `log(spot/startPrice)` 除以剩餘時間波動率後轉成終局機率，扣除模擬滑價、進場價與 taker fee 後 edge 至少 0.03。30 秒退出版只在進場後 30–45 秒的第一個新鮮 Prediction book 且第一檔 bid 深度足以覆蓋全部 shares 時退出，否則繼續持有至正式結算；不假設排隊位置。
 
@@ -70,8 +70,8 @@ Observer 的歷史輪只會在該市場最後一筆快照處理完後才加入�
 - 每組預設每筆 5 USDT；共同最低設定 2 USDT，用來高於本地 executor 記錄的 MARKET 約 1.5 USDT 門檻。
 - 五組共用 100 USDT 尚未結算曝險上限；每次成交前重新查詢 SQLite 的 `OPEN` 本金，額度不足就不開新單。
 - 必須由當下實際 Prediction 第一檔 Ask 完整承接，禁止部分成交；另計 50 bps 不利滑價、最大價差 0.03、簿齡 2000 ms、雙邊時間差 500 ms。
-- `GET /api/state` 的 `researchForward` 會回報二十二組開關、每筆金額、最低額、五組主策略共享曝險、十七組 shadow 的獨立曝險，以及十二組固定 cohort 的 chronological validation 進度；各組勝敗與收益仍在 `summaries` 及 `trades`。
-- 儀表板以獨立「5 主策略＋4 Shadow」分頁顯示這批 forward paper。原本的 M 出場分支與 M0 出場分支已由 `strategy_mx_enabled=false`、`strategy_m0x_enabled=false` 整組停止建立新 intent，兩組歷史面板移到「暫時停止觀測」；既有未平倉仍照原規則結算。
+- `GET /api/state` 的 `researchForward` 會回報二十四組開關、每筆金額、最低額、五組主策略共享曝險、十九組 shadow 的獨立曝險，以及十四組固定 cohort 的 chronological validation 進度；兩組持續校準卡另顯示官方來源樣本暖機進度，各組勝敗與收益仍在 `summaries` 及 `trades`。
+- 儀表板以獨立「5 主策略＋10 Shadow」分頁顯示主研究批次。原本的 M 出場分支與 M0 出場分支已由 `strategy_mx_enabled=false`、`strategy_m0x_enabled=false` 整組停止建立新 intent，兩組歷史面板移到「暫時停止觀測」；既有未平倉仍照原規則結算。
 - Collector 會在定期官方結算檢查時找出因服務重啟而沒有 `market_settlements` 記錄的舊 `OPEN` 市場，排除當前市場後以 Binance 官方 `endPrice` 補結算。
 
 M0～M6（含 M01、M01T180、M01O 三組、M01-Floor、M01-Rebound、M0W、M01W）的設定欄位均為實際 API key，不使用 `M*` 萬用字元：
