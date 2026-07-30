@@ -5,6 +5,7 @@ __pycache__/
 *.egg-info/
 .env
 data/
+artifacts/
 .copied-dashboard-git/
 dashboard/dev.stdout.log
 dashboard/dev.stderr.log
