@@ -1,0 +1,16 @@
+{
+  "strategies": [
+    {
+      "name": "M01_BASELINE",
+      "max_entry": 0.30,
+      "min_seconds_left_exclusive": 0,
+      "stake": 10
+    },
+    {
+      "name": "M01T180",
+      "max_entry": 0.30,
+      "min_seconds_left_exclusive": 180,
+      "stake": 10
+    }
+  ]
+}
