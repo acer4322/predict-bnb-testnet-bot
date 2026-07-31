@@ -939,39 +939,64 @@ class MicrostructureObserver:
             self.prediction_orientation_market_id = market_id
             self.prediction_orientation_events.clear()
         if self.prediction_orientation == "UNVERIFIED":
-            self.prediction_orientation_events.append(dict(event))
-            reference = self.prediction_reference()
-            if reference and _int(reference.get("market_id")) == _int(market_id):
-                reference_timestamp = _int(reference.get("up_book_timestamp_ms"))
-                comparison_event: dict[str, Any] = {}
-                if reference_timestamp is not None:
-                    # The list/detail metadata has no outcome token on this WSS
-                    # envelope.  Exact timestamp matching is therefore the only
-                    # causal price-based orientation proof.  If that WSS frame
-                    # was missed, remain fail-closed until a later REST snapshot
-                    # has a matching frame in this bounded history.
-                    comparison_event = next(
-                        (
-                            candidate
-                            for candidate in reversed(self.prediction_orientation_events)
-                            if _int(candidate.get("exchange_event_ms"))
-                            == reference_timestamp
-                        ),
-                        {},
+            reference = self.prediction_reference() or {}
+
+            event_market_id = _int(event.get("market_id"))
+            reference_market_id = _int(reference.get("market_id"))
+
+            event_received_ns = _int(event.get("received_wall_ns"))
+            reference_received_ns = _int(reference.get("received_wall_ns"))
+
+            # 比較的是兩份資料被本機收到的時間，
+            # 不是 orderbook 的 updateTimestampMs。
+            receipts_are_close = (
+                event_received_ns is not None
+                and reference_received_ns is not None
+                and abs(event_received_ns - reference_received_ns)
+                <= 5_000_000_000
+            )
+
+            bid = _float(event.get("best_bid"))
+            ask = _float(event.get("best_ask"))
+            up_bid = _float(reference.get("up_bid"))
+            up_ask = _float(reference.get("up_ask"))
+
+            if (
+                event_market_id is not None
+                and event_market_id == reference_market_id
+                and receipts_are_close
+                and None not in (bid, ask, up_bid, up_ask)
+            ):
+                assert bid is not None
+                assert ask is not None
+                assert up_bid is not None
+                assert up_ask is not None
+
+                direct_error = (
+                    abs(bid - up_bid)
+                    + abs(ask - up_ask)
+                )
+
+                inverted_error = (
+                    abs((1.0 - ask) - up_bid)
+                    + abs((1.0 - bid) - up_ask)
+                )
+
+                if (
+                    direct_error <= 0.05
+                    and direct_error + 0.01 < inverted_error
+                ):
+                    self.prediction_orientation = (
+                        "DIRECT_UP_VERIFIED"
                     )
-                bid = _float(comparison_event.get("best_bid"))
-                ask = _float(comparison_event.get("best_ask"))
-                up_bid = _float(reference.get("up_bid"))
-                up_ask = _float(reference.get("up_ask"))
-                if None not in (bid, ask, up_bid, up_ask):
-                    assert bid is not None and ask is not None
-                    assert up_bid is not None and up_ask is not None
-                    direct_error = abs(bid - up_bid) + abs(ask - up_ask)
-                    inverted_error = abs((1.0 - ask) - up_bid) + abs((1.0 - bid) - up_ask)
-                    if direct_error <= 0.05 and direct_error + 0.01 < inverted_error:
-                        self.prediction_orientation = "DIRECT_UP_VERIFIED"
-                    elif inverted_error <= 0.05 and inverted_error + 0.01 < direct_error:
-                        self.prediction_orientation = "INVERTED_TO_UP_VERIFIED"
+
+                elif (
+                    inverted_error <= 0.05
+                    and inverted_error + 0.01 < direct_error
+                ):
+                    self.prediction_orientation = (
+                        "INVERTED_TO_UP_VERIFIED"
+                    )
         if self.prediction_orientation != "INVERTED_TO_UP_VERIFIED":
             event["prediction_orientation"] = self.prediction_orientation
             event["feature_eligible"] = self.prediction_orientation != "UNVERIFIED"
@@ -1153,8 +1178,15 @@ class MicrostructureObserver:
                 "%Y-%m-%dT%H:%M:%S", time.gmtime(event["received_wall_ns"] / 1e9)
             ) + "Z"
             event_ms = event.get("exchange_event_ms")
-            if event_ms is not None:
-                latency = now_wall_ms + self.clock_offset_ms - float(event_ms)
+            # Spot/Futures 的 E/T 是事件時間，可以估算傳輸延遲。
+            # Prediction 的 updateTimestampMs 是 orderbook 版本時間，
+            # 不得當成 WebSocket transport latency。
+            if event_ms is not None and event.get("source") != "prediction":
+                latency = (
+                    now_wall_ms
+                    + self.clock_offset_ms
+                    - float(event_ms)
+                )
                 if -1_000 <= latency <= 60_000:
                     stats["latencies"].append(latency)
             stats["status"] = "LIVE"
