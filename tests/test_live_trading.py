@@ -327,6 +327,15 @@ def verified_prediction_book(**overrides):
     return payload
 
 
+def pair_prediction_book():
+    return verified_prediction_book(
+        up_bid=0.20,
+        up_ask=0.21,
+        down_bid=0.74,
+        down_ask=0.75,
+    )
+
+
 def engine(
     tmp_path: Path,
     client: FakeTradingClient,
@@ -917,6 +926,7 @@ def test_slow_maintenance_does_not_block_order_worker(tmp_path: Path):
         configured_enabled=True,
         credential_source="TEST",
         current_market=market_reference,
+        current_verified_prediction_book=verified_prediction_book,
         db_path=tmp_path / "live.db",
         client_factory=lambda *_args: client,
     )
@@ -1107,7 +1117,7 @@ def test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap(
         )
     )
 
-    assert [call["price_limit"] for call in client.quote_calls] == ["0.3", "0.4"]
+    assert [call["price_limit"] for call in client.quote_calls] == ["0.4"]
     assert len(client.place_calls) == 1
     assert client.place_calls[0]["price_limit"] == "0.4"
     order = live.state()["orders"][0]
@@ -1130,7 +1140,7 @@ def test_refreshed_quote_still_cannot_cross_ten_cent_gap(tmp_path: Path):
         )
     )
 
-    assert [call["price_limit"] for call in client.quote_calls] == ["0.3", "0.4"]
+    assert [call["price_limit"] for call in client.quote_calls] == ["0.4"]
     assert client.place_calls == []
     order = live.state()["orders"][0]
     assert order["status"] == "REJECTED"
@@ -1157,7 +1167,7 @@ def test_f1_is_selectable_and_places_only_with_current_allowed_observer_gate(
         )
     )
 
-    assert [call["price_limit"] for call in client.quote_calls] == ["0.3", "0.4"]
+    assert [call["price_limit"] for call in client.quote_calls] == ["0.4"]
     assert len(client.place_calls) == 1
     assert live.state()["orders"][0]["status"] == "SUBMITTED"
 
@@ -1295,7 +1305,7 @@ def test_calibrated_value_uses_model_edge_without_old_fixed_price_range(
     )
 
     assert [call["price_limit"] for call in client.quote_calls] == [
-        format(entry_price, "g")
+        format(max(entry_price, 0.40), "g")
     ]
     assert len(client.place_calls) == 1
     assert live.state()["orders"][0]["status"] == "SUBMITTED"
@@ -2341,7 +2351,11 @@ def test_pair_arb_places_neither_leg_when_one_quote_is_unsafe(tmp_path: Path):
         "up-token": "218750000000000000",
         "down-token": "781250000000000000",
     }
-    live = engine(tmp_path, client)
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=pair_prediction_book,
+    )
     live.update_live_rules({
         "strategies": ["PAIR_ARB_010"],
         "strategyStakesUsdt": [1.0],
@@ -2409,7 +2423,11 @@ def test_pair_quote_capacity_uses_seventy_percent_minimum(
         "up-token": up_amount_out,
         "down-token": "2500000000000000000",
     }
-    live = engine(tmp_path, client)
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=pair_prediction_book,
+    )
     live.update_live_rules({
         "strategies": ["PAIR_ARB_010"],
         "strategyStakesUsdt": [1.0],

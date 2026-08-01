@@ -5018,6 +5018,18 @@ class LiveM0WEngine:
             )
             return
 
+        if self._strategy_loss_cooldown_enabled(rules, selected_strategy):
+            cooldown_is_safe, cooldown_reason = self._loss_cooldown_is_safe(
+                selected_strategy, market_id
+            )
+            if not cooldown_is_safe:
+                self._record_blocked_signal(
+                    signal,
+                    "SKIPPED_TWO_LOSS_COOLDOWN",
+                    cooldown_reason,
+                )
+                return
+
         (
             latest_prediction_book,
             book_block_status,
@@ -5163,18 +5175,6 @@ class LiveM0WEngine:
                 "errorKind": None,
                 "checkedAt": utc_iso(),
             }
-
-        if self._strategy_loss_cooldown_enabled(rules, selected_strategy):
-            cooldown_is_safe, cooldown_reason = self._loss_cooldown_is_safe(
-                selected_strategy, market_id
-            )
-            if not cooldown_is_safe:
-                self._record_blocked_signal(
-                    signal,
-                    "SKIPPED_TWO_LOSS_COOLDOWN",
-                    cooldown_reason,
-                )
-                return
 
         ledger_strategy = (
             f"{selected_strategy}:{side}"
