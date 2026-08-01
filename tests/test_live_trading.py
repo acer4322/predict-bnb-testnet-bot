@@ -460,6 +460,52 @@ def test_accepted_signal_keeps_pair_side_ledger_keys_unique(tmp_path: Path):
     assert duplicate is None
 
 
+def test_attempt_summary_counts_outcomes_and_latency_percentiles(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+    outcomes = [
+        "SUBMITTED",
+        "BLOCKED_STALE_PREDICTION_BOOK",
+        "QUOTE_REJECTED",
+        "PLACEMENT_AMBIGUOUS",
+    ]
+    for index, outcome in enumerate(outcomes, start=1):
+        local_id = ledger.record_accepted_signal(
+            **accepted_signal_kwargs(
+                market_id=200 + index,
+                event_message=f"attempt {index}",
+            )
+        )
+        ledger.record_attempt_telemetry(
+            local_id,
+            {
+                "finalOutcome": outcome,
+                "eventToPlaceResponseMs": index * 10.0,
+                "queueMs": index * 1.0,
+                "preQuoteMs": index * 2.0,
+                "quoteNetworkMs": index * 3.0,
+                "quoteToPlaceMs": index * 4.0,
+                "placeNetworkMs": index * 5.0,
+                "quoteId": "must-not-persist",
+                "signature": "must-not-persist",
+            },
+        )
+
+    summary = ledger.attempt_summary()
+
+    assert summary["sampleSize"] == 4
+    assert summary["outcomes"]["submitted"] == 1
+    assert summary["outcomes"]["blockedStaleBook"] == 1
+    assert summary["outcomes"]["quoteRejected"] == 1
+    assert summary["outcomes"]["placementAmbiguous"] == 1
+    latency = summary["latency"]["eventToPlaceResponseMs"]
+    assert latency == {"p50": 25.0, "p90": 37.0, "p95": 38.5, "max": 40.0}
+    raw = ledger.db.execute(
+        "SELECT telemetry_json FROM live_attempt_telemetry LIMIT 1"
+    ).fetchone()[0]
+    assert "quoteId" not in raw
+    assert "signature" not in raw
+
+
 def test_place_attempted_is_durable_before_network_place(tmp_path: Path):
     client = FakeTradingClient()
     live = engine(tmp_path, client)
@@ -685,6 +731,9 @@ def test_local_price_moved_gate_blocks_before_quote(tmp_path: Path):
     check = live.state()["lastLocalPriceCheck"]
     assert check["latestLocalAsk"] == pytest.approx(0.51)
     assert check["maximumExecutionPrice"] == pytest.approx(0.50)
+    assert live.state()["attemptSummary"]["outcomes"][
+        "blockedLocalPriceMoved"
+    ] == 1
 
 
 @pytest.mark.parametrize(
@@ -1561,11 +1610,14 @@ def test_transport_failure_is_ambiguous_and_not_retried(tmp_path: Path):
     assert len(client.place_calls) == 1
     assert live.state()["orders"][0]["status"] == "AMBIGUOUS"
     latency = live.state()["orderLatency"]
-    assert latency["outcome"] == "AMBIGUOUS"
+    assert latency["outcome"] == "PLACEMENT_AMBIGUOUS"
     assert latency["marketEventToPlaceStartMs"] >= 10.0
     assert latency["eventToPlaceResponseMs"] >= (
         latency["marketEventToPlaceStartMs"]
     )
+    assert live.state()["attemptSummary"]["outcomes"][
+        "placementAmbiguous"
+    ] == 1
 
 
 def test_sas_rejection_disarms_executor(tmp_path: Path):

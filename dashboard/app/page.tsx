@@ -379,7 +379,25 @@ type LiveM0WState = {
     queueMs?: number; preQuoteMs?: number; quotePhaseMs?: number;
     quoteNetworkMs?: number; quoteToPlaceMs?: number | null;
     placeNetworkMs?: number | null; totalMs?: number; measuredAt?: string;
+    eventToPlaceResponseMs?: number | null; marketEventToQuoteStartMs?: number | null;
+    marketEventToPlaceStartMs?: number | null; decisionAndStoreMs?: number | null;
+    storeMs?: number | null; acceptedLedgerMs?: number | null;
   } | null;
+  lastOrderLatency?: LiveM0WState["orderLatency"];
+  lastLocalPriceCheck?: Record<string, number | string | boolean | null> | null;
+  lastDepthCheck?: Record<string, number | string | boolean | null> | null;
+  lastQuoteAttempt?: Record<string, number | string | boolean | null> | null;
+  attemptSummary?: {
+    window?: number; sampleSize?: number;
+    outcomes?: {
+      submitted?: number; blockedStaleBook?: number; blockedLocalPriceMoved?: number;
+      blockedInsufficientCapacity?: number; blockedEstimatedVwapTooHigh?: number;
+      quoteRejected?: number; placementRejected?: number; placementAmbiguous?: number;
+    };
+    latency?: Record<string, { p50?: number | null; p90?: number | null; p95?: number | null; max?: number | null }>;
+  };
+  sqliteJournalMode?: string; sqliteSynchronous?: string; sqliteBusyTimeoutMs?: number;
+  liveDbPath?: string; sqlitePathWarning?: string | null;
   rules?: LiveRules; supportedStrategies?: string[]; maxSelectableStrategies?: number;
   strategyLossCooldownStates?: Array<{
     strategy?: string; enabled?: boolean; consecutiveLosses?: number;
@@ -1789,6 +1807,12 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
   const performances = data?.performances ?? {};
   const portfolio = data?.portfolio ?? {};
   const orderLatency = data?.orderLatency;
+  const attemptSummary = data?.attemptSummary;
+  const attemptOutcomes = attemptSummary?.outcomes ?? {};
+  const attemptLatency = attemptSummary?.latency ?? {};
+  const localPriceCheck = data?.lastLocalPriceCheck;
+  const depthCheck = data?.lastDepthCheck;
+  const quoteAttempt = data?.lastQuoteAttempt;
   const autoRedeem = data?.autoRedeem ?? {};
   const hourlyGuard = data?.hourlyGuard ?? {};
   const qcPolicy = data?.policy?.pairQc015;
@@ -2019,6 +2043,11 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
       <article><span>訊號 / 已送單</span><strong>{summary.signals ?? 0} / {summary.submitted ?? 0}</strong><small>成交 {summary.filledOrders ?? 0} · 部分 {summary.partialOrders ?? 0}</small></article>
       <article><span>實際成交額 / 訂單費用</span><strong>{money(summary.filledUsdt)} / {money(summary.fees, 4)}</strong><small>拒單 {summary.rejected ?? 0} · 不確定 {summary.ambiguous ?? 0}</small></article>
       <article><span>最近一筆送單總延遲</span><strong>{orderLatency?.totalMs == null ? "—" : `${decimal(orderLatency.totalMs, 1)} ms`}</strong><small>{orderLatency ? `queue ${decimal(orderLatency.queueMs, 1)} · 預檢 ${decimal(orderLatency.preQuoteMs, 1)} · quote 網路 ${decimal(orderLatency.quoteNetworkMs, 1)} · quote→送出 ${orderLatency.quoteToPlaceMs == null ? "—" : decimal(orderLatency.quoteToPlaceMs, 1)} · 送單網路 ${orderLatency.placeNetworkMs == null ? "—" : decimal(orderLatency.placeNetworkMs, 1)} ms` : "等待第一筆新訂單量測"}</small><small>{orderLatency ? `${orderLatency.strategy ?? "—"} ${orderLatency.side ?? ""} · #${orderLatency.marketId ?? "—"} · ${orderLatency.outcome ?? "—"}` : "只量測實單 worker 收到訊號後的本機與 Binance 往返時間"}</small></article>
+      <article><span>最近 100 筆結果分類</span><strong>{attemptSummary?.sampleSize ?? 0} 筆</strong><small>送出 {attemptOutcomes.submitted ?? 0} · stale {attemptOutcomes.blockedStaleBook ?? 0} · 已超價 {attemptOutcomes.blockedLocalPriceMoved ?? 0} · 深度 {attemptOutcomes.blockedInsufficientCapacity ?? 0}</small><small>quote 拒絕 {attemptOutcomes.quoteRejected ?? 0} · place 拒絕 {attemptOutcomes.placementRejected ?? 0} · ambiguous {attemptOutcomes.placementAmbiguous ?? 0}</small></article>
+      <article><span>端到端延遲分布</span><strong>{attemptLatency.eventToPlaceResponseMs?.p95 == null ? "—" : `${decimal(attemptLatency.eventToPlaceResponseMs.p95, 1)} ms p95`}</strong><small>p50 {decimal(attemptLatency.eventToPlaceResponseMs?.p50, 1)} · p90 {decimal(attemptLatency.eventToPlaceResponseMs?.p90, 1)} · max {decimal(attemptLatency.eventToPlaceResponseMs?.max, 1)} ms</small><small>queue p95 {decimal(attemptLatency.queueMs?.p95, 1)} · pre-quote p95 {decimal(attemptLatency.preQuoteMs?.p95, 1)} · quote net p95 {decimal(attemptLatency.quoteNetworkMs?.p95, 1)} ms</small></article>
+      <article><span>最新本機價格／深度檢查</span><strong>{String(localPriceCheck?.status ?? "—")}</strong><small>ask {decimal(localPriceCheck?.latestLocalAsk, 4)} · ceiling {decimal(localPriceCheck?.maximumExecutionPrice, 4)} · age {decimal(localPriceCheck?.latestLocalBookAgeMs, 1)} ms</small><small>depth {String(depthCheck?.status ?? "—")} · capacity {decimal(depthCheck?.topLevelCapacityRatio, 3)} · VWAP {depthCheck?.vwapAvailable ? decimal(depthCheck?.estimatedVwap, 4) : "unavailable"}</small></article>
+      <article><span>最新 signed quote</span><strong>{quoteAttempt?.quoteAttempts == null ? "—" : `${quoteAttempt.quoteAttempts} 次`}</strong><small>re-quote {quoteAttempt?.requoteTriggered ? "是" : "否"} · first {decimal(quoteAttempt?.firstQuoteAveragePrice, 4)} · second {decimal(quoteAttempt?.secondQuoteAveragePrice, 4)}</small><small>{String(quoteAttempt?.finalOutcome ?? "等待新 attempt")}</small></article>
+      <article><span>Live SQLite</span><strong>{data?.sqliteJournalMode ?? "—"} · {data?.sqliteSynchronous ?? "—"}</strong><small>busy timeout {data?.sqliteBusyTimeoutMs ?? "—"} ms · {data?.liveDbPath ?? "—"}</small><small className={data?.sqlitePathWarning ? "negative" : "positive"}>{data?.sqlitePathWarning ?? "本機路徑未偵測到同步／網路磁碟警告"}</small></article>
       {activeStrategies.map(strategy => {
         const strategyPerformance = performances[strategy]
           ?? (strategy === data?.strategy ? performance : {});

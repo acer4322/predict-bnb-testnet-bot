@@ -909,6 +909,15 @@ class LiveLedger:
                     market_id INTEGER,
                     message TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS live_attempt_telemetry (
+                    order_local_id INTEGER PRIMARY KEY,
+                    captured_at TEXT NOT NULL,
+                    final_outcome TEXT NOT NULL,
+                    telemetry_json TEXT NOT NULL,
+                    FOREIGN KEY(order_local_id) REFERENCES live_orders(id)
+                );
+                CREATE INDEX IF NOT EXISTS live_attempt_telemetry_captured_idx
+                    ON live_attempt_telemetry(order_local_id DESC);
                 CREATE TABLE IF NOT EXISTS live_settings (
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL,
@@ -1148,6 +1157,131 @@ class LiveLedger:
                 (utc_iso(), level[:16], event_type[:48], market_id, message[:500]),
             )
             self.db.commit()
+
+    def record_attempt_telemetry(
+        self, order_local_id: int, payload: dict[str, Any]
+    ) -> None:
+        allowed = {
+            "strategy", "marketId", "side", "signalPrice",
+            "signalBookAgeMs", "signalAsk", "signalAskSize",
+            "latestLocalAsk", "latestLocalAskSize", "latestLocalBookAgeMs",
+            "maximumExecutionPrice", "topLevelCapacityUsdt",
+            "topLevelCapacityRatio", "configuredStake", "estimatedVwap",
+            "estimatedVwapCapacityRatio", "estimatedVwapCoveredStake",
+            "estimatedVwapLevelsConsumed", "vwapAvailable", "queueMs",
+            "preQuoteMs", "quotePhaseMs", "quoteNetworkMs", "quoteToPlaceMs",
+            "placeNetworkMs", "totalMs", "marketEventToDecisionStartMs",
+            "decisionAndStoreMs", "storeMs", "candidateToLiveQueueMs",
+            "marketEventToLiveQueueMs", "marketEventToQuoteStartMs",
+            "marketEventToPlaceStartMs", "eventToPlaceResponseMs",
+            "preLedgerMs", "acceptedLedgerMs", "quoteAttempts",
+            "requoteTriggered", "firstQuoteAveragePrice",
+            "secondQuoteAveragePrice", "firstQuoteNetworkMs",
+            "secondQuoteNetworkMs", "finalQuoteAveragePrice", "finalOutcome",
+            "eventToLocalCheckMs", "orientation", "latestMarketId",
+            "measuredAt",
+        }
+        sanitized = {
+            key: payload.get(key)
+            for key in allowed
+            if key in payload
+        }
+        outcome = str(sanitized.get("finalOutcome") or "UNKNOWN")
+        with self.lock:
+            self.db.execute(
+                """INSERT INTO live_attempt_telemetry(
+                       order_local_id, captured_at, final_outcome, telemetry_json
+                   ) VALUES (?, ?, ?, ?)
+                   ON CONFLICT(order_local_id) DO UPDATE SET
+                       captured_at=excluded.captured_at,
+                       final_outcome=excluded.final_outcome,
+                       telemetry_json=excluded.telemetry_json""",
+                (
+                    int(order_local_id),
+                    utc_iso(),
+                    outcome,
+                    json.dumps(sanitized, ensure_ascii=False, sort_keys=True),
+                ),
+            )
+            self.db.commit()
+
+    @staticmethod
+    def _percentile(values: list[float], percentile: float) -> float | None:
+        if not values:
+            return None
+        ordered = sorted(values)
+        if len(ordered) == 1:
+            return ordered[0]
+        position = (len(ordered) - 1) * percentile
+        lower = int(math.floor(position))
+        upper = int(math.ceil(position))
+        if lower == upper:
+            return ordered[lower]
+        weight = position - lower
+        return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+    def attempt_summary(self, limit: int = 100) -> dict[str, Any]:
+        with self.lock:
+            rows = self.db.execute(
+                """SELECT final_outcome, telemetry_json
+                     FROM live_attempt_telemetry
+                    ORDER BY order_local_id DESC LIMIT ?""",
+                (max(1, min(100, int(limit))),),
+            ).fetchall()
+        attempts: list[dict[str, Any]] = []
+        for row in rows:
+            try:
+                item = json.loads(str(row["telemetry_json"]))
+            except (TypeError, json.JSONDecodeError):
+                item = {}
+            item["finalOutcome"] = str(row["final_outcome"])
+            attempts.append(item)
+        outcome_keys = {
+            "SUBMITTED": "submitted",
+            "BLOCKED_STALE_PREDICTION_BOOK": "blockedStaleBook",
+            "BLOCKED_LOCAL_PRICE_MOVED": "blockedLocalPriceMoved",
+            "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY": (
+                "blockedInsufficientCapacity"
+            ),
+            "BLOCKED_ESTIMATED_VWAP_TOO_HIGH": "blockedEstimatedVwapTooHigh",
+            "QUOTE_REJECTED": "quoteRejected",
+            "PLACEMENT_REJECTED": "placementRejected",
+            "PLACEMENT_AMBIGUOUS": "placementAmbiguous",
+        }
+        outcomes = {value: 0 for value in outcome_keys.values()}
+        for attempt in attempts:
+            key = outcome_keys.get(str(attempt.get("finalOutcome") or ""))
+            if key is not None:
+                outcomes[key] += 1
+        latency_fields = (
+            "eventToPlaceResponseMs",
+            "queueMs",
+            "preQuoteMs",
+            "quoteNetworkMs",
+            "quoteToPlaceMs",
+            "placeNetworkMs",
+        )
+        latency: dict[str, dict[str, float | None]] = {}
+        for field in latency_fields:
+            values = [
+                float(attempt[field])
+                for attempt in attempts
+                if isinstance(attempt.get(field), (int, float))
+                and math.isfinite(float(attempt[field]))
+                and float(attempt[field]) >= 0
+            ]
+            latency[field] = {
+                "p50": self._percentile(values, 0.50),
+                "p90": self._percentile(values, 0.90),
+                "p95": self._percentile(values, 0.95),
+                "max": max(values) if values else None,
+            }
+        return {
+            "window": min(100, max(1, int(limit))),
+            "sampleSize": len(attempts),
+            "outcomes": outcomes,
+            "latency": latency,
+        }
 
     def record_signal(
         self,
@@ -2579,6 +2713,7 @@ class LiveM0WEngine:
         )
         self.ledger = LiveLedger(db_path)
         self.sqlite_state = self.ledger.sqlite_settings()
+        self.attempt_summary_state = self.ledger.attempt_summary(100)
         self.live_rules = normalize_live_rules(self.ledger.live_rule_overrides())
         override = self.ledger.runtime_override()
         self.runtime_enabled = (
@@ -3045,12 +3180,58 @@ class LiveM0WEngine:
             **diagnostics,
             "eventToLocalCheckMs": self._elapsed_ms(event_received, finished),
         }
-        self._record_blocked_signal(
+        local_id = self._record_blocked_signal(
             signal,
             status,
             message,
             error_kind=error_kind,
             diagnostics=enriched,
+        )
+        latency = self._order_latency_payload(
+            {
+                "market_id": int(signal.get("market_id") or 0),
+                "selected_strategy": str(signal.get("strategy") or ""),
+                "side": str(signal.get("side") or ""),
+                "live_enqueued_monotonic": enqueued_monotonic,
+                "processing_started_monotonic": processing_started_monotonic,
+                "quote_started_monotonic": finished,
+                "quote_finished_monotonic": finished,
+                "quote_network_seconds": 0.0,
+                "market_event_received_monotonic": event_received,
+                "strategy_decision_started_monotonic": (
+                    self._signal_monotonic_seconds(
+                        signal, "strategy_decision_started_monotonic_ns"
+                    )
+                ),
+                "strategy_store_started_monotonic": (
+                    self._signal_monotonic_seconds(
+                        signal, "strategy_store_started_monotonic_ns"
+                    )
+                ),
+                "strategy_store_finished_monotonic": (
+                    self._signal_monotonic_seconds(
+                        signal, "strategy_store_finished_monotonic_ns"
+                    )
+                ),
+                "live_candidate_created_monotonic": (
+                    self._signal_monotonic_seconds(
+                        signal, "live_candidate_created_monotonic_ns"
+                    )
+                ),
+                "attempt_context": {
+                    **enriched,
+                    "strategy": str(signal.get("strategy") or ""),
+                    "marketId": int(signal.get("market_id") or 0),
+                    "side": str(signal.get("side") or ""),
+                    "signalAsk": _float(signal.get("signal_prediction_ask")),
+                    "signalAskSize": _float(
+                        signal.get("signal_prediction_ask_size")
+                    ),
+                },
+            },
+            outcome=status,
+            placement_started_monotonic=None,
+            placement_finished_monotonic=finished,
         )
         with self.lock:
             check_payload = {
@@ -3066,42 +3247,17 @@ class LiveM0WEngine:
                 self.last_depth_check = check_payload
             else:
                 self.last_local_price_check = check_payload
-            self.last_order_latency = self._order_latency_payload(
-                {
-                    "market_id": int(signal.get("market_id") or 0),
-                    "selected_strategy": str(signal.get("strategy") or ""),
-                    "side": str(signal.get("side") or ""),
-                    "live_enqueued_monotonic": enqueued_monotonic,
-                    "processing_started_monotonic": processing_started_monotonic,
-                    "quote_started_monotonic": finished,
-                    "quote_finished_monotonic": finished,
-                    "quote_network_seconds": 0.0,
-                    "market_event_received_monotonic": event_received,
-                    "strategy_decision_started_monotonic": (
-                        self._signal_monotonic_seconds(
-                            signal, "strategy_decision_started_monotonic_ns"
-                        )
-                    ),
-                    "strategy_store_started_monotonic": (
-                        self._signal_monotonic_seconds(
-                            signal, "strategy_store_started_monotonic_ns"
-                        )
-                    ),
-                    "strategy_store_finished_monotonic": (
-                        self._signal_monotonic_seconds(
-                            signal, "strategy_store_finished_monotonic_ns"
-                        )
-                    ),
-                    "live_candidate_created_monotonic": (
-                        self._signal_monotonic_seconds(
-                            signal, "live_candidate_created_monotonic_ns"
-                        )
-                    ),
-                },
-                outcome=status,
-                placement_started_monotonic=None,
-                placement_finished_monotonic=finished,
-            )
+            self.last_order_latency = latency
+        if local_id is not None:
+            self._persist_attempt_telemetry(local_id, latency)
+
+    def _persist_attempt_telemetry(
+        self, local_id: int, latency: dict[str, Any]
+    ) -> None:
+        self.ledger.record_attempt_telemetry(local_id, latency)
+        summary = self.ledger.attempt_summary(100)
+        with self.lock:
+            self.attempt_summary_state = summary
 
     @staticmethod
     def _maximum_reprice_limit(
@@ -5103,6 +5259,20 @@ class LiveM0WEngine:
             "live_candidate_created_monotonic": self._signal_monotonic_seconds(
                 signal, "live_candidate_created_monotonic_ns"
             ),
+            "attempt_context": {
+                "strategy": selected_strategy,
+                "marketId": market_id,
+                "side": side,
+                "signalPrice": float(signal_price),
+                "signalBookAgeMs": _float(
+                    signal.get("signal_prediction_book_age_ms")
+                ),
+                "signalAsk": _float(signal.get("signal_prediction_ask")),
+                "signalAskSize": _float(
+                    signal.get("signal_prediction_ask_size")
+                ),
+                **depth_diagnostics,
+            },
         }
 
         def request_quote(limit_text: str) -> dict[str, Any]:
@@ -5253,6 +5423,7 @@ class LiveM0WEngine:
                 )
                 self.last_order_latency = latency
                 self.last_quote_attempt = self._quote_attempt_payload(latency)
+            self._persist_attempt_telemetry(local_id, latency)
             self.ledger.record_event(
                 "ERROR", "QUOTE_REJECTED", str(exc)[:400], market_id
             )
@@ -5373,9 +5544,14 @@ class LiveM0WEngine:
             )
             with self.lock:
                 self.last_error = detail[:400]
+                latency_outcome = (
+                    "PLACEMENT_AMBIGUOUS"
+                    if ambiguous
+                    else "PLACEMENT_REJECTED"
+                )
                 latency = self._order_latency_payload(
                     prepared,
-                    outcome=status,
+                    outcome=latency_outcome,
                     placement_started_monotonic=placement_started_monotonic,
                     placement_finished_monotonic=placement_finished_monotonic,
                 )
@@ -5385,6 +5561,7 @@ class LiveM0WEngine:
                     self.sas_status = "BLOCKED_SAS_REQUIRED"
                     self.status = "BLOCKED_SAS_REQUIRED"
                     self.armed = False
+            self._persist_attempt_telemetry(local_id, latency)
             self.ledger.record_event(
                 "ERROR",
                 "PLACEMENT_AMBIGUOUS" if ambiguous else "PLACEMENT_REJECTED",
@@ -5425,6 +5602,7 @@ class LiveM0WEngine:
             )
             self.last_order_latency = latency
             self.last_quote_attempt = self._quote_attempt_payload(latency)
+        self._persist_attempt_telemetry(local_id, latency)
         self.ledger.record_event(
             "INFO",
             "ORDER_SUBMITTED",
@@ -5510,7 +5688,11 @@ class LiveM0WEngine:
         candidate_created = prepared.get("live_candidate_created_monotonic")
         ledger_started = prepared.get("accepted_ledger_started_monotonic")
         ledger_finished = prepared.get("accepted_ledger_finished_monotonic")
+        attempt_context = prepared.get("attempt_context")
+        if not isinstance(attempt_context, dict):
+            attempt_context = {}
         return {
+            **attempt_context,
             "marketId": int(prepared["market_id"]),
             "strategy": str(prepared["selected_strategy"]),
             "side": str(prepared["side"]),
@@ -6802,6 +6984,11 @@ class LiveM0WEngine:
                     if self.last_order_latency is not None
                     else None
                 ),
+                "lastOrderLatency": (
+                    dict(self.last_order_latency)
+                    if self.last_order_latency is not None
+                    else None
+                ),
                 "lastLocalPriceCheck": (
                     dict(self.last_local_price_check)
                     if self.last_local_price_check is not None
@@ -6817,6 +7004,7 @@ class LiveM0WEngine:
                     if self.last_quote_attempt is not None
                     else None
                 ),
+                "attemptSummary": dict(self.attempt_summary_state),
                 "maxPredictionBookAgeMs": self.max_prediction_book_age_ms,
                 "minTopLevelCapacityRatio": float(
                     LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO
