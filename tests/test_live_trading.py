@@ -369,6 +369,120 @@ def force_legacy_m0w_rules_for_test(live: LiveM0WEngine) -> None:
         }
 
 
+def accepted_signal_kwargs(**overrides):
+    values = {
+        "topic_id": 101,
+        "market_id": 202,
+        "side": "UP",
+        "token_id": "up-token",
+        "signal_price": 0.40,
+        "account_type": "SPOT",
+        "signal_at": "2026-08-01T00:00:00+00:00",
+        "strategy": "M0W",
+        "max_stake_usdt": 1.0,
+        "requested_amount_wei": str(LIVE_M0W_AMOUNT_WEI),
+        "reliability_context": {},
+        "event_message": "M0W UP accepted",
+    }
+    values.update(overrides)
+    return values
+
+
+def test_live_ledger_uses_wal_and_reports_durability_settings(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+
+    settings = ledger.sqlite_settings()
+
+    assert settings["sqliteJournalMode"] == "WAL"
+    assert settings["sqliteBusyTimeoutMs"] == 5000
+    assert settings["sqliteSynchronous"] != "OFF"
+    assert settings["liveDbPath"].endswith("live.db")
+    assert settings["sqlitePathWarning"] is None
+
+
+def test_accepted_signal_order_and_event_commit_together(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+    statements = []
+    ledger.db.set_trace_callback(statements.append)
+
+    local_id = ledger.record_accepted_signal(**accepted_signal_kwargs())
+
+    assert local_id is not None
+    order = ledger.db.execute(
+        "SELECT status FROM live_orders WHERE id=?", (local_id,)
+    ).fetchone()
+    event = ledger.db.execute(
+        "SELECT event_type FROM live_events WHERE market_id=202"
+    ).fetchone()
+    assert order["status"] == "QUOTE_REQUESTING"
+    assert event["event_type"] == "SIGNAL_ACCEPTED"
+    assert sum(statement == "COMMIT" for statement in statements) == 1
+
+
+def test_accepted_signal_event_failure_rolls_back_order(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+    ledger.db.executescript(
+        """
+        CREATE TRIGGER fail_signal_accepted
+        BEFORE INSERT ON live_events
+        WHEN NEW.event_type='SIGNAL_ACCEPTED'
+        BEGIN
+            SELECT RAISE(ABORT, 'forced event failure');
+        END;
+        """
+    )
+    ledger.db.commit()
+
+    with pytest.raises(live_trading.sqlite3.IntegrityError):
+        ledger.record_accepted_signal(**accepted_signal_kwargs())
+
+    assert ledger.db.execute("SELECT COUNT(*) FROM live_orders").fetchone()[0] == 0
+    assert ledger.db.execute("SELECT COUNT(*) FROM live_events").fetchone()[0] == 0
+
+
+def test_accepted_signal_keeps_pair_side_ledger_keys_unique(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+
+    up_id = ledger.record_accepted_signal(
+        **accepted_signal_kwargs(strategy="PAIR_ARB_010:UP", side="UP")
+    )
+    down_id = ledger.record_accepted_signal(
+        **accepted_signal_kwargs(
+            strategy="PAIR_ARB_010:DOWN", side="DOWN", token_id="down-token"
+        )
+    )
+    duplicate = ledger.record_accepted_signal(
+        **accepted_signal_kwargs(strategy="PAIR_ARB_010:UP", side="UP")
+    )
+
+    assert up_id is not None
+    assert down_id is not None
+    assert duplicate is None
+
+
+def test_place_attempted_is_durable_before_network_place(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+    observed_statuses = []
+
+    def inspect_durable_barrier(**kwargs):
+        with live_trading.sqlite3.connect(tmp_path / "live.db") as reader:
+            observed_statuses.append(
+                reader.execute(
+                    "SELECT status FROM live_orders WHERE market_id=202"
+                ).fetchone()[0]
+            )
+        return {"orderId": "barrier-verified"}
+
+    client.place_limit_order = inspect_durable_barrier
+
+    live.process_signal(signal())
+
+    assert observed_statuses == ["PLACE_ATTEMPTED"]
+    assert live.state()["orders"][0]["status"] == "SUBMITTED"
+
+
 def test_live_m0w_uses_limit_gtc_with_immutable_one_usdt_cap(tmp_path: Path):
     client = FakeTradingClient()
     live = engine(tmp_path, client)

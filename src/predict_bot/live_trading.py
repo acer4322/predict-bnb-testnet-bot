@@ -769,6 +769,8 @@ class LiveLedger:
         self.db.row_factory = sqlite3.Row
         self.lock = threading.RLock()
         with self.lock:
+            self.db.execute("PRAGMA journal_mode=WAL")
+            self.db.execute("PRAGMA busy_timeout=5000")
             self.db.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS live_orders (
@@ -1008,6 +1010,38 @@ class LiveLedger:
             )
             self.db.commit()
 
+    def sqlite_settings(self) -> dict[str, Any]:
+        with self.lock:
+            journal_mode = str(
+                self.db.execute("PRAGMA journal_mode").fetchone()[0]
+            ).upper()
+            synchronous_code = int(
+                self.db.execute("PRAGMA synchronous").fetchone()[0]
+            )
+            busy_timeout_ms = int(
+                self.db.execute("PRAGMA busy_timeout").fetchone()[0]
+            )
+        synchronous = {
+            0: "OFF",
+            1: "NORMAL",
+            2: "FULL",
+            3: "EXTRA",
+        }.get(synchronous_code, str(synchronous_code))
+        resolved_path = str(self.path.resolve())
+        lowered = resolved_path.lower()
+        warning = None
+        if resolved_path.startswith("\\\\"):
+            warning = "live DB is on a network/UNC path"
+        elif any(marker in lowered for marker in ("onedrive", "dropbox", "google drive")):
+            warning = "live DB appears to be inside a synchronized folder"
+        return {
+            "sqliteJournalMode": journal_mode,
+            "sqliteSynchronous": synchronous,
+            "sqliteBusyTimeoutMs": busy_timeout_ms,
+            "liveDbPath": resolved_path,
+            "sqlitePathWarning": warning,
+        }
+
     def runtime_override(self) -> bool | None:
         with self.lock:
             row = self.db.execute(
@@ -1175,6 +1209,78 @@ class LiveLedger:
                 )
             self.db.commit()
             return local_id
+
+    def record_accepted_signal(
+        self,
+        *,
+        topic_id: int,
+        market_id: int,
+        side: str,
+        token_id: str,
+        signal_price: float,
+        account_type: str,
+        signal_at: str,
+        strategy: str,
+        max_stake_usdt: float,
+        requested_amount_wei: str,
+        reliability_context: dict[str, Any] | None,
+        event_message: str,
+    ) -> int | None:
+        """Atomically deduplicate and persist the accepted signal plus event."""
+        now = utc_iso()
+        with self.lock:
+            try:
+                existing = self.db.execute(
+                    "SELECT id FROM live_orders WHERE strategy=? AND market_id=? LIMIT 1",
+                    (str(strategy), int(market_id)),
+                ).fetchone()
+                if existing is not None:
+                    return None
+                cursor = self.db.execute(
+                    """INSERT INTO live_orders(
+                           strategy, topic_id, market_id, side, token_id,
+                           signal_price, max_stake_usdt, requested_amount_wei,
+                           status, order_type, time_in_force, account_type,
+                           signal_at, updated_at
+                       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        str(strategy),
+                        int(topic_id),
+                        int(market_id),
+                        side,
+                        token_id,
+                        float(signal_price),
+                        float(max_stake_usdt),
+                        str(requested_amount_wei),
+                        "QUOTE_REQUESTING",
+                        "LIMIT",
+                        "GTC",
+                        account_type,
+                        signal_at,
+                        now,
+                    ),
+                )
+                local_id = int(cursor.lastrowid)
+                if isinstance(reliability_context, dict):
+                    self._record_reliability_context_locked(
+                        order_local_id=local_id,
+                        strategy=str(strategy),
+                        market_id=int(market_id),
+                        side=side,
+                        signal_price=float(signal_price),
+                        context=reliability_context,
+                    )
+                self.db.execute(
+                    """INSERT INTO live_events(
+                           timestamp, level, event_type, market_id, message
+                       ) VALUES (?, 'INFO', 'SIGNAL_ACCEPTED', ?, ?)""",
+                    (now, int(market_id), str(event_message)[:500]),
+                )
+                self.db.commit()
+                return local_id
+            except Exception:
+                self.db.rollback()
+                raise
 
     def _record_reliability_context_locked(
         self,
@@ -2472,6 +2578,7 @@ class LiveM0WEngine:
             1.0, float(max_prediction_book_age_ms)
         )
         self.ledger = LiveLedger(db_path)
+        self.sqlite_state = self.ledger.sqlite_settings()
         self.live_rules = normalize_live_rules(self.ledger.live_rule_overrides())
         override = self.ledger.runtime_override()
         self.runtime_enabled = (
@@ -4913,8 +5020,12 @@ class LiveM0WEngine:
             if selected_strategy.startswith("PAIR_ARB_")
             else selected_strategy
         )
+        accepted_event_message = (
+            f"{selected_strategy} {side} signal accepted for "
+            f"{float(max_stake):.8g} USDT LIMIT quote"
+        )
         accepted_ledger_started_monotonic = time.monotonic()
-        local_id = self.ledger.record_signal(
+        local_id = self.ledger.record_accepted_signal(
             topic_id=int(reference["topic_id"]),
             market_id=market_id,
             side=side,
@@ -4925,8 +5036,8 @@ class LiveM0WEngine:
             strategy=ledger_strategy,
             max_stake_usdt=float(max_stake),
             requested_amount_wei=str(amount_in_wei),
-            initial_status="QUOTE_REQUESTING",
             reliability_context=signal,
+            event_message=accepted_event_message,
         )
         if local_id is None:
             self.ledger.record_event(
@@ -4937,13 +5048,6 @@ class LiveM0WEngine:
             )
             return
 
-        self.ledger.record_event(
-            "INFO",
-            "SIGNAL_ACCEPTED",
-            f"{selected_strategy} {side} 訊號，開始取得最高 "
-            f"{float(max_stake):.8g} USDT LIMIT 報價",
-            market_id,
-        )
         accepted_ledger_finished_monotonic = time.monotonic()
         quote: dict[str, Any] | None = None
         quote_started_monotonic = time.monotonic()
@@ -6712,6 +6816,7 @@ class LiveM0WEngine:
                 "minTopLevelCapacityRatio": float(
                     LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO
                 ),
+                **self.sqlite_state,
                 "droppedSignals": self.dropped_signals,
                 "queueDepth": self.events.qsize(),
                 "balances": list(self.balances),
