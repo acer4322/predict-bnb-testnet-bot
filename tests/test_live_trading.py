@@ -483,6 +483,17 @@ def test_place_attempted_is_durable_before_network_place(tmp_path: Path):
     assert live.state()["orders"][0]["status"] == "SUBMITTED"
 
 
+def test_live_engine_stop_closes_trading_client(tmp_path: Path):
+    client = FakeTradingClient()
+    closed = []
+    client.close = lambda: closed.append(True)
+    live = engine(tmp_path, client)
+
+    live.stop()
+
+    assert closed == [True]
+
+
 def test_live_m0w_uses_limit_gtc_with_immutable_one_usdt_cap(tmp_path: Path):
     client = FakeTradingClient()
     live = engine(tmp_path, client)

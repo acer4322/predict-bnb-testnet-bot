@@ -2672,6 +2672,11 @@ class LiveM0WEngine:
             self.thread.join(timeout=3.0)
         if self.maintenance_thread:
             self.maintenance_thread.join(timeout=3.0)
+        with self.lock:
+            client = self.client
+        close = getattr(client, "close", None)
+        if callable(close):
+            close()
 
     def set_runtime_enabled(self, enabled: bool) -> dict[str, Any]:
         self.ledger.set_runtime_enabled(bool(enabled))
