@@ -35,7 +35,7 @@ LIQUIDITY_RETENTION_HOURS = max(
 )
 SNAPSHOT_INTERVAL_MS = max(100, int(os.environ.get("PREDICT_MICRO_SNAPSHOT_INTERVAL_MS", "250")))
 QUEUE_MAX = max(1_000, int(os.environ.get("PREDICT_MICRO_QUEUE_MAX", "50000")))
-PARSER_VERSION = "microstructure_v1"
+PARSER_VERSION = "microstructure_v2"
 
 SPOT_URL = (
     "wss://stream.binance.com:9443/stream?streams="
@@ -50,6 +50,15 @@ FUTURES_MARKET_URL = (
 )
 PREDICTION_BASE_URL = "wss://api.binance.com/sapi/wss"
 PREDICTION_TOPIC = "web3_prediction_orderbook_data"
+PREDICTION_ORIENTATION_RECEIPT_WINDOW_MS = 5_000
+PREDICTION_ORIENTATION_MAX_PRICE_ERROR = 0.05
+PREDICTION_ORIENTATION_MIN_ERROR_MARGIN = 0.01
+PREDICTION_ORIENTATION_CONFIRMATIONS = 2
+PREDICTION_ORIENTATION_TIMEOUT_SECONDS = 10.0
+PREDICTION_ORIENTATION_RECONNECT_THROTTLE_SECONDS = 15.0
+PREDICTION_VERIFIED_ORIENTATIONS = frozenset(
+    {"DIRECT_UP_VERIFIED", "INVERTED_TO_UP_VERIFIED"}
+)
 
 
 def _float(value: Any) -> float | None:
@@ -264,10 +273,16 @@ def parse_prediction_message(
     event["raw_json"] = raw
     bids = normalize_levels(inner.get("bids"), reverse=True)
     asks = normalize_levels(inner.get("asks"), reverse=False)
+    # updateTimestampMs identifies the version/content age of this orderbook.
+    # It is not a server-send timestamp and must never drive transport latency
+    # or local execution freshness.  exchange_event_ms remains populated only
+    # as a transitional database-compatibility alias.
+    prediction_book_version_ms = _int(inner.get("updateTimestampMs"))
     event.update(
         market_id=_int(inner.get("marketId")),
-        exchange_event_ms=_int(inner.get("updateTimestampMs")),
-        update_id=_int(inner.get("updateTimestampMs")),
+        prediction_book_version_ms=prediction_book_version_ms,
+        exchange_event_ms=prediction_book_version_ms,
+        update_id=prediction_book_version_ms,
         bids=bids,
         asks=asks,
     )
@@ -305,6 +320,14 @@ def _safe_error(value: Any) -> str:
         if marker in text:
             text = text.split(marker, 1)[0] + marker + "[redacted]"
     return text[:200]
+
+
+def _utc_iso_from_ns(value: int) -> str:
+    seconds, nanoseconds = divmod(int(value), 1_000_000_000)
+    return (
+        time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(seconds))
+        + f".{nanoseconds // 1_000:06d}Z"
+    )
 
 
 class FeatureEngine:
@@ -585,6 +608,7 @@ class MicrostructureStore:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     source TEXT NOT NULL, stream TEXT NOT NULL, market_id INTEGER,
                     exchange_event_ms INTEGER, exchange_trade_ms INTEGER,
+                    prediction_book_version_ms INTEGER,
                     received_wall_ns INTEGER NOT NULL, received_monotonic_ns INTEGER NOT NULL,
                     enqueued_monotonic_ns INTEGER NOT NULL, written_wall_ns INTEGER NOT NULL,
                     session_id TEXT NOT NULL, update_id INTEGER, first_update_id INTEGER,
@@ -646,6 +670,11 @@ class MicrostructureStore:
                 db.execute(
                     "ALTER TABLE microstructure_events ADD COLUMN feature_eligible INTEGER"
                 )
+            if "prediction_book_version_ms" not in event_columns:
+                db.execute(
+                    "ALTER TABLE microstructure_events "
+                    "ADD COLUMN prediction_book_version_ms INTEGER"
+                )
             # Versions before microstructure_v1 compared the first snapshot of
             # a new market with the previous market. Remove only those known
             # cross-market derived rows; raw events remain untouched.
@@ -679,16 +708,18 @@ class MicrostructureStore:
         db.execute(
             """INSERT INTO microstructure_events(
                    source, stream, market_id, exchange_event_ms, exchange_trade_ms,
+                   prediction_book_version_ms,
                    received_wall_ns, received_monotonic_ns, enqueued_monotonic_ns,
                    written_wall_ns, session_id, update_id, first_update_id,
                    previous_update_id, trade_id, price, quantity, visible_quantity,
                    aggressor, best_bid, best_bid_qty, best_ask, best_ask_qty,
                    bids_json, asks_json, raw_json, parser_version,
                    prediction_orientation, feature_eligible
-               ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 event.get("source"), event.get("stream"), event.get("market_id"),
                 event.get("exchange_event_ms"), event.get("exchange_trade_ms"),
+                event.get("prediction_book_version_ms"),
                 event.get("received_wall_ns"), event.get("received_monotonic_ns"),
                 event.get("enqueued_monotonic_ns"), time.time_ns(), event.get("session_id"),
                 event.get("update_id"), event.get("first_update_id"),
@@ -796,11 +827,25 @@ class MicrostructureObserver:
         self.prediction_subscription_market_id: int | None = None
         self.prediction_orientation = "UNVERIFIED"
         self.prediction_orientation_market_id: int | None = None
-        # REST and WSS prices can cross 0.50 between observations.  Keep a
-        # short history so orientation is proven against the REST UP book at
-        # the *same exchange update timestamp*, rather than guessing from two
-        # different market moments during a sharp reversal.
-        self.prediction_orientation_events: deque[dict[str, Any]] = deque(maxlen=256)
+        self.prediction_orientation_candidate: str | None = None
+        self.prediction_orientation_candidate_count = 0
+        self.prediction_orientation_unverified_since_ns: int | None = None
+        self.orientation_attempts = 0
+        self.orientation_direct_candidates = 0
+        self.orientation_inverted_candidates = 0
+        self.orientation_verification_successes = 0
+        self.orientation_verification_failures = 0
+        self.orientation_receipt_delta_ms: float | None = None
+        self.orientation_direct_error: float | None = None
+        self.orientation_inverted_error: float | None = None
+        self.orientation_failure_reason: str | None = "WAITING_FOR_PREDICTION_MARKET"
+        self.orientation_reconnect_requests = 0
+        self.last_orientation_reconnect_request_ns = 0
+        self.eligible_prediction_events = 0
+        self.unverified_prediction_events = 0
+        self.last_eligible_prediction_at: str | None = None
+        self.last_prediction_receipt_monotonic_ns = 0
+        self.last_prediction_book_version_ms: int | None = None
         self.market_watch_thread: threading.Thread | None = None
         self.prediction_rollover_reconnect = threading.Event()
         self.state_lock = threading.RLock()
@@ -898,7 +943,10 @@ class MicrostructureObserver:
         while not self.stop_event.wait(0.25):
             wanted = self.current_market_id()
             subscribed = self.prediction_subscription_market_id
-            if wanted is None or subscribed is None or int(wanted) == int(subscribed):
+            if wanted is None or subscribed is None:
+                continue
+            if int(wanted) == int(subscribed):
+                self._reconnect_unverified_prediction_if_timed_out()
                 continue
             self._invalidate_prediction_state(int(wanted))
             # Set this even when the WebSocket is between connection attempts:
@@ -916,7 +964,21 @@ class MicrostructureObserver:
         self.engine.reset_prediction(market_id)
         self.prediction_orientation = "UNVERIFIED"
         self.prediction_orientation_market_id = market_id
-        self.prediction_orientation_events.clear()
+        self.prediction_orientation_candidate = None
+        self.prediction_orientation_candidate_count = 0
+        self.prediction_orientation_unverified_since_ns = (
+            time.monotonic_ns() if market_id is not None else None
+        )
+        self.orientation_receipt_delta_ms = None
+        self.orientation_direct_error = None
+        self.orientation_inverted_error = None
+        self.orientation_failure_reason = (
+            "WAITING_FOR_ORIENTATION_CONFIRMATION"
+            if market_id is not None
+            else "WAITING_FOR_PREDICTION_MARKET"
+        )
+        self.last_prediction_receipt_monotonic_ns = 0
+        self.last_prediction_book_version_ms = None
         if market_id is not None:
             self.last_prediction_timestamp.pop(int(market_id), None)
         with self.state_lock:
@@ -931,76 +993,141 @@ class MicrostructureObserver:
             stats["latencies"].clear()
             stats["lastEventAt"] = None
 
-    def _orient_prediction_event(self, event: dict[str, Any]) -> None:
-        """Verify whether the canonical WSS book is the configured UP outcome."""
-        market_id = event.get("market_id")
+    def _reset_orientation_candidate(self, reason: str) -> None:
+        self.prediction_orientation = "UNVERIFIED"
+        self.prediction_orientation_candidate = None
+        self.prediction_orientation_candidate_count = 0
+        self.orientation_verification_failures += 1
+        self.orientation_failure_reason = reason
+
+    def _reconnect_unverified_prediction_if_timed_out(self) -> None:
+        if self.prediction_orientation in PREDICTION_VERIFIED_ORIENTATIONS:
+            return
+        started_ns = self.prediction_orientation_unverified_since_ns
+        if started_ns is None:
+            return
+        now_ns = time.monotonic_ns()
+        if now_ns - started_ns < int(
+            PREDICTION_ORIENTATION_TIMEOUT_SECONDS * 1_000_000_000
+        ):
+            return
+        self.orientation_failure_reason = "ORIENTATION_TIMEOUT"
+        if now_ns - self.last_orientation_reconnect_request_ns < int(
+            PREDICTION_ORIENTATION_RECONNECT_THROTTLE_SECONDS * 1_000_000_000
+        ):
+            return
+        with self.state_lock:
+            app = self.active_apps.get("prediction")
+        if app is None:
+            return
+        self.last_orientation_reconnect_request_ns = now_ns
+        self.orientation_reconnect_requests += 1
+        self.prediction_rollover_reconnect.set()
+        try:
+            app.close()
+        except Exception:
+            pass
+
+    def _orient_prediction_event(self, event: dict[str, Any]) -> bool:
+        """Fail closed until two causal REST/WSS comparisons agree on UP mapping."""
+        market_id = _int(event.get("market_id"))
         if market_id != self.prediction_orientation_market_id:
-            self.prediction_orientation = "UNVERIFIED"
-            self.prediction_orientation_market_id = market_id
-            self.prediction_orientation_events.clear()
-        if self.prediction_orientation == "UNVERIFIED":
+            self._invalidate_prediction_state(market_id)
+        previous_orientation = self.prediction_orientation
+        if self.prediction_orientation not in PREDICTION_VERIFIED_ORIENTATIONS:
+            self.orientation_attempts += 1
             reference = self.prediction_reference() or {}
-
-            event_market_id = _int(event.get("market_id"))
             reference_market_id = _int(reference.get("market_id"))
-
             event_received_ns = _int(event.get("received_wall_ns"))
             reference_received_ns = _int(reference.get("received_wall_ns"))
-
-            # 比較的是兩份資料被本機收到的時間，
-            # 不是 orderbook 的 updateTimestampMs。
-            receipts_are_close = (
-                event_received_ns is not None
-                and reference_received_ns is not None
-                and abs(event_received_ns - reference_received_ns)
-                <= 5_000_000_000
+            self.orientation_receipt_delta_ms = (
+                abs(event_received_ns - reference_received_ns) / 1_000_000
+                if event_received_ns is not None and reference_received_ns is not None
+                else None
             )
+            self.orientation_direct_error = None
+            self.orientation_inverted_error = None
+
+            failure_reason: str | None = None
+            if market_id is None or reference_market_id is None:
+                failure_reason = "MISSING_MARKET_ID"
+            elif market_id != reference_market_id:
+                failure_reason = "MARKET_ID_MISMATCH"
+            elif self.orientation_receipt_delta_ms is None:
+                failure_reason = "MISSING_RECEIPT_TIMESTAMP"
+            elif (
+                self.orientation_receipt_delta_ms
+                > PREDICTION_ORIENTATION_RECEIPT_WINDOW_MS
+            ):
+                failure_reason = "RECEIPT_WINDOW_EXCEEDED"
 
             bid = _float(event.get("best_bid"))
             ask = _float(event.get("best_ask"))
             up_bid = _float(reference.get("up_bid"))
             up_ask = _float(reference.get("up_ask"))
+            if failure_reason is None and None in (bid, ask, up_bid, up_ask):
+                failure_reason = "MISSING_TOP_OF_BOOK"
 
-            if (
-                event_market_id is not None
-                and event_market_id == reference_market_id
-                and receipts_are_close
-                and None not in (bid, ask, up_bid, up_ask)
-            ):
-                assert bid is not None
-                assert ask is not None
-                assert up_bid is not None
-                assert up_ask is not None
-
-                direct_error = (
-                    abs(bid - up_bid)
-                    + abs(ask - up_ask)
+            candidate: str | None = None
+            if failure_reason is None:
+                assert bid is not None and ask is not None
+                assert up_bid is not None and up_ask is not None
+                self.orientation_direct_error = abs(bid - up_bid) + abs(ask - up_ask)
+                self.orientation_inverted_error = (
+                    abs((1.0 - ask) - up_bid) + abs((1.0 - bid) - up_ask)
                 )
-
-                inverted_error = (
-                    abs((1.0 - ask) - up_bid)
-                    + abs((1.0 - bid) - up_ask)
-                )
-
                 if (
-                    direct_error <= 0.05
-                    and direct_error + 0.01 < inverted_error
+                    self.orientation_direct_error
+                    <= PREDICTION_ORIENTATION_MAX_PRICE_ERROR
+                    and self.orientation_direct_error
+                    + PREDICTION_ORIENTATION_MIN_ERROR_MARGIN
+                    < self.orientation_inverted_error
+                ):
+                    candidate = "DIRECT_CANDIDATE"
+                    self.orientation_direct_candidates += 1
+                elif (
+                    self.orientation_inverted_error
+                    <= PREDICTION_ORIENTATION_MAX_PRICE_ERROR
+                    and self.orientation_inverted_error
+                    + PREDICTION_ORIENTATION_MIN_ERROR_MARGIN
+                    < self.orientation_direct_error
+                ):
+                    candidate = "INVERTED_CANDIDATE"
+                    self.orientation_inverted_candidates += 1
+                else:
+                    failure_reason = "AMBIGUOUS_OR_PRICE_ERROR"
+
+            if candidate is None:
+                self._reset_orientation_candidate(failure_reason or "UNVERIFIED")
+            else:
+                if self.prediction_orientation_candidate == candidate:
+                    self.prediction_orientation_candidate_count += 1
+                else:
+                    self.prediction_orientation_candidate = candidate
+                    self.prediction_orientation_candidate_count = 1
+                self.prediction_orientation = candidate
+                self.orientation_failure_reason = "AWAITING_SECOND_CONFIRMATION"
+                if (
+                    self.prediction_orientation_candidate_count
+                    >= PREDICTION_ORIENTATION_CONFIRMATIONS
                 ):
                     self.prediction_orientation = (
                         "DIRECT_UP_VERIFIED"
+                        if candidate == "DIRECT_CANDIDATE"
+                        else "INVERTED_TO_UP_VERIFIED"
                     )
+                    self.orientation_verification_successes += 1
+                    self.orientation_failure_reason = None
 
-                elif (
-                    inverted_error <= 0.05
-                    and inverted_error + 0.01 < direct_error
-                ):
-                    self.prediction_orientation = (
-                        "INVERTED_TO_UP_VERIFIED"
-                    )
         if self.prediction_orientation != "INVERTED_TO_UP_VERIFIED":
             event["prediction_orientation"] = self.prediction_orientation
-            event["feature_eligible"] = self.prediction_orientation != "UNVERIFIED"
-            return
+            event["feature_eligible"] = (
+                self.prediction_orientation in PREDICTION_VERIFIED_ORIENTATIONS
+            )
+            return (
+                previous_orientation not in PREDICTION_VERIFIED_ORIENTATIONS
+                and self.prediction_orientation in PREDICTION_VERIFIED_ORIENTATIONS
+            )
         inverted_bids = normalize_levels(
             [[1.0 - price, size] for price, size in event.get("asks") or []],
             reverse=True,
@@ -1017,6 +1144,7 @@ class MicrostructureObserver:
         event["best_ask_qty"] = inverted_asks[0][1] if inverted_asks else None
         event["prediction_orientation"] = self.prediction_orientation
         event["feature_eligible"] = True
+        return previous_orientation not in PREDICTION_VERIFIED_ORIENTATIONS
 
     def _set_stream(self, name: str, **values: Any) -> None:
         with self.state_lock:
@@ -1129,14 +1257,34 @@ class MicrostructureObserver:
             wanted = self.current_market_id()
             if market_id is None or wanted is None or int(market_id) != int(wanted):
                 return
-            self._orient_prediction_event(event)
-            timestamp = event.get("exchange_event_ms")
+            just_verified = self._orient_prediction_event(event)
+            timestamp = event.get("prediction_book_version_ms")
+            if timestamp is None:
+                timestamp = event.get("exchange_event_ms")
             previous = self.last_prediction_timestamp.get(int(market_id))
-            if timestamp is not None and previous is not None and int(timestamp) <= previous:
+            if (
+                timestamp is not None
+                and previous is not None
+                and (
+                    int(timestamp) < previous
+                    or (int(timestamp) == previous and not just_verified)
+                )
+            ):
                 self.out_of_order += 1
                 return
             if timestamp is not None:
                 self.last_prediction_timestamp[int(market_id)] = int(timestamp)
+                self.last_prediction_book_version_ms = int(timestamp)
+            self.last_prediction_receipt_monotonic_ns = int(
+                event.get("received_monotonic_ns") or 0
+            )
+            if event.get("feature_eligible") is True:
+                self.eligible_prediction_events += 1
+                self.last_eligible_prediction_at = _utc_iso_from_ns(
+                    int(event.get("received_wall_ns") or time.time_ns())
+                )
+            else:
+                self.unverified_prediction_events += 1
         elif stream_name == "spot" and event["stream"] == "depth":
             update_id = event.get("update_id")
             if (
@@ -1178,9 +1326,8 @@ class MicrostructureObserver:
                 "%Y-%m-%dT%H:%M:%S", time.gmtime(event["received_wall_ns"] / 1e9)
             ) + "Z"
             event_ms = event.get("exchange_event_ms")
-            # Spot/Futures 的 E/T 是事件時間，可以估算傳輸延遲。
-            # Prediction 的 updateTimestampMs 是 orderbook 版本時間，
-            # 不得當成 WebSocket transport latency。
+            # Spot/Futures E/T is an event time and can estimate transport.
+            # Prediction updateTimestampMs is only an orderbook version time.
             if event_ms is not None and event.get("source") != "prediction":
                 latency = (
                     now_wall_ms
@@ -1379,6 +1526,69 @@ class MicrostructureObserver:
         prediction = self._public_stream_state(["prediction"])
         prediction["marketId"] = self.prediction_subscription_market_id
         prediction["bookMapping"] = self.prediction_orientation
+        now_mono_ns = time.monotonic_ns()
+        now_server_ms = time.time() * 1_000 + self.clock_offset_ms
+        unverified_since_ns = self.prediction_orientation_unverified_since_ns
+        orientation_elapsed_ms = (
+            max(0.0, (now_mono_ns - unverified_since_ns) / 1_000_000)
+            if unverified_since_ns is not None
+            and self.prediction_orientation not in PREDICTION_VERIFIED_ORIENTATIONS
+            else None
+        )
+        orientation_timed_out = bool(
+            orientation_elapsed_ms is not None
+            and orientation_elapsed_ms
+            > PREDICTION_ORIENTATION_TIMEOUT_SECONDS * 1_000
+        )
+        orientation_healthy = (
+            self.prediction_orientation in PREDICTION_VERIFIED_ORIENTATIONS
+        )
+        prediction.update(
+            {
+                "bookVersionAgeMs": (
+                    max(0.0, now_server_ms - self.last_prediction_book_version_ms)
+                    if self.last_prediction_book_version_ms is not None
+                    else None
+                ),
+                "localReceiptAgeMs": (
+                    max(
+                        0.0,
+                        (now_mono_ns - self.last_prediction_receipt_monotonic_ns)
+                        / 1_000_000,
+                    )
+                    if self.last_prediction_receipt_monotonic_ns
+                    else None
+                ),
+                "orientationHealthy": orientation_healthy,
+                "orientationStatus": (
+                    "HEALTHY"
+                    if orientation_healthy
+                    else "DEGRADED"
+                    if orientation_timed_out
+                    else "PENDING"
+                ),
+                "orientationTimedOut": orientation_timed_out,
+                "orientationUnverifiedAgeMs": orientation_elapsed_ms,
+                "orientationAttempts": self.orientation_attempts,
+                "orientationDirectCandidates": self.orientation_direct_candidates,
+                "orientationInvertedCandidates": self.orientation_inverted_candidates,
+                "orientationCandidateCount": self.prediction_orientation_candidate_count,
+                "orientationVerificationSuccesses": (
+                    self.orientation_verification_successes
+                ),
+                "orientationVerificationFailures": (
+                    self.orientation_verification_failures
+                ),
+                "orientationReceiptDeltaMs": self.orientation_receipt_delta_ms,
+                "orientationDirectError": self.orientation_direct_error,
+                "orientationInvertedError": self.orientation_inverted_error,
+                "orientationFailureReason": self.orientation_failure_reason,
+                "orientationReconnectRequests": self.orientation_reconnect_requests,
+                "eligiblePredictionEvents": self.eligible_prediction_events,
+                "unverifiedPredictionEvents": self.unverified_prediction_events,
+                "lastEligiblePredictionAt": self.last_eligible_prediction_at,
+            }
+        )
         groups = (spot, futures, prediction)
         group_statuses = [str(item["status"]) for item in groups]
         if all(item == "LIVE" for item in group_statuses):
@@ -1391,6 +1601,8 @@ class MicrostructureObserver:
             status = "STALE"
         else:
             status = "STARTING"
+        if status == "LIVE" and prediction.get("orientationHealthy") is not True:
+            status = "DEGRADED"
         if self.writer_status == "ERROR":
             status = "ERROR"
         with self.state_lock:

@@ -107,6 +107,7 @@ def prediction_event(**overrides):
         best_ask_qty=8.0,
     )
     value.update(overrides)
+    value.setdefault("prediction_book_version_ms", value.get("update_id"))
     return value
 
 
@@ -116,6 +117,7 @@ def test_realtime_engine_freezes_signal_before_next_prediction_book():
 
     engine._handle(prediction_event())
     assert store.calls[-1][2]["execution_eligible"] is True
+    assert store.calls[-1][2]["prediction_book_version_ms"] is not None
 
     store.calls.clear()
     engine._handle(event("spot", "trade", price=65_010.0, trade_id=1))
@@ -264,10 +266,62 @@ def test_realtime_engine_rejects_unverified_prediction_book():
     assert signal_context["execution_eligible"] is False
     assert signal["spot_price"] == pytest.approx(65_001.0)
     assert signal["up_ask"] is None
+    state = engine.state()
+    assert state["rejectedUnverifiedPredictionEvents"] == 1
+    assert state["acceptedPredictionEvents"] == 0
+    assert state["predictionBookAgeMs"] is None
 
     engine._handle(prediction_event(update_id=99))
     assert len(store.calls) == 2
     assert store.calls[-1][2]["execution_eligible"] is True
+    state = engine.state()
+    assert state["acceptedPredictionEvents"] == 1
+    assert state["predictionBookAgeMs"] is not None
+    assert state["lastAcceptedPredictionAt"] is not None
+
+
+def test_orientation_confirmation_reaches_store_once_for_same_book_version(
+    tmp_path,
+):
+    store = FakeStore()
+    engine = MSeriesRealtimeEngine(store=store, current_market=market_reference)
+    received_wall_ns = time.time_ns()
+    reference = {
+        "market_id": 101,
+        "up_bid": 0.54,
+        "up_ask": 0.56,
+        "received_wall_ns": received_wall_ns,
+    }
+    observer = MicrostructureObserver(
+        api_key="key",
+        api_secret="secret",
+        current_market_id=lambda: 101,
+        prediction_reference=lambda: reference,
+        realtime_event_sink=engine._handle,
+        db_path=tmp_path / "orientation-integration.db",
+    )
+
+    def same_version_event(receipt_offset_ns: int):
+        return prediction_event(
+            update_id=777,
+            exchange_event_ms=777,
+            prediction_book_version_ms=777,
+            received_wall_ns=received_wall_ns + receipt_offset_ns,
+            received_monotonic_ns=time.monotonic_ns() + receipt_offset_ns,
+        )
+
+    observer._accept_event("prediction", same_version_event(0))
+    observer._accept_event("prediction", same_version_event(1))
+    observer._accept_event("prediction", same_version_event(2))
+
+    assert observer.prediction_orientation == "DIRECT_UP_VERIFIED"
+    assert observer.eligible_prediction_events == 1
+    assert observer.unverified_prediction_events == 1
+    assert observer.out_of_order == 1
+    assert engine.rejected_unverified_prediction_events == 1
+    assert engine.accepted_prediction_events == 1
+    assert len(store.calls) == 1
+    assert store.calls[0][2]["execution_eligible"] is True
 
 
 def test_futures_signal_is_forwarded_before_prediction_book_exists():
@@ -279,6 +333,26 @@ def test_futures_signal_is_forwarded_before_prediction_book_exists():
     assert snapshot["up_ask"] is None
     assert context["signal_event_type"] == "futures"
     assert context["execution_eligible"] is False
+
+
+def test_non_prediction_evaluation_cannot_forward_a_live_order():
+    class CandidateStore(FakeStore):
+        def maybe_enter_m_series(
+            self, snapshot, fee_bps, *, realtime_context=None
+        ):
+            super().maybe_enter_m_series(
+                snapshot, fee_bps, realtime_context=realtime_context
+            )
+            return [{"strategy": "M0W", "market_id": 101}]
+
+    forwarded = []
+    engine = MSeriesRealtimeEngine(
+        store=CandidateStore(),
+        current_market=market_reference,
+        live_signal_sink=forwarded.append,
+    )
+    engine._handle(event("spot", "trade", price=65_001.0, trade_id=1))
+    assert forwarded == []
 
 
 def test_realtime_submit_only_queues_signal_and_execution_streams():

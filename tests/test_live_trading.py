@@ -1298,6 +1298,7 @@ def test_live_rules_select_strategy_and_change_exact_order_cap(tmp_path: Path):
         "strategyObserverVersions": ["F1"],
         "strategyDrawdownControlEnabled": [False],
         "strategyLossCooldownEnabled": [False],
+        "reliabilityGateTags": [],
     }
 
 
@@ -1327,6 +1328,99 @@ def test_three_selected_live_strategies_use_independent_caps(tmp_path: Path):
         order["strategy"]: order["max_stake_usdt"]
         for order in live.state()["orders"]
     } == {"M1": 0.75, "M2": 1.25, "M3": 0.5}
+
+
+@pytest.mark.parametrize(
+    ("tag", "strategy", "overrides"),
+    [
+        ("RC_LOW_ENTRY", "R_CALIBRATED_VALUE", {"entry_price": 0.40}),
+        ("MP_LATE_WINDOW", "R_MICROPRICE", {"seconds_left": 179.0}),
+        ("MP_FRESH_BOOK", "R_MICROPRICE", {"book_age_ms": 500.0}),
+    ],
+)
+def test_reliability_candidate_gates_are_selectable_default_off_and_fail_closed(
+    tmp_path: Path, tag: str, strategy: str, overrides: dict,
+):
+    default_client = FakeTradingClient()
+    default_live = engine(tmp_path / "default", default_client)
+    default_state = default_live.update_live_rules({"strategy": strategy})
+    assert default_state["rules"]["reliabilityGateTags"] == []
+    default_live.process_signal(signal(strategy=strategy, m0w_gate=None, **overrides))
+    assert len(default_client.place_calls) == 1
+
+    gated_client = FakeTradingClient()
+    gated_live = engine(tmp_path / "gated", gated_client)
+    gated_state = gated_live.update_live_rules({
+        "strategy": strategy,
+        "reliabilityGateTags": [tag],
+    })
+    assert gated_state["rules"]["reliabilityGateTags"] == [tag]
+    gated_live.process_signal(signal(strategy=strategy, m0w_gate=None, **overrides))
+    assert gated_client.quote_calls == []
+    assert gated_client.place_calls == []
+    assert gated_live.state()["orders"][0]["status"] == "BLOCKED_RELIABILITY_GATE"
+
+
+def test_real_fills_are_copied_into_reliability_counterfactual_research(
+    tmp_path: Path,
+):
+    ledger = LiveLedger(tmp_path / "live.db")
+    for market_id, entry_price, winner in (
+        (301, 0.30, True),
+        (302, 0.50, False),
+    ):
+        local_id = ledger.record_signal(
+            topic_id=101,
+            market_id=market_id,
+            side="UP",
+            token_id=f"token-{market_id}",
+            signal_price=entry_price,
+            account_type="SPOT",
+            signal_at="2026-07-31T00:00:00+00:00",
+            strategy="R_CALIBRATED_VALUE",
+            max_stake_usdt=1.0,
+            requested_amount_wei=str(LIVE_M0W_AMOUNT_WEI),
+            reliability_context={
+                "seconds_left": 60.0,
+                "book_age_ms": 100.0,
+            },
+        )
+        assert local_id is not None
+        ledger.update_order(
+            local_id,
+            status="SUBMITTED",
+            quote_average_price=entry_price,
+            quote_amount_in_wei=str(LIVE_M0W_AMOUNT_WEI),
+            quote_amount_out_wei="2500000000000000000",
+        )
+        ledger.sync_exchange_order(local_id, {
+            "status": "FILLED",
+            "filledUsdtAmount": "1.0",
+            "filledShareQty": "2.5",
+            "fillPercentage": "1",
+            "marketProviderFee": "0",
+            "networkFee": "0",
+        })
+        order = next(
+            row for row in ledger.unsettled_filled_orders()
+            if int(row["id"]) == local_id
+        )
+        assert ledger.record_strategy_settlement(order, {
+            "positionStatus": "ENDED",
+            "isWinner": winner,
+            "endDate": 1_800_000_000_000 + market_id,
+        }) is not None
+
+    summary = ledger.reliability_research_summary()
+    assert summary["source"] == "real_filled_orders_only"
+    assert summary["copiedSamples"] == 2
+    assert summary["settledSamples"] == 2
+    low_entry = next(tag for tag in summary["tags"] if tag["id"] == "RC_LOW_ENTRY")
+    assert low_entry["original"]["settledSamples"] == 2
+    assert low_entry["allowed"]["settledSamples"] == 1
+    assert low_entry["blocked"]["settledSamples"] == 1
+    assert low_entry["deltaVsOriginalPnlUsdt"] > 0
+    assert summary["recentSamples"][0]["tagDecisions"]
 
 
 def test_live_rules_reject_more_than_three_selected_strategies(tmp_path: Path):
@@ -2344,6 +2438,7 @@ def test_live_rules_persist_in_separate_live_ledger(tmp_path: Path):
         "strategyObserverVersions": ["V4"],
         "strategyDrawdownControlEnabled": [False],
         "strategyLossCooldownEnabled": [False],
+        "reliabilityGateTags": [],
     }
 
 

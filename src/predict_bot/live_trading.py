@@ -62,6 +62,55 @@ LIVE_RESEARCH_REPRICE_GAPS = {
 LIVE_RESEARCH_PRICE_RANGES = {
     "R_OFI_EVENT_CUM": (Decimal("0.40"), Decimal("0.69")),
 }
+LIVE_RELIABILITY_TAGS = {
+    "RC_LOW_ENTRY": {
+        "strategy": "R_CALIBRATED_VALUE",
+        "status": "candidate",
+        "title": "低進場價可靠區",
+        "condition": "entry_price <= 0.376875",
+        "matchDecision": "ALLOW",
+    },
+    "RC_STALE_QUOTE": {
+        "strategy": "R_CALIBRATED_VALUE",
+        "status": "warning",
+        "title": "報價過舊失準警戒",
+        "condition": "book_age_ms > 828.5",
+        "matchDecision": "BLOCK",
+    },
+    "FL_DIRECTION": {
+        "strategy": "R_FUTURES_LEAD",
+        "status": "limited",
+        "title": "方向差異觀測",
+        "condition": "side = DOWN",
+        "matchDecision": "ALLOW",
+    },
+    "MP_LATE_WINDOW": {
+        "strategy": "R_MICROPRICE",
+        "status": "candidate",
+        "title": "較晚進場可靠區",
+        "condition": "seconds_left <= 178.432",
+        "matchDecision": "ALLOW",
+    },
+    "MP_FRESH_BOOK": {
+        "strategy": "R_MICROPRICE",
+        "status": "candidate",
+        "title": "新鮮訂單簿可靠區",
+        "condition": "book_age_ms <= 422.5",
+        "matchDecision": "ALLOW",
+    },
+    "MP_MIDPRICE_WEAK": {
+        "strategy": "R_MICROPRICE",
+        "status": "warning",
+        "title": "中低價開發假象警戒",
+        "condition": "0.286425 < entry_price <= 0.39195",
+        "matchDecision": "BLOCK",
+    },
+}
+LIVE_RELIABILITY_CANDIDATE_TAGS = (
+    "RC_LOW_ENTRY",
+    "MP_LATE_WINDOW",
+    "MP_FRESH_BOOK",
+)
 LIVE_SUPPORTED_STRATEGIES = (
     "M",
     "M0",
@@ -203,6 +252,7 @@ def normalize_live_rules(
         "futuresLeadObserverVersion": "F1",
         "strategyDrawdownControlEnabled": [False],
         "strategyLossCooldownEnabled": [False],
+        "reliabilityGateTags": [],
         **(current or {}),
         **values,
     }
@@ -370,6 +420,27 @@ def normalize_live_rules(
             raw_loss_cooldown_enabled + [False] * len(strategies)
         )[:len(strategies)]
     ]
+    raw_reliability_tags = candidate.get("reliabilityGateTags")
+    if isinstance(raw_reliability_tags, str):
+        try:
+            raw_reliability_tags = json.loads(raw_reliability_tags)
+        except json.JSONDecodeError:
+            raw_reliability_tags = None
+    if not isinstance(raw_reliability_tags, list):
+        raw_reliability_tags = []
+    reliability_gate_tags = list(dict.fromkeys(
+        str(value or "").strip().upper()
+        for value in raw_reliability_tags
+        if str(value or "").strip()
+    ))
+    invalid_reliability_tags = sorted(
+        set(reliability_gate_tags) - set(LIVE_RELIABILITY_CANDIDATE_TAGS)
+    )
+    if invalid_reliability_tags:
+        raise ValueError(
+            "reliabilityGateTags may only contain: "
+            + ", ".join(LIVE_RELIABILITY_CANDIDATE_TAGS)
+        )
     return {
         "strategy": strategies[0],
         "strategies": strategies,
@@ -385,6 +456,7 @@ def normalize_live_rules(
         "strategyObserverVersions": strategy_observer_versions,
         "strategyDrawdownControlEnabled": strategy_drawdown_control_enabled,
         "strategyLossCooldownEnabled": strategy_loss_cooldown_enabled,
+        "reliabilityGateTags": reliability_gate_tags,
     }
 
 
@@ -465,6 +537,59 @@ def _decimal(value: Any) -> Decimal | None:
 def _float(value: Any) -> float | None:
     result = _decimal(value)
     return float(result) if result is not None else None
+
+
+def evaluate_live_reliability_tags(
+    *,
+    strategy: Any,
+    side: Any,
+    entry_price: Any,
+    seconds_left: Any,
+    book_age_ms: Any,
+) -> list[dict[str, Any]]:
+    """Evaluate frozen research tags against one real filled-order snapshot."""
+    normalized_strategy = str(strategy or "").strip().upper()
+    normalized_side = str(side or "").strip().upper()
+    entry = _float(entry_price)
+    seconds = _float(seconds_left)
+    book_age = _float(book_age_ms)
+    decisions: list[dict[str, Any]] = []
+    for tag_id, definition in LIVE_RELIABILITY_TAGS.items():
+        if definition["strategy"] != normalized_strategy:
+            continue
+        matched: bool | None
+        if tag_id == "RC_LOW_ENTRY":
+            matched = entry <= 0.376875 if entry is not None else None
+        elif tag_id == "RC_STALE_QUOTE":
+            matched = book_age > 828.5 if book_age is not None else None
+        elif tag_id == "FL_DIRECTION":
+            matched = normalized_side == "DOWN" if normalized_side else None
+        elif tag_id == "MP_LATE_WINDOW":
+            matched = seconds <= 178.432 if seconds is not None else None
+        elif tag_id == "MP_FRESH_BOOK":
+            matched = book_age <= 422.5 if book_age is not None else None
+        elif tag_id == "MP_MIDPRICE_WEAK":
+            matched = (
+                0.286425 < entry <= 0.39195 if entry is not None else None
+            )
+        else:  # pragma: no cover - definitions and evaluator stay paired.
+            matched = None
+        match_decision = str(definition["matchDecision"])
+        decision = (
+            "UNAVAILABLE"
+            if matched is None
+            else match_decision
+            if matched
+            else "BLOCK" if match_decision == "ALLOW" else "ALLOW"
+        )
+        decisions.append(
+            {
+                "id": tag_id,
+                "conditionMatched": matched,
+                "decision": decision,
+            }
+        )
+    return decisions
 
 
 def _mask_wallet(value: str | None) -> str | None:
@@ -660,6 +785,30 @@ class LiveLedger:
                 );
                 CREATE INDEX IF NOT EXISTS live_strategy_settlements_market_idx
                     ON live_strategy_settlements(market_id);
+                CREATE TABLE IF NOT EXISTS live_reliability_samples (
+                    order_local_id INTEGER PRIMARY KEY,
+                    strategy TEXT NOT NULL,
+                    market_id INTEGER NOT NULL,
+                    side TEXT NOT NULL,
+                    signal_price REAL,
+                    executed_entry_price REAL,
+                    seconds_left REAL,
+                    book_age_ms REAL,
+                    exchange_status TEXT,
+                    filled_cost_usdt REAL,
+                    captured_at TEXT,
+                    settlement_result TEXT,
+                    settlement_cost_usdt REAL,
+                    settlement_pnl_usdt REAL,
+                    settlement_roi_pct REAL,
+                    settled_at TEXT,
+                    tag_decisions_json TEXT NOT NULL DEFAULT '[]',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY(order_local_id) REFERENCES live_orders(id)
+                );
+                CREATE INDEX IF NOT EXISTS live_reliability_samples_strategy_idx
+                    ON live_reliability_samples(strategy, order_local_id DESC);
                 CREATE TABLE IF NOT EXISTS live_strategy_loss_cooldown_results (
                     order_local_id INTEGER PRIMARY KEY,
                     strategy TEXT NOT NULL,
@@ -823,6 +972,7 @@ class LiveLedger:
             "strategyObserverVersions",
             "strategyDrawdownControlEnabled",
             "strategyLossCooldownEnabled",
+            "reliabilityGateTags",
         )
         placeholders = ",".join("?" for _ in keys)
         with self.lock:
@@ -850,6 +1000,7 @@ class LiveLedger:
                     "strategyObserverVersions",
                     "strategyDrawdownControlEnabled",
                     "strategyLossCooldownEnabled",
+                    "reliabilityGateTags",
                 ):
                     self.db.execute(
                         """INSERT INTO live_settings(key, value, updated_at)
@@ -867,6 +1018,7 @@ class LiveLedger:
                                 "strategyObserverVersions",
                                 "strategyDrawdownControlEnabled",
                                 "strategyLossCooldownEnabled",
+                                "reliabilityGateTags",
                             }
                             else str(rules[key]),
                             now,
@@ -907,6 +1059,7 @@ class LiveLedger:
         max_stake_usdt: float = float(LIVE_DEFAULT_MAX_STAKE_USDT),
         requested_amount_wei: str = str(LIVE_M0W_AMOUNT_WEI),
         initial_status: str = "SIGNAL_RECEIVED",
+        reliability_context: dict[str, Any] | None = None,
     ) -> int | None:
         now = utc_iso()
         with self.lock:
@@ -940,8 +1093,52 @@ class LiveLedger:
                     now,
                 ),
             )
+            local_id = int(cursor.lastrowid) if cursor.rowcount else None
+            if local_id is not None and isinstance(reliability_context, dict):
+                self._record_reliability_context_locked(
+                    order_local_id=local_id,
+                    strategy=str(strategy),
+                    market_id=int(market_id),
+                    side=side,
+                    signal_price=float(signal_price),
+                    context=reliability_context,
+                )
             self.db.commit()
-            return int(cursor.lastrowid) if cursor.rowcount else None
+            return local_id
+
+    def _record_reliability_context_locked(
+        self,
+        *,
+        order_local_id: int,
+        strategy: str,
+        market_id: int,
+        side: str,
+        signal_price: float,
+        context: dict[str, Any],
+    ) -> None:
+        normalized_strategy = str(strategy).split(":", 1)[0].upper()
+        if normalized_strategy not in {
+            definition["strategy"] for definition in LIVE_RELIABILITY_TAGS.values()
+        }:
+            return
+        now = utc_iso()
+        self.db.execute(
+            """INSERT OR IGNORE INTO live_reliability_samples(
+                   order_local_id, strategy, market_id, side, signal_price,
+                   seconds_left, book_age_ms, created_at, updated_at
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                int(order_local_id),
+                normalized_strategy,
+                int(market_id),
+                str(side).upper(),
+                float(signal_price),
+                _float(context.get("seconds_left")),
+                _float(context.get("book_age_ms")),
+                now,
+                now,
+            ),
+        )
 
     def update_order(self, local_id: int, **values: Any) -> None:
         updates = {
@@ -975,6 +1172,66 @@ class LiveLedger:
             ),
             response_json=_safe_payload(order),
         )
+        self._capture_filled_reliability_sample(local_id)
+
+    def _capture_filled_reliability_sample(self, local_id: int) -> None:
+        with self.lock:
+            row = self.db.execute(
+                """SELECT o.*, r.seconds_left, r.book_age_ms,
+                          r.order_local_id AS reliability_order_local_id
+                     FROM live_orders o
+                     LEFT JOIN live_reliability_samples r
+                       ON r.order_local_id=o.id
+                    WHERE o.id=?""",
+                (int(local_id),),
+            ).fetchone()
+            if (
+                row is None
+                or row["reliability_order_local_id"] is None
+                or float(_float(row["filled_usdt_amount"]) or 0.0) <= 0
+            ):
+                return
+            quote_cost = self._wei_amount(row["quote_amount_in_wei"])
+            filled_cost = _float(row["filled_usdt_amount"])
+            positive_costs = [
+                value for value in (quote_cost, filled_cost)
+                if value is not None and value > 0
+            ]
+            if not positive_costs:
+                return
+            actual_entry = _float(row["quote_average_price"])
+            if actual_entry is None:
+                shares = _float(row["filled_share_qty"])
+                actual_entry = (
+                    min(positive_costs) / shares
+                    if shares is not None and shares > 0 else _float(row["signal_price"])
+                )
+            decisions = evaluate_live_reliability_tags(
+                strategy=row["strategy"],
+                side=row["side"],
+                entry_price=actual_entry,
+                seconds_left=row["seconds_left"],
+                book_age_ms=row["book_age_ms"],
+            )
+            now = utc_iso()
+            self.db.execute(
+                """UPDATE live_reliability_samples
+                      SET executed_entry_price=?, exchange_status=?,
+                          filled_cost_usdt=?,
+                          captured_at=COALESCE(captured_at, ?),
+                          tag_decisions_json=?, updated_at=?
+                    WHERE order_local_id=?""",
+                (
+                    actual_entry,
+                    str(row["status"]),
+                    min(positive_costs),
+                    now,
+                    json.dumps(decisions, ensure_ascii=False, sort_keys=True),
+                    now,
+                    int(local_id),
+                ),
+            )
+            self.db.commit()
 
     def pending_orders(self) -> list[dict[str, Any]]:
         placeholders = ",".join("?" for _ in ACTIVE_ORDER_STATUSES)
@@ -1012,6 +1269,129 @@ class LiveLedger:
             item.pop("response_json", None)
             result.append(item)
         return result
+
+    def reliability_research_summary(
+        self,
+        *,
+        enabled_tags: list[str] | tuple[str, ...] = (),
+        recent_limit: int = 50,
+    ) -> dict[str, Any]:
+        """Compare real filled orders with each tag's allow/block counterfactual."""
+        with self.lock:
+            rows = [dict(row) for row in self.db.execute(
+                """SELECT * FROM live_reliability_samples
+                    WHERE captured_at IS NOT NULL
+                    ORDER BY order_local_id DESC"""
+            ).fetchall()]
+
+        for row in rows:
+            try:
+                decoded = json.loads(str(row.get("tag_decisions_json") or "[]"))
+            except json.JSONDecodeError:
+                decoded = []
+            row["tag_decisions"] = decoded if isinstance(decoded, list) else []
+            row["decision_by_tag"] = {
+                str(item.get("id")): str(item.get("decision"))
+                for item in row["tag_decisions"]
+                if isinstance(item, dict) and item.get("id")
+            }
+
+        def cohort(items: list[dict[str, Any]]) -> dict[str, Any]:
+            settled = [
+                item for item in items
+                if item.get("settlement_result") in {"WIN", "LOSS"}
+            ]
+            pnl = sum(float(item.get("settlement_pnl_usdt") or 0.0) for item in settled)
+            cost = sum(float(item.get("settlement_cost_usdt") or 0.0) for item in settled)
+            wins = sum(item.get("settlement_result") == "WIN" for item in settled)
+            return {
+                "samples": len(items),
+                "settledSamples": len(settled),
+                "pendingSamples": len(items) - len(settled),
+                "wins": int(wins),
+                "losses": len(settled) - int(wins),
+                "winRatePct": (
+                    wins / len(settled) * 100.0 if settled else None
+                ),
+                "costUsdt": cost,
+                "pnlUsdt": pnl,
+                "returnOnCostPct": pnl / cost * 100.0 if cost > 0 else None,
+            }
+
+        enabled = {str(tag).upper() for tag in enabled_tags}
+        tag_summaries: list[dict[str, Any]] = []
+        for tag_id, definition in LIVE_RELIABILITY_TAGS.items():
+            applicable = [
+                row for row in rows
+                if row.get("strategy") == definition["strategy"]
+            ]
+            allowed = [
+                row for row in applicable
+                if row["decision_by_tag"].get(tag_id) == "ALLOW"
+            ]
+            blocked = [
+                row for row in applicable
+                if row["decision_by_tag"].get(tag_id) == "BLOCK"
+            ]
+            unavailable = [
+                row for row in applicable
+                if row["decision_by_tag"].get(tag_id) == "UNAVAILABLE"
+            ]
+            original_metrics = cohort(applicable)
+            allowed_metrics = cohort(allowed)
+            blocked_metrics = cohort(blocked)
+            tag_summaries.append(
+                {
+                    "id": tag_id,
+                    **definition,
+                    "activationAvailable": tag_id in LIVE_RELIABILITY_CANDIDATE_TAGS,
+                    "enabledForLive": tag_id in enabled,
+                    "original": original_metrics,
+                    "allowed": allowed_metrics,
+                    "blocked": blocked_metrics,
+                    "unavailable": cohort(unavailable),
+                    "policyPnlUsdt": allowed_metrics["pnlUsdt"],
+                    "deltaVsOriginalPnlUsdt": (
+                        allowed_metrics["pnlUsdt"] - original_metrics["pnlUsdt"]
+                    ),
+                    "avoidedOriginalPnlUsdt": -blocked_metrics["pnlUsdt"],
+                }
+            )
+
+        recent_samples = []
+        for row in rows[:max(1, min(200, int(recent_limit)))]:
+            recent_samples.append(
+                {
+                    "orderLocalId": int(row["order_local_id"]),
+                    "strategy": row["strategy"],
+                    "marketId": int(row["market_id"]),
+                    "side": row["side"],
+                    "executedEntryPrice": row["executed_entry_price"],
+                    "secondsLeft": row["seconds_left"],
+                    "bookAgeMs": row["book_age_ms"],
+                    "capturedAt": row["captured_at"],
+                    "settlementResult": row["settlement_result"],
+                    "settlementCostUsdt": row["settlement_cost_usdt"],
+                    "settlementPnlUsdt": row["settlement_pnl_usdt"],
+                    "settledAt": row["settled_at"],
+                    "tagDecisions": row["tag_decisions"],
+                }
+            )
+        return {
+            "source": "real_filled_orders_only",
+            "paperOrdersIncluded": False,
+            "blockedOrRejectedOrdersIncluded": False,
+            "copiedSamples": len(rows),
+            "settledSamples": sum(
+                row.get("settlement_result") in {"WIN", "LOSS"} for row in rows
+            ),
+            "pendingSamples": sum(
+                row.get("settlement_result") not in {"WIN", "LOSS"} for row in rows
+            ),
+            "enabledLiveTags": sorted(enabled),
+            "tags": tag_summaries,
+            "recentSamples": recent_samples,
+        }
 
     def order_for_manual_exit(self, local_id: int) -> dict[str, Any] | None:
         with self.lock:
@@ -1705,6 +2085,22 @@ class LiveLedger:
                 result=result,
                 processed_at=now,
             )
+            self.db.execute(
+                """UPDATE live_reliability_samples
+                      SET settlement_result=?, settlement_cost_usdt=?,
+                          settlement_pnl_usdt=?, settlement_roi_pct=?,
+                          settled_at=?, updated_at=?
+                    WHERE order_local_id=? AND captured_at IS NOT NULL""",
+                (
+                    result,
+                    cost_usdt,
+                    pnl_usdt,
+                    roi_pct,
+                    settled_at,
+                    now,
+                    int(order["id"]),
+                ),
+            )
             self.db.commit()
             row = self.db.execute(
                 "SELECT * FROM live_strategy_settlements WHERE order_local_id=?",
@@ -2134,6 +2530,7 @@ class LiveM0WEngine:
             "strategyObserverVersions",
             "strategyDrawdownControlEnabled",
             "strategyLossCooldownEnabled",
+            "reliabilityGateTags",
         }
         unknown = sorted(set(values) - allowed)
         if unknown:
@@ -2175,6 +2572,7 @@ class LiveM0WEngine:
                 f"{updated['strategyDrawdownControlEnabled']}"
                 f"; two-loss cooldown "
                 f"{updated['strategyLossCooldownEnabled']}"
+                f"; reliability gates {updated['reliabilityGateTags']}"
             ),
         )
         if runtime_enabled:
@@ -2385,6 +2783,51 @@ class LiveM0WEngine:
                 f"quote average price must be between {minimum} and {maximum} "
                 f"for {strategy}"
             )
+        return True, ""
+
+    @staticmethod
+    def _reliability_gate_is_safe(
+        signal: dict[str, Any], rules: dict[str, Any]
+    ) -> tuple[bool, str]:
+        strategy = str(signal.get("strategy") or "").upper()
+        enabled = {
+            str(value).upper() for value in rules.get("reliabilityGateTags", [])
+        }
+        applicable = [
+            tag_id for tag_id in enabled
+            if LIVE_RELIABILITY_TAGS[tag_id]["strategy"] == strategy
+        ]
+        if not applicable:
+            return True, ""
+        decisions = {
+            str(item["id"]): str(item["decision"])
+            for item in evaluate_live_reliability_tags(
+                strategy=strategy,
+                side=signal.get("side"),
+                entry_price=signal.get("entry_price"),
+                seconds_left=signal.get("seconds_left"),
+                book_age_ms=signal.get("book_age_ms"),
+            )
+        }
+        blocked = [tag_id for tag_id in applicable if decisions.get(tag_id) != "ALLOW"]
+        if blocked:
+            details = ", ".join(
+                f"{tag_id}={decisions.get(tag_id, 'UNAVAILABLE')}" for tag_id in blocked
+            )
+            return False, f"候選可靠條件未放行：{details}"
+        return True, ""
+
+    @staticmethod
+    def _reliability_quote_is_safe(
+        quote: dict[str, Any], strategy: str, rules: dict[str, Any]
+    ) -> tuple[bool, str]:
+        enabled = {
+            str(value).upper() for value in rules.get("reliabilityGateTags", [])
+        }
+        if strategy == "R_CALIBRATED_VALUE" and "RC_LOW_ENTRY" in enabled:
+            average = _decimal(quote.get("averagePrice"))
+            if average is None or average > Decimal("0.376875"):
+                return False, "RC_LOW_ENTRY signed quote average exceeds 0.376875"
         return True, ""
 
     @staticmethod
@@ -3889,6 +4332,14 @@ class LiveM0WEngine:
                 signal, "BLOCKED_MARKET_MISMATCH", "實單訊號市場已不是目前市場"
             )
             return
+        reliability_is_safe, reliability_reason = self._reliability_gate_is_safe(
+            signal, rules
+        )
+        if not reliability_is_safe:
+            self._record_blocked_signal(
+                signal, "BLOCKED_RELIABILITY_GATE", reliability_reason
+            )
+            return
         drawdown_enabled = self._strategy_drawdown_control_enabled(
             rules, selected_strategy
         )
@@ -4005,6 +4456,13 @@ class LiveM0WEngine:
             maximum_reprice_limit = self._maximum_reprice_limit(
                 signal, selected_strategy, signal_price
             )
+            if (
+                selected_strategy == "R_CALIBRATED_VALUE"
+                and "RC_LOW_ENTRY" in rules["reliabilityGateTags"]
+            ):
+                maximum_reprice_limit = min(
+                    maximum_reprice_limit, Decimal("0.376875")
+                )
         except ValueError as exc:
             self._record_blocked_signal(
                 signal, "BLOCKED_INVALID_PRICE", str(exc)
@@ -4040,6 +4498,7 @@ class LiveM0WEngine:
             max_stake_usdt=float(max_stake),
             requested_amount_wei=str(amount_in_wei),
             initial_status="QUOTE_REQUESTING",
+            reliability_context=signal,
         )
         if local_id is None:
             self.ledger.record_event(
@@ -4098,6 +4557,10 @@ class LiveM0WEngine:
                 safe, reason = self._research_quote_range_is_safe(
                     quote, selected_strategy
                 )
+            if safe:
+                safe, reason = self._reliability_quote_is_safe(
+                    quote, selected_strategy, rules
+                )
             quote_average = _decimal(quote.get("averagePrice"))
             if (
                 not safe
@@ -4135,6 +4598,10 @@ class LiveM0WEngine:
                 if safe:
                     safe, reason = self._research_quote_range_is_safe(
                         quote, selected_strategy
+                    )
+                if safe:
+                    safe, reason = self._reliability_quote_is_safe(
+                        quote, selected_strategy, rules
                     )
             if not safe:
                 raise ValueError(reason)
@@ -5679,6 +6146,9 @@ class LiveM0WEngine:
             "pairInsurance": self.ledger.recent_pair_insurance(),
             "pairQuoteAudits": self.ledger.recent_pair_quote_audits(),
             "pairIncidents": self.ledger.recent_pair_incidents(),
+            "reliabilityResearch": self.ledger.reliability_research_summary(
+                enabled_tags=rules["reliabilityGateTags"]
+            ),
             "events": self.ledger.recent_events(),
             "updatedAt": utc_iso(),
             "policy": {

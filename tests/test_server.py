@@ -126,6 +126,124 @@ def test_realtime_dashboard_state_uses_in_memory_snapshots(monkeypatch):
     }
 
 
+def health_micro(
+    *,
+    mapping: str,
+    market_id: int = 22,
+    orientation_timed_out: bool = False,
+    micro_status: str = "LIVE",
+) -> dict:
+    return {
+        "status": micro_status,
+        "streams": {
+            "spot": {"status": "LIVE"},
+            "futures": {"status": "LIVE"},
+            "prediction": {
+                "status": "LIVE",
+                "bookMapping": mapping,
+                "marketId": market_id,
+                "orientationTimedOut": orientation_timed_out,
+                "orientationFailureReason": (
+                    "ORIENTATION_TIMEOUT"
+                    if orientation_timed_out
+                    else "AWAITING_SECOND_CONFIRMATION"
+                ),
+                "bookVersionAgeMs": 55_000.0,
+                "localReceiptAgeMs": 250.0,
+            },
+        },
+        "storage": {"writerStatus": "RUNNING"},
+    }
+
+
+def health_m_realtime(*, market_id: int = 22, book_age_ms: float | None = 250.0):
+    return {
+        "status": "LIVE",
+        "marketId": market_id,
+        "marketDataIntegrityOk": True,
+        "droppedEvents": 0,
+        "error": None,
+        "predictionBookAgeMs": book_age_ms,
+    }
+
+
+def test_health_is_false_when_prediction_transport_live_but_unverified():
+    result = server_module.build_health_payload(
+        collector_status="LIVE",
+        micro=health_micro(mapping="UNVERIFIED"),
+        m_realtime=health_m_realtime(book_age_ms=None),
+    )
+    assert result["ok"] is False
+    assert result["streams"]["prediction"] == "LIVE"
+    assert result["predictionOrientationHealthy"] is False
+    assert result["predictionOrientationStatus"] == "PENDING"
+
+
+def test_health_is_false_when_prediction_and_m_realtime_markets_differ():
+    result = server_module.build_health_payload(
+        collector_status="LIVE",
+        micro=health_micro(mapping="DIRECT_UP_VERIFIED", market_id=22),
+        m_realtime=health_m_realtime(market_id=23),
+    )
+    assert result["ok"] is False
+    assert result["predictionOrientationStatus"] == "DEGRADED"
+    assert result["predictionOrientationReason"] == "PREDICTION_MARKET_ID_MISMATCH"
+
+
+def test_health_is_true_for_verified_fresh_matching_prediction_book():
+    result = server_module.build_health_payload(
+        collector_status="LIVE",
+        micro=health_micro(mapping="DIRECT_UP_VERIFIED"),
+        m_realtime=health_m_realtime(),
+    )
+    assert result["ok"] is True
+    assert result["predictionOrientationHealthy"] is True
+    assert result["predictionBookAgeMs"] == pytest.approx(250.0)
+    assert result["predictionBookVersionAgeMs"] == pytest.approx(55_000.0)
+    assert result["predictionLocalReceiptAgeMs"] == pytest.approx(250.0)
+
+
+def test_health_is_false_for_verified_but_stale_prediction_book():
+    result = server_module.build_health_payload(
+        collector_status="LIVE",
+        micro=health_micro(mapping="DIRECT_UP_VERIFIED"),
+        m_realtime=health_m_realtime(book_age_ms=10_001.0),
+    )
+    assert result["ok"] is False
+    assert result["predictionOrientationStatus"] == "DEGRADED"
+    assert result["predictionOrientationReason"] == "PREDICTION_BOOK_STALE"
+
+
+def test_health_reports_rollover_confirmation_as_pending_not_healthy():
+    result = server_module.build_health_payload(
+        collector_status="LIVE",
+        micro=health_micro(
+            mapping="DIRECT_CANDIDATE",
+            micro_status="DEGRADED",
+        ),
+        m_realtime=health_m_realtime(book_age_ms=None),
+    )
+    assert result["ok"] is False
+    assert result["predictionBookMapping"] == "DIRECT_CANDIDATE"
+    assert result["predictionOrientationStatus"] == "PENDING"
+    assert result["predictionOrientationReason"] == "AWAITING_SECOND_CONFIRMATION"
+
+
+def test_health_reports_orientation_timeout_as_degraded():
+    result = server_module.build_health_payload(
+        collector_status="LIVE",
+        micro=health_micro(
+            mapping="UNVERIFIED",
+            orientation_timed_out=True,
+            micro_status="DEGRADED",
+        ),
+        m_realtime=health_m_realtime(book_age_ms=None),
+    )
+    assert result["ok"] is False
+    assert result["predictionOrientationStatus"] == "DEGRADED"
+    assert result["predictionOrientationReason"] == "ORIENTATION_TIMEOUT"
+
+
 @pytest.mark.parametrize(
     "origin",
     [

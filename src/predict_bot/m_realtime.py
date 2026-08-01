@@ -83,6 +83,9 @@ class MSeriesRealtimeEngine:
         self.spot_event: dict[str, Any] | None = None
         self.futures_event: dict[str, Any] | None = None
         self.prediction_event: dict[str, Any] | None = None
+        self.accepted_prediction_events = 0
+        self.rejected_unverified_prediction_events = 0
+        self.last_accepted_prediction_at: str | None = None
         self.spot_history: deque[dict[str, Any]] = deque(maxlen=20_000)
         self.prediction_history: deque[dict[str, Any]] = deque(maxlen=10_000)
         self.m7_emitted_deadlines: set[float] = set()
@@ -164,7 +167,7 @@ class MSeriesRealtimeEngine:
             if source == "prediction":
                 if (
                     int(event.get("market_id") or -1) != market_id
-                    or event.get("feature_eligible", True) is not True
+                    or event.get("feature_eligible") is not True
                 ):
                     return
             received_wall_ns = int(
@@ -367,7 +370,7 @@ class MSeriesRealtimeEngine:
     def _prediction_values(
         self, event: dict[str, Any] | None, now_mono_ns: int
     ) -> dict[str, float] | None:
-        if not event or not event.get("feature_eligible", True):
+        if not event or event.get("feature_eligible") is not True:
             return None
         up_bid = _finite(event.get("best_bid"))
         up_ask = _finite(event.get("best_ask"))
@@ -504,6 +507,9 @@ class MSeriesRealtimeEngine:
             "signal_event_stream": str(trigger.get("stream") or "timer"),
             "signal_event_sequence": signal_sequence,
             "signal_exchange_event_ms": trigger.get("exchange_event_ms"),
+            "signal_prediction_book_version_ms": trigger.get(
+                "prediction_book_version_ms"
+            ),
             "signal_exchange_trade_ms": trigger.get("exchange_trade_ms"),
             "signal_received_wall_ns": trigger_received_wall_ns,
             "signal_received_monotonic_ns": trigger_received_mono_ns,
@@ -552,6 +558,9 @@ class MSeriesRealtimeEngine:
                 "received_monotonic_ns"
             ),
             "prediction_exchange_event_ms": prediction_event.get("exchange_event_ms"),
+            "prediction_book_version_ms": prediction_event.get(
+                "prediction_book_version_ms"
+            ),
             "prediction_book_age_ms": prediction.get("book_age_ms"),
             "spot_age_ms": snapshot["spot_age_ms"],
             "futures_age_ms": snapshot["futures_age_ms"],
@@ -711,7 +720,10 @@ class MSeriesRealtimeEngine:
             realtime_context=context,
         )
         store_finished_ns = time.monotonic_ns()
-        if self.live_signal_sink is not None:
+        if (
+            self.live_signal_sink is not None
+            and context.get("execution_eligible") is True
+        ):
             for candidate in opened or []:
                 candidate = {
                     **candidate,
@@ -928,11 +940,17 @@ class MSeriesRealtimeEngine:
         if source == "prediction" and stream == "orderbook":
             if (
                 int(event.get("market_id") or -1) == market_id
-                and event.get("feature_eligible", True)
+                and event.get("feature_eligible") is True
             ):
                 self.prediction_event = event
                 self.prediction_history.append(event)
+                self.accepted_prediction_events += 1
+                self.last_accepted_prediction_at = _utc_iso_from_ns(
+                    int(event.get("received_wall_ns") or time.time_ns())
+                )
             else:
+                if event.get("feature_eligible") is not True:
+                    self.rejected_unverified_prediction_events += 1
                 return
         elif source == "spot" and stream == "trade":
             if not self._accept_spot_trade(event, set_current=True):
@@ -1029,6 +1047,11 @@ class MSeriesRealtimeEngine:
                 "queueDepth": self.events.qsize(),
                 "processedEvents": self.processed_events,
                 "droppedEvents": self.dropped_events,
+                "acceptedPredictionEvents": self.accepted_prediction_events,
+                "rejectedUnverifiedPredictionEvents": (
+                    self.rejected_unverified_prediction_events
+                ),
+                "lastAcceptedPredictionAt": self.last_accepted_prediction_at,
                 "marketDataIntegrityOk": self._market_integrity_ok(),
                 "integrityEpoch": self.integrity_epoch,
                 "integritySkippedEvaluations": self.integrity_skipped_evaluations,

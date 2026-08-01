@@ -74,6 +74,12 @@ type MicrostructureStream = {
   status?: string | null; eventRate?: number | null; lastEventAt?: string | null;
   transportLatencyMs?: number | null; latencyMs?: number | null; error?: string | null;
   marketId?: number | null; bookMapping?: string | null;
+  bookVersionAgeMs?: number | null; localReceiptAgeMs?: number | null;
+  orientationHealthy?: boolean | null; orientationTimedOut?: boolean | null;
+  orientationStatus?: string | null;
+  orientationUnverifiedAgeMs?: number | null; orientationFailureReason?: string | null;
+  orientationAttempts?: number | null; orientationCandidateCount?: number | null;
+  eligiblePredictionEvents?: number | null; unverifiedPredictionEvents?: number | null;
 };
 type MicrostructureMetrics = {
   spotPrice?: number | null; spotMicroprice?: number | null; spotQueueImbalance?: number | null;
@@ -106,6 +112,8 @@ type MRealtimeState = {
   status?: string | null; mode?: string | null; paperOnly?: boolean | null;
   marketId?: number | null; eventRate?: number | null; queueDepth?: number | null;
   processedEvents?: number | null; droppedEvents?: number | null; evaluations?: number | null;
+  acceptedPredictionEvents?: number | null; rejectedUnverifiedPredictionEvents?: number | null;
+  lastAcceptedPredictionAt?: string | number | null;
   lastEventAt?: string | number | null; lastDecisionAt?: string | number | null;
   lastQueueDelayMs?: number | null; lastDecisionDurationMs?: number | null;
   spotAgeMs?: number | null; futuresAgeMs?: number | null; predictionBookAgeMs?: number | null;
@@ -220,6 +228,10 @@ type LiveRedeem = {
   request_id?: string | null; tx_hash?: string | null; exchange_status?: string | null;
   completed_at?: string | null; updated_at?: string; error_message?: string | null;
 };
+type ReliabilityCandidateTagId = "RC_LOW_ENTRY" | "MP_LATE_WINDOW" | "MP_FRESH_BOOK";
+const RELIABILITY_CANDIDATE_TAG_IDS: ReliabilityCandidateTagId[] = [
+  "RC_LOW_ENTRY", "MP_LATE_WINDOW", "MP_FRESH_BOOK",
+];
 type LiveRules = {
   strategy: string; strategies: string[]; maxStakeUsdt: number; strategyStakesUsdt: number[];
   minHourlyWinRatePct: number; maxHourlyWinThenLossRatePct: number;
@@ -229,6 +241,7 @@ type LiveRules = {
   strategyObserverVersions: Array<"F1" | "V2" | "V3" | "V4" | "V6">;
   strategyDrawdownControlEnabled: boolean[];
   strategyLossCooldownEnabled: boolean[];
+  reliabilityGateTags: ReliabilityCandidateTagId[];
 };
 const DEFAULT_LIVE_RULES: LiveRules = {
   strategy: "M0W", strategies: ["M0W"], maxStakeUsdt: 1, strategyStakesUsdt: [1],
@@ -237,6 +250,7 @@ const DEFAULT_LIVE_RULES: LiveRules = {
   strategyObserverEnabled: [false], strategyObserverVersions: ["F1"],
   strategyDrawdownControlEnabled: [false],
   strategyLossCooldownEnabled: [false],
+  reliabilityGateTags: [],
 };
 const LIVE_TABLE_PAGE_SIZE = 10;
 const EMPTY_OBSERVER_TRADE_PAGE: TradePage = {
@@ -278,9 +292,12 @@ function parseLiveRulesDraft(raw: string | null): LiveRules | null {
     const strategyLossCooldownEnabled = Array.isArray(value.strategyLossCooldownEnabled)
       ? value.strategyLossCooldownEnabled.slice(0, strategies.length).map(Boolean)
       : strategies.map(() => false);
+    const reliabilityGateTags = Array.isArray(value.reliabilityGateTags)
+      ? value.reliabilityGateTags.filter((tag): tag is ReliabilityCandidateTagId => RELIABILITY_CANDIDATE_TAG_IDS.includes(tag as ReliabilityCandidateTagId))
+      : [];
     if (!strategies.length || strategyStakesUsdt.length !== strategies.length || ![...strategyStakesUsdt, maxStakeUsdt, minHourlyWinRatePct, maxHourlyWinThenLossRatePct].every(Number.isFinite)) return null;
     if (strategyObserverEnabled.length !== strategies.length || strategyObserverVersions.length !== strategies.length || strategyDrawdownControlEnabled.length !== strategies.length || strategyLossCooldownEnabled.length !== strategies.length) return null;
-    return { strategy: strategies[0], strategies, maxStakeUsdt: strategyStakesUsdt[0], strategyStakesUsdt, minHourlyWinRatePct, maxHourlyWinThenLossRatePct, futuresLeadObserverEnabled: strategyObserverEnabled[0], futuresLeadObserverVersion: strategyObserverVersions[0], strategyObserverEnabled, strategyObserverVersions, strategyDrawdownControlEnabled, strategyLossCooldownEnabled };
+    return { strategy: strategies[0], strategies, maxStakeUsdt: strategyStakesUsdt[0], strategyStakesUsdt, minHourlyWinRatePct, maxHourlyWinThenLossRatePct, futuresLeadObserverEnabled: strategyObserverEnabled[0], futuresLeadObserverVersion: strategyObserverVersions[0], strategyObserverEnabled, strategyObserverVersions, strategyDrawdownControlEnabled, strategyLossCooldownEnabled, reliabilityGateTags };
   } catch { return null; }
 }
 const LIVE_STRATEGY_LABELS: Record<string, string> = {
@@ -319,6 +336,33 @@ type LiveStrategyPerformance = {
   wins?: number; losses?: number; winRatePct?: number | null;
   settledCostUsdt?: number; settledPayoutUsdt?: number;
   profitUsdt?: number; roiPct?: number | null;
+};
+type ReliabilityCohort = {
+  samples?: number; settledSamples?: number; pendingSamples?: number;
+  wins?: number; losses?: number; winRatePct?: number | null;
+  costUsdt?: number; pnlUsdt?: number; returnOnCostPct?: number | null;
+};
+type LiveReliabilityTag = {
+  id: string; strategy?: string; status?: ReliabilityShadowStatus;
+  title?: string; condition?: string; matchDecision?: "ALLOW" | "BLOCK";
+  activationAvailable?: boolean; enabledForLive?: boolean;
+  original?: ReliabilityCohort; allowed?: ReliabilityCohort;
+  blocked?: ReliabilityCohort; unavailable?: ReliabilityCohort;
+  policyPnlUsdt?: number; deltaVsOriginalPnlUsdt?: number;
+  avoidedOriginalPnlUsdt?: number;
+};
+type LiveReliabilityResearch = {
+  source?: string; paperOrdersIncluded?: boolean; blockedOrRejectedOrdersIncluded?: boolean;
+  copiedSamples?: number; settledSamples?: number; pendingSamples?: number;
+  enabledLiveTags?: string[]; tags?: LiveReliabilityTag[];
+  recentSamples?: Array<{
+    orderLocalId?: number; strategy?: string; marketId?: number; side?: string;
+    executedEntryPrice?: number | null; secondsLeft?: number | null; bookAgeMs?: number | null;
+    capturedAt?: string | null; settlementResult?: string | null;
+    settlementCostUsdt?: number | null; settlementPnlUsdt?: number | null;
+    settledAt?: string | null;
+    tagDecisions?: Array<{ id?: string; conditionMatched?: boolean | null; decision?: string }>;
+  }>;
 };
 type LiveM0WState = {
   status?: string | null; configuredEnabled?: boolean; runtimeEnabled?: boolean;
@@ -379,6 +423,7 @@ type LiveM0WState = {
   };
   orders?: LiveM0WOrder[]; events?: LiveM0WEvent[];
   activePositions?: LiveActivePosition[];
+  reliabilityResearch?: LiveReliabilityResearch;
   policy?: {
     oneAttemptPerMarket?: boolean; oneAttemptPerStrategyPerMarket?: boolean;
     retryAmbiguousPlacement?: boolean;
@@ -797,7 +842,7 @@ function MicrostructureMonitor({ data }: { data?: MicrostructureState | null }) 
   ];
   const alert = metrics.volatilityAlert;
   const alertActive = alert === true || (typeof alert === "number" && alert > 0) || (typeof alert === "string" && /ALERT|HIGH|SPIKE|警戒|劇烈/i.test(alert));
-  const monitorLive = streamCards.some(item => streamIsLive(item.stream?.status));
+  const monitorLive = data?.status === "LIVE";
 
   return <section className="micro-panel" aria-label="微結構即時觀測器">
     <div className="micro-header">
@@ -812,14 +857,21 @@ function MicrostructureMonitor({ data }: { data?: MicrostructureState | null }) 
     <div className="micro-stream-grid">
       {streamCards.map(({ key, title, stream }) => {
         const correctedLatency = finite(stream?.transportLatencyMs);
-        const shownLatency = correctedLatency ?? finite(stream?.latencyMs);
+        const predictionReceiptAge = finite(stream?.localReceiptAgeMs);
+        const shownLatency = key === "prediction"
+          ? predictionReceiptAge
+          : correctedLatency ?? finite(stream?.latencyMs);
+        const latencyLabel = key === "prediction"
+          ? "本機收件 age"
+          : correctedLatency == null ? "表觀延遲" : "校正延遲";
         return <article className="stream-card" key={key}>
           <div className="stream-card-head"><strong>{title}</strong><span className={streamIsLive(stream?.status) ? "stream-live" : ""}>{stream?.status || "STANDBY"}</span></div>
           <div className="stream-stats">
             <div><span>事件率</span><b>{decimal(stream?.eventRate, 1)} <small>event/s</small></b></div>
-            <div><span>{correctedLatency == null ? "表觀延遲" : "校正延遲"}</span><b>{decimal(shownLatency, 0)} <small>ms</small></b></div>
+            <div><span>{latencyLabel}</span><b>{decimal(shownLatency, 0)} <small>ms</small></b></div>
           </div>
-          <p className={stream?.error ? "stream-error" : ""}>{stream?.error || `最後事件 ${fmtTime(stream?.lastEventAt)}${key === "prediction" && stream?.bookMapping ? ` · ${stream.bookMapping}` : ""}`}</p>
+          <p className={stream?.error || (key === "prediction" && stream?.orientationHealthy === false) ? "stream-error" : ""}>{stream?.error || `最後事件 ${fmtTime(stream?.lastEventAt)}${key === "prediction" && stream?.orientationStatus ? ` · orientation ${stream.orientationStatus}` : ""}${key === "prediction" && stream?.bookMapping ? ` · ${stream.bookMapping}` : ""}${key === "prediction" && stream?.orientationFailureReason ? ` · ${stream.orientationFailureReason}` : ""}`}</p>
+          {key === "prediction" && <p>Book version age {metric(stream?.bookVersionAgeMs, " ms")} · transport latency 無可信 server-send timestamp，固定顯示空值</p>}
         </article>;
       })}
     </div>
@@ -970,7 +1022,7 @@ function MRealtimePanel({ data }: { data?: MRealtimeState | null }) {
       <article><span>決策耗時</span><strong>{metric(data?.lastDecisionDurationMs, " ms")}</strong><small>scheduler {metric(data?.schedulerTickMs, " ms")} · M7 reorder {metric(data?.m7EventReorderGraceMs, " ms")}</small></article>
       <article><span>Spot 年齡</span><strong>{metric(data?.spotAgeMs, " ms")}</strong><small>event {fmtTimeMs(data?.lastEventAt)}</small></article>
       <article><span>Futures 年齡</span><strong>{metric(data?.futuresAgeMs, " ms")}</strong><small>last traded feed</small></article>
-      <article><span>Prediction 簿年齡</span><strong>{metric(data?.predictionBookAgeMs, " ms")}</strong><small>decision {fmtTimeMs(data?.lastDecisionAt)}</small></article>
+      <article><span>Prediction 本機簿年齡</span><strong>{metric(data?.predictionBookAgeMs, " ms")}</strong><small>接受 {count(data?.acceptedPredictionEvents)} · 拒絕未驗證 {count(data?.rejectedUnverifiedPredictionEvents)} · last {fmtTimeMs(data?.lastAcceptedPredictionAt)}</small></article>
     </div>
     <p className="m-realtime-caveat">「毫秒」是本機排程、queue、age 與 diagnostics 的量測單位；Prediction 上游更新並非 1 ms，這裡也不宣稱毫秒成交能力。</p>
     {data?.error && <p className="m-realtime-error" role="alert">{data.error}</p>}
@@ -1239,53 +1291,76 @@ const RELIABILITY_STATUS_LABEL: Record<ReliabilityShadowStatus, string> = {
   warning: "失準警戒",
   limited: "樣本不足",
 };
+const RELIABILITY_LIVE_GATE_OPTIONS = RELIABILITY_SHADOW_TAGS.filter(
+  (tag): tag is ReliabilityShadowTag & { id: ReliabilityCandidateTagId } => RELIABILITY_CANDIDATE_TAG_IDS.includes(tag.id as ReliabilityCandidateTagId),
+);
 
-function ReliabilityShadowPanel() {
+function ReliabilityShadowPanel({ data }: { data?: LiveM0WState | null }) {
   const counts = RELIABILITY_SHADOW_TAGS.reduce((current, tag) => {
     current[tag.status] += 1;
     return current;
   }, { candidate: 0, warning: 0, limited: 0 });
+  const research = data?.reliabilityResearch;
+  const forwardById = new Map((research?.tags ?? []).map(tag => [tag.id, tag]));
+  const recentSamples = research?.recentSamples ?? [];
+  const cohortCopy = (cohort?: ReliabilityCohort) => `${cohort?.settledSamples ?? 0} 已結算 · ${money(cohort?.pnlUsdt ?? 0)}`;
 
   return <div className="reliability-shadow-panel" role="tabpanel" id="reliability-shadow-panel" aria-labelledby="reliability-shadow-tab">
     <section className="shadow-tag-guard">
       <div>
-        <span className="eyebrow">FIXED 7-DAY MARKET REPLAY · RESEARCH ONLY</span>
-        <h3>模型可靠／失準影子標籤</h3>
-        <p>只記錄、不阻擋；不修改策略、Observer、回撤、冷卻、金額或實單。此頁是固定七日市場情境回放的研究基準，不是上線許可。</p>
+        <span className="eyebrow">REAL FILLS · COUNTERFACTUAL RESEARCH</span>
+        <h3>實單成交鏡像可靠／失準研究</h3>
+        <p>Binance 回報實際成交量後才複製研究快照，官方結算再回填原訂單結果；每條標籤獨立顯示原單、假設放行與假設阻擋結果。紙上單、報價拒絕與未成交單不混入。</p>
       </div>
-      <span className="shadow-tag-badge">SHADOW ONLY</span>
+      <span className="shadow-tag-badge">LIVE FILL MIRROR</span>
     </section>
 
-    <section className="shadow-tag-summary" aria-label="影子標籤摘要">
-      <article><span>研究標籤</span><strong>{RELIABILITY_SHADOW_TAGS.length}</strong><small>每條假說獨立追蹤</small></article>
-      <article className="candidate"><span>候選可靠區</span><strong>{counts.candidate}</strong><small>三段皆維持正值</small></article>
-      <article className="warning"><span>失準警戒</span><strong>{counts.warning}</strong><small>樣本外衰退或轉負</small></article>
-      <article className="limited"><span>樣本不足</span><strong>{counts.limited}</strong><small>不得升級成阻擋</small></article>
+    <section className="shadow-tag-summary" aria-label="實單鏡像樣本摘要">
+      <article><span>已複製實單成交</span><strong>{research?.copiedSamples ?? 0}</strong><small>只計實際 filled cost &gt; 0</small></article>
+      <article className="candidate"><span>已官方結算</span><strong>{research?.settledSamples ?? 0}</strong><small>原單 WIN／LOSS 與 PnL</small></article>
+      <article className="warning"><span>等待結算</span><strong>{research?.pendingSamples ?? 0}</strong><small>不提前計入成效</small></article>
+      <article className="limited"><span>目前啟用候選</span><strong>{research?.enabledLiveTags?.length ?? 0}</strong><small>三個候選預設全部關閉</small></article>
     </section>
 
     <div className="shadow-tag-grid">
-      {RELIABILITY_SHADOW_TAGS.map(tag => <article className={`shadow-tag-card ${tag.status}`} key={tag.id}>
+      {RELIABILITY_SHADOW_TAGS.map(tag => {
+        const forward = forwardById.get(tag.id);
+        const delta = forward?.deltaVsOriginalPnlUsdt ?? 0;
+        return <article className={`shadow-tag-card ${tag.status}`} key={tag.id}>
         <div className="shadow-tag-card-head">
           <div><span>{tag.strategy}</span><h4>{tag.title}</h4></div>
           <strong>{RELIABILITY_STATUS_LABEL[tag.status]}</strong>
         </div>
         <code>{tag.id} · {tag.condition}</code>
         <p>{tag.finding}</p>
-        <div className="shadow-tag-splits">
+        <div className="shadow-tag-splits" aria-label={`${tag.id} 封存七日回放基準`}>
           {tag.splits.map(split => <div key={split.label}>
-            <span>{split.label} · n={split.samples}</span>
+            <span>封存{split.label} · n={split.samples}</span>
             <strong className={split.returnOnStake.startsWith("−") ? "negative" : "positive"}>{split.returnOnStake}</strong>
             <small>已實現損益／本金</small>
           </div>)}
         </div>
+        <div className="shadow-tag-forward-comparison">
+          <div><span>原實單結果</span><strong>{cohortCopy(forward?.original)}</strong><small>所有適用成交，不改寫原單</small></div>
+          <div><span>假設放行</span><strong>{cohortCopy(forward?.allowed)}</strong><small>規則判為 ALLOW 的原單</small></div>
+          <div><span>假設阻擋</span><strong>{cohortCopy(forward?.blocked)}</strong><small>這些原單若阻擋，策略 PnL 視為 0</small></div>
+          <div><span>套用後反事實</span><strong className={delta >= 0 ? "positive" : "negative"}>{money(forward?.policyPnlUsdt ?? 0)} · Δ {money(delta)}</strong><small>{forward?.enabledForLive ? "實單開關已啟用" : forward?.activationAvailable ? "可選但目前未啟用" : "只研究，不提供實單開關"}</small></div>
+        </div>
         <div className="shadow-tag-foot"><span>{tag.daily}</span><small>{tag.caution}</small></div>
-      </article>)}
+      </article>})}
     </div>
 
+    <section className="shadow-tag-live-orders" aria-label="最近實單鏡像樣本">
+      <div><span className="eyebrow">SOURCE ORDER AUDIT</span><h3>最近原訂單與標籤判定</h3></div>
+      <div className="table-scroll"><table><thead><tr><th>成交</th><th>策略／市場</th><th>方向／進場</th><th>原單結果</th><th>各標籤放行／阻擋</th></tr></thead><tbody>
+        {recentSamples.length === 0 ? <tr><td colSpan={5} className="empty">等待部署後的新實單成交；不回填缺少完整成交快照的舊訂單。</td></tr> : recentSamples.map(sample => <tr key={sample.orderLocalId}><td>{fmtTimeMs(sample.capturedAt)}</td><td>{sample.strategy}<small>#{sample.marketId}</small></td><td>{sample.side} · {price(sample.executedEntryPrice)}</td><td className={(sample.settlementPnlUsdt ?? 0) >= 0 ? "positive" : "negative"}>{sample.settlementResult ?? "等待結算"} · {sample.settlementPnlUsdt == null ? "—" : money(sample.settlementPnlUsdt)}</td><td>{(sample.tagDecisions ?? []).map(decision => <span className={`shadow-decision ${String(decision.decision).toLowerCase()}`} key={decision.id}>{decision.id} {decision.decision}</span>)}</td></tr>)}
+      </tbody></table></div>
+    </section>
+
     <section className="shadow-tag-method">
-      <div><span className="eyebrow">EVIDENCE BOUNDARY</span><h3>目前只建立歷史基準</h3></div>
-      <p>門檻由較早的開發段決定，再原封不動套到驗證與留後段。前向標籤累積尚未接線，因此畫面不會冒充即時樣本；下一階段應把每次命中與未命中的反事實結果寫入獨立研究帳本，再用全新資料判斷是否晉級。</p>
-      <span className="shadow-tag-forward-state">前向樣本：尚未接入</span>
+      <div><span className="eyebrow">EVIDENCE BOUNDARY</span><h3>原單是真實成交；放行／阻擋是反事實</h3></div>
+      <p>原訂單結算來自獨立實單帳本與官方 token outcome。假設阻擋不會建立第二筆訂單，也不假設被省下的資金會改投其他市場；套用後 PnL 等於放行組原單 PnL，阻擋組視為零。封存七日回放只保留作研究起點，不會混入新的實單前向樣本。</p>
+      <span className="shadow-tag-forward-state">前向實單樣本：{research?.settledSamples ?? 0} 已結算／{research?.pendingSamples ?? 0} 待結算</span>
     </section>
   </div>;
 }
@@ -1773,7 +1848,8 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
     const cooldownSummary = rulesDraft.strategies.map((strategy, index) => (
       `${strategy} 兩連敗冷卻 ${rulesDraft.strategyLossCooldownEnabled[index] ? "開啟" : "關閉"}`
     )).join("、");
-    const summary = `${strategySummary}、${observerSummary}、${drawdownSummary}、${cooldownSummary}、M0 時段勝率至少 ${rulesDraft.minHourlyWinRatePct}%、一勝一敗率最多 ${rulesDraft.maxHourlyWinThenLossRatePct}%`;
+    const reliabilitySummary = `可靠候選 ${rulesDraft.reliabilityGateTags.length ? rulesDraft.reliabilityGateTags.join("＋") : "全部關閉"}`;
+    const summary = `${strategySummary}、${observerSummary}、${drawdownSummary}、${cooldownSummary}、${reliabilitySummary}、M0 時段勝率至少 ${rulesDraft.minHourlyWinRatePct}%、一勝一敗率最多 ${rulesDraft.maxHourlyWinThenLossRatePct}%`;
     if (!window.confirm(`確定更新正式實單規則？\n\n${summary}\n\n新規則只影響之後的新訊號，不會修改既有訂單。`)) return;
     await onRulesSave(rulesDraft);
   };
@@ -1816,6 +1892,10 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
     onRulesUpdate("strategyObserverVersions", observerVersions);
     onRulesUpdate("strategyDrawdownControlEnabled", drawdownControls);
     onRulesUpdate("strategyLossCooldownEnabled", lossCooldowns);
+    onRulesUpdate("reliabilityGateTags", rulesDraft.reliabilityGateTags.filter(tag => {
+      const definition = RELIABILITY_LIVE_GATE_OPTIONS.find(option => option.id === tag);
+      return Boolean(definition && strategies.includes(definition.strategy));
+    }));
     if (index === 0) {
       onRulesUpdate("strategy", strategies[0]);
       onRulesUpdate("maxStakeUsdt", stakes[0]);
@@ -1854,6 +1934,12 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
     controls[index] = enabled;
     onRulesUpdate("strategyLossCooldownEnabled", controls);
   };
+  const updateReliabilityGate = (tag: ReliabilityCandidateTagId, enabled: boolean) => {
+    const tags = enabled
+      ? [...new Set([...rulesDraft.reliabilityGateTags, tag])]
+      : rulesDraft.reliabilityGateTags.filter(item => item !== tag);
+    onRulesUpdate("reliabilityGateTags", tags);
+  };
 
   return <div className="live-m0w-console" role="tabpanel" id="live-m0w-panel" aria-labelledby="live-m0w-tab">
     <section className="live-warning" aria-label="M0W 真實資金警告">
@@ -1872,6 +1958,11 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
           const selected = rulesDraft.strategies[index] ?? "";
           const slotEnabled = index === 0 || Boolean(rulesDraft.strategies[index - 1]);
           return <label key={`live-strategy-${index}`}><span>實單策略 {index + 1}</span><select aria-label={`實單策略 ${index + 1}`} disabled={!slotEnabled} value={selected} onChange={event => updateStrategySlot(index, event.target.value)}>{index > 0 && <option value="">不啟用第{index === 1 ? "二" : "三"}策略</option>}{strategyOptions.filter(strategy => strategy === selected || !rulesDraft.strategies.includes(strategy)).map(strategy => <option key={strategy} value={strategy}>{LIVE_STRATEGY_LABELS[strategy] ?? strategy}</option>)}</select><div className="live-rule-number"><input type="number" min={data?.configurableStakeRangeUsdt?.min ?? .01} max={data?.configurableStakeRangeUsdt?.max ?? 100} step="0.01" disabled={!selected} value={rulesDraft.strategyStakesUsdt[index] ?? rulesDraft.strategyStakesUsdt[0]} onChange={event => updateStrategyStake(index, Number(event.target.value))} /><b>USDT</b></div><small>{index === 1 ? "Lead＋Reverse 仍會先取得兩腿 signed quote；第三策略可獨立執行" : `策略 ${index + 1} 每筆／每組互補單的獨立上限`}</small></label>;
+        })}
+        {RELIABILITY_LIVE_GATE_OPTIONS.map(option => {
+          const supported = rulesDraft.strategies.includes(option.strategy);
+          const enabled = rulesDraft.reliabilityGateTags.includes(option.id);
+          return <label className="live-reliability-gate" key={`live-reliability-${option.id}`}><span>{option.title}</span><select aria-label={`${option.id} 實單可靠候選`} disabled={!supported} value={enabled ? "enabled" : "disabled"} onChange={event => updateReliabilityGate(option.id, event.target.value === "enabled")}><option value="disabled">不套用（預設）</option><option value="enabled">套用為實單放行條件</option></select><small>{option.id} · {option.condition}；{supported ? "缺少欄位時 fail closed" : `只適用 ${option.strategy}`}</small></label>;
         })}
         {[0, 1, 2].flatMap(index => {
           const selected = rulesDraft.strategies[index];
@@ -2616,7 +2707,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const targets = strategyView === "live-m0w"
+    const targets = strategyView === "live-m0w" || strategyView === "reliability-shadow"
       ? [{ path: "/api/live-details", key: "liveM0W" as const }]
       : strategyView === "paused"
         ? [
@@ -2885,7 +2976,7 @@ export default function Home() {
         <div className="strategy-tabs" role="tablist" aria-label="策略系列">
           <button type="button" role="tab" id="live-m0w-tab" aria-controls="live-m0w-panel" aria-selected={strategyView === "live-m0w"} className={strategyView === "live-m0w" ? "active live" : "live"} onClick={() => setStrategyView("live-m0w")}><strong>{state.liveM0W?.strategy ?? "M0W"} 正式實單</strong><span>{liveRulesDirty ? "有尚未套用的實單規則草稿" : "策略、金額與時段門檻可調整"}</span></button>
           <button type="button" role="tab" id="research-tab" aria-controls="research-panel" aria-selected={strategyView === "research"} className={strategyView === "research" ? "active" : ""} onClick={() => setStrategyView("research")}><strong>5 主策略＋10 Shadow</strong><span>新增兩組持續校準 V2 · 全部 paper only</span></button>
-          <button type="button" role="tab" id="reliability-shadow-tab" aria-controls="reliability-shadow-panel" aria-selected={strategyView === "reliability-shadow"} className={strategyView === "reliability-shadow" ? "active shadow-tag" : "shadow-tag"} onClick={() => setStrategyView("reliability-shadow")}><strong>可靠／失準標籤</strong><span>固定七日市場回放 · 只記錄不阻擋</span></button>
+          <button type="button" role="tab" id="reliability-shadow-tab" aria-controls="reliability-shadow-panel" aria-selected={strategyView === "reliability-shadow"} className={strategyView === "reliability-shadow" ? "active shadow-tag" : "shadow-tag"} onClick={() => setStrategyView("reliability-shadow")}><strong>可靠／失準標籤</strong><span>實單成交鏡像 · 原單與反事實對比</span></button>
           <button type="button" role="tab" id="lead-observer-tab" aria-controls="lead-observer-panel" aria-selected={strategyView === "lead-observer"} className={strategyView === "lead-observer" ? "active" : ""} onClick={() => setStrategyView("lead-observer")}><strong>Observer 組合</strong><span>Lead 5 版＋其他策略 4 組</span></button>
           <button type="button" role="tab" id="m-series-tab" aria-controls="m-series-panel" aria-selected={strategyView === "m-series"} className={strategyView === "m-series" ? "active" : ""} onClick={() => setStrategyView("m-series")}><strong>M 系列主實驗</strong><span>M01 時間／市況過濾、Floor／Rebound、M1／M3／M7</span></button>
           <button type="button" role="tab" id="pair-arb-tab" aria-controls="pair-arb-panel" aria-selected={strategyView === "pair-arb"} className={strategyView === "pair-arb" ? "active exit" : ""} onClick={() => setStrategyView("pair-arb")}><strong>互補測試</strong><span>UP＋DOWN · 0.010 / 0.020 / 有限風險</span></button>
@@ -2893,7 +2984,7 @@ export default function Home() {
           <button type="button" role="tab" id="paused-tab" aria-controls="paused-panel" aria-selected={strategyView === "paused"} className={strategyView === "paused" ? "active paused" : "paused"} onClick={() => setStrategyView("paused")}><strong>暫時停止觀測</strong><span>{TEMPORARILY_STOPPED_STRATEGIES.length + ALL_MX_SUFFIXES.length * 2} 組 · 含 M／M0 出場分支</span></button>
         </div>
 
-        {strategyView === "live-m0w" ? <LiveM0WPanel data={state.liveM0W} controlState={liveControlState} rulesSaveState={liveRulesSaveState} rulesDraft={liveRulesDraft} rulesDirty={liveRulesDirty} onControl={controlLive} onRulesUpdate={updateLiveRulesDraft} onRulesReset={resetLiveRulesDraft} onRulesSave={saveLiveRules} /> : strategyView === "reliability-shadow" ? <ReliabilityShadowPanel /> : strategyView === "lead-observer" ? <FuturesLeadObserverPanel data={state.researchForward} summaries={state.summaries} config={draft} observer={state.marketObserver} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "research" ? <ResearchForwardPanel data={state.researchForward} summaries={state.summaries} config={draft} live={state.liveM0W} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "m-series" ? <div role="tabpanel" id="m-series-panel" aria-labelledby="m-series-tab">
+        {strategyView === "live-m0w" ? <LiveM0WPanel data={state.liveM0W} controlState={liveControlState} rulesSaveState={liveRulesSaveState} rulesDraft={liveRulesDraft} rulesDirty={liveRulesDirty} onControl={controlLive} onRulesUpdate={updateLiveRulesDraft} onRulesReset={resetLiveRulesDraft} onRulesSave={saveLiveRules} /> : strategyView === "reliability-shadow" ? <ReliabilityShadowPanel data={state.liveM0W} /> : strategyView === "lead-observer" ? <FuturesLeadObserverPanel data={state.researchForward} summaries={state.summaries} config={draft} observer={state.marketObserver} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "research" ? <ResearchForwardPanel data={state.researchForward} summaries={state.summaries} config={draft} live={state.liveM0W} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "m-series" ? <div role="tabpanel" id="m-series-panel" aria-labelledby="m-series-tab">
           <div className="strategy-family-intro">
             <div><span className="eyebrow">18 ACTIVE OBSERVATION IDS</span><h3>持續觀測的開盤方向與延遲實驗</h3></div>
             <p>已跌到 -500 USDT 以下的策略移至「暫時停止觀測」。其餘每個 ID 仍有自己的交易摘要與歸零起點；Prediction 訂單簿只負責模擬執行。</p>
