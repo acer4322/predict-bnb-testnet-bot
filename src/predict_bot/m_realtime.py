@@ -725,8 +725,21 @@ class MSeriesRealtimeEngine:
             and context.get("execution_eligible") is True
         ):
             for candidate in opened or []:
+                candidate_created_ns = time.monotonic_ns()
                 candidate = {
                     **candidate,
+                    # Preserve every causal boundary through the live queue.
+                    # These monotonic values are process-local telemetry only;
+                    # they must never be replaced by exchange wall clocks.
+                    "market_event_received_monotonic_ns": context.get(
+                        "signal_received_monotonic_ns"
+                    ),
+                    "strategy_decision_started_monotonic_ns": context.get(
+                        "decision_started_monotonic_ns"
+                    ),
+                    "strategy_store_started_monotonic_ns": store_started_ns,
+                    "strategy_store_finished_monotonic_ns": store_finished_ns,
+                    "live_candidate_created_monotonic_ns": candidate_created_ns,
                     # Freeze the causal BTC snapshot used by the drawdown
                     # controller.  Prediction entry_price is a token price and
                     # must never be substituted for Spot here.

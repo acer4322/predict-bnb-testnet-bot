@@ -169,6 +169,20 @@ def test_realtime_engine_forwards_all_opened_m_candidates_to_live_filter():
         "M01T180",
         "M1",
     ]
+    for candidate in forwarded:
+        assert candidate["market_event_received_monotonic_ns"] > 0
+        assert candidate["strategy_decision_started_monotonic_ns"] >= (
+            candidate["market_event_received_monotonic_ns"]
+        )
+        assert candidate["strategy_store_started_monotonic_ns"] >= (
+            candidate["strategy_decision_started_monotonic_ns"]
+        )
+        assert candidate["strategy_store_finished_monotonic_ns"] >= (
+            candidate["strategy_store_started_monotonic_ns"]
+        )
+        assert candidate["live_candidate_created_monotonic_ns"] >= (
+            candidate["strategy_store_finished_monotonic_ns"]
+        )
 
 
 def test_realtime_engine_only_forwards_live_supported_paper_candidates():

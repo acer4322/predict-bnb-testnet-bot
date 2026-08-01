@@ -4486,6 +4486,7 @@ class LiveM0WEngine:
             if selected_strategy.startswith("PAIR_ARB_")
             else selected_strategy
         )
+        accepted_ledger_started_monotonic = time.monotonic()
         local_id = self.ledger.record_signal(
             topic_id=int(reference["topic_id"]),
             market_id=market_id,
@@ -4516,6 +4517,7 @@ class LiveM0WEngine:
             f"{float(max_stake):.8g} USDT LIMIT 報價",
             market_id,
         )
+        accepted_ledger_finished_monotonic = time.monotonic()
         quote: dict[str, Any] | None = None
         quote_started_monotonic = time.monotonic()
         quote_network_seconds = 0.0
@@ -4526,6 +4528,35 @@ class LiveM0WEngine:
             else signal_price
         )
         price_limit_text = format(price_limit.normalize(), "f")
+        latency_context = {
+            "market_id": market_id,
+            "selected_strategy": selected_strategy,
+            "side": side,
+            "live_enqueued_monotonic": enqueued_monotonic,
+            "processing_started_monotonic": processing_started_monotonic,
+            "accepted_ledger_started_monotonic": (
+                accepted_ledger_started_monotonic
+            ),
+            "accepted_ledger_finished_monotonic": (
+                accepted_ledger_finished_monotonic
+            ),
+            "quote_started_monotonic": quote_started_monotonic,
+            "market_event_received_monotonic": self._signal_monotonic_seconds(
+                signal, "market_event_received_monotonic_ns"
+            ),
+            "strategy_decision_started_monotonic": self._signal_monotonic_seconds(
+                signal, "strategy_decision_started_monotonic_ns"
+            ),
+            "strategy_store_started_monotonic": self._signal_monotonic_seconds(
+                signal, "strategy_store_started_monotonic_ns"
+            ),
+            "strategy_store_finished_monotonic": self._signal_monotonic_seconds(
+                signal, "strategy_store_finished_monotonic_ns"
+            ),
+            "live_candidate_created_monotonic": self._signal_monotonic_seconds(
+                signal, "live_candidate_created_monotonic_ns"
+            ),
+        }
 
         def request_quote(limit_text: str) -> dict[str, Any]:
             nonlocal quote_network_seconds
@@ -4637,27 +4668,16 @@ class LiveM0WEngine:
             )
             with self.lock:
                 self.last_error = str(exc)[:400]
-                self.last_order_latency = {
-                    "marketId": market_id,
-                    "strategy": selected_strategy,
-                    "side": side,
-                    "outcome": "QUOTE_REJECTED",
-                    "queueMs": queue_delay_seconds * 1000,
-                    "preQuoteMs": max(
-                        0.0,
-                        quote_started_monotonic - processing_started_monotonic,
-                    ) * 1000,
-                    "quotePhaseMs": max(
-                        0.0, failed_at_monotonic - quote_started_monotonic
-                    ) * 1000,
-                    "quoteNetworkMs": quote_network_seconds * 1000,
-                    "quoteToPlaceMs": None,
-                    "placeNetworkMs": None,
-                    "totalMs": max(
-                        0.0, failed_at_monotonic - enqueued_monotonic
-                    ) * 1000,
-                    "measuredAt": utc_iso(),
-                }
+                self.last_order_latency = self._order_latency_payload(
+                    {
+                        **latency_context,
+                        "quote_finished_monotonic": failed_at_monotonic,
+                        "quote_network_seconds": quote_network_seconds,
+                    },
+                    outcome="QUOTE_REJECTED",
+                    placement_started_monotonic=None,
+                    placement_finished_monotonic=failed_at_monotonic,
+                )
             self.ledger.record_event(
                 "ERROR", "QUOTE_REJECTED", str(exc)[:400], market_id
             )
@@ -4671,6 +4691,7 @@ class LiveM0WEngine:
             return None
 
         prepared = {
+            **latency_context,
             "local_id": local_id,
             "client": client,
             "wallet_address": wallet_address,
@@ -4691,9 +4712,6 @@ class LiveM0WEngine:
             "quote_rtt_seconds": max(
                 0.0, time.monotonic() - quote_started_monotonic
             ),
-            "live_enqueued_monotonic": enqueued_monotonic,
-            "processing_started_monotonic": processing_started_monotonic,
-            "quote_started_monotonic": quote_started_monotonic,
             "quote_finished_monotonic": time.monotonic(),
             "quote_network_seconds": quote_network_seconds,
             "queue_delay_seconds": queue_delay_seconds,
@@ -4837,11 +4855,30 @@ class LiveM0WEngine:
         return True
 
     @staticmethod
+    def _signal_monotonic_seconds(
+        signal: dict[str, Any], key: str
+    ) -> float | None:
+        try:
+            value = int(signal.get(key))
+        except (TypeError, ValueError):
+            return None
+        return value / 1_000_000_000 if value > 0 else None
+
+    @staticmethod
+    def _elapsed_ms(start: Any, finish: Any) -> float | None:
+        try:
+            start_value = float(start)
+            finish_value = float(finish)
+        except (TypeError, ValueError):
+            return None
+        return max(0.0, finish_value - start_value) * 1000
+
+    @staticmethod
     def _order_latency_payload(
         prepared: dict[str, Any],
         *,
         outcome: str,
-        placement_started_monotonic: float,
+        placement_started_monotonic: float | None,
         placement_finished_monotonic: float,
     ) -> dict[str, Any]:
         enqueued = float(
@@ -4856,8 +4893,17 @@ class LiveM0WEngine:
             prepared.get("quote_started_monotonic") or processing_started
         )
         quote_finished = float(
-            prepared.get("quote_finished_monotonic") or placement_started_monotonic
+            prepared.get("quote_finished_monotonic")
+            or placement_started_monotonic
+            or placement_finished_monotonic
         )
+        event_received = prepared.get("market_event_received_monotonic")
+        decision_started = prepared.get("strategy_decision_started_monotonic")
+        store_started = prepared.get("strategy_store_started_monotonic")
+        store_finished = prepared.get("strategy_store_finished_monotonic")
+        candidate_created = prepared.get("live_candidate_created_monotonic")
+        ledger_started = prepared.get("accepted_ledger_started_monotonic")
+        ledger_finished = prepared.get("accepted_ledger_finished_monotonic")
         return {
             "marketId": int(prepared["market_id"]),
             "strategy": str(prepared["selected_strategy"]),
@@ -4869,16 +4915,45 @@ class LiveM0WEngine:
             "quoteNetworkMs": max(
                 0.0, float(prepared.get("quote_network_seconds") or 0.0)
             ) * 1000,
-            "quoteToPlaceMs": max(
-                0.0, placement_started_monotonic - quote_finished
-            ) * 1000,
-            "placeNetworkMs": max(
-                0.0,
-                placement_finished_monotonic - placement_started_monotonic,
-            ) * 1000,
+            "quoteToPlaceMs": LiveM0WEngine._elapsed_ms(
+                quote_finished, placement_started_monotonic
+            ),
+            "placeNetworkMs": LiveM0WEngine._elapsed_ms(
+                placement_started_monotonic, placement_finished_monotonic
+            ),
             "totalMs": max(
                 0.0, placement_finished_monotonic - enqueued
             ) * 1000,
+            "marketEventToDecisionStartMs": LiveM0WEngine._elapsed_ms(
+                event_received, decision_started
+            ),
+            "decisionAndStoreMs": LiveM0WEngine._elapsed_ms(
+                decision_started, store_finished
+            ),
+            "storeMs": LiveM0WEngine._elapsed_ms(store_started, store_finished),
+            "candidateToLiveQueueMs": LiveM0WEngine._elapsed_ms(
+                candidate_created, enqueued
+            ),
+            "marketEventToLiveQueueMs": LiveM0WEngine._elapsed_ms(
+                event_received, enqueued
+            ),
+            "marketEventToQuoteStartMs": LiveM0WEngine._elapsed_ms(
+                event_received, quote_started
+            ),
+            "marketEventToPlaceStartMs": LiveM0WEngine._elapsed_ms(
+                event_received, placement_started_monotonic
+            ),
+            # For pre-placement failures this is event-to-final-failure; the
+            # outcome field makes that distinction explicit.
+            "eventToPlaceResponseMs": LiveM0WEngine._elapsed_ms(
+                event_received, placement_finished_monotonic
+            ),
+            "preLedgerMs": LiveM0WEngine._elapsed_ms(
+                processing_started, ledger_started
+            ),
+            "acceptedLedgerMs": LiveM0WEngine._elapsed_ms(
+                ledger_started, ledger_finished
+            ),
             "measuredAt": utc_iso(),
         }
 

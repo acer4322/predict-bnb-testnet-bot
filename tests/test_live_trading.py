@@ -331,6 +331,22 @@ def engine(
     return result
 
 
+def force_legacy_m0w_rules_for_test(live: LiveM0WEngine) -> None:
+    """Keep legacy M0W execution tests isolated from allowlist experiments."""
+    with live.lock:
+        live.live_rules = {
+            **live.live_rules,
+            "strategy": "M0W",
+            "strategies": ["M0W"],
+            "maxStakeUsdt": 1.0,
+            "strategyStakesUsdt": [1.0],
+            "strategyObserverEnabled": [False],
+            "strategyObserverVersions": ["F1"],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+        }
+
+
 def test_live_m0w_uses_limit_gtc_with_immutable_one_usdt_cap(tmp_path: Path):
     client = FakeTradingClient()
     live = engine(tmp_path, client)
@@ -391,8 +407,15 @@ def test_order_latency_reports_queue_quote_and_placement_segments(tmp_path: Path
     client.get_quote = delayed_quote
     client.place_limit_order = delayed_place
     live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+    now_ns = time.monotonic_ns()
     payload = signal(
-        _live_enqueued_monotonic_ns=time.monotonic_ns() - 5_000_000
+        market_event_received_monotonic_ns=now_ns - 20_000_000,
+        strategy_decision_started_monotonic_ns=now_ns - 15_000_000,
+        strategy_store_started_monotonic_ns=now_ns - 14_000_000,
+        strategy_store_finished_monotonic_ns=now_ns - 10_000_000,
+        live_candidate_created_monotonic_ns=now_ns - 7_000_000,
+        _live_enqueued_monotonic_ns=now_ns - 5_000_000,
     )
 
     live.process_signal(payload)
@@ -404,6 +427,49 @@ def test_order_latency_reports_queue_quote_and_placement_segments(tmp_path: Path
     assert latency["quoteNetworkMs"] >= 9
     assert latency["placeNetworkMs"] >= 9
     assert latency["totalMs"] >= 20
+    assert latency["marketEventToDecisionStartMs"] == pytest.approx(5.0)
+    assert latency["decisionAndStoreMs"] == pytest.approx(5.0)
+    assert latency["storeMs"] == pytest.approx(4.0)
+    assert latency["candidateToLiveQueueMs"] == pytest.approx(2.0)
+    assert latency["marketEventToLiveQueueMs"] == pytest.approx(15.0)
+    assert latency["marketEventToQuoteStartMs"] >= 20.0
+    assert latency["marketEventToPlaceStartMs"] >= 29.0
+    assert latency["eventToPlaceResponseMs"] >= 39.0
+    assert latency["preLedgerMs"] is not None
+    assert latency["acceptedLedgerMs"] is not None
+
+
+def test_order_latency_is_backward_compatible_without_causal_timestamps():
+    latency = LiveM0WEngine._order_latency_payload(
+        {
+            "market_id": 202,
+            "selected_strategy": "M0W",
+            "side": "UP",
+            "live_enqueued_monotonic": 1.0,
+            "processing_started_monotonic": 1.1,
+            "quote_started_monotonic": 1.2,
+            "quote_finished_monotonic": 1.3,
+            "quote_network_seconds": 0.05,
+        },
+        outcome="SUBMITTED",
+        placement_started_monotonic=1.4,
+        placement_finished_monotonic=1.5,
+    )
+
+    assert latency["totalMs"] == pytest.approx(500.0)
+    for field in (
+        "marketEventToDecisionStartMs",
+        "decisionAndStoreMs",
+        "storeMs",
+        "candidateToLiveQueueMs",
+        "marketEventToLiveQueueMs",
+        "marketEventToQuoteStartMs",
+        "marketEventToPlaceStartMs",
+        "eventToPlaceResponseMs",
+        "preLedgerMs",
+        "acceptedLedgerMs",
+    ):
+        assert latency[field] is None
 
 
 def test_hourly_guard_uses_cached_snapshot_on_order_hot_path(tmp_path: Path):
@@ -557,13 +623,19 @@ def test_quote_above_one_usdt_cap_is_rejected_before_place(tmp_path: Path):
     client = FakeTradingClient()
     client.quote_amount_in = str(LIVE_M0W_AMOUNT_WEI + 1)
     live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+    event_ns = time.monotonic_ns() - 10_000_000
 
-    live.process_signal(signal())
+    live.process_signal(signal(market_event_received_monotonic_ns=event_ns))
 
     assert client.place_calls == []
     order = live.state()["orders"][0]
     assert order["status"] == "REJECTED"
     assert "hard cap" in order["error_message"]
+    latency = live.state()["orderLatency"]
+    assert latency["outcome"] == "QUOTE_REJECTED"
+    assert latency["eventToPlaceResponseMs"] >= 10.0
+    assert latency["marketEventToPlaceStartMs"] is None
 
 
 def test_quote_within_ten_cent_gap_is_refreshed_once_at_hard_cap(tmp_path: Path):
@@ -1112,12 +1184,20 @@ def test_transport_failure_is_ambiguous_and_not_retried(tmp_path: Path):
     client = FakeTradingClient()
     client.place_error = ApiTransportError("connection closed after send")
     live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+    event_ns = time.monotonic_ns() - 10_000_000
 
-    live.process_signal(signal())
-    live.process_signal(signal())
+    live.process_signal(signal(market_event_received_monotonic_ns=event_ns))
+    live.process_signal(signal(market_event_received_monotonic_ns=event_ns))
 
     assert len(client.place_calls) == 1
     assert live.state()["orders"][0]["status"] == "AMBIGUOUS"
+    latency = live.state()["orderLatency"]
+    assert latency["outcome"] == "AMBIGUOUS"
+    assert latency["marketEventToPlaceStartMs"] >= 10.0
+    assert latency["eventToPlaceResponseMs"] >= (
+        latency["marketEventToPlaceStartMs"]
+    )
 
 
 def test_sas_rejection_disarms_executor(tmp_path: Path):
