@@ -585,6 +585,136 @@ def test_initial_quote_uses_latest_verified_ask_without_lowering_signal_limit(
     assert client.place_calls[0]["price_limit"] == expected_limit
 
 
+def test_estimate_buy_vwap_covers_stake_without_mutating_levels():
+    levels = [[0.20, 2.0], [0.40, 2.0]]
+    original = [list(level) for level in levels]
+
+    estimate = live_trading.estimate_buy_vwap(levels, "1.00")
+
+    assert levels == original
+    assert estimate["covered_stake"] == pytest.approx(1.0)
+    assert estimate["capacity_ratio"] == pytest.approx(1.0)
+    assert estimate["levels_consumed"] == 2
+    assert estimate["estimated_vwap"] == pytest.approx(1.0 / 3.5)
+
+
+def test_estimate_buy_vwap_reports_insufficient_depth():
+    estimate = live_trading.estimate_buy_vwap([[0.25, 1.0]], 1.0)
+
+    assert estimate == {
+        "estimated_vwap": 0.25,
+        "covered_stake": 0.25,
+        "capacity_ratio": 0.25,
+        "levels_consumed": 1,
+    }
+
+
+@pytest.mark.parametrize("ask_size", [None, 0.10])
+def test_top_level_capacity_gate_fails_closed_before_quote(
+    tmp_path: Path, ask_size,
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask_size=ask_size
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal())
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY"
+    assert order["error_kind"] == "LOCAL_INSUFFICIENT_DEPTH"
+    depth = live.state()["lastDepthCheck"]
+    assert depth["topLevelCapacityRatio"] < 0.70
+
+
+def test_down_capacity_gate_uses_down_ask_size(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask_size=100.0,
+            down_ask=0.40,
+            down_ask_size=0.10,
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(side="DOWN"))
+
+    assert client.quote_calls == []
+    assert live.state()["orders"][0]["status"] == (
+        "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY"
+    )
+
+
+def test_estimated_vwap_above_ceiling_blocks_before_quote(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.49,
+            up_ask_size=1.43,
+            up_asks=[[0.49, 1.43], [0.90, 10.0]],
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_ESTIMATED_VWAP_TOO_HIGH"
+    assert order["error_kind"] == "LOCAL_ESTIMATED_VWAP_TOO_HIGH"
+    depth = live.state()["lastDepthCheck"]
+    assert depth["vwapAvailable"] is True
+    assert depth["estimatedVwap"] > 0.50
+
+
+def test_missing_multilevel_depth_is_reported_unavailable_not_invented(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal())
+
+    assert len(client.quote_calls) == 1
+    depth = live.state()["lastDepthCheck"]
+    assert depth["status"] == "PASS"
+    assert depth["vwapAvailable"] is False
+    assert depth["estimatedVwap"] is None
+
+
+def test_requote_telemetry_records_two_attempts_and_individual_network_times(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    client.quote_average_prices = [0.41, 0.41]
+    live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    attempt = live.state()["lastQuoteAttempt"]
+    assert attempt["quoteAttempts"] == 2
+    assert attempt["requoteTriggered"] is True
+    assert attempt["firstQuoteAveragePrice"] == pytest.approx(0.41)
+    assert attempt["secondQuoteAveragePrice"] == pytest.approx(0.41)
+    assert attempt["firstQuoteNetworkMs"] >= 0
+    assert attempt["secondQuoteNetworkMs"] >= 0
+    assert attempt["finalQuoteAveragePrice"] == pytest.approx(0.41)
+    assert attempt["finalOutcome"] == "SUBMITTED"
+
+
 def test_hourly_guard_uses_cached_snapshot_on_order_hot_path(tmp_path: Path):
     client = FakeTradingClient()
     provider_calls = 0
