@@ -1127,7 +1127,7 @@ def test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap(
 
 def test_refreshed_quote_still_cannot_cross_ten_cent_gap(tmp_path: Path):
     client = FakeTradingClient()
-    client.quote_average_prices = [0.31, 0.41]
+    client.quote_average_prices = [0.41]
     live = engine(tmp_path, client)
     live.update_live_rules({"strategy": "M01"})
 
@@ -2140,6 +2140,7 @@ def test_two_loss_cooldown_is_independent_and_persists_per_strategy_slot(
         configured_enabled=True,
         credential_source="TEST",
         current_market=market_reference,
+        current_verified_prediction_book=verified_prediction_book,
         db_path=tmp_path / "live.db",
         client_factory=lambda *_args: client,
     )
