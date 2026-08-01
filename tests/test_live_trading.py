@@ -1145,7 +1145,7 @@ def test_refreshed_quote_still_cannot_cross_ten_cent_gap(tmp_path: Path):
     order = live.state()["orders"][0]
     assert order["status"] == "REJECTED"
     assert order["quote_average_price"] == pytest.approx(0.41)
-    assert "submitted limit price 0.4" in order["error_message"]
+    assert "permitted execution limit 0.4" in order["error_message"]
 
 
 def test_f1_is_selectable_and_places_only_with_current_allowed_observer_gate(
