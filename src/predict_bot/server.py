@@ -24,7 +24,7 @@ from .core import (
     select_binary_market,
     taker_fee,
 )
-from .microstructure import MicrostructureObserver
+from .microstructure import MicrostructureObserver, PREDICTION_VERIFIED_ORIENTATIONS
 from .m_realtime import MSeriesRealtimeEngine
 from .live_trading import LiveM0WEngine, M01O_F1_MIN_SECONDS_LEFT
 from .market_observer import MarketStateObserver, summarize_m01_settled_fills
@@ -2787,6 +2787,8 @@ class Store:
         merged: dict[str, Any] = {}
         for key in (
             "exchange_event_ms",
+            "prediction_book_version_ms",
+            "signal_prediction_book_version_ms",
             "received_wall_ns",
             "received_monotonic_ns",
             "signal_event_sequence",
@@ -5346,6 +5348,7 @@ class Store:
                     "raw_top_ask": float(candidate["raw_ask"]),
                     "stake": stake,
                     "seconds_left": seconds_left,
+                    "book_age_ms": snapshot.get("book_age_ms"),
                     "fee_bps": int(fee_bps),
                     "signal_timestamp": str(snapshot.get("timestamp") or utc_iso()),
                     "paper_only": True,
@@ -5626,6 +5629,7 @@ class Store:
                         "side": str(candidate["side"]),
                         "entry_price": float(candidate["entry"]),
                         "seconds_left": float(snapshot["seconds_left"]),
+                        "book_age_ms": snapshot.get("book_age_ms"),
                         "fee_bps": int(fee_bps),
                         "signal_timestamp": str(
                             snapshot.get("timestamp") or utc_iso()
@@ -9870,6 +9874,7 @@ MICROSTRUCTURE: MicrostructureObserver | None = None
 M_REALTIME: MSeriesRealtimeEngine | None = None
 LIVE_M0W: LiveM0WEngine | None = None
 MARKET_OBSERVER: MarketStateObserver | None = None
+PREDICTION_HEALTH_MAX_BOOK_AGE_MS = 10_000.0
 
 
 def current_prediction_market_id() -> int | None:
@@ -9911,6 +9916,113 @@ def current_m_market_reference() -> dict[str, Any] | None:
         }
     except (KeyError, TypeError, ValueError):
         return None
+
+
+def build_health_payload(
+    *,
+    collector_status: str,
+    micro: dict[str, Any] | None,
+    m_realtime: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Separate Prediction transport health from execution usability."""
+    writer_status = (micro or {}).get("storage", {}).get("writerStatus")
+    stream_states = (micro or {}).get("streams", {})
+    required_streams = {
+        name: (stream_states.get(name) or {}).get("status")
+        for name in ("spot", "futures", "prediction")
+    }
+    prediction = stream_states.get("prediction") or {}
+    mapping = prediction.get("bookMapping")
+    prediction_market_id = prediction.get("marketId")
+    m_realtime_market_id = (m_realtime or {}).get("marketId")
+    prediction_book_age_ms = (m_realtime or {}).get("predictionBookAgeMs")
+    try:
+        ids_match = (
+            prediction_market_id is not None
+            and m_realtime_market_id is not None
+            and int(prediction_market_id) == int(m_realtime_market_id)
+        )
+    except (TypeError, ValueError):
+        ids_match = False
+    try:
+        book_age_healthy = (
+            prediction_book_age_ms is not None
+            and 0 <= float(prediction_book_age_ms)
+            <= PREDICTION_HEALTH_MAX_BOOK_AGE_MS
+        )
+    except (TypeError, ValueError):
+        book_age_healthy = False
+    mapping_verified = mapping in PREDICTION_VERIFIED_ORIENTATIONS
+    orientation_healthy = bool(
+        required_streams["prediction"] == "LIVE"
+        and mapping_verified
+        and ids_match
+        and book_age_healthy
+    )
+    orientation_timed_out = prediction.get("orientationTimedOut") is True
+    if orientation_healthy:
+        orientation_status = "HEALTHY"
+        orientation_reason = None
+    elif required_streams["prediction"] != "LIVE":
+        orientation_status = "DEGRADED"
+        orientation_reason = "PREDICTION_STREAM_NOT_LIVE"
+    elif orientation_timed_out:
+        orientation_status = "DEGRADED"
+        orientation_reason = (
+            prediction.get("orientationFailureReason") or "ORIENTATION_TIMEOUT"
+        )
+    elif mapping_verified and not ids_match:
+        orientation_status = "DEGRADED"
+        orientation_reason = (
+            "PREDICTION_MARKET_ID_MISMATCH"
+            if prediction_market_id is not None and m_realtime_market_id is not None
+            else "PREDICTION_MARKET_ID_UNAVAILABLE"
+        )
+    elif mapping_verified and not book_age_healthy:
+        orientation_status = "DEGRADED"
+        orientation_reason = (
+            "PREDICTION_BOOK_AGE_UNAVAILABLE"
+            if prediction_book_age_ms is None
+            else "PREDICTION_BOOK_STALE"
+        )
+    else:
+        orientation_status = "PENDING"
+        orientation_reason = (
+            prediction.get("orientationFailureReason")
+            or "PREDICTION_ORIENTATION_NOT_VERIFIED"
+        )
+
+    healthy = bool(
+        collector_status == "LIVE"
+        and writer_status == "RUNNING"
+        and (micro or {}).get("status") == "LIVE"
+        and all(status == "LIVE" for status in required_streams.values())
+        and (m_realtime or {}).get("status") == "LIVE"
+        and (m_realtime or {}).get("marketDataIntegrityOk") is True
+        and int((m_realtime or {}).get("droppedEvents") or 0) == 0
+        and not (m_realtime or {}).get("error")
+        and orientation_healthy
+    )
+    return {
+        "ok": healthy,
+        "collector": collector_status,
+        "microstructure": (micro or {}).get("status"),
+        "streams": required_streams,
+        "microstructureWriter": writer_status,
+        "mRealtime": (m_realtime or {}).get("status"),
+        "mRealtimeIntegrity": (m_realtime or {}).get("marketDataIntegrityOk"),
+        "mRealtimeDroppedEvents": (m_realtime or {}).get("droppedEvents"),
+        "mRealtimeError": (m_realtime or {}).get("error"),
+        "predictionBookMapping": mapping,
+        "predictionMarketId": prediction_market_id,
+        "mRealtimeMarketId": m_realtime_market_id,
+        "predictionBookAgeMs": prediction_book_age_ms,
+        "predictionBookVersionAgeMs": prediction.get("bookVersionAgeMs"),
+        "predictionLocalReceiptAgeMs": prediction.get("localReceiptAgeMs"),
+        "predictionOrientationHealthy": orientation_healthy,
+        "predictionOrientationStatus": orientation_status,
+        "predictionOrientationReason": orientation_reason,
+    }
 
 
 def realtime_dashboard_state() -> dict[str, Any]:
@@ -10060,39 +10172,13 @@ class Handler(BaseHTTPRequestHandler):
             self._headers()
             micro = MICROSTRUCTURE.state() if MICROSTRUCTURE else None
             m_realtime = M_REALTIME.state() if M_REALTIME else None
-            writer_status = (micro or {}).get("storage", {}).get("writerStatus")
-            stream_states = (micro or {}).get("streams", {})
-            required_streams = {
-                name: (stream_states.get(name) or {}).get("status")
-                for name in ("spot", "futures", "prediction")
-            }
-            healthy = bool(
-                COLLECTOR.status == "LIVE"
-                and writer_status == "RUNNING"
-                and (micro or {}).get("status") == "LIVE"
-                and all(status == "LIVE" for status in required_streams.values())
-                and (m_realtime or {}).get("status") == "LIVE"
-                and (m_realtime or {}).get("marketDataIntegrityOk") is True
-                and int((m_realtime or {}).get("droppedEvents") or 0) == 0
-                and not (m_realtime or {}).get("error")
-            )
             self.wfile.write(
                 json.dumps(
-                    {
-                        "ok": healthy,
-                        "collector": COLLECTOR.status,
-                        "microstructure": (micro or {}).get("status"),
-                        "streams": required_streams,
-                        "microstructureWriter": writer_status,
-                        "mRealtime": (m_realtime or {}).get("status"),
-                        "mRealtimeIntegrity": (m_realtime or {}).get(
-                            "marketDataIntegrityOk"
-                        ),
-                        "mRealtimeDroppedEvents": (m_realtime or {}).get(
-                            "droppedEvents"
-                        ),
-                        "mRealtimeError": (m_realtime or {}).get("error"),
-                    }
+                    build_health_payload(
+                        collector_status=COLLECTOR.status,
+                        micro=micro,
+                        m_realtime=m_realtime,
+                    )
                 ).encode()
             )
         else:
@@ -10256,6 +10342,13 @@ def main() -> None:
         restart_request=request_api_restart,
         m0_hourly_performance=STORE.m0_hourly_guard_snapshot,
         drawdown_market_history=STORE.drawdown_control_market_history,
+        current_verified_prediction_book=(
+            lambda: (
+                M_REALTIME.current_verified_prediction_book()
+                if M_REALTIME is not None
+                else None
+            )
+        ),
     )
     LIVE_M0W.start()
     COLLECTOR.live_signal_sink = LIVE_M0W.submit_signal

@@ -10,6 +10,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import httpx
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -104,13 +105,67 @@ class JsonClient:
 class BinancePredictionClient(JsonClient):
     """Signed, read-only client for Binance Prediction Trading market data."""
 
-    def __init__(self, api_key: str, api_secret: str) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        api_secret: str,
+        *,
+        http_client: httpx.Client | None = None,
+    ) -> None:
         super().__init__(BINANCE_API)
         self.api_key = api_key
         self.api_secret = api_secret
+        self._owns_http_client = http_client is None
+        self.http_client = http_client or httpx.Client(
+            base_url=self.base_url,
+            timeout=httpx.Timeout(
+                connect=5.0,
+                read=10.0,
+                write=10.0,
+                pool=2.0,
+            ),
+            limits=httpx.Limits(
+                max_connections=20,
+                max_keepalive_connections=10,
+                keepalive_expiry=30.0,
+            ),
+            # Explicitly retain at-most-once application semantics.  In
+            # particular, signed POST requests are never retried here.
+            transport=httpx.HTTPTransport(retries=0),
+            headers={"Accept": "application/json"},
+        )
         self._time_offset_ms: int | None = None
         self.last_rate_limits: dict[str, str] = {}
         self.retry_after_seconds: float | None = None
+
+    def close(self) -> None:
+        if self._owns_http_client:
+            self.http_client.close()
+
+    def _capture_rate_limits(self, response: httpx.Response) -> None:
+        self.retry_after_seconds = None
+        self.last_rate_limits = {
+            key.lower(): value
+            for key, value in response.headers.items()
+            if key.lower().startswith(
+                ("x-mbx-used-weight", "x-sapi-used-ip-weight")
+            )
+        }
+
+    def _raise_http_error(
+        self, response: httpx.Response, *, path: str
+    ) -> None:
+        detail = response.text[:500]
+        retry_after = response.headers.get("Retry-After")
+        try:
+            self.retry_after_seconds = float(retry_after) if retry_after else None
+        except ValueError:
+            self.retry_after_seconds = None
+        raise ApiHttpError(
+            f"HTTP {response.status_code} from {self.base_url}{path}: {detail}",
+            status_code=response.status_code,
+            detail=detail,
+        )
 
     def server_timestamp_ms(self) -> int:
         local_ms = int(time.time() * 1000)
@@ -134,42 +189,33 @@ class BinancePredictionClient(JsonClient):
         signed["recvWindow"] = 5000
         signed["timestamp"] = self.server_timestamp_ms()
         query = self.sign_query(signed)
-        url = f"{self.base_url}{path}?{query}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Accept": "application/json",
-                "User-Agent": "binance-prediction-paper-bot/0.2",
-                "X-MBX-APIKEY": self.api_key,
-            },
-            method="GET",
-        )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                self.retry_after_seconds = None
-                self.last_rate_limits = {
-                    key.lower(): value
-                    for key, value in response.headers.items()
-                    if key.lower().startswith(("x-mbx-used-weight", "x-sapi-used-ip-weight"))
-                }
-                return json.load(response)
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode(errors="replace")
-            retry_after = exc.headers.get("Retry-After")
-            try:
-                self.retry_after_seconds = float(retry_after) if retry_after else None
-            except ValueError:
-                self.retry_after_seconds = None
-            # Never include the signed URL, API key, or signature in errors.
-            raise ApiHttpError(
-                f"HTTP {exc.code} from {self.base_url}{path}: {detail[:500]}",
-                status_code=exc.code,
-                detail=detail[:500],
-            ) from exc
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            response = self.http_client.get(
+                f"{path}?{query}",
+                headers={
+                    "User-Agent": "binance-prediction-paper-bot/0.2",
+                    "X-MBX-APIKEY": self.api_key,
+                },
+            )
+        except httpx.RequestError as exc:
+            # Never include exc.request.url: it contains the signature.
             raise ApiTransportError(
-                f"Request failed for {self.base_url}{path}: {exc}"
+                f"Request failed for {self.base_url}{path}: {type(exc).__name__}"
             ) from exc
+        if response.status_code >= 400:
+            self._raise_http_error(response, path=path)
+        self._capture_rate_limits(response)
+        try:
+            payload = response.json()
+        except json.JSONDecodeError as exc:
+            raise ApiTransportError(
+                f"Invalid JSON response from {self.base_url}{path}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise ApiTransportError(
+                f"Unexpected response type from {self.base_url}{path}"
+            )
+        return payload
 
     def list_markets(self, offset: int = 0, limit: int = 100) -> dict[str, Any]:
         return self.signed_get(
@@ -257,45 +303,30 @@ class BinancePredictionTradingClient(BinancePredictionClient):
         signed["recvWindow"] = 5000
         signed["timestamp"] = self.server_timestamp_ms()
         encoded = self.sign_query(signed)
-        req = urllib.request.Request(
-            f"{self.base_url}{path}",
-            data=encoded.encode("utf-8"),
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "User-Agent": "binance-prediction-live-m0w/0.1",
-                "X-MBX-APIKEY": self.api_key,
-            },
-            method="POST",
-        )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                self.retry_after_seconds = None
-                self.last_rate_limits = {
-                    key.lower(): value
-                    for key, value in response.headers.items()
-                    if key.lower().startswith(
-                        ("x-mbx-used-weight", "x-sapi-used-ip-weight")
-                    )
-                }
-                payload = json.load(response)
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode(errors="replace")
-            retry_after = exc.headers.get("Retry-After")
-            try:
-                self.retry_after_seconds = float(retry_after) if retry_after else None
-            except ValueError:
-                self.retry_after_seconds = None
-            raise ApiHttpError(
-                f"HTTP {exc.code} from {self.base_url}{path}: {detail[:500]}",
-                status_code=exc.code,
-                detail=detail[:500],
-            ) from exc
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            response = self.http_client.post(
+                path,
+                content=encoded.encode("utf-8"),
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "User-Agent": "binance-prediction-live-m0w/0.1",
+                    "X-MBX-APIKEY": self.api_key,
+                },
+            )
+        except httpx.RequestError as exc:
             # For a placement request this is deliberately treated as
             # ambiguous; callers must reconcile instead of blindly retrying.
             raise ApiTransportError(
-                f"Request failed for {self.base_url}{path}: {exc}"
+                f"Request failed for {self.base_url}{path}: {type(exc).__name__}"
+            ) from exc
+        if response.status_code >= 400:
+            self._raise_http_error(response, path=path)
+        self._capture_rate_limits(response)
+        try:
+            payload = response.json()
+        except json.JSONDecodeError as exc:
+            raise ApiTransportError(
+                f"Invalid JSON response from {self.base_url}{path}"
             ) from exc
         if not isinstance(payload, dict):
             raise ApiTransportError(

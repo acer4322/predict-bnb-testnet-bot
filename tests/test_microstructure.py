@@ -128,6 +128,8 @@ def test_prediction_double_json_parse_and_command_ignore():
     assert event is not None
     assert event["market_id"] == 42
     assert event["best_ask"] == pytest.approx(0.62)
+    assert event["prediction_book_version_ms"] == 1234
+    # Transitional storage alias only; local freshness never uses this field.
     assert event["exchange_event_ms"] == 1234
     assert json.loads(event["raw_json"])["type"] == "TOPIC"
     assert parse_prediction_message(
@@ -324,125 +326,209 @@ def test_prediction_rollover_wakes_backoff_without_active_socket(tmp_path: Path)
     assert not thread.is_alive()
 
 
-def test_prediction_book_mapping_is_verified_and_inverted_to_up(tmp_path: Path):
-    direct = MicrostructureObserver(
-        api_key="key", api_secret="secret", current_market_id=lambda: 42,
-        prediction_reference=lambda: {
-            "market_id": 42,
-            "up_bid": 0.70,
-            "up_ask": 0.71,
-            "up_book_timestamp_ms": 1000,
-        },
-        db_path=tmp_path / "direct.db",
-    )
-    direct_event = prediction_event(timestamp=1000, ask_size=10)
-    direct_event.update(best_bid=0.70, best_ask=0.71, bids=[[0.70, 5]], asks=[[0.71, 10]])
-    direct._orient_prediction_event(direct_event)
-    assert direct.prediction_orientation == "DIRECT_UP_VERIFIED"
-    assert direct_event["feature_eligible"] is True
+def test_unverified_prediction_reconnect_is_timeout_gated_and_throttled(tmp_path: Path):
+    class App:
+        def __init__(self):
+            self.closes = 0
 
-    inverted = MicrostructureObserver(
-        api_key="key", api_secret="secret", current_market_id=lambda: 42,
-        prediction_reference=lambda: {
-            "market_id": 42,
-            "up_bid": 0.70,
-            "up_ask": 0.71,
-            "up_book_timestamp_ms": 1000,
-        },
-        db_path=tmp_path / "inverted.db",
-    )
-    inverted_event = prediction_event(timestamp=1000, ask_size=10)
-    inverted_event.update(best_bid=0.29, best_ask=0.30, bids=[[0.29, 5]], asks=[[0.30, 10]])
-    inverted._orient_prediction_event(inverted_event)
-    assert inverted.prediction_orientation == "INVERTED_TO_UP_VERIFIED"
-    assert inverted_event["best_bid"] == pytest.approx(0.70)
-    assert inverted_event["best_ask"] == pytest.approx(0.71)
+        def close(self):
+            self.closes += 1
 
-
-def test_prediction_orientation_uses_same_exchange_timestamp_during_price_cross(
-    tmp_path: Path,
-):
-    """A stale 0.20 REST quote must not invert a newer direct-UP 0.80 book."""
-    reference: dict | None = None
     observer = MicrostructureObserver(
-        api_key="key",
-        api_secret="secret",
-        current_market_id=lambda: 42,
-        prediction_reference=lambda: reference,
-        db_path=tmp_path / "timestamp-aligned.db",
+        api_key="key", api_secret="secret", current_market_id=lambda: 42,
+        db_path=tmp_path / "throttled-reconnect.db",
     )
-
-    before_cross = prediction_event(timestamp=1000, ask_size=10)
-    before_cross.update(
-        best_bid=0.20,
-        best_ask=0.21,
-        bids=[[0.20, 5]],
-        asks=[[0.21, 10]],
+    app = App()
+    observer.prediction_orientation_market_id = 42
+    observer.prediction_orientation_unverified_since_ns = (
+        time.monotonic_ns() - 11_000_000_000
     )
-    observer._orient_prediction_event(before_cross)
-    assert observer.prediction_orientation == "UNVERIFIED"
+    observer.active_apps["prediction"] = app
 
-    reference = {
-        "market_id": 42,
-        "up_bid": 0.20,
-        "up_ask": 0.21,
-        "up_book_timestamp_ms": 1000,
+    observer._reconnect_unverified_prediction_if_timed_out()
+    observer._reconnect_unverified_prediction_if_timed_out()
+
+    assert app.closes == 1
+    assert observer.orientation_reconnect_requests == 1
+    assert observer.orientation_failure_reason == "ORIENTATION_TIMEOUT"
+    assert observer.state()["streams"]["prediction"]["orientationStatus"] == "DEGRADED"
+
+
+def orientation_reference(
+    *,
+    market_id: int = 42,
+    bid: float = 0.70,
+    ask: float = 0.71,
+    received_wall_ns: int = 1_000_000_000,
+) -> dict:
+    return {
+        "market_id": market_id,
+        "up_bid": bid,
+        "up_ask": ask,
+        "up_book_timestamp_ms": 123,
+        "received_wall_ns": received_wall_ns,
     }
-    after_cross = prediction_event(timestamp=1100, ask_size=10)
-    after_cross.update(
-        best_bid=0.79,
-        best_ask=0.80,
-        bids=[[0.79, 5]],
-        asks=[[0.80, 10]],
+
+
+def oriented_event(
+    *,
+    market_id: int = 42,
+    bid: float = 0.70,
+    ask: float = 0.71,
+    version_ms: int = 999,
+    received_wall_ns: int = 1_000_000_000,
+) -> dict:
+    event = prediction_event(timestamp=version_ms, ask_size=10)
+    event.update(
+        market_id=market_id,
+        prediction_book_version_ms=version_ms,
+        received_wall_ns=received_wall_ns,
+        received_monotonic_ns=received_wall_ns,
+        best_bid=bid,
+        best_ask=ask,
+        bids=[[bid, 5]],
+        asks=[[ask, 10]],
     )
-    observer._orient_prediction_event(after_cross)
-
-    assert observer.prediction_orientation == "DIRECT_UP_VERIFIED"
-    assert after_cross["feature_eligible"] is True
-    assert after_cross["best_bid"] == pytest.approx(0.79)
-    assert after_cross["best_ask"] == pytest.approx(0.80)
+    return event
 
 
-def test_prediction_orientation_fails_closed_without_matching_timestamp(tmp_path: Path):
-    observer = MicrostructureObserver(
-        api_key="key",
-        api_secret="secret",
-        current_market_id=lambda: 42,
-        prediction_reference=lambda: {
-            "market_id": 42,
-            "up_bid": 0.20,
-            "up_ask": 0.21,
-            "up_book_timestamp_ms": 999,
-        },
-        db_path=tmp_path / "no-timestamp-match.db",
-    )
-    event = prediction_event(timestamp=1100, ask_size=10)
-    event.update(best_bid=0.79, best_ask=0.80)
-    observer._orient_prediction_event(event)
-    assert observer.prediction_orientation == "UNVERIFIED"
-    assert event["feature_eligible"] is False
-
-
-def test_prediction_orientation_fails_closed_when_rest_timestamp_is_missing(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("bid", "ask", "candidate", "verified"),
+    [
+        (0.70, 0.71, "DIRECT_CANDIDATE", "DIRECT_UP_VERIFIED"),
+        (0.29, 0.30, "INVERTED_CANDIDATE", "INVERTED_TO_UP_VERIFIED"),
+    ],
+)
+def test_prediction_orientation_requires_two_matching_candidates(
+    tmp_path: Path, bid: float, ask: float, candidate: str, verified: str,
 ):
     observer = MicrostructureObserver(
-        api_key="key",
-        api_secret="secret",
-        current_market_id=lambda: 42,
-        prediction_reference=lambda: {
-            "market_id": 42,
-            "up_bid": 0.20,
-            "up_ask": 0.21,
-            "up_book_timestamp_ms": None,
-        },
-        db_path=tmp_path / "missing-rest-timestamp.db",
+        api_key="key", api_secret="secret", current_market_id=lambda: 42,
+        prediction_reference=lambda: orientation_reference(),
+        db_path=tmp_path / f"{candidate}.db",
     )
-    event = prediction_event(timestamp=1100, ask_size=10)
-    event.update(best_bid=0.79, best_ask=0.80)
+    first = oriented_event(bid=bid, ask=ask, version_ms=1000)
+    observer._orient_prediction_event(first)
+    assert observer.prediction_orientation == candidate
+    assert first["feature_eligible"] is False
+
+    second = oriented_event(bid=bid, ask=ask, version_ms=1001)
+    observer._orient_prediction_event(second)
+    assert observer.prediction_orientation == verified
+    assert second["feature_eligible"] is True
+    if verified == "INVERTED_TO_UP_VERIFIED":
+        assert second["best_bid"] == pytest.approx(0.70)
+        assert second["best_ask"] == pytest.approx(0.71)
+
+
+def test_prediction_orientation_uses_receipt_time_not_equal_book_version(tmp_path: Path):
+    reference = orientation_reference(received_wall_ns=2_000_000_000)
+    reference["up_book_timestamp_ms"] = None
+    observer = MicrostructureObserver(
+        api_key="key", api_secret="secret", current_market_id=lambda: 42,
+        prediction_reference=lambda: reference,
+        db_path=tmp_path / "receipt-time.db",
+    )
+    first = oriented_event(version_ms=99, received_wall_ns=2_100_000_000)
+    second = oriented_event(version_ms=100, received_wall_ns=2_200_000_000)
+    observer._orient_prediction_event(first)
+    observer._orient_prediction_event(second)
+    assert observer.prediction_orientation == "DIRECT_UP_VERIFIED"
+
+
+@pytest.mark.parametrize(
+    ("reference", "event", "reason"),
+    [
+        (orientation_reference(market_id=41), oriented_event(), "MARKET_ID_MISMATCH"),
+        (
+            orientation_reference(received_wall_ns=1_000_000_000),
+            oriented_event(received_wall_ns=7_000_000_001),
+            "RECEIPT_WINDOW_EXCEEDED",
+        ),
+        (
+            orientation_reference(bid=0.50, ask=0.50),
+            oriented_event(bid=0.50, ask=0.50),
+            "AMBIGUOUS_OR_PRICE_ERROR",
+        ),
+    ],
+)
+def test_prediction_orientation_fail_closed_cases(
+    tmp_path: Path, reference: dict, event: dict, reason: str,
+):
+    observer = MicrostructureObserver(
+        api_key="key", api_secret="secret", current_market_id=lambda: 42,
+        prediction_reference=lambda: reference,
+        db_path=tmp_path / f"{reason}.db",
+    )
     observer._orient_prediction_event(event)
     assert observer.prediction_orientation == "UNVERIFIED"
     assert event["feature_eligible"] is False
+    assert observer.orientation_failure_reason == reason
+
+
+def test_prediction_orientation_rollover_and_reconnect_clear_candidate(tmp_path: Path):
+    reference = orientation_reference()
+    observer = MicrostructureObserver(
+        api_key="key", api_secret="secret", current_market_id=lambda: reference["market_id"],
+        prediction_reference=lambda: reference,
+        db_path=tmp_path / "reset-candidate.db",
+    )
+    observer._orient_prediction_event(oriented_event())
+    assert observer.prediction_orientation_candidate_count == 1
+
+    reference = orientation_reference(market_id=43)
+    observer._orient_prediction_event(oriented_event(market_id=43))
+    assert observer.prediction_orientation == "DIRECT_CANDIDATE"
+    assert observer.prediction_orientation_candidate_count == 1
+
+    observer._invalidate_prediction_state(43)
+    assert observer.prediction_orientation == "UNVERIFIED"
+    assert observer.prediction_orientation_candidate_count == 0
+    observer._orient_prediction_event(oriented_event(market_id=43))
+    assert observer.prediction_orientation == "DIRECT_CANDIDATE"
+
+
+def test_prediction_version_age_is_not_transport_latency(tmp_path: Path):
+    now_wall_ns = time.time_ns()
+    now_mono_ns = time.monotonic_ns()
+    reference = orientation_reference(received_wall_ns=now_wall_ns)
+    observer = MicrostructureObserver(
+        api_key="key", api_secret="secret", current_market_id=lambda: 42,
+        prediction_reference=lambda: reference,
+        db_path=tmp_path / "prediction-latency.db",
+    )
+    for index in range(2):
+        event = oriented_event(
+            version_ms=int(now_wall_ns / 1_000_000) - 55_000 + index,
+            received_wall_ns=now_wall_ns + index,
+        )
+        event["received_monotonic_ns"] = now_mono_ns + index
+        observer._accept_event("prediction", event)
+    state = observer.state()["streams"]["prediction"]
+    assert state["transportLatencyMs"] is None
+    assert state["bookVersionAgeMs"] >= 54_000
+    assert state["localReceiptAgeMs"] < 1_000
+    assert state["orientationStatus"] == "HEALTHY"
+
+
+@pytest.mark.parametrize("stream_name", ["spot", "futures_public"])
+def test_spot_and_futures_transport_latency_remains_available(
+    tmp_path: Path, stream_name: str,
+):
+    observer = MicrostructureObserver(
+        api_key=None, api_secret=None, current_market_id=lambda: None,
+        db_path=tmp_path / f"{stream_name}.db",
+    )
+    source = "spot" if stream_name == "spot" else "futures"
+    event = {
+        "source": source,
+        "stream": "trade" if source == "spot" else "aggTrade",
+        "exchange_event_ms": 1_000,
+        "received_wall_ns": 2_000_000_000,
+        "received_monotonic_ns": time.monotonic_ns(),
+    }
+    observer._accept_event(stream_name, event)
+    assert observer.stream_stats[stream_name]["latencies"][-1] == pytest.approx(1_000)
 
 
 def test_connected_but_silent_stream_becomes_stale(tmp_path: Path):

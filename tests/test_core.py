@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 
+import httpx
 import pytest
 
 from predict_bot.core import (
+    ApiHttpError,
+    ApiTransportError,
     BinancePredictionClient,
     BinancePredictionTradingClient,
     ProbabilityModel,
@@ -15,6 +18,18 @@ from predict_bot.core import (
     select_binary_market,
     taker_fee,
 )
+
+
+def prediction_http_client(handler):
+    pooled = httpx.Client(
+        base_url="https://api.binance.com",
+        transport=httpx.MockTransport(handler),
+    )
+    client = BinancePredictionTradingClient(
+        "api-key", "api-secret", http_client=pooled
+    )
+    client._time_offset_ms = 0
+    return client, pooled
 
 
 def test_parse_time_is_utc_aware():
@@ -98,6 +113,70 @@ def test_hmac_query_signature_preserves_repeated_redeem_token_ids():
     canonical, signature = signed.rsplit("&signature=", 1)
     assert canonical == "tokenIds=token-a&tokenIds=token-b&timestamp=123"
     assert len(signature) == 64
+
+
+def test_signed_get_quote_and_place_share_one_persistent_http_client():
+    paths = []
+
+    def handler(request: httpx.Request):
+        paths.append(request.url.path)
+        return httpx.Response(200, json={"success": True})
+
+    client, pooled = prediction_http_client(handler)
+
+    client.signed_get("/read", {"value": "zero"})
+    client.signed_post("/quote", {"value": "one"})
+    client.signed_post("/place", {"value": "two"})
+
+    assert client.http_client is pooled
+    assert paths == ["/read", "/quote", "/place"]
+
+
+def test_signed_post_transport_failure_is_not_retried_or_leaked():
+    calls = 0
+
+    def handler(request: httpx.Request):
+        nonlocal calls
+        calls += 1
+        raise httpx.ConnectError("contains-sensitive-url", request=request)
+
+    client, _ = prediction_http_client(handler)
+
+    with pytest.raises(ApiTransportError) as raised:
+        client.signed_post("/place-order-bundle", {"walletId": "secret-wallet"})
+
+    assert calls == 1
+    message = str(raised.value)
+    assert "signature" not in message
+    assert "secret-wallet" not in message
+    assert "api-key" not in message
+
+
+@pytest.mark.parametrize("status_code", [400, 500])
+def test_signed_post_http_error_preserves_status_without_retry(status_code: int):
+    calls = 0
+
+    def handler(_request: httpx.Request):
+        nonlocal calls
+        calls += 1
+        return httpx.Response(status_code, json={"code": -1, "msg": "rejected"})
+
+    client, _ = prediction_http_client(handler)
+
+    with pytest.raises(ApiHttpError) as raised:
+        client.signed_post("/place-order-bundle", {"value": "one"})
+
+    assert calls == 1
+    assert raised.value.status_code == status_code
+
+
+def test_owned_prediction_http_client_closes_cleanly():
+    client = BinancePredictionTradingClient("key", "secret")
+    pooled = client.http_client
+
+    client.close()
+
+    assert pooled.is_closed is True
 
 
 def test_prediction_sell_quote_sends_sell_limit_parameters(monkeypatch):

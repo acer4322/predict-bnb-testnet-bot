@@ -62,6 +62,55 @@ LIVE_RESEARCH_REPRICE_GAPS = {
 LIVE_RESEARCH_PRICE_RANGES = {
     "R_OFI_EVENT_CUM": (Decimal("0.40"), Decimal("0.69")),
 }
+LIVE_RELIABILITY_TAGS = {
+    "RC_LOW_ENTRY": {
+        "strategy": "R_CALIBRATED_VALUE",
+        "status": "candidate",
+        "title": "低進場價可靠區",
+        "condition": "entry_price <= 0.376875",
+        "matchDecision": "ALLOW",
+    },
+    "RC_STALE_QUOTE": {
+        "strategy": "R_CALIBRATED_VALUE",
+        "status": "warning",
+        "title": "報價過舊失準警戒",
+        "condition": "book_age_ms > 828.5",
+        "matchDecision": "BLOCK",
+    },
+    "FL_DIRECTION": {
+        "strategy": "R_FUTURES_LEAD",
+        "status": "limited",
+        "title": "方向差異觀測",
+        "condition": "side = DOWN",
+        "matchDecision": "ALLOW",
+    },
+    "MP_LATE_WINDOW": {
+        "strategy": "R_MICROPRICE",
+        "status": "candidate",
+        "title": "較晚進場可靠區",
+        "condition": "seconds_left <= 178.432",
+        "matchDecision": "ALLOW",
+    },
+    "MP_FRESH_BOOK": {
+        "strategy": "R_MICROPRICE",
+        "status": "candidate",
+        "title": "新鮮訂單簿可靠區",
+        "condition": "book_age_ms <= 422.5",
+        "matchDecision": "ALLOW",
+    },
+    "MP_MIDPRICE_WEAK": {
+        "strategy": "R_MICROPRICE",
+        "status": "warning",
+        "title": "中低價開發假象警戒",
+        "condition": "0.286425 < entry_price <= 0.39195",
+        "matchDecision": "BLOCK",
+    },
+}
+LIVE_RELIABILITY_CANDIDATE_TAGS = (
+    "RC_LOW_ENTRY",
+    "MP_LATE_WINDOW",
+    "MP_FRESH_BOOK",
+)
 LIVE_SUPPORTED_STRATEGIES = (
     "M",
     "M0",
@@ -93,6 +142,12 @@ LIVE_M0W_GATE_VERSION = "M0W_GATE_V2_ADJACENT_OFFICIAL_WIN"
 LIVE_MARKET_DURATION_MS = 300_000
 LIVE_MARKET_ADJACENCY_TOLERANCE_MS = 2_000
 LIVE_MAX_QUOTE_PRICE_GAP = Decimal("0.10")
+LIVE_MAX_PREDICTION_BOOK_AGE_MS = 2_000.0
+LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO = Decimal("0.70")
+VERIFIED_PREDICTION_ORIENTATIONS = {
+    "DIRECT_UP_VERIFIED",
+    "INVERTED_TO_UP_VERIFIED",
+}
 PAIR_ARB_MIN_NET_EDGE = {
     "PAIR_ARB_010": Decimal("0.010"),
     "PAIR_ARB_QC_015": Decimal("0.015"),
@@ -178,6 +233,53 @@ def _stake_amount_wei(stake: Decimal) -> int:
     return int(integral)
 
 
+def estimate_buy_vwap(
+    levels: Any, stake_usdt: Decimal | float | str
+) -> dict[str, Any]:
+    """Estimate a BUY VWAP from immutable local ask levels."""
+    stake = _decimal(stake_usdt)
+    if stake is None or stake <= 0:
+        return {
+            "estimated_vwap": None,
+            "covered_stake": 0.0,
+            "capacity_ratio": 0.0,
+            "levels_consumed": 0,
+        }
+    remaining = stake
+    covered = Decimal("0")
+    shares = Decimal("0")
+    consumed = 0
+    for raw in list(levels) if isinstance(levels, (list, tuple)) else []:
+        if not isinstance(raw, (list, tuple)) or len(raw) < 2:
+            continue
+        price = _decimal(raw[0])
+        size = _decimal(raw[1])
+        if (
+            price is None
+            or size is None
+            or not Decimal("0") < price < Decimal("1")
+            or size <= 0
+        ):
+            continue
+        level_cost = price * size
+        take_cost = min(remaining, level_cost)
+        if take_cost <= 0:
+            break
+        covered += take_cost
+        shares += take_cost / price
+        remaining -= take_cost
+        consumed += 1
+        if remaining <= Decimal("0"):
+            break
+    vwap = covered / shares if shares > 0 else None
+    return {
+        "estimated_vwap": float(vwap) if vwap is not None else None,
+        "covered_stake": float(covered),
+        "capacity_ratio": float(min(covered / stake, Decimal("1"))),
+        "levels_consumed": consumed,
+    }
+
+
 def _boolean(value: Any) -> bool:
     if isinstance(value, bool):
         return value
@@ -203,6 +305,7 @@ def normalize_live_rules(
         "futuresLeadObserverVersion": "F1",
         "strategyDrawdownControlEnabled": [False],
         "strategyLossCooldownEnabled": [False],
+        "reliabilityGateTags": [],
         **(current or {}),
         **values,
     }
@@ -370,6 +473,27 @@ def normalize_live_rules(
             raw_loss_cooldown_enabled + [False] * len(strategies)
         )[:len(strategies)]
     ]
+    raw_reliability_tags = candidate.get("reliabilityGateTags")
+    if isinstance(raw_reliability_tags, str):
+        try:
+            raw_reliability_tags = json.loads(raw_reliability_tags)
+        except json.JSONDecodeError:
+            raw_reliability_tags = None
+    if not isinstance(raw_reliability_tags, list):
+        raw_reliability_tags = []
+    reliability_gate_tags = list(dict.fromkeys(
+        str(value or "").strip().upper()
+        for value in raw_reliability_tags
+        if str(value or "").strip()
+    ))
+    invalid_reliability_tags = sorted(
+        set(reliability_gate_tags) - set(LIVE_RELIABILITY_CANDIDATE_TAGS)
+    )
+    if invalid_reliability_tags:
+        raise ValueError(
+            "reliabilityGateTags may only contain: "
+            + ", ".join(LIVE_RELIABILITY_CANDIDATE_TAGS)
+        )
     return {
         "strategy": strategies[0],
         "strategies": strategies,
@@ -385,6 +509,7 @@ def normalize_live_rules(
         "strategyObserverVersions": strategy_observer_versions,
         "strategyDrawdownControlEnabled": strategy_drawdown_control_enabled,
         "strategyLossCooldownEnabled": strategy_loss_cooldown_enabled,
+        "reliabilityGateTags": reliability_gate_tags,
     }
 
 
@@ -467,6 +592,59 @@ def _float(value: Any) -> float | None:
     return float(result) if result is not None else None
 
 
+def evaluate_live_reliability_tags(
+    *,
+    strategy: Any,
+    side: Any,
+    entry_price: Any,
+    seconds_left: Any,
+    book_age_ms: Any,
+) -> list[dict[str, Any]]:
+    """Evaluate frozen research tags against one real filled-order snapshot."""
+    normalized_strategy = str(strategy or "").strip().upper()
+    normalized_side = str(side or "").strip().upper()
+    entry = _float(entry_price)
+    seconds = _float(seconds_left)
+    book_age = _float(book_age_ms)
+    decisions: list[dict[str, Any]] = []
+    for tag_id, definition in LIVE_RELIABILITY_TAGS.items():
+        if definition["strategy"] != normalized_strategy:
+            continue
+        matched: bool | None
+        if tag_id == "RC_LOW_ENTRY":
+            matched = entry <= 0.376875 if entry is not None else None
+        elif tag_id == "RC_STALE_QUOTE":
+            matched = book_age > 828.5 if book_age is not None else None
+        elif tag_id == "FL_DIRECTION":
+            matched = normalized_side == "DOWN" if normalized_side else None
+        elif tag_id == "MP_LATE_WINDOW":
+            matched = seconds <= 178.432 if seconds is not None else None
+        elif tag_id == "MP_FRESH_BOOK":
+            matched = book_age <= 422.5 if book_age is not None else None
+        elif tag_id == "MP_MIDPRICE_WEAK":
+            matched = (
+                0.286425 < entry <= 0.39195 if entry is not None else None
+            )
+        else:  # pragma: no cover - definitions and evaluator stay paired.
+            matched = None
+        match_decision = str(definition["matchDecision"])
+        decision = (
+            "UNAVAILABLE"
+            if matched is None
+            else match_decision
+            if matched
+            else "BLOCK" if match_decision == "ALLOW" else "ALLOW"
+        )
+        decisions.append(
+            {
+                "id": tag_id,
+                "conditionMatched": matched,
+                "decision": decision,
+            }
+        )
+    return decisions
+
+
 def _mask_wallet(value: str | None) -> str | None:
     if not value:
         return None
@@ -497,6 +675,23 @@ def _safe_payload(value: dict[str, Any]) -> str:
         "createTime",
         "modifyTime",
         "terminalTime",
+        "signalPrice",
+        "signalBookAgeMs",
+        "latestLocalAsk",
+        "latestLocalAskSize",
+        "latestLocalBookAgeMs",
+        "latestMarketId",
+        "orientation",
+        "maximumExecutionPrice",
+        "eventToLocalCheckMs",
+        "topLevelCapacityUsdt",
+        "topLevelCapacityRatio",
+        "configuredStake",
+        "estimatedVwap",
+        "estimatedVwapCapacityRatio",
+        "estimatedVwapCoveredStake",
+        "estimatedVwapLevelsConsumed",
+        "vwapAvailable",
     }
     return json.dumps(
         {key: value[key] for key in allowed if key in value},
@@ -574,6 +769,8 @@ class LiveLedger:
         self.db.row_factory = sqlite3.Row
         self.lock = threading.RLock()
         with self.lock:
+            self.db.execute("PRAGMA journal_mode=WAL")
+            self.db.execute("PRAGMA busy_timeout=5000")
             self.db.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS live_orders (
@@ -660,6 +857,30 @@ class LiveLedger:
                 );
                 CREATE INDEX IF NOT EXISTS live_strategy_settlements_market_idx
                     ON live_strategy_settlements(market_id);
+                CREATE TABLE IF NOT EXISTS live_reliability_samples (
+                    order_local_id INTEGER PRIMARY KEY,
+                    strategy TEXT NOT NULL,
+                    market_id INTEGER NOT NULL,
+                    side TEXT NOT NULL,
+                    signal_price REAL,
+                    executed_entry_price REAL,
+                    seconds_left REAL,
+                    book_age_ms REAL,
+                    exchange_status TEXT,
+                    filled_cost_usdt REAL,
+                    captured_at TEXT,
+                    settlement_result TEXT,
+                    settlement_cost_usdt REAL,
+                    settlement_pnl_usdt REAL,
+                    settlement_roi_pct REAL,
+                    settled_at TEXT,
+                    tag_decisions_json TEXT NOT NULL DEFAULT '[]',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY(order_local_id) REFERENCES live_orders(id)
+                );
+                CREATE INDEX IF NOT EXISTS live_reliability_samples_strategy_idx
+                    ON live_reliability_samples(strategy, order_local_id DESC);
                 CREATE TABLE IF NOT EXISTS live_strategy_loss_cooldown_results (
                     order_local_id INTEGER PRIMARY KEY,
                     strategy TEXT NOT NULL,
@@ -688,6 +909,15 @@ class LiveLedger:
                     market_id INTEGER,
                     message TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS live_attempt_telemetry (
+                    order_local_id INTEGER PRIMARY KEY,
+                    captured_at TEXT NOT NULL,
+                    final_outcome TEXT NOT NULL,
+                    telemetry_json TEXT NOT NULL,
+                    FOREIGN KEY(order_local_id) REFERENCES live_orders(id)
+                );
+                CREATE INDEX IF NOT EXISTS live_attempt_telemetry_captured_idx
+                    ON live_attempt_telemetry(order_local_id DESC);
                 CREATE TABLE IF NOT EXISTS live_settings (
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL,
@@ -789,6 +1019,38 @@ class LiveLedger:
             )
             self.db.commit()
 
+    def sqlite_settings(self) -> dict[str, Any]:
+        with self.lock:
+            journal_mode = str(
+                self.db.execute("PRAGMA journal_mode").fetchone()[0]
+            ).upper()
+            synchronous_code = int(
+                self.db.execute("PRAGMA synchronous").fetchone()[0]
+            )
+            busy_timeout_ms = int(
+                self.db.execute("PRAGMA busy_timeout").fetchone()[0]
+            )
+        synchronous = {
+            0: "OFF",
+            1: "NORMAL",
+            2: "FULL",
+            3: "EXTRA",
+        }.get(synchronous_code, str(synchronous_code))
+        resolved_path = str(self.path.resolve())
+        lowered = resolved_path.lower()
+        warning = None
+        if resolved_path.startswith("\\\\"):
+            warning = "live DB is on a network/UNC path"
+        elif any(marker in lowered for marker in ("onedrive", "dropbox", "google drive")):
+            warning = "live DB appears to be inside a synchronized folder"
+        return {
+            "sqliteJournalMode": journal_mode,
+            "sqliteSynchronous": synchronous,
+            "sqliteBusyTimeoutMs": busy_timeout_ms,
+            "liveDbPath": resolved_path,
+            "sqlitePathWarning": warning,
+        }
+
     def runtime_override(self) -> bool | None:
         with self.lock:
             row = self.db.execute(
@@ -823,6 +1085,7 @@ class LiveLedger:
             "strategyObserverVersions",
             "strategyDrawdownControlEnabled",
             "strategyLossCooldownEnabled",
+            "reliabilityGateTags",
         )
         placeholders = ",".join("?" for _ in keys)
         with self.lock:
@@ -850,6 +1113,7 @@ class LiveLedger:
                     "strategyObserverVersions",
                     "strategyDrawdownControlEnabled",
                     "strategyLossCooldownEnabled",
+                    "reliabilityGateTags",
                 ):
                     self.db.execute(
                         """INSERT INTO live_settings(key, value, updated_at)
@@ -867,6 +1131,7 @@ class LiveLedger:
                                 "strategyObserverVersions",
                                 "strategyDrawdownControlEnabled",
                                 "strategyLossCooldownEnabled",
+                                "reliabilityGateTags",
                             }
                             else str(rules[key]),
                             now,
@@ -893,6 +1158,131 @@ class LiveLedger:
             )
             self.db.commit()
 
+    def record_attempt_telemetry(
+        self, order_local_id: int, payload: dict[str, Any]
+    ) -> None:
+        allowed = {
+            "strategy", "marketId", "side", "signalPrice",
+            "signalBookAgeMs", "signalAsk", "signalAskSize",
+            "latestLocalAsk", "latestLocalAskSize", "latestLocalBookAgeMs",
+            "maximumExecutionPrice", "topLevelCapacityUsdt",
+            "topLevelCapacityRatio", "configuredStake", "estimatedVwap",
+            "estimatedVwapCapacityRatio", "estimatedVwapCoveredStake",
+            "estimatedVwapLevelsConsumed", "vwapAvailable", "queueMs",
+            "preQuoteMs", "quotePhaseMs", "quoteNetworkMs", "quoteToPlaceMs",
+            "placeNetworkMs", "totalMs", "marketEventToDecisionStartMs",
+            "decisionAndStoreMs", "storeMs", "candidateToLiveQueueMs",
+            "marketEventToLiveQueueMs", "marketEventToQuoteStartMs",
+            "marketEventToPlaceStartMs", "eventToPlaceResponseMs",
+            "preLedgerMs", "acceptedLedgerMs", "quoteAttempts",
+            "requoteTriggered", "firstQuoteAveragePrice",
+            "secondQuoteAveragePrice", "firstQuoteNetworkMs",
+            "secondQuoteNetworkMs", "finalQuoteAveragePrice", "finalOutcome",
+            "eventToLocalCheckMs", "orientation", "latestMarketId",
+            "measuredAt",
+        }
+        sanitized = {
+            key: payload.get(key)
+            for key in allowed
+            if key in payload
+        }
+        outcome = str(sanitized.get("finalOutcome") or "UNKNOWN")
+        with self.lock:
+            self.db.execute(
+                """INSERT INTO live_attempt_telemetry(
+                       order_local_id, captured_at, final_outcome, telemetry_json
+                   ) VALUES (?, ?, ?, ?)
+                   ON CONFLICT(order_local_id) DO UPDATE SET
+                       captured_at=excluded.captured_at,
+                       final_outcome=excluded.final_outcome,
+                       telemetry_json=excluded.telemetry_json""",
+                (
+                    int(order_local_id),
+                    utc_iso(),
+                    outcome,
+                    json.dumps(sanitized, ensure_ascii=False, sort_keys=True),
+                ),
+            )
+            self.db.commit()
+
+    @staticmethod
+    def _percentile(values: list[float], percentile: float) -> float | None:
+        if not values:
+            return None
+        ordered = sorted(values)
+        if len(ordered) == 1:
+            return ordered[0]
+        position = (len(ordered) - 1) * percentile
+        lower = int(math.floor(position))
+        upper = int(math.ceil(position))
+        if lower == upper:
+            return ordered[lower]
+        weight = position - lower
+        return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+    def attempt_summary(self, limit: int = 100) -> dict[str, Any]:
+        with self.lock:
+            rows = self.db.execute(
+                """SELECT final_outcome, telemetry_json
+                     FROM live_attempt_telemetry
+                    ORDER BY order_local_id DESC LIMIT ?""",
+                (max(1, min(100, int(limit))),),
+            ).fetchall()
+        attempts: list[dict[str, Any]] = []
+        for row in rows:
+            try:
+                item = json.loads(str(row["telemetry_json"]))
+            except (TypeError, json.JSONDecodeError):
+                item = {}
+            item["finalOutcome"] = str(row["final_outcome"])
+            attempts.append(item)
+        outcome_keys = {
+            "SUBMITTED": "submitted",
+            "BLOCKED_STALE_PREDICTION_BOOK": "blockedStaleBook",
+            "BLOCKED_LOCAL_PRICE_MOVED": "blockedLocalPriceMoved",
+            "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY": (
+                "blockedInsufficientCapacity"
+            ),
+            "BLOCKED_ESTIMATED_VWAP_TOO_HIGH": "blockedEstimatedVwapTooHigh",
+            "QUOTE_REJECTED": "quoteRejected",
+            "PLACEMENT_REJECTED": "placementRejected",
+            "PLACEMENT_AMBIGUOUS": "placementAmbiguous",
+        }
+        outcomes = {value: 0 for value in outcome_keys.values()}
+        for attempt in attempts:
+            key = outcome_keys.get(str(attempt.get("finalOutcome") or ""))
+            if key is not None:
+                outcomes[key] += 1
+        latency_fields = (
+            "eventToPlaceResponseMs",
+            "queueMs",
+            "preQuoteMs",
+            "quoteNetworkMs",
+            "quoteToPlaceMs",
+            "placeNetworkMs",
+        )
+        latency: dict[str, dict[str, float | None]] = {}
+        for field in latency_fields:
+            values = [
+                float(attempt[field])
+                for attempt in attempts
+                if isinstance(attempt.get(field), (int, float))
+                and math.isfinite(float(attempt[field]))
+                and float(attempt[field]) >= 0
+            ]
+            latency[field] = {
+                "p50": self._percentile(values, 0.50),
+                "p90": self._percentile(values, 0.90),
+                "p95": self._percentile(values, 0.95),
+                "max": max(values) if values else None,
+            }
+        return {
+            "window": min(100, max(1, int(limit))),
+            "sampleSize": len(attempts),
+            "outcomes": outcomes,
+            "latency": latency,
+        }
+
     def record_signal(
         self,
         *,
@@ -907,6 +1297,7 @@ class LiveLedger:
         max_stake_usdt: float = float(LIVE_DEFAULT_MAX_STAKE_USDT),
         requested_amount_wei: str = str(LIVE_M0W_AMOUNT_WEI),
         initial_status: str = "SIGNAL_RECEIVED",
+        reliability_context: dict[str, Any] | None = None,
     ) -> int | None:
         now = utc_iso()
         with self.lock:
@@ -940,8 +1331,124 @@ class LiveLedger:
                     now,
                 ),
             )
+            local_id = int(cursor.lastrowid) if cursor.rowcount else None
+            if local_id is not None and isinstance(reliability_context, dict):
+                self._record_reliability_context_locked(
+                    order_local_id=local_id,
+                    strategy=str(strategy),
+                    market_id=int(market_id),
+                    side=side,
+                    signal_price=float(signal_price),
+                    context=reliability_context,
+                )
             self.db.commit()
-            return int(cursor.lastrowid) if cursor.rowcount else None
+            return local_id
+
+    def record_accepted_signal(
+        self,
+        *,
+        topic_id: int,
+        market_id: int,
+        side: str,
+        token_id: str,
+        signal_price: float,
+        account_type: str,
+        signal_at: str,
+        strategy: str,
+        max_stake_usdt: float,
+        requested_amount_wei: str,
+        reliability_context: dict[str, Any] | None,
+        event_message: str,
+    ) -> int | None:
+        """Atomically deduplicate and persist the accepted signal plus event."""
+        now = utc_iso()
+        with self.lock:
+            try:
+                existing = self.db.execute(
+                    "SELECT id FROM live_orders WHERE strategy=? AND market_id=? LIMIT 1",
+                    (str(strategy), int(market_id)),
+                ).fetchone()
+                if existing is not None:
+                    return None
+                cursor = self.db.execute(
+                    """INSERT INTO live_orders(
+                           strategy, topic_id, market_id, side, token_id,
+                           signal_price, max_stake_usdt, requested_amount_wei,
+                           status, order_type, time_in_force, account_type,
+                           signal_at, updated_at
+                       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        str(strategy),
+                        int(topic_id),
+                        int(market_id),
+                        side,
+                        token_id,
+                        float(signal_price),
+                        float(max_stake_usdt),
+                        str(requested_amount_wei),
+                        "QUOTE_REQUESTING",
+                        "LIMIT",
+                        "GTC",
+                        account_type,
+                        signal_at,
+                        now,
+                    ),
+                )
+                local_id = int(cursor.lastrowid)
+                if isinstance(reliability_context, dict):
+                    self._record_reliability_context_locked(
+                        order_local_id=local_id,
+                        strategy=str(strategy),
+                        market_id=int(market_id),
+                        side=side,
+                        signal_price=float(signal_price),
+                        context=reliability_context,
+                    )
+                self.db.execute(
+                    """INSERT INTO live_events(
+                           timestamp, level, event_type, market_id, message
+                       ) VALUES (?, 'INFO', 'SIGNAL_ACCEPTED', ?, ?)""",
+                    (now, int(market_id), str(event_message)[:500]),
+                )
+                self.db.commit()
+                return local_id
+            except Exception:
+                self.db.rollback()
+                raise
+
+    def _record_reliability_context_locked(
+        self,
+        *,
+        order_local_id: int,
+        strategy: str,
+        market_id: int,
+        side: str,
+        signal_price: float,
+        context: dict[str, Any],
+    ) -> None:
+        normalized_strategy = str(strategy).split(":", 1)[0].upper()
+        if normalized_strategy not in {
+            definition["strategy"] for definition in LIVE_RELIABILITY_TAGS.values()
+        }:
+            return
+        now = utc_iso()
+        self.db.execute(
+            """INSERT OR IGNORE INTO live_reliability_samples(
+                   order_local_id, strategy, market_id, side, signal_price,
+                   seconds_left, book_age_ms, created_at, updated_at
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                int(order_local_id),
+                normalized_strategy,
+                int(market_id),
+                str(side).upper(),
+                float(signal_price),
+                _float(context.get("seconds_left")),
+                _float(context.get("book_age_ms")),
+                now,
+                now,
+            ),
+        )
 
     def update_order(self, local_id: int, **values: Any) -> None:
         updates = {
@@ -975,6 +1482,66 @@ class LiveLedger:
             ),
             response_json=_safe_payload(order),
         )
+        self._capture_filled_reliability_sample(local_id)
+
+    def _capture_filled_reliability_sample(self, local_id: int) -> None:
+        with self.lock:
+            row = self.db.execute(
+                """SELECT o.*, r.seconds_left, r.book_age_ms,
+                          r.order_local_id AS reliability_order_local_id
+                     FROM live_orders o
+                     LEFT JOIN live_reliability_samples r
+                       ON r.order_local_id=o.id
+                    WHERE o.id=?""",
+                (int(local_id),),
+            ).fetchone()
+            if (
+                row is None
+                or row["reliability_order_local_id"] is None
+                or float(_float(row["filled_usdt_amount"]) or 0.0) <= 0
+            ):
+                return
+            quote_cost = self._wei_amount(row["quote_amount_in_wei"])
+            filled_cost = _float(row["filled_usdt_amount"])
+            positive_costs = [
+                value for value in (quote_cost, filled_cost)
+                if value is not None and value > 0
+            ]
+            if not positive_costs:
+                return
+            actual_entry = _float(row["quote_average_price"])
+            if actual_entry is None:
+                shares = _float(row["filled_share_qty"])
+                actual_entry = (
+                    min(positive_costs) / shares
+                    if shares is not None and shares > 0 else _float(row["signal_price"])
+                )
+            decisions = evaluate_live_reliability_tags(
+                strategy=row["strategy"],
+                side=row["side"],
+                entry_price=actual_entry,
+                seconds_left=row["seconds_left"],
+                book_age_ms=row["book_age_ms"],
+            )
+            now = utc_iso()
+            self.db.execute(
+                """UPDATE live_reliability_samples
+                      SET executed_entry_price=?, exchange_status=?,
+                          filled_cost_usdt=?,
+                          captured_at=COALESCE(captured_at, ?),
+                          tag_decisions_json=?, updated_at=?
+                    WHERE order_local_id=?""",
+                (
+                    actual_entry,
+                    str(row["status"]),
+                    min(positive_costs),
+                    now,
+                    json.dumps(decisions, ensure_ascii=False, sort_keys=True),
+                    now,
+                    int(local_id),
+                ),
+            )
+            self.db.commit()
 
     def pending_orders(self) -> list[dict[str, Any]]:
         placeholders = ",".join("?" for _ in ACTIVE_ORDER_STATUSES)
@@ -1012,6 +1579,129 @@ class LiveLedger:
             item.pop("response_json", None)
             result.append(item)
         return result
+
+    def reliability_research_summary(
+        self,
+        *,
+        enabled_tags: list[str] | tuple[str, ...] = (),
+        recent_limit: int = 50,
+    ) -> dict[str, Any]:
+        """Compare real filled orders with each tag's allow/block counterfactual."""
+        with self.lock:
+            rows = [dict(row) for row in self.db.execute(
+                """SELECT * FROM live_reliability_samples
+                    WHERE captured_at IS NOT NULL
+                    ORDER BY order_local_id DESC"""
+            ).fetchall()]
+
+        for row in rows:
+            try:
+                decoded = json.loads(str(row.get("tag_decisions_json") or "[]"))
+            except json.JSONDecodeError:
+                decoded = []
+            row["tag_decisions"] = decoded if isinstance(decoded, list) else []
+            row["decision_by_tag"] = {
+                str(item.get("id")): str(item.get("decision"))
+                for item in row["tag_decisions"]
+                if isinstance(item, dict) and item.get("id")
+            }
+
+        def cohort(items: list[dict[str, Any]]) -> dict[str, Any]:
+            settled = [
+                item for item in items
+                if item.get("settlement_result") in {"WIN", "LOSS"}
+            ]
+            pnl = sum(float(item.get("settlement_pnl_usdt") or 0.0) for item in settled)
+            cost = sum(float(item.get("settlement_cost_usdt") or 0.0) for item in settled)
+            wins = sum(item.get("settlement_result") == "WIN" for item in settled)
+            return {
+                "samples": len(items),
+                "settledSamples": len(settled),
+                "pendingSamples": len(items) - len(settled),
+                "wins": int(wins),
+                "losses": len(settled) - int(wins),
+                "winRatePct": (
+                    wins / len(settled) * 100.0 if settled else None
+                ),
+                "costUsdt": cost,
+                "pnlUsdt": pnl,
+                "returnOnCostPct": pnl / cost * 100.0 if cost > 0 else None,
+            }
+
+        enabled = {str(tag).upper() for tag in enabled_tags}
+        tag_summaries: list[dict[str, Any]] = []
+        for tag_id, definition in LIVE_RELIABILITY_TAGS.items():
+            applicable = [
+                row for row in rows
+                if row.get("strategy") == definition["strategy"]
+            ]
+            allowed = [
+                row for row in applicable
+                if row["decision_by_tag"].get(tag_id) == "ALLOW"
+            ]
+            blocked = [
+                row for row in applicable
+                if row["decision_by_tag"].get(tag_id) == "BLOCK"
+            ]
+            unavailable = [
+                row for row in applicable
+                if row["decision_by_tag"].get(tag_id) == "UNAVAILABLE"
+            ]
+            original_metrics = cohort(applicable)
+            allowed_metrics = cohort(allowed)
+            blocked_metrics = cohort(blocked)
+            tag_summaries.append(
+                {
+                    "id": tag_id,
+                    **definition,
+                    "activationAvailable": tag_id in LIVE_RELIABILITY_CANDIDATE_TAGS,
+                    "enabledForLive": tag_id in enabled,
+                    "original": original_metrics,
+                    "allowed": allowed_metrics,
+                    "blocked": blocked_metrics,
+                    "unavailable": cohort(unavailable),
+                    "policyPnlUsdt": allowed_metrics["pnlUsdt"],
+                    "deltaVsOriginalPnlUsdt": (
+                        allowed_metrics["pnlUsdt"] - original_metrics["pnlUsdt"]
+                    ),
+                    "avoidedOriginalPnlUsdt": -blocked_metrics["pnlUsdt"],
+                }
+            )
+
+        recent_samples = []
+        for row in rows[:max(1, min(200, int(recent_limit)))]:
+            recent_samples.append(
+                {
+                    "orderLocalId": int(row["order_local_id"]),
+                    "strategy": row["strategy"],
+                    "marketId": int(row["market_id"]),
+                    "side": row["side"],
+                    "executedEntryPrice": row["executed_entry_price"],
+                    "secondsLeft": row["seconds_left"],
+                    "bookAgeMs": row["book_age_ms"],
+                    "capturedAt": row["captured_at"],
+                    "settlementResult": row["settlement_result"],
+                    "settlementCostUsdt": row["settlement_cost_usdt"],
+                    "settlementPnlUsdt": row["settlement_pnl_usdt"],
+                    "settledAt": row["settled_at"],
+                    "tagDecisions": row["tag_decisions"],
+                }
+            )
+        return {
+            "source": "real_filled_orders_only",
+            "paperOrdersIncluded": False,
+            "blockedOrRejectedOrdersIncluded": False,
+            "copiedSamples": len(rows),
+            "settledSamples": sum(
+                row.get("settlement_result") in {"WIN", "LOSS"} for row in rows
+            ),
+            "pendingSamples": sum(
+                row.get("settlement_result") not in {"WIN", "LOSS"} for row in rows
+            ),
+            "enabledLiveTags": sorted(enabled),
+            "tags": tag_summaries,
+            "recentSamples": recent_samples,
+        }
 
     def order_for_manual_exit(self, local_id: int) -> dict[str, Any] | None:
         with self.lock:
@@ -1705,6 +2395,22 @@ class LiveLedger:
                 result=result,
                 processed_at=now,
             )
+            self.db.execute(
+                """UPDATE live_reliability_samples
+                      SET settlement_result=?, settlement_cost_usdt=?,
+                          settlement_pnl_usdt=?, settlement_roi_pct=?,
+                          settled_at=?, updated_at=?
+                    WHERE order_local_id=? AND captured_at IS NOT NULL""",
+                (
+                    result,
+                    cost_usdt,
+                    pnl_usdt,
+                    roi_pct,
+                    settled_at,
+                    now,
+                    int(order["id"]),
+                ),
+            )
             self.db.commit()
             row = self.db.execute(
                 "SELECT * FROM live_strategy_settlements WHERE order_local_id=?",
@@ -1980,6 +2686,10 @@ class LiveM0WEngine:
         drawdown_market_history: Callable[
             [int, int], list[dict[str, Any]]
         ] | None = None,
+        current_verified_prediction_book: Callable[
+            [], dict[str, Any] | None
+        ] | None = None,
+        max_prediction_book_age_ms: float = LIVE_MAX_PREDICTION_BOOK_AGE_MS,
     ) -> None:
         self.api_key = api_key
         self.api_secret = api_secret
@@ -1997,7 +2707,13 @@ class LiveM0WEngine:
         )
         self.restart_request = restart_request
         self.drawdown_market_history = drawdown_market_history
+        self.current_verified_prediction_book = current_verified_prediction_book
+        self.max_prediction_book_age_ms = max(
+            1.0, float(max_prediction_book_age_ms)
+        )
         self.ledger = LiveLedger(db_path)
+        self.sqlite_state = self.ledger.sqlite_settings()
+        self.attempt_summary_state = self.ledger.attempt_summary(100)
         self.live_rules = normalize_live_rules(self.ledger.live_rule_overrides())
         override = self.ledger.runtime_override()
         self.runtime_enabled = (
@@ -2028,6 +2744,9 @@ class LiveM0WEngine:
         self.last_signal_at: str | None = None
         self.last_signal_market_id: int | None = None
         self.last_order_latency: dict[str, Any] | None = None
+        self.last_local_price_check: dict[str, Any] | None = None
+        self.last_depth_check: dict[str, Any] | None = None
+        self.last_quote_attempt: dict[str, Any] | None = None
         self.dropped_signals = 0
         self.balances: list[dict[str, Any]] = []
         self.quota: dict[str, Any] = {}
@@ -2088,6 +2807,11 @@ class LiveM0WEngine:
             self.thread.join(timeout=3.0)
         if self.maintenance_thread:
             self.maintenance_thread.join(timeout=3.0)
+        with self.lock:
+            client = self.client
+        close = getattr(client, "close", None)
+        if callable(close):
+            close()
 
     def set_runtime_enabled(self, enabled: bool) -> dict[str, Any]:
         self.ledger.set_runtime_enabled(bool(enabled))
@@ -2134,6 +2858,7 @@ class LiveM0WEngine:
             "strategyObserverVersions",
             "strategyDrawdownControlEnabled",
             "strategyLossCooldownEnabled",
+            "reliabilityGateTags",
         }
         unknown = sorted(set(values) - allowed)
         if unknown:
@@ -2175,6 +2900,7 @@ class LiveM0WEngine:
                 f"{updated['strategyDrawdownControlEnabled']}"
                 f"; two-loss cooldown "
                 f"{updated['strategyLossCooldownEnabled']}"
+                f"; reliability gates {updated['reliabilityGateTags']}"
             ),
         )
         if runtime_enabled:
@@ -2324,6 +3050,215 @@ class LiveM0WEngine:
         # avoids binary-float artifacts such as 0.9300000000000001.
         return format(price.normalize(), "f")
 
+    def _latest_prediction_book_check(
+        self, *, market_id: int, side: str
+    ) -> tuple[
+        dict[str, Any] | None,
+        str | None,
+        str | None,
+        str | None,
+        dict[str, Any],
+    ]:
+        callback = self.current_verified_prediction_book
+        try:
+            raw = callback() if callback is not None else None
+        except Exception as exc:
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "LOCAL_UNVERIFIED_BOOK",
+                f"verified Prediction book callback failed: {str(exc)[:200]}",
+                {"latestMarketId": None, "orientation": "UNAVAILABLE"},
+            )
+        if not isinstance(raw, dict):
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "LOCAL_UNVERIFIED_BOOK",
+                "no verified local Prediction book is available",
+                {"latestMarketId": None, "orientation": "UNAVAILABLE"},
+            )
+        try:
+            latest_market_id = int(raw.get("market_id") or 0)
+        except (TypeError, ValueError):
+            latest_market_id = 0
+        orientation = str(raw.get("orientation") or "UNVERIFIED")
+        diagnostics: dict[str, Any] = {
+            "latestMarketId": latest_market_id or None,
+            "orientation": orientation,
+        }
+        if latest_market_id != market_id:
+            return (
+                None,
+                "BLOCKED_PREDICTION_MARKET_MISMATCH",
+                "LOCAL_MARKET_MISMATCH",
+                (
+                    f"latest Prediction book market {latest_market_id or 'unknown'} "
+                    f"does not match signal market {market_id}"
+                ),
+                diagnostics,
+            )
+        if orientation not in VERIFIED_PREDICTION_ORIENTATIONS:
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "LOCAL_UNVERIFIED_BOOK",
+                f"latest Prediction book orientation is not verified: {orientation}",
+                diagnostics,
+            )
+        try:
+            received_ns = int(raw.get("received_monotonic_ns") or 0)
+        except (TypeError, ValueError):
+            received_ns = 0
+        now_ns = time.monotonic_ns()
+        if received_ns <= 0 or received_ns > now_ns:
+            age_ms = None
+        else:
+            age_ms = max(0.0, (now_ns - received_ns) / 1_000_000)
+        diagnostics["latestLocalBookAgeMs"] = age_ms
+        if age_ms is None or age_ms > self.max_prediction_book_age_ms:
+            return (
+                None,
+                "BLOCKED_STALE_PREDICTION_BOOK",
+                "LOCAL_STALE_BOOK",
+                (
+                    "latest verified Prediction book has no valid local receipt age"
+                    if age_ms is None
+                    else (
+                        f"latest verified Prediction book age {age_ms:.3f}ms exceeds "
+                        f"{self.max_prediction_book_age_ms:.3f}ms"
+                    )
+                ),
+                diagnostics,
+            )
+        ask_key = "up_ask" if side == "UP" else "down_ask"
+        ask_size_key = "up_ask_size" if side == "UP" else "down_ask_size"
+        ask = _decimal(raw.get(ask_key))
+        ask_size = _decimal(raw.get(ask_size_key))
+        if ask is None or not Decimal("0") < ask < Decimal("1"):
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "LOCAL_UNVERIFIED_BOOK",
+                f"latest verified Prediction book is missing valid {side} top level",
+                diagnostics,
+            )
+        checked = dict(raw)
+        checked["book_age_ms"] = age_ms
+        checked["latest_ask"] = ask
+        checked["latest_ask_size"] = ask_size
+        diagnostics.update(
+            {
+                "latestLocalAsk": float(ask),
+                "latestLocalAskSize": (
+                    float(ask_size) if ask_size is not None else None
+                ),
+            }
+        )
+        return checked, None, None, None, diagnostics
+
+    def _record_prediction_book_block(
+        self,
+        signal: dict[str, Any],
+        *,
+        status: str,
+        error_kind: str,
+        message: str,
+        diagnostics: dict[str, Any],
+        enqueued_monotonic: float,
+        processing_started_monotonic: float,
+    ) -> None:
+        finished = time.monotonic()
+        event_received = self._signal_monotonic_seconds(
+            signal, "market_event_received_monotonic_ns"
+        )
+        enriched = {
+            "signalPrice": _float(signal.get("entry_price")),
+            "signalBookAgeMs": _float(
+                signal.get("signal_prediction_book_age_ms")
+            ),
+            **diagnostics,
+            "eventToLocalCheckMs": self._elapsed_ms(event_received, finished),
+        }
+        local_id = self._record_blocked_signal(
+            signal,
+            status,
+            message,
+            error_kind=error_kind,
+            diagnostics=enriched,
+        )
+        latency = self._order_latency_payload(
+            {
+                "market_id": int(signal.get("market_id") or 0),
+                "selected_strategy": str(signal.get("strategy") or ""),
+                "side": str(signal.get("side") or ""),
+                "live_enqueued_monotonic": enqueued_monotonic,
+                "processing_started_monotonic": processing_started_monotonic,
+                "quote_started_monotonic": finished,
+                "quote_finished_monotonic": finished,
+                "quote_network_seconds": 0.0,
+                "market_event_received_monotonic": event_received,
+                "strategy_decision_started_monotonic": (
+                    self._signal_monotonic_seconds(
+                        signal, "strategy_decision_started_monotonic_ns"
+                    )
+                ),
+                "strategy_store_started_monotonic": (
+                    self._signal_monotonic_seconds(
+                        signal, "strategy_store_started_monotonic_ns"
+                    )
+                ),
+                "strategy_store_finished_monotonic": (
+                    self._signal_monotonic_seconds(
+                        signal, "strategy_store_finished_monotonic_ns"
+                    )
+                ),
+                "live_candidate_created_monotonic": (
+                    self._signal_monotonic_seconds(
+                        signal, "live_candidate_created_monotonic_ns"
+                    )
+                ),
+                "attempt_context": {
+                    **enriched,
+                    "strategy": str(signal.get("strategy") or ""),
+                    "marketId": int(signal.get("market_id") or 0),
+                    "side": str(signal.get("side") or ""),
+                    "signalAsk": _float(signal.get("signal_prediction_ask")),
+                    "signalAskSize": _float(
+                        signal.get("signal_prediction_ask_size")
+                    ),
+                },
+            },
+            outcome=status,
+            placement_started_monotonic=None,
+            placement_finished_monotonic=finished,
+        )
+        with self.lock:
+            check_payload = {
+                **enriched,
+                "status": status,
+                "errorKind": error_kind,
+                "checkedAt": utc_iso(),
+            }
+            if error_kind in {
+                "LOCAL_INSUFFICIENT_DEPTH",
+                "LOCAL_ESTIMATED_VWAP_TOO_HIGH",
+            }:
+                self.last_depth_check = check_payload
+            else:
+                self.last_local_price_check = check_payload
+            self.last_order_latency = latency
+        if local_id is not None:
+            self._persist_attempt_telemetry(local_id, latency)
+
+    def _persist_attempt_telemetry(
+        self, local_id: int, latency: dict[str, Any]
+    ) -> None:
+        self.ledger.record_attempt_telemetry(local_id, latency)
+        summary = self.ledger.attempt_summary(100)
+        with self.lock:
+            self.attempt_summary_state = summary
+
     @staticmethod
     def _maximum_reprice_limit(
         signal: dict[str, Any], strategy: str, signal_price: Decimal
@@ -2385,6 +3320,51 @@ class LiveM0WEngine:
                 f"quote average price must be between {minimum} and {maximum} "
                 f"for {strategy}"
             )
+        return True, ""
+
+    @staticmethod
+    def _reliability_gate_is_safe(
+        signal: dict[str, Any], rules: dict[str, Any]
+    ) -> tuple[bool, str]:
+        strategy = str(signal.get("strategy") or "").upper()
+        enabled = {
+            str(value).upper() for value in rules.get("reliabilityGateTags", [])
+        }
+        applicable = [
+            tag_id for tag_id in enabled
+            if LIVE_RELIABILITY_TAGS[tag_id]["strategy"] == strategy
+        ]
+        if not applicable:
+            return True, ""
+        decisions = {
+            str(item["id"]): str(item["decision"])
+            for item in evaluate_live_reliability_tags(
+                strategy=strategy,
+                side=signal.get("side"),
+                entry_price=signal.get("entry_price"),
+                seconds_left=signal.get("seconds_left"),
+                book_age_ms=signal.get("book_age_ms"),
+            )
+        }
+        blocked = [tag_id for tag_id in applicable if decisions.get(tag_id) != "ALLOW"]
+        if blocked:
+            details = ", ".join(
+                f"{tag_id}={decisions.get(tag_id, 'UNAVAILABLE')}" for tag_id in blocked
+            )
+            return False, f"候選可靠條件未放行：{details}"
+        return True, ""
+
+    @staticmethod
+    def _reliability_quote_is_safe(
+        quote: dict[str, Any], strategy: str, rules: dict[str, Any]
+    ) -> tuple[bool, str]:
+        enabled = {
+            str(value).upper() for value in rules.get("reliabilityGateTags", [])
+        }
+        if strategy == "R_CALIBRATED_VALUE" and "RC_LOW_ENTRY" in enabled:
+            average = _decimal(quote.get("averagePrice"))
+            if average is None or average > Decimal("0.376875"):
+                return False, "RC_LOW_ENTRY signed quote average exceeds 0.376875"
         return True, ""
 
     @staticmethod
@@ -2917,8 +3897,14 @@ class LiveM0WEngine:
             self.manual_exit_lock.release()
 
     def _record_blocked_signal(
-        self, signal: dict[str, Any], status: str, message: str
-    ) -> None:
+        self,
+        signal: dict[str, Any],
+        status: str,
+        message: str,
+        *,
+        error_kind: str = "LOCAL_BLOCK",
+        diagnostics: dict[str, Any] | None = None,
+    ) -> int | None:
         market_id = int(signal.get("market_id") or 0)
         reference = self.current_market() or {}
         side = str(signal.get("side") or "UNKNOWN")
@@ -2954,10 +3940,16 @@ class LiveM0WEngine:
             self.ledger.update_order(
                 local_id,
                 status=status,
-                error_kind="LOCAL_BLOCK",
+                error_kind=error_kind,
                 error_message=message,
+                **(
+                    {"response_json": _safe_payload(diagnostics)}
+                    if isinstance(diagnostics, dict)
+                    else {}
+                ),
             )
             self.ledger.record_event("WARN", status, message, market_id)
+        return local_id
 
     def _evaluate_hourly_guard(
         self,
@@ -3889,6 +4881,14 @@ class LiveM0WEngine:
                 signal, "BLOCKED_MARKET_MISMATCH", "實單訊號市場已不是目前市場"
             )
             return
+        reliability_is_safe, reliability_reason = self._reliability_gate_is_safe(
+            signal, rules
+        )
+        if not reliability_is_safe:
+            self._record_blocked_signal(
+                signal, "BLOCKED_RELIABILITY_GATE", reliability_reason
+            )
+            return
         drawdown_enabled = self._strategy_drawdown_control_enabled(
             rules, selected_strategy
         )
@@ -4005,6 +5005,13 @@ class LiveM0WEngine:
             maximum_reprice_limit = self._maximum_reprice_limit(
                 signal, selected_strategy, signal_price
             )
+            if (
+                selected_strategy == "R_CALIBRATED_VALUE"
+                and "RC_LOW_ENTRY" in rules["reliabilityGateTags"]
+            ):
+                maximum_reprice_limit = min(
+                    maximum_reprice_limit, Decimal("0.376875")
+                )
         except ValueError as exc:
             self._record_blocked_signal(
                 signal, "BLOCKED_INVALID_PRICE", str(exc)
@@ -4023,12 +5030,163 @@ class LiveM0WEngine:
                 )
                 return
 
+        (
+            latest_prediction_book,
+            book_block_status,
+            book_error_kind,
+            book_block_message,
+            book_diagnostics,
+        ) = self._latest_prediction_book_check(market_id=market_id, side=side)
+        if latest_prediction_book is None:
+            assert book_block_status is not None
+            assert book_error_kind is not None
+            assert book_block_message is not None
+            self._record_prediction_book_block(
+                signal,
+                status=book_block_status,
+                error_kind=book_error_kind,
+                message=book_block_message,
+                diagnostics=book_diagnostics,
+                enqueued_monotonic=enqueued_monotonic,
+                processing_started_monotonic=processing_started_monotonic,
+            )
+            return
+        latest_verified_ask = Decimal(
+            str(latest_prediction_book["latest_ask"])
+        )
+        book_diagnostics["signalPrice"] = float(signal_price)
+        book_diagnostics["signalBookAgeMs"] = _float(
+            signal.get("signal_prediction_book_age_ms")
+        )
+        book_diagnostics["maximumExecutionPrice"] = float(
+            maximum_reprice_limit
+        )
+        event_received_monotonic = self._signal_monotonic_seconds(
+            signal, "market_event_received_monotonic_ns"
+        )
+        book_diagnostics["eventToLocalCheckMs"] = self._elapsed_ms(
+            event_received_monotonic, time.monotonic()
+        )
+        if (
+            latest_verified_ask
+            > maximum_reprice_limit + Decimal("0.00000001")
+        ):
+            self._record_prediction_book_block(
+                signal,
+                status="BLOCKED_LOCAL_PRICE_MOVED",
+                error_kind="LOCAL_PRICE_MOVED",
+                message=(
+                    f"latest verified {side} ask "
+                    f"{format(latest_verified_ask.normalize(), 'f')} exceeds "
+                    "the permitted execution limit "
+                    f"{format(maximum_reprice_limit.normalize(), 'f')}"
+                ),
+                diagnostics=book_diagnostics,
+                enqueued_monotonic=enqueued_monotonic,
+                processing_started_monotonic=processing_started_monotonic,
+            )
+            return
+        with self.lock:
+            self.last_local_price_check = {
+                **book_diagnostics,
+                "status": "PASS",
+                "errorKind": None,
+                "checkedAt": utc_iso(),
+            }
+
+        latest_ask_size = _decimal(
+            latest_prediction_book.get("latest_ask_size")
+        )
+        top_level_capacity = (
+            latest_verified_ask * latest_ask_size
+            if latest_ask_size is not None and latest_ask_size > 0
+            else Decimal("0")
+        )
+        capacity_ratio = (
+            top_level_capacity / max_stake
+            if max_stake > 0
+            else Decimal("0")
+        )
+        depth_diagnostics = {
+            **book_diagnostics,
+            "configuredStake": float(max_stake),
+            "topLevelCapacityUsdt": float(top_level_capacity),
+            "topLevelCapacityRatio": float(capacity_ratio),
+            "vwapAvailable": False,
+            "estimatedVwap": None,
+            "estimatedVwapCapacityRatio": None,
+            "estimatedVwapCoveredStake": None,
+            "estimatedVwapLevelsConsumed": 0,
+        }
+        if capacity_ratio < LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO:
+            self._record_prediction_book_block(
+                signal,
+                status="BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY",
+                error_kind="LOCAL_INSUFFICIENT_DEPTH",
+                message=(
+                    f"latest {side} top-level capacity ratio "
+                    f"{float(capacity_ratio):.6f} is below required "
+                    f"{float(LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO):.6f}"
+                ),
+                diagnostics=depth_diagnostics,
+                enqueued_monotonic=enqueued_monotonic,
+                processing_started_monotonic=processing_started_monotonic,
+            )
+            return
+
+        level_key = "up_asks" if side == "UP" else "down_asks"
+        local_levels = latest_prediction_book.get(level_key)
+        if isinstance(local_levels, (list, tuple)) and local_levels:
+            estimate = estimate_buy_vwap(local_levels, max_stake)
+            depth_diagnostics.update(
+                {
+                    "vwapAvailable": True,
+                    "estimatedVwap": estimate["estimated_vwap"],
+                    "estimatedVwapCapacityRatio": estimate["capacity_ratio"],
+                    "estimatedVwapCoveredStake": estimate["covered_stake"],
+                    "estimatedVwapLevelsConsumed": estimate["levels_consumed"],
+                }
+            )
+            estimated_vwap = _decimal(estimate["estimated_vwap"])
+            if (
+                estimated_vwap is not None
+                and estimated_vwap
+                > maximum_reprice_limit + Decimal("0.00000001")
+            ):
+                self._record_prediction_book_block(
+                    signal,
+                    status="BLOCKED_ESTIMATED_VWAP_TOO_HIGH",
+                    error_kind="LOCAL_ESTIMATED_VWAP_TOO_HIGH",
+                    message=(
+                        f"estimated local {side} VWAP "
+                        f"{format(estimated_vwap.normalize(), 'f')} exceeds "
+                        "the permitted execution limit "
+                        f"{format(maximum_reprice_limit.normalize(), 'f')}"
+                    ),
+                    diagnostics=depth_diagnostics,
+                    enqueued_monotonic=enqueued_monotonic,
+                    processing_started_monotonic=processing_started_monotonic,
+                )
+                return
+        with self.lock:
+            self.last_depth_check = {
+                **depth_diagnostics,
+                "status": "PASS",
+                "errorKind": None,
+                "checkedAt": utc_iso(),
+            }
+
         ledger_strategy = (
             f"{selected_strategy}:{side}"
             if selected_strategy.startswith("PAIR_ARB_")
             else selected_strategy
         )
-        local_id = self.ledger.record_signal(
+        accepted_event_message = (
+            f"{selected_strategy} {side} signal accepted for "
+            f"{float(max_stake):.8g} USDT LIMIT quote"
+        )
+        accepted_ledger_started_monotonic = time.monotonic()
+        local_id = self.ledger.record_accepted_signal(
             topic_id=int(reference["topic_id"]),
             market_id=market_id,
             side=side,
@@ -4039,7 +5197,8 @@ class LiveM0WEngine:
             strategy=ledger_strategy,
             max_stake_usdt=float(max_stake),
             requested_amount_wei=str(amount_in_wei),
-            initial_status="QUOTE_REQUESTING",
+            reliability_context=signal,
+            event_message=accepted_event_message,
         )
         if local_id is None:
             self.ledger.record_event(
@@ -4050,26 +5209,79 @@ class LiveM0WEngine:
             )
             return
 
-        self.ledger.record_event(
-            "INFO",
-            "SIGNAL_ACCEPTED",
-            f"{selected_strategy} {side} 訊號，開始取得最高 "
-            f"{float(max_stake):.8g} USDT LIMIT 報價",
-            market_id,
-        )
+        accepted_ledger_finished_monotonic = time.monotonic()
         quote: dict[str, Any] | None = None
         quote_started_monotonic = time.monotonic()
         quote_network_seconds = 0.0
+        quote_attempts = 0
+        requote_triggered = False
+        first_quote_network_seconds: float | None = None
+        second_quote_network_seconds: float | None = None
+        first_quote_average_price: float | None = None
+        second_quote_average_price: float | None = None
         reprice_event_message: str | None = None
-        price_limit = (
-            maximum_reprice_limit
-            if selected_strategy == "PAIR_ARB_RISK_020"
-            else signal_price
-        )
+        if selected_strategy == "PAIR_ARB_RISK_020":
+            price_limit = maximum_reprice_limit
+        elif selected_strategy.startswith("PAIR_ARB_"):
+            # Pair strategies retain their exact leg-price consistency rules.
+            price_limit = signal_price
+        else:
+            price_limit = min(
+                max(signal_price, latest_verified_ask),
+                maximum_reprice_limit,
+            )
         price_limit_text = format(price_limit.normalize(), "f")
+        latency_context = {
+            "market_id": market_id,
+            "selected_strategy": selected_strategy,
+            "side": side,
+            "live_enqueued_monotonic": enqueued_monotonic,
+            "processing_started_monotonic": processing_started_monotonic,
+            "accepted_ledger_started_monotonic": (
+                accepted_ledger_started_monotonic
+            ),
+            "accepted_ledger_finished_monotonic": (
+                accepted_ledger_finished_monotonic
+            ),
+            "quote_started_monotonic": quote_started_monotonic,
+            "market_event_received_monotonic": self._signal_monotonic_seconds(
+                signal, "market_event_received_monotonic_ns"
+            ),
+            "strategy_decision_started_monotonic": self._signal_monotonic_seconds(
+                signal, "strategy_decision_started_monotonic_ns"
+            ),
+            "strategy_store_started_monotonic": self._signal_monotonic_seconds(
+                signal, "strategy_store_started_monotonic_ns"
+            ),
+            "strategy_store_finished_monotonic": self._signal_monotonic_seconds(
+                signal, "strategy_store_finished_monotonic_ns"
+            ),
+            "live_candidate_created_monotonic": self._signal_monotonic_seconds(
+                signal, "live_candidate_created_monotonic_ns"
+            ),
+            "attempt_context": {
+                "strategy": selected_strategy,
+                "marketId": market_id,
+                "side": side,
+                "signalPrice": float(signal_price),
+                "signalBookAgeMs": _float(
+                    signal.get("signal_prediction_book_age_ms")
+                ),
+                "signalAsk": _float(signal.get("signal_prediction_ask")),
+                "signalAskSize": _float(
+                    signal.get("signal_prediction_ask_size")
+                ),
+                **depth_diagnostics,
+            },
+        }
 
         def request_quote(limit_text: str) -> dict[str, Any]:
+            nonlocal quote_attempts
             nonlocal quote_network_seconds
+            nonlocal first_quote_network_seconds
+            nonlocal second_quote_network_seconds
+            quote_attempts += 1
+            attempt_number = quote_attempts
             network_started = time.monotonic()
             try:
                 return client.get_quote(
@@ -4082,12 +5294,16 @@ class LiveM0WEngine:
                     funding_source="MPC",
                 )
             finally:
-                quote_network_seconds += max(
-                    0.0, time.monotonic() - network_started
-                )
+                elapsed_seconds = max(0.0, time.monotonic() - network_started)
+                quote_network_seconds += elapsed_seconds
+                if attempt_number == 1:
+                    first_quote_network_seconds = elapsed_seconds
+                elif attempt_number == 2:
+                    second_quote_network_seconds = elapsed_seconds
 
         try:
             quote = request_quote(price_limit_text)
+            first_quote_average_price = _float(quote.get("averagePrice"))
             safe, reason = self._quote_is_safe(
                 quote,
                 token_id=token_id,
@@ -4097,6 +5313,10 @@ class LiveM0WEngine:
             if safe:
                 safe, reason = self._research_quote_range_is_safe(
                     quote, selected_strategy
+                )
+            if safe:
+                safe, reason = self._reliability_quote_is_safe(
+                    quote, selected_strategy, rules
                 )
             quote_average = _decimal(quote.get("averagePrice"))
             if (
@@ -4125,7 +5345,9 @@ class LiveM0WEngine:
                     f"quote average {format(quote_average.normalize(), 'f')} exceeded "
                     f"limit {old_limit_text}; refreshed once at {price_limit_text}"
                 )
+                requote_triggered = True
                 quote = request_quote(price_limit_text)
+                second_quote_average_price = _float(quote.get("averagePrice"))
                 safe, reason = self._quote_is_safe(
                     quote,
                     token_id=token_id,
@@ -4135,6 +5357,10 @@ class LiveM0WEngine:
                 if safe:
                     safe, reason = self._research_quote_range_is_safe(
                         quote, selected_strategy
+                    )
+                if safe:
+                    safe, reason = self._reliability_quote_is_safe(
+                        quote, selected_strategy, rules
                     )
             if not safe:
                 raise ValueError(reason)
@@ -4170,27 +5396,34 @@ class LiveM0WEngine:
             )
             with self.lock:
                 self.last_error = str(exc)[:400]
-                self.last_order_latency = {
-                    "marketId": market_id,
-                    "strategy": selected_strategy,
-                    "side": side,
-                    "outcome": "QUOTE_REJECTED",
-                    "queueMs": queue_delay_seconds * 1000,
-                    "preQuoteMs": max(
-                        0.0,
-                        quote_started_monotonic - processing_started_monotonic,
-                    ) * 1000,
-                    "quotePhaseMs": max(
-                        0.0, failed_at_monotonic - quote_started_monotonic
-                    ) * 1000,
-                    "quoteNetworkMs": quote_network_seconds * 1000,
-                    "quoteToPlaceMs": None,
-                    "placeNetworkMs": None,
-                    "totalMs": max(
-                        0.0, failed_at_monotonic - enqueued_monotonic
-                    ) * 1000,
-                    "measuredAt": utc_iso(),
-                }
+                latency = self._order_latency_payload(
+                    {
+                        **latency_context,
+                        "quote_finished_monotonic": failed_at_monotonic,
+                        "quote_network_seconds": quote_network_seconds,
+                        "quote_attempts": quote_attempts,
+                        "requote_triggered": requote_triggered,
+                        "first_quote_average_price": first_quote_average_price,
+                        "second_quote_average_price": second_quote_average_price,
+                        "first_quote_network_seconds": (
+                            first_quote_network_seconds
+                        ),
+                        "second_quote_network_seconds": (
+                            second_quote_network_seconds
+                        ),
+                        "final_quote_average_price": (
+                            _float(quote.get("averagePrice"))
+                            if isinstance(quote, dict)
+                            else None
+                        ),
+                    },
+                    outcome="QUOTE_REJECTED",
+                    placement_started_monotonic=None,
+                    placement_finished_monotonic=failed_at_monotonic,
+                )
+                self.last_order_latency = latency
+                self.last_quote_attempt = self._quote_attempt_payload(latency)
+            self._persist_attempt_telemetry(local_id, latency)
             self.ledger.record_event(
                 "ERROR", "QUOTE_REJECTED", str(exc)[:400], market_id
             )
@@ -4204,6 +5437,7 @@ class LiveM0WEngine:
             return None
 
         prepared = {
+            **latency_context,
             "local_id": local_id,
             "client": client,
             "wallet_address": wallet_address,
@@ -4224,11 +5458,15 @@ class LiveM0WEngine:
             "quote_rtt_seconds": max(
                 0.0, time.monotonic() - quote_started_monotonic
             ),
-            "live_enqueued_monotonic": enqueued_monotonic,
-            "processing_started_monotonic": processing_started_monotonic,
-            "quote_started_monotonic": quote_started_monotonic,
             "quote_finished_monotonic": time.monotonic(),
             "quote_network_seconds": quote_network_seconds,
+            "quote_attempts": quote_attempts,
+            "requote_triggered": requote_triggered,
+            "first_quote_average_price": first_quote_average_price,
+            "second_quote_average_price": second_quote_average_price,
+            "first_quote_network_seconds": first_quote_network_seconds,
+            "second_quote_network_seconds": second_quote_network_seconds,
+            "final_quote_average_price": _float(quote.get("averagePrice")),
             "queue_delay_seconds": queue_delay_seconds,
             "reprice_event_message": reprice_event_message,
         }
@@ -4306,16 +5544,24 @@ class LiveM0WEngine:
             )
             with self.lock:
                 self.last_error = detail[:400]
-                self.last_order_latency = self._order_latency_payload(
+                latency_outcome = (
+                    "PLACEMENT_AMBIGUOUS"
+                    if ambiguous
+                    else "PLACEMENT_REJECTED"
+                )
+                latency = self._order_latency_payload(
                     prepared,
-                    outcome=status,
+                    outcome=latency_outcome,
                     placement_started_monotonic=placement_started_monotonic,
                     placement_finished_monotonic=placement_finished_monotonic,
                 )
+                self.last_order_latency = latency
+                self.last_quote_attempt = self._quote_attempt_payload(latency)
                 if "-31003" in detail or "SAS authorization required" in detail:
                     self.sas_status = "BLOCKED_SAS_REQUIRED"
                     self.status = "BLOCKED_SAS_REQUIRED"
                     self.armed = False
+            self._persist_attempt_telemetry(local_id, latency)
             self.ledger.record_event(
                 "ERROR",
                 "PLACEMENT_AMBIGUOUS" if ambiguous else "PLACEMENT_REJECTED",
@@ -4348,12 +5594,15 @@ class LiveM0WEngine:
             self.status = "LIVE"
             self.last_error = None
             self.next_order_sync = 0.0
-            self.last_order_latency = self._order_latency_payload(
+            latency = self._order_latency_payload(
                 prepared,
                 outcome="SUBMITTED",
                 placement_started_monotonic=placement_started_monotonic,
                 placement_finished_monotonic=placement_finished_monotonic,
             )
+            self.last_order_latency = latency
+            self.last_quote_attempt = self._quote_attempt_payload(latency)
+        self._persist_attempt_telemetry(local_id, latency)
         self.ledger.record_event(
             "INFO",
             "ORDER_SUBMITTED",
@@ -4370,11 +5619,50 @@ class LiveM0WEngine:
         return True
 
     @staticmethod
+    def _signal_monotonic_seconds(
+        signal: dict[str, Any], key: str
+    ) -> float | None:
+        try:
+            value = int(signal.get(key))
+        except (TypeError, ValueError):
+            return None
+        return value / 1_000_000_000 if value > 0 else None
+
+    @staticmethod
+    def _elapsed_ms(start: Any, finish: Any) -> float | None:
+        try:
+            start_value = float(start)
+            finish_value = float(finish)
+        except (TypeError, ValueError):
+            return None
+        return max(0.0, finish_value - start_value) * 1000
+
+    @staticmethod
+    def _quote_attempt_payload(latency: dict[str, Any]) -> dict[str, Any]:
+        return {
+            key: latency.get(key)
+            for key in (
+                "marketId",
+                "strategy",
+                "side",
+                "quoteAttempts",
+                "requoteTriggered",
+                "firstQuoteAveragePrice",
+                "secondQuoteAveragePrice",
+                "firstQuoteNetworkMs",
+                "secondQuoteNetworkMs",
+                "finalQuoteAveragePrice",
+                "finalOutcome",
+                "measuredAt",
+            )
+        }
+
+    @staticmethod
     def _order_latency_payload(
         prepared: dict[str, Any],
         *,
         outcome: str,
-        placement_started_monotonic: float,
+        placement_started_monotonic: float | None,
         placement_finished_monotonic: float,
     ) -> dict[str, Any]:
         enqueued = float(
@@ -4389,9 +5677,22 @@ class LiveM0WEngine:
             prepared.get("quote_started_monotonic") or processing_started
         )
         quote_finished = float(
-            prepared.get("quote_finished_monotonic") or placement_started_monotonic
+            prepared.get("quote_finished_monotonic")
+            or placement_started_monotonic
+            or placement_finished_monotonic
         )
+        event_received = prepared.get("market_event_received_monotonic")
+        decision_started = prepared.get("strategy_decision_started_monotonic")
+        store_started = prepared.get("strategy_store_started_monotonic")
+        store_finished = prepared.get("strategy_store_finished_monotonic")
+        candidate_created = prepared.get("live_candidate_created_monotonic")
+        ledger_started = prepared.get("accepted_ledger_started_monotonic")
+        ledger_finished = prepared.get("accepted_ledger_finished_monotonic")
+        attempt_context = prepared.get("attempt_context")
+        if not isinstance(attempt_context, dict):
+            attempt_context = {}
         return {
+            **attempt_context,
             "marketId": int(prepared["market_id"]),
             "strategy": str(prepared["selected_strategy"]),
             "side": str(prepared["side"]),
@@ -4402,16 +5703,75 @@ class LiveM0WEngine:
             "quoteNetworkMs": max(
                 0.0, float(prepared.get("quote_network_seconds") or 0.0)
             ) * 1000,
-            "quoteToPlaceMs": max(
-                0.0, placement_started_monotonic - quote_finished
-            ) * 1000,
-            "placeNetworkMs": max(
-                0.0,
-                placement_finished_monotonic - placement_started_monotonic,
-            ) * 1000,
+            "quoteToPlaceMs": LiveM0WEngine._elapsed_ms(
+                quote_finished, placement_started_monotonic
+            ),
+            "placeNetworkMs": LiveM0WEngine._elapsed_ms(
+                placement_started_monotonic, placement_finished_monotonic
+            ),
             "totalMs": max(
                 0.0, placement_finished_monotonic - enqueued
             ) * 1000,
+            "marketEventToDecisionStartMs": LiveM0WEngine._elapsed_ms(
+                event_received, decision_started
+            ),
+            "decisionAndStoreMs": LiveM0WEngine._elapsed_ms(
+                decision_started, store_finished
+            ),
+            "storeMs": LiveM0WEngine._elapsed_ms(store_started, store_finished),
+            "candidateToLiveQueueMs": LiveM0WEngine._elapsed_ms(
+                candidate_created, enqueued
+            ),
+            "marketEventToLiveQueueMs": LiveM0WEngine._elapsed_ms(
+                event_received, enqueued
+            ),
+            "marketEventToQuoteStartMs": LiveM0WEngine._elapsed_ms(
+                event_received, quote_started
+            ),
+            "marketEventToPlaceStartMs": LiveM0WEngine._elapsed_ms(
+                event_received, placement_started_monotonic
+            ),
+            # For pre-placement failures this is event-to-final-failure; the
+            # outcome field makes that distinction explicit.
+            "eventToPlaceResponseMs": LiveM0WEngine._elapsed_ms(
+                event_received, placement_finished_monotonic
+            ),
+            "preLedgerMs": LiveM0WEngine._elapsed_ms(
+                processing_started, ledger_started
+            ),
+            "acceptedLedgerMs": LiveM0WEngine._elapsed_ms(
+                ledger_started, ledger_finished
+            ),
+            "quoteAttempts": int(prepared.get("quote_attempts") or 0),
+            "requoteTriggered": bool(prepared.get("requote_triggered")),
+            "firstQuoteAveragePrice": prepared.get(
+                "first_quote_average_price"
+            ),
+            "secondQuoteAveragePrice": prepared.get(
+                "second_quote_average_price"
+            ),
+            "firstQuoteNetworkMs": (
+                max(
+                    0.0,
+                    float(prepared.get("first_quote_network_seconds")),
+                )
+                * 1000
+                if prepared.get("first_quote_network_seconds") is not None
+                else None
+            ),
+            "secondQuoteNetworkMs": (
+                max(
+                    0.0,
+                    float(prepared.get("second_quote_network_seconds")),
+                )
+                * 1000
+                if prepared.get("second_quote_network_seconds") is not None
+                else None
+            ),
+            "finalQuoteAveragePrice": prepared.get(
+                "final_quote_average_price"
+            ),
+            "finalOutcome": str(outcome),
             "measuredAt": utc_iso(),
         }
 
@@ -5624,6 +6984,32 @@ class LiveM0WEngine:
                     if self.last_order_latency is not None
                     else None
                 ),
+                "lastOrderLatency": (
+                    dict(self.last_order_latency)
+                    if self.last_order_latency is not None
+                    else None
+                ),
+                "lastLocalPriceCheck": (
+                    dict(self.last_local_price_check)
+                    if self.last_local_price_check is not None
+                    else None
+                ),
+                "lastDepthCheck": (
+                    dict(self.last_depth_check)
+                    if self.last_depth_check is not None
+                    else None
+                ),
+                "lastQuoteAttempt": (
+                    dict(self.last_quote_attempt)
+                    if self.last_quote_attempt is not None
+                    else None
+                ),
+                "attemptSummary": dict(self.attempt_summary_state),
+                "maxPredictionBookAgeMs": self.max_prediction_book_age_ms,
+                "minTopLevelCapacityRatio": float(
+                    LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO
+                ),
+                **self.sqlite_state,
                 "droppedSignals": self.dropped_signals,
                 "queueDepth": self.events.qsize(),
                 "balances": list(self.balances),
@@ -5679,6 +7065,9 @@ class LiveM0WEngine:
             "pairInsurance": self.ledger.recent_pair_insurance(),
             "pairQuoteAudits": self.ledger.recent_pair_quote_audits(),
             "pairIncidents": self.ledger.recent_pair_incidents(),
+            "reliabilityResearch": self.ledger.reliability_research_summary(
+                enabled_tags=rules["reliabilityGateTags"]
+            ),
             "events": self.ledger.recent_events(),
             "updatedAt": utc_iso(),
             "policy": {

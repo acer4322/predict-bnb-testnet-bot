@@ -20,6 +20,10 @@ LIVE_FORWARDABLE_OBSERVER_STRATEGIES = {"M01O_F1"}
 LIVE_FORWARDABLE_PAPER_STRATEGIES = (
     LIVE_FORWARDABLE_OBSERVER_STRATEGIES | set(LIVE_RESEARCH_STRATEGIES)
 )
+VERIFIED_PREDICTION_ORIENTATIONS = {
+    "DIRECT_UP_VERIFIED",
+    "INVERTED_TO_UP_VERIFIED",
+}
 
 
 def _finite(value: Any) -> float | None:
@@ -83,6 +87,9 @@ class MSeriesRealtimeEngine:
         self.spot_event: dict[str, Any] | None = None
         self.futures_event: dict[str, Any] | None = None
         self.prediction_event: dict[str, Any] | None = None
+        self.accepted_prediction_events = 0
+        self.rejected_unverified_prediction_events = 0
+        self.last_accepted_prediction_at: str | None = None
         self.spot_history: deque[dict[str, Any]] = deque(maxlen=20_000)
         self.prediction_history: deque[dict[str, Any]] = deque(maxlen=10_000)
         self.m7_emitted_deadlines: set[float] = set()
@@ -164,7 +171,7 @@ class MSeriesRealtimeEngine:
             if source == "prediction":
                 if (
                     int(event.get("market_id") or -1) != market_id
-                    or event.get("feature_eligible", True) is not True
+                    or event.get("feature_eligible") is not True
                 ):
                     return
             received_wall_ns = int(
@@ -367,7 +374,7 @@ class MSeriesRealtimeEngine:
     def _prediction_values(
         self, event: dict[str, Any] | None, now_mono_ns: int
     ) -> dict[str, float] | None:
-        if not event or not event.get("feature_eligible", True):
+        if not event or event.get("feature_eligible") is not True:
             return None
         up_bid = _finite(event.get("best_bid"))
         up_ask = _finite(event.get("best_ask"))
@@ -504,6 +511,9 @@ class MSeriesRealtimeEngine:
             "signal_event_stream": str(trigger.get("stream") or "timer"),
             "signal_event_sequence": signal_sequence,
             "signal_exchange_event_ms": trigger.get("exchange_event_ms"),
+            "signal_prediction_book_version_ms": trigger.get(
+                "prediction_book_version_ms"
+            ),
             "signal_exchange_trade_ms": trigger.get("exchange_trade_ms"),
             "signal_received_wall_ns": trigger_received_wall_ns,
             "signal_received_monotonic_ns": trigger_received_mono_ns,
@@ -552,6 +562,9 @@ class MSeriesRealtimeEngine:
                 "received_monotonic_ns"
             ),
             "prediction_exchange_event_ms": prediction_event.get("exchange_event_ms"),
+            "prediction_book_version_ms": prediction_event.get(
+                "prediction_book_version_ms"
+            ),
             "prediction_book_age_ms": prediction.get("book_age_ms"),
             "spot_age_ms": snapshot["spot_age_ms"],
             "futures_age_ms": snapshot["futures_age_ms"],
@@ -711,10 +724,55 @@ class MSeriesRealtimeEngine:
             realtime_context=context,
         )
         store_finished_ns = time.monotonic_ns()
-        if self.live_signal_sink is not None:
+        if (
+            self.live_signal_sink is not None
+            and context.get("execution_eligible") is True
+        ):
             for candidate in opened or []:
+                candidate_created_ns = time.monotonic_ns()
+                candidate_side = str(candidate.get("side") or "").upper()
+                signal_ask_key = (
+                    "up_ask" if candidate_side == "UP" else "down_ask"
+                )
+                signal_ask_size_key = (
+                    "up_ask_size" if candidate_side == "UP" else "down_ask_size"
+                )
+                signal_bid_key = (
+                    "up_bid" if candidate_side == "UP" else "down_bid"
+                )
                 candidate = {
                     **candidate,
+                    # Preserve every causal boundary through the live queue.
+                    # These monotonic values are process-local telemetry only;
+                    # they must never be replaced by exchange wall clocks.
+                    "market_event_received_monotonic_ns": context.get(
+                        "signal_received_monotonic_ns"
+                    ),
+                    "strategy_decision_started_monotonic_ns": context.get(
+                        "decision_started_monotonic_ns"
+                    ),
+                    "strategy_store_started_monotonic_ns": store_started_ns,
+                    "strategy_store_finished_monotonic_ns": store_finished_ns,
+                    "live_candidate_created_monotonic_ns": candidate_created_ns,
+                    # Freeze the exact Prediction book which produced this
+                    # decision.  The live executor may compare it with a newer
+                    # verified book, but must never mutate this signal copy.
+                    "signal_prediction_book_age_ms": snapshot.get("book_age_ms"),
+                    "signal_prediction_received_monotonic_ns": context.get(
+                        "prediction_received_monotonic_ns"
+                    ),
+                    "signal_prediction_ask": snapshot.get(signal_ask_key),
+                    "signal_prediction_ask_size": snapshot.get(
+                        signal_ask_size_key
+                    ),
+                    "signal_prediction_bid": snapshot.get(signal_bid_key),
+                    "signal_prediction_orientation": context.get(
+                        "prediction_book_orientation"
+                    ),
+                    "signal_market_data_integrity_ok": context.get(
+                        "market_data_integrity_ok"
+                    ),
+                    "signal_event_sequence": context.get("signal_event_sequence"),
                     # Freeze the causal BTC snapshot used by the drawdown
                     # controller.  Prediction entry_price is a token price and
                     # must never be substituted for Spot here.
@@ -799,6 +857,57 @@ class MSeriesRealtimeEngine:
             self.last_store_duration_ms = max(
                 0.0, (store_finished_ns - store_started_ns) / 1_000_000
             )
+
+    def current_verified_prediction_book(self) -> dict[str, Any] | None:
+        """Return a fast immutable copy of the latest accepted WSS book."""
+        now_ns = time.monotonic_ns()
+        with self.lock:
+            event = dict(self.prediction_event or {})
+            market_id = self.market_id
+        if not event:
+            return None
+        received_ns = int(event.get("received_monotonic_ns") or 0)
+        orientation = str(event.get("prediction_orientation") or "UNVERIFIED")
+        values = self._prediction_values(event, now_ns)
+        if values is None or received_ns <= 0:
+            return None
+
+        def levels(key: str) -> list[list[float]]:
+            result: list[list[float]] = []
+            for raw in event.get(key) or []:
+                if not isinstance(raw, (list, tuple)) or len(raw) < 2:
+                    continue
+                price = _finite(raw[0])
+                size = _finite(raw[1])
+                if price is None or size is None or size <= 0:
+                    continue
+                result.append([price, size])
+            return result
+
+        up_bids = levels("bids")
+        up_asks = levels("asks")
+        down_asks = sorted(
+            [[1.0 - price, size] for price, size in up_bids],
+            key=lambda level: level[0],
+        )
+        return {
+            "market_id": int(event.get("market_id") or market_id or 0),
+            "orientation": orientation,
+            "received_monotonic_ns": received_ns,
+            "book_age_ms": max(0.0, (now_ns - received_ns) / 1_000_000),
+            "up_bid": values["up_bid"],
+            "up_ask": values["up_ask"],
+            "up_bid_size": values["up_bid_size"],
+            "up_ask_size": values["up_ask_size"],
+            "down_bid": values["down_bid"],
+            "down_ask": values["down_ask"],
+            "down_bid_size": values["down_bid_size"],
+            "down_ask_size": values["down_ask_size"],
+            "up_asks": up_asks,
+            "down_asks": down_asks,
+            "event_sequence": self._event_sequence(event),
+            "verified": orientation in VERIFIED_PREDICTION_ORIENTATIONS,
+        }
 
     def _emit_due_m7_deadlines(self, now_monotonic_ns: int) -> None:
         if (
@@ -928,11 +1037,17 @@ class MSeriesRealtimeEngine:
         if source == "prediction" and stream == "orderbook":
             if (
                 int(event.get("market_id") or -1) == market_id
-                and event.get("feature_eligible", True)
+                and event.get("feature_eligible") is True
             ):
                 self.prediction_event = event
                 self.prediction_history.append(event)
+                self.accepted_prediction_events += 1
+                self.last_accepted_prediction_at = _utc_iso_from_ns(
+                    int(event.get("received_wall_ns") or time.time_ns())
+                )
             else:
+                if event.get("feature_eligible") is not True:
+                    self.rejected_unverified_prediction_events += 1
                 return
         elif source == "spot" and stream == "trade":
             if not self._accept_spot_trade(event, set_current=True):
@@ -1029,6 +1144,11 @@ class MSeriesRealtimeEngine:
                 "queueDepth": self.events.qsize(),
                 "processedEvents": self.processed_events,
                 "droppedEvents": self.dropped_events,
+                "acceptedPredictionEvents": self.accepted_prediction_events,
+                "rejectedUnverifiedPredictionEvents": (
+                    self.rejected_unverified_prediction_events
+                ),
+                "lastAcceptedPredictionAt": self.last_accepted_prediction_at,
                 "marketDataIntegrityOk": self._market_integrity_ok(),
                 "integrityEpoch": self.integrity_epoch,
                 "integritySkippedEvaluations": self.integrity_skipped_evaluations,

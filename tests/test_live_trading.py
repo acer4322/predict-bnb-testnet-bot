@@ -308,6 +308,34 @@ def m0_hourly_performance(
     return {"timezone": "Asia/Taipei", "hours": hours}
 
 
+def verified_prediction_book(**overrides):
+    payload = {
+        "market_id": 202,
+        "orientation": "DIRECT_UP_VERIFIED",
+        "received_monotonic_ns": time.monotonic_ns(),
+        "book_age_ms": 0.0,
+        "up_bid": 0.39,
+        "up_ask": 0.40,
+        "up_bid_size": 10.0,
+        "up_ask_size": 10.0,
+        "down_bid": 0.39,
+        "down_ask": 0.40,
+        "down_bid_size": 10.0,
+        "down_ask_size": 10.0,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def pair_prediction_book():
+    return verified_prediction_book(
+        up_bid=0.20,
+        up_ask=0.21,
+        down_bid=0.74,
+        down_ask=0.75,
+    )
+
+
 def engine(
     tmp_path: Path,
     client: FakeTradingClient,
@@ -315,6 +343,9 @@ def engine(
     hourly_provider=None,
     **engine_kwargs,
 ):
+    engine_kwargs.setdefault(
+        "current_verified_prediction_book", verified_prediction_book
+    )
     result = LiveM0WEngine(
         api_key="key",
         api_secret="secret",
@@ -329,6 +360,193 @@ def engine(
     result._preflight()
     assert result.state()["armed"] is True
     return result
+
+
+def force_legacy_m0w_rules_for_test(live: LiveM0WEngine) -> None:
+    """Keep legacy M0W execution tests isolated from allowlist experiments."""
+    with live.lock:
+        live.live_rules = {
+            **live.live_rules,
+            "strategy": "M0W",
+            "strategies": ["M0W"],
+            "maxStakeUsdt": 1.0,
+            "strategyStakesUsdt": [1.0],
+            "strategyObserverEnabled": [False],
+            "strategyObserverVersions": ["F1"],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+        }
+
+
+def accepted_signal_kwargs(**overrides):
+    values = {
+        "topic_id": 101,
+        "market_id": 202,
+        "side": "UP",
+        "token_id": "up-token",
+        "signal_price": 0.40,
+        "account_type": "SPOT",
+        "signal_at": "2026-08-01T00:00:00+00:00",
+        "strategy": "M0W",
+        "max_stake_usdt": 1.0,
+        "requested_amount_wei": str(LIVE_M0W_AMOUNT_WEI),
+        "reliability_context": {},
+        "event_message": "M0W UP accepted",
+    }
+    values.update(overrides)
+    return values
+
+
+def test_live_ledger_uses_wal_and_reports_durability_settings(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+
+    settings = ledger.sqlite_settings()
+
+    assert settings["sqliteJournalMode"] == "WAL"
+    assert settings["sqliteBusyTimeoutMs"] == 5000
+    assert settings["sqliteSynchronous"] != "OFF"
+    assert settings["liveDbPath"].endswith("live.db")
+    assert settings["sqlitePathWarning"] is None
+
+
+def test_accepted_signal_order_and_event_commit_together(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+    statements = []
+    ledger.db.set_trace_callback(statements.append)
+
+    local_id = ledger.record_accepted_signal(**accepted_signal_kwargs())
+
+    assert local_id is not None
+    order = ledger.db.execute(
+        "SELECT status FROM live_orders WHERE id=?", (local_id,)
+    ).fetchone()
+    event = ledger.db.execute(
+        "SELECT event_type FROM live_events WHERE market_id=202"
+    ).fetchone()
+    assert order["status"] == "QUOTE_REQUESTING"
+    assert event["event_type"] == "SIGNAL_ACCEPTED"
+    assert sum(statement == "COMMIT" for statement in statements) == 1
+
+
+def test_accepted_signal_event_failure_rolls_back_order(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+    ledger.db.executescript(
+        """
+        CREATE TRIGGER fail_signal_accepted
+        BEFORE INSERT ON live_events
+        WHEN NEW.event_type='SIGNAL_ACCEPTED'
+        BEGIN
+            SELECT RAISE(ABORT, 'forced event failure');
+        END;
+        """
+    )
+    ledger.db.commit()
+
+    with pytest.raises(live_trading.sqlite3.IntegrityError):
+        ledger.record_accepted_signal(**accepted_signal_kwargs())
+
+    assert ledger.db.execute("SELECT COUNT(*) FROM live_orders").fetchone()[0] == 0
+    assert ledger.db.execute("SELECT COUNT(*) FROM live_events").fetchone()[0] == 0
+
+
+def test_accepted_signal_keeps_pair_side_ledger_keys_unique(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+
+    up_id = ledger.record_accepted_signal(
+        **accepted_signal_kwargs(strategy="PAIR_ARB_010:UP", side="UP")
+    )
+    down_id = ledger.record_accepted_signal(
+        **accepted_signal_kwargs(
+            strategy="PAIR_ARB_010:DOWN", side="DOWN", token_id="down-token"
+        )
+    )
+    duplicate = ledger.record_accepted_signal(
+        **accepted_signal_kwargs(strategy="PAIR_ARB_010:UP", side="UP")
+    )
+
+    assert up_id is not None
+    assert down_id is not None
+    assert duplicate is None
+
+
+def test_attempt_summary_counts_outcomes_and_latency_percentiles(tmp_path: Path):
+    ledger = LiveLedger(tmp_path / "live.db")
+    outcomes = [
+        "SUBMITTED",
+        "BLOCKED_STALE_PREDICTION_BOOK",
+        "QUOTE_REJECTED",
+        "PLACEMENT_AMBIGUOUS",
+    ]
+    for index, outcome in enumerate(outcomes, start=1):
+        local_id = ledger.record_accepted_signal(
+            **accepted_signal_kwargs(
+                market_id=200 + index,
+                event_message=f"attempt {index}",
+            )
+        )
+        ledger.record_attempt_telemetry(
+            local_id,
+            {
+                "finalOutcome": outcome,
+                "eventToPlaceResponseMs": index * 10.0,
+                "queueMs": index * 1.0,
+                "preQuoteMs": index * 2.0,
+                "quoteNetworkMs": index * 3.0,
+                "quoteToPlaceMs": index * 4.0,
+                "placeNetworkMs": index * 5.0,
+                "quoteId": "must-not-persist",
+                "signature": "must-not-persist",
+            },
+        )
+
+    summary = ledger.attempt_summary()
+
+    assert summary["sampleSize"] == 4
+    assert summary["outcomes"]["submitted"] == 1
+    assert summary["outcomes"]["blockedStaleBook"] == 1
+    assert summary["outcomes"]["quoteRejected"] == 1
+    assert summary["outcomes"]["placementAmbiguous"] == 1
+    latency = summary["latency"]["eventToPlaceResponseMs"]
+    assert latency == {"p50": 25.0, "p90": 37.0, "p95": 38.5, "max": 40.0}
+    raw = ledger.db.execute(
+        "SELECT telemetry_json FROM live_attempt_telemetry LIMIT 1"
+    ).fetchone()[0]
+    assert "quoteId" not in raw
+    assert "signature" not in raw
+
+
+def test_place_attempted_is_durable_before_network_place(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+    observed_statuses = []
+
+    def inspect_durable_barrier(**kwargs):
+        with live_trading.sqlite3.connect(tmp_path / "live.db") as reader:
+            observed_statuses.append(
+                reader.execute(
+                    "SELECT status FROM live_orders WHERE market_id=202"
+                ).fetchone()[0]
+            )
+        return {"orderId": "barrier-verified"}
+
+    client.place_limit_order = inspect_durable_barrier
+
+    live.process_signal(signal())
+
+    assert observed_statuses == ["PLACE_ATTEMPTED"]
+    assert live.state()["orders"][0]["status"] == "SUBMITTED"
+
+
+def test_live_engine_stop_closes_trading_client(tmp_path: Path):
+    client = FakeTradingClient()
+    closed = []
+    client.close = lambda: closed.append(True)
+    live = engine(tmp_path, client)
+
+    live.stop()
+
+    assert closed == [True]
 
 
 def test_live_m0w_uses_limit_gtc_with_immutable_one_usdt_cap(tmp_path: Path):
@@ -391,8 +609,15 @@ def test_order_latency_reports_queue_quote_and_placement_segments(tmp_path: Path
     client.get_quote = delayed_quote
     client.place_limit_order = delayed_place
     live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+    now_ns = time.monotonic_ns()
     payload = signal(
-        _live_enqueued_monotonic_ns=time.monotonic_ns() - 5_000_000
+        market_event_received_monotonic_ns=now_ns - 20_000_000,
+        strategy_decision_started_monotonic_ns=now_ns - 15_000_000,
+        strategy_store_started_monotonic_ns=now_ns - 14_000_000,
+        strategy_store_finished_monotonic_ns=now_ns - 10_000_000,
+        live_candidate_created_monotonic_ns=now_ns - 7_000_000,
+        _live_enqueued_monotonic_ns=now_ns - 5_000_000,
     )
 
     live.process_signal(payload)
@@ -404,6 +629,273 @@ def test_order_latency_reports_queue_quote_and_placement_segments(tmp_path: Path
     assert latency["quoteNetworkMs"] >= 9
     assert latency["placeNetworkMs"] >= 9
     assert latency["totalMs"] >= 20
+    assert latency["marketEventToDecisionStartMs"] == pytest.approx(5.0)
+    assert latency["decisionAndStoreMs"] == pytest.approx(5.0)
+    assert latency["storeMs"] == pytest.approx(4.0)
+    assert latency["candidateToLiveQueueMs"] == pytest.approx(2.0)
+    assert latency["marketEventToLiveQueueMs"] == pytest.approx(15.0)
+    assert latency["marketEventToQuoteStartMs"] >= 20.0
+    assert latency["marketEventToPlaceStartMs"] >= 29.0
+    assert latency["eventToPlaceResponseMs"] >= 39.0
+    assert latency["preLedgerMs"] is not None
+    assert latency["acceptedLedgerMs"] is not None
+
+
+def test_order_latency_is_backward_compatible_without_causal_timestamps():
+    latency = LiveM0WEngine._order_latency_payload(
+        {
+            "market_id": 202,
+            "selected_strategy": "M0W",
+            "side": "UP",
+            "live_enqueued_monotonic": 1.0,
+            "processing_started_monotonic": 1.1,
+            "quote_started_monotonic": 1.2,
+            "quote_finished_monotonic": 1.3,
+            "quote_network_seconds": 0.05,
+        },
+        outcome="SUBMITTED",
+        placement_started_monotonic=1.4,
+        placement_finished_monotonic=1.5,
+    )
+
+    assert latency["totalMs"] == pytest.approx(500.0)
+    for field in (
+        "marketEventToDecisionStartMs",
+        "decisionAndStoreMs",
+        "storeMs",
+        "candidateToLiveQueueMs",
+        "marketEventToLiveQueueMs",
+        "marketEventToQuoteStartMs",
+        "marketEventToPlaceStartMs",
+        "eventToPlaceResponseMs",
+        "preLedgerMs",
+        "acceptedLedgerMs",
+    ):
+        assert latency[field] is None
+
+
+@pytest.mark.parametrize(
+    ("book", "expected_status", "expected_error_kind"),
+    [
+        (
+            verified_prediction_book(market_id=999),
+            "BLOCKED_PREDICTION_MARKET_MISMATCH",
+            "LOCAL_MARKET_MISMATCH",
+        ),
+        (
+            verified_prediction_book(orientation="UNVERIFIED"),
+            "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+            "LOCAL_UNVERIFIED_BOOK",
+        ),
+        (
+            verified_prediction_book(
+                received_monotonic_ns=time.monotonic_ns() - 3_000_000_000
+            ),
+            "BLOCKED_STALE_PREDICTION_BOOK",
+            "LOCAL_STALE_BOOK",
+        ),
+    ],
+)
+def test_latest_prediction_book_gate_blocks_before_binance_quote(
+    tmp_path: Path,
+    book: dict,
+    expected_status: str,
+    expected_error_kind: str,
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: dict(book),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal())
+
+    assert client.quote_calls == []
+    assert client.place_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == expected_status
+    assert order["error_kind"] == expected_error_kind
+    assert live.state()["orderLatency"]["outcome"] == expected_status
+
+
+def test_local_price_moved_gate_blocks_before_quote(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.51
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_LOCAL_PRICE_MOVED"
+    assert order["error_kind"] == "LOCAL_PRICE_MOVED"
+    check = live.state()["lastLocalPriceCheck"]
+    assert check["latestLocalAsk"] == pytest.approx(0.51)
+    assert check["maximumExecutionPrice"] == pytest.approx(0.50)
+    assert live.state()["attemptSummary"]["outcomes"][
+        "blockedLocalPriceMoved"
+    ] == 1
+
+
+@pytest.mark.parametrize(
+    ("latest_ask", "expected_limit"),
+    [(0.44, "0.44"), (0.35, "0.4")],
+)
+def test_initial_quote_uses_latest_verified_ask_without_lowering_signal_limit(
+    tmp_path: Path, latest_ask: float, expected_limit: str
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask=latest_ask
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    assert client.quote_calls[0]["price_limit"] == expected_limit
+    assert client.place_calls[0]["price_limit"] == expected_limit
+
+
+def test_estimate_buy_vwap_covers_stake_without_mutating_levels():
+    levels = [[0.20, 2.0], [0.40, 2.0]]
+    original = [list(level) for level in levels]
+
+    estimate = live_trading.estimate_buy_vwap(levels, "1.00")
+
+    assert levels == original
+    assert estimate["covered_stake"] == pytest.approx(1.0)
+    assert estimate["capacity_ratio"] == pytest.approx(1.0)
+    assert estimate["levels_consumed"] == 2
+    assert estimate["estimated_vwap"] == pytest.approx(1.0 / 3.5)
+
+
+def test_estimate_buy_vwap_reports_insufficient_depth():
+    estimate = live_trading.estimate_buy_vwap([[0.25, 1.0]], 1.0)
+
+    assert estimate == {
+        "estimated_vwap": 0.25,
+        "covered_stake": 0.25,
+        "capacity_ratio": 0.25,
+        "levels_consumed": 1,
+    }
+
+
+@pytest.mark.parametrize("ask_size", [None, 0.10])
+def test_top_level_capacity_gate_fails_closed_before_quote(
+    tmp_path: Path, ask_size,
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask_size=ask_size
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal())
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY"
+    assert order["error_kind"] == "LOCAL_INSUFFICIENT_DEPTH"
+    depth = live.state()["lastDepthCheck"]
+    assert depth["topLevelCapacityRatio"] < 0.70
+
+
+def test_down_capacity_gate_uses_down_ask_size(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask_size=100.0,
+            down_ask=0.40,
+            down_ask_size=0.10,
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(side="DOWN"))
+
+    assert client.quote_calls == []
+    assert live.state()["orders"][0]["status"] == (
+        "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY"
+    )
+
+
+def test_estimated_vwap_above_ceiling_blocks_before_quote(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.49,
+            up_ask_size=1.43,
+            up_asks=[[0.49, 1.43], [0.90, 10.0]],
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_ESTIMATED_VWAP_TOO_HIGH"
+    assert order["error_kind"] == "LOCAL_ESTIMATED_VWAP_TOO_HIGH"
+    depth = live.state()["lastDepthCheck"]
+    assert depth["vwapAvailable"] is True
+    assert depth["estimatedVwap"] > 0.50
+
+
+def test_missing_multilevel_depth_is_reported_unavailable_not_invented(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal())
+
+    assert len(client.quote_calls) == 1
+    depth = live.state()["lastDepthCheck"]
+    assert depth["status"] == "PASS"
+    assert depth["vwapAvailable"] is False
+    assert depth["estimatedVwap"] is None
+
+
+def test_requote_telemetry_records_two_attempts_and_individual_network_times(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    client.quote_average_prices = [0.41, 0.41]
+    live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    attempt = live.state()["lastQuoteAttempt"]
+    assert attempt["quoteAttempts"] == 2
+    assert attempt["requoteTriggered"] is True
+    assert attempt["firstQuoteAveragePrice"] == pytest.approx(0.41)
+    assert attempt["secondQuoteAveragePrice"] == pytest.approx(0.41)
+    assert attempt["firstQuoteNetworkMs"] >= 0
+    assert attempt["secondQuoteNetworkMs"] >= 0
+    assert attempt["finalQuoteAveragePrice"] == pytest.approx(0.41)
+    assert attempt["finalOutcome"] == "SUBMITTED"
 
 
 def test_hourly_guard_uses_cached_snapshot_on_order_hot_path(tmp_path: Path):
@@ -434,6 +926,7 @@ def test_slow_maintenance_does_not_block_order_worker(tmp_path: Path):
         configured_enabled=True,
         credential_source="TEST",
         current_market=market_reference,
+        current_verified_prediction_book=verified_prediction_book,
         db_path=tmp_path / "live.db",
         client_factory=lambda *_args: client,
     )
@@ -557,13 +1050,19 @@ def test_quote_above_one_usdt_cap_is_rejected_before_place(tmp_path: Path):
     client = FakeTradingClient()
     client.quote_amount_in = str(LIVE_M0W_AMOUNT_WEI + 1)
     live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+    event_ns = time.monotonic_ns() - 10_000_000
 
-    live.process_signal(signal())
+    live.process_signal(signal(market_event_received_monotonic_ns=event_ns))
 
     assert client.place_calls == []
     order = live.state()["orders"][0]
     assert order["status"] == "REJECTED"
     assert "hard cap" in order["error_message"]
+    latency = live.state()["orderLatency"]
+    assert latency["outcome"] == "QUOTE_REJECTED"
+    assert latency["eventToPlaceResponseMs"] >= 10.0
+    assert latency["marketEventToPlaceStartMs"] is None
 
 
 def test_quote_within_ten_cent_gap_is_refreshed_once_at_hard_cap(tmp_path: Path):
@@ -618,7 +1117,7 @@ def test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap(
         )
     )
 
-    assert [call["price_limit"] for call in client.quote_calls] == ["0.3", "0.4"]
+    assert [call["price_limit"] for call in client.quote_calls] == ["0.4"]
     assert len(client.place_calls) == 1
     assert client.place_calls[0]["price_limit"] == "0.4"
     order = live.state()["orders"][0]
@@ -628,7 +1127,7 @@ def test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap(
 
 def test_refreshed_quote_still_cannot_cross_ten_cent_gap(tmp_path: Path):
     client = FakeTradingClient()
-    client.quote_average_prices = [0.31, 0.41]
+    client.quote_average_prices = [0.41]
     live = engine(tmp_path, client)
     live.update_live_rules({"strategy": "M01"})
 
@@ -641,12 +1140,12 @@ def test_refreshed_quote_still_cannot_cross_ten_cent_gap(tmp_path: Path):
         )
     )
 
-    assert [call["price_limit"] for call in client.quote_calls] == ["0.3", "0.4"]
+    assert [call["price_limit"] for call in client.quote_calls] == ["0.4"]
     assert client.place_calls == []
     order = live.state()["orders"][0]
     assert order["status"] == "REJECTED"
     assert order["quote_average_price"] == pytest.approx(0.41)
-    assert "submitted limit price 0.4" in order["error_message"]
+    assert "permitted execution limit 0.4" in order["error_message"]
 
 
 def test_f1_is_selectable_and_places_only_with_current_allowed_observer_gate(
@@ -668,7 +1167,7 @@ def test_f1_is_selectable_and_places_only_with_current_allowed_observer_gate(
         )
     )
 
-    assert [call["price_limit"] for call in client.quote_calls] == ["0.3", "0.4"]
+    assert [call["price_limit"] for call in client.quote_calls] == ["0.4"]
     assert len(client.place_calls) == 1
     assert live.state()["orders"][0]["status"] == "SUBMITTED"
 
@@ -806,7 +1305,7 @@ def test_calibrated_value_uses_model_edge_without_old_fixed_price_range(
     )
 
     assert [call["price_limit"] for call in client.quote_calls] == [
-        format(entry_price, "g")
+        format(max(entry_price, 0.40), "g")
     ]
     assert len(client.place_calls) == 1
     assert live.state()["orders"][0]["status"] == "SUBMITTED"
@@ -1112,12 +1611,23 @@ def test_transport_failure_is_ambiguous_and_not_retried(tmp_path: Path):
     client = FakeTradingClient()
     client.place_error = ApiTransportError("connection closed after send")
     live = engine(tmp_path, client)
+    force_legacy_m0w_rules_for_test(live)
+    event_ns = time.monotonic_ns() - 10_000_000
 
-    live.process_signal(signal())
-    live.process_signal(signal())
+    live.process_signal(signal(market_event_received_monotonic_ns=event_ns))
+    live.process_signal(signal(market_event_received_monotonic_ns=event_ns))
 
     assert len(client.place_calls) == 1
     assert live.state()["orders"][0]["status"] == "AMBIGUOUS"
+    latency = live.state()["orderLatency"]
+    assert latency["outcome"] == "PLACEMENT_AMBIGUOUS"
+    assert latency["marketEventToPlaceStartMs"] >= 10.0
+    assert latency["eventToPlaceResponseMs"] >= (
+        latency["marketEventToPlaceStartMs"]
+    )
+    assert live.state()["attemptSummary"]["outcomes"][
+        "placementAmbiguous"
+    ] == 1
 
 
 def test_sas_rejection_disarms_executor(tmp_path: Path):
@@ -1298,6 +1808,7 @@ def test_live_rules_select_strategy_and_change_exact_order_cap(tmp_path: Path):
         "strategyObserverVersions": ["F1"],
         "strategyDrawdownControlEnabled": [False],
         "strategyLossCooldownEnabled": [False],
+        "reliabilityGateTags": [],
     }
 
 
@@ -1327,6 +1838,99 @@ def test_three_selected_live_strategies_use_independent_caps(tmp_path: Path):
         order["strategy"]: order["max_stake_usdt"]
         for order in live.state()["orders"]
     } == {"M1": 0.75, "M2": 1.25, "M3": 0.5}
+
+
+@pytest.mark.parametrize(
+    ("tag", "strategy", "overrides"),
+    [
+        ("RC_LOW_ENTRY", "R_CALIBRATED_VALUE", {"entry_price": 0.40}),
+        ("MP_LATE_WINDOW", "R_MICROPRICE", {"seconds_left": 179.0}),
+        ("MP_FRESH_BOOK", "R_MICROPRICE", {"book_age_ms": 500.0}),
+    ],
+)
+def test_reliability_candidate_gates_are_selectable_default_off_and_fail_closed(
+    tmp_path: Path, tag: str, strategy: str, overrides: dict,
+):
+    default_client = FakeTradingClient()
+    default_live = engine(tmp_path / "default", default_client)
+    default_state = default_live.update_live_rules({"strategy": strategy})
+    assert default_state["rules"]["reliabilityGateTags"] == []
+    default_live.process_signal(signal(strategy=strategy, m0w_gate=None, **overrides))
+    assert len(default_client.place_calls) == 1
+
+    gated_client = FakeTradingClient()
+    gated_live = engine(tmp_path / "gated", gated_client)
+    gated_state = gated_live.update_live_rules({
+        "strategy": strategy,
+        "reliabilityGateTags": [tag],
+    })
+    assert gated_state["rules"]["reliabilityGateTags"] == [tag]
+    gated_live.process_signal(signal(strategy=strategy, m0w_gate=None, **overrides))
+    assert gated_client.quote_calls == []
+    assert gated_client.place_calls == []
+    assert gated_live.state()["orders"][0]["status"] == "BLOCKED_RELIABILITY_GATE"
+
+
+def test_real_fills_are_copied_into_reliability_counterfactual_research(
+    tmp_path: Path,
+):
+    ledger = LiveLedger(tmp_path / "live.db")
+    for market_id, entry_price, winner in (
+        (301, 0.30, True),
+        (302, 0.50, False),
+    ):
+        local_id = ledger.record_signal(
+            topic_id=101,
+            market_id=market_id,
+            side="UP",
+            token_id=f"token-{market_id}",
+            signal_price=entry_price,
+            account_type="SPOT",
+            signal_at="2026-07-31T00:00:00+00:00",
+            strategy="R_CALIBRATED_VALUE",
+            max_stake_usdt=1.0,
+            requested_amount_wei=str(LIVE_M0W_AMOUNT_WEI),
+            reliability_context={
+                "seconds_left": 60.0,
+                "book_age_ms": 100.0,
+            },
+        )
+        assert local_id is not None
+        ledger.update_order(
+            local_id,
+            status="SUBMITTED",
+            quote_average_price=entry_price,
+            quote_amount_in_wei=str(LIVE_M0W_AMOUNT_WEI),
+            quote_amount_out_wei="2500000000000000000",
+        )
+        ledger.sync_exchange_order(local_id, {
+            "status": "FILLED",
+            "filledUsdtAmount": "1.0",
+            "filledShareQty": "2.5",
+            "fillPercentage": "1",
+            "marketProviderFee": "0",
+            "networkFee": "0",
+        })
+        order = next(
+            row for row in ledger.unsettled_filled_orders()
+            if int(row["id"]) == local_id
+        )
+        assert ledger.record_strategy_settlement(order, {
+            "positionStatus": "ENDED",
+            "isWinner": winner,
+            "endDate": 1_800_000_000_000 + market_id,
+        }) is not None
+
+    summary = ledger.reliability_research_summary()
+    assert summary["source"] == "real_filled_orders_only"
+    assert summary["copiedSamples"] == 2
+    assert summary["settledSamples"] == 2
+    low_entry = next(tag for tag in summary["tags"] if tag["id"] == "RC_LOW_ENTRY")
+    assert low_entry["original"]["settledSamples"] == 2
+    assert low_entry["allowed"]["settledSamples"] == 1
+    assert low_entry["blocked"]["settledSamples"] == 1
+    assert low_entry["deltaVsOriginalPnlUsdt"] > 0
+    assert summary["recentSamples"][0]["tagDecisions"]
 
 
 def test_live_rules_reject_more_than_three_selected_strategies(tmp_path: Path):
@@ -1536,6 +2140,7 @@ def test_two_loss_cooldown_is_independent_and_persists_per_strategy_slot(
         configured_enabled=True,
         credential_source="TEST",
         current_market=market_reference,
+        current_verified_prediction_book=verified_prediction_book,
         db_path=tmp_path / "live.db",
         client_factory=lambda *_args: client,
     )
@@ -1747,7 +2352,11 @@ def test_pair_arb_places_neither_leg_when_one_quote_is_unsafe(tmp_path: Path):
         "up-token": "218750000000000000",
         "down-token": "781250000000000000",
     }
-    live = engine(tmp_path, client)
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=pair_prediction_book,
+    )
     live.update_live_rules({
         "strategies": ["PAIR_ARB_010"],
         "strategyStakesUsdt": [1.0],
@@ -1815,7 +2424,11 @@ def test_pair_quote_capacity_uses_seventy_percent_minimum(
         "up-token": up_amount_out,
         "down-token": "2500000000000000000",
     }
-    live = engine(tmp_path, client)
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=pair_prediction_book,
+    )
     live.update_live_rules({
         "strategies": ["PAIR_ARB_010"],
         "strategyStakesUsdt": [1.0],
@@ -2344,6 +2957,7 @@ def test_live_rules_persist_in_separate_live_ledger(tmp_path: Path):
         "strategyObserverVersions": ["V4"],
         "strategyDrawdownControlEnabled": [False],
         "strategyLossCooldownEnabled": [False],
+        "reliabilityGateTags": [],
     }
 
 
