@@ -308,6 +308,25 @@ def m0_hourly_performance(
     return {"timezone": "Asia/Taipei", "hours": hours}
 
 
+def verified_prediction_book(**overrides):
+    payload = {
+        "market_id": 202,
+        "orientation": "DIRECT_UP_VERIFIED",
+        "received_monotonic_ns": time.monotonic_ns(),
+        "book_age_ms": 0.0,
+        "up_bid": 0.39,
+        "up_ask": 0.40,
+        "up_bid_size": 10.0,
+        "up_ask_size": 10.0,
+        "down_bid": 0.39,
+        "down_ask": 0.40,
+        "down_bid_size": 10.0,
+        "down_ask_size": 10.0,
+    }
+    payload.update(overrides)
+    return payload
+
+
 def engine(
     tmp_path: Path,
     client: FakeTradingClient,
@@ -315,6 +334,9 @@ def engine(
     hourly_provider=None,
     **engine_kwargs,
 ):
+    engine_kwargs.setdefault(
+        "current_verified_prediction_book", verified_prediction_book
+    )
     result = LiveM0WEngine(
         api_key="key",
         api_secret="secret",
@@ -470,6 +492,97 @@ def test_order_latency_is_backward_compatible_without_causal_timestamps():
         "acceptedLedgerMs",
     ):
         assert latency[field] is None
+
+
+@pytest.mark.parametrize(
+    ("book", "expected_status", "expected_error_kind"),
+    [
+        (
+            verified_prediction_book(market_id=999),
+            "BLOCKED_PREDICTION_MARKET_MISMATCH",
+            "LOCAL_MARKET_MISMATCH",
+        ),
+        (
+            verified_prediction_book(orientation="UNVERIFIED"),
+            "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+            "LOCAL_UNVERIFIED_BOOK",
+        ),
+        (
+            verified_prediction_book(
+                received_monotonic_ns=time.monotonic_ns() - 3_000_000_000
+            ),
+            "BLOCKED_STALE_PREDICTION_BOOK",
+            "LOCAL_STALE_BOOK",
+        ),
+    ],
+)
+def test_latest_prediction_book_gate_blocks_before_binance_quote(
+    tmp_path: Path,
+    book: dict,
+    expected_status: str,
+    expected_error_kind: str,
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: dict(book),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal())
+
+    assert client.quote_calls == []
+    assert client.place_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == expected_status
+    assert order["error_kind"] == expected_error_kind
+    assert live.state()["orderLatency"]["outcome"] == expected_status
+
+
+def test_local_price_moved_gate_blocks_before_quote(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.51
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_LOCAL_PRICE_MOVED"
+    assert order["error_kind"] == "LOCAL_PRICE_MOVED"
+    check = live.state()["lastLocalPriceCheck"]
+    assert check["latestLocalAsk"] == pytest.approx(0.51)
+    assert check["maximumExecutionPrice"] == pytest.approx(0.50)
+
+
+@pytest.mark.parametrize(
+    ("latest_ask", "expected_limit"),
+    [(0.44, "0.44"), (0.35, "0.4")],
+)
+def test_initial_quote_uses_latest_verified_ask_without_lowering_signal_limit(
+    tmp_path: Path, latest_ask: float, expected_limit: str
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask=latest_ask
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    assert client.quote_calls[0]["price_limit"] == expected_limit
+    assert client.place_calls[0]["price_limit"] == expected_limit
 
 
 def test_hourly_guard_uses_cached_snapshot_on_order_hot_path(tmp_path: Path):

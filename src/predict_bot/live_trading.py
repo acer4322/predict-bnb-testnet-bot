@@ -142,6 +142,11 @@ LIVE_M0W_GATE_VERSION = "M0W_GATE_V2_ADJACENT_OFFICIAL_WIN"
 LIVE_MARKET_DURATION_MS = 300_000
 LIVE_MARKET_ADJACENCY_TOLERANCE_MS = 2_000
 LIVE_MAX_QUOTE_PRICE_GAP = Decimal("0.10")
+LIVE_MAX_PREDICTION_BOOK_AGE_MS = 2_000.0
+VERIFIED_PREDICTION_ORIENTATIONS = {
+    "DIRECT_UP_VERIFIED",
+    "INVERTED_TO_UP_VERIFIED",
+}
 PAIR_ARB_MIN_NET_EDGE = {
     "PAIR_ARB_010": Decimal("0.010"),
     "PAIR_ARB_QC_015": Decimal("0.015"),
@@ -622,6 +627,15 @@ def _safe_payload(value: dict[str, Any]) -> str:
         "createTime",
         "modifyTime",
         "terminalTime",
+        "signalPrice",
+        "signalBookAgeMs",
+        "latestLocalAsk",
+        "latestLocalAskSize",
+        "latestLocalBookAgeMs",
+        "latestMarketId",
+        "orientation",
+        "maximumExecutionPrice",
+        "eventToLocalCheckMs",
     }
     return json.dumps(
         {key: value[key] for key in allowed if key in value},
@@ -2376,6 +2390,10 @@ class LiveM0WEngine:
         drawdown_market_history: Callable[
             [int, int], list[dict[str, Any]]
         ] | None = None,
+        current_verified_prediction_book: Callable[
+            [], dict[str, Any] | None
+        ] | None = None,
+        max_prediction_book_age_ms: float = LIVE_MAX_PREDICTION_BOOK_AGE_MS,
     ) -> None:
         self.api_key = api_key
         self.api_secret = api_secret
@@ -2393,6 +2411,10 @@ class LiveM0WEngine:
         )
         self.restart_request = restart_request
         self.drawdown_market_history = drawdown_market_history
+        self.current_verified_prediction_book = current_verified_prediction_book
+        self.max_prediction_book_age_ms = max(
+            1.0, float(max_prediction_book_age_ms)
+        )
         self.ledger = LiveLedger(db_path)
         self.live_rules = normalize_live_rules(self.ledger.live_rule_overrides())
         override = self.ledger.runtime_override()
@@ -2424,6 +2446,7 @@ class LiveM0WEngine:
         self.last_signal_at: str | None = None
         self.last_signal_market_id: int | None = None
         self.last_order_latency: dict[str, Any] | None = None
+        self.last_local_price_check: dict[str, Any] | None = None
         self.dropped_signals = 0
         self.balances: list[dict[str, Any]] = []
         self.quota: dict[str, Any] = {}
@@ -2721,6 +2744,190 @@ class LiveM0WEngine:
         # str(Decimal) preserves the exchange tick received from the book and
         # avoids binary-float artifacts such as 0.9300000000000001.
         return format(price.normalize(), "f")
+
+    def _latest_prediction_book_check(
+        self, *, market_id: int, side: str
+    ) -> tuple[
+        dict[str, Any] | None,
+        str | None,
+        str | None,
+        str | None,
+        dict[str, Any],
+    ]:
+        callback = self.current_verified_prediction_book
+        try:
+            raw = callback() if callback is not None else None
+        except Exception as exc:
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "LOCAL_UNVERIFIED_BOOK",
+                f"verified Prediction book callback failed: {str(exc)[:200]}",
+                {"latestMarketId": None, "orientation": "UNAVAILABLE"},
+            )
+        if not isinstance(raw, dict):
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "LOCAL_UNVERIFIED_BOOK",
+                "no verified local Prediction book is available",
+                {"latestMarketId": None, "orientation": "UNAVAILABLE"},
+            )
+        try:
+            latest_market_id = int(raw.get("market_id") or 0)
+        except (TypeError, ValueError):
+            latest_market_id = 0
+        orientation = str(raw.get("orientation") or "UNVERIFIED")
+        diagnostics: dict[str, Any] = {
+            "latestMarketId": latest_market_id or None,
+            "orientation": orientation,
+        }
+        if latest_market_id != market_id:
+            return (
+                None,
+                "BLOCKED_PREDICTION_MARKET_MISMATCH",
+                "LOCAL_MARKET_MISMATCH",
+                (
+                    f"latest Prediction book market {latest_market_id or 'unknown'} "
+                    f"does not match signal market {market_id}"
+                ),
+                diagnostics,
+            )
+        if orientation not in VERIFIED_PREDICTION_ORIENTATIONS:
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "LOCAL_UNVERIFIED_BOOK",
+                f"latest Prediction book orientation is not verified: {orientation}",
+                diagnostics,
+            )
+        try:
+            received_ns = int(raw.get("received_monotonic_ns") or 0)
+        except (TypeError, ValueError):
+            received_ns = 0
+        now_ns = time.monotonic_ns()
+        if received_ns <= 0 or received_ns > now_ns:
+            age_ms = None
+        else:
+            age_ms = max(0.0, (now_ns - received_ns) / 1_000_000)
+        diagnostics["latestLocalBookAgeMs"] = age_ms
+        if age_ms is None or age_ms > self.max_prediction_book_age_ms:
+            return (
+                None,
+                "BLOCKED_STALE_PREDICTION_BOOK",
+                "LOCAL_STALE_BOOK",
+                (
+                    "latest verified Prediction book has no valid local receipt age"
+                    if age_ms is None
+                    else (
+                        f"latest verified Prediction book age {age_ms:.3f}ms exceeds "
+                        f"{self.max_prediction_book_age_ms:.3f}ms"
+                    )
+                ),
+                diagnostics,
+            )
+        ask_key = "up_ask" if side == "UP" else "down_ask"
+        ask_size_key = "up_ask_size" if side == "UP" else "down_ask_size"
+        ask = _decimal(raw.get(ask_key))
+        ask_size = _decimal(raw.get(ask_size_key))
+        if (
+            ask is None
+            or not Decimal("0") < ask < Decimal("1")
+            or ask_size is None
+            or ask_size <= 0
+        ):
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "LOCAL_UNVERIFIED_BOOK",
+                f"latest verified Prediction book is missing valid {side} top level",
+                diagnostics,
+            )
+        checked = dict(raw)
+        checked["book_age_ms"] = age_ms
+        checked["latest_ask"] = ask
+        checked["latest_ask_size"] = ask_size
+        diagnostics.update(
+            {
+                "latestLocalAsk": float(ask),
+                "latestLocalAskSize": float(ask_size),
+            }
+        )
+        return checked, None, None, None, diagnostics
+
+    def _record_prediction_book_block(
+        self,
+        signal: dict[str, Any],
+        *,
+        status: str,
+        error_kind: str,
+        message: str,
+        diagnostics: dict[str, Any],
+        enqueued_monotonic: float,
+        processing_started_monotonic: float,
+    ) -> None:
+        finished = time.monotonic()
+        event_received = self._signal_monotonic_seconds(
+            signal, "market_event_received_monotonic_ns"
+        )
+        enriched = {
+            "signalPrice": _float(signal.get("entry_price")),
+            "signalBookAgeMs": _float(
+                signal.get("signal_prediction_book_age_ms")
+            ),
+            **diagnostics,
+            "eventToLocalCheckMs": self._elapsed_ms(event_received, finished),
+        }
+        self._record_blocked_signal(
+            signal,
+            status,
+            message,
+            error_kind=error_kind,
+            diagnostics=enriched,
+        )
+        with self.lock:
+            self.last_local_price_check = {
+                **enriched,
+                "status": status,
+                "errorKind": error_kind,
+                "checkedAt": utc_iso(),
+            }
+            self.last_order_latency = self._order_latency_payload(
+                {
+                    "market_id": int(signal.get("market_id") or 0),
+                    "selected_strategy": str(signal.get("strategy") or ""),
+                    "side": str(signal.get("side") or ""),
+                    "live_enqueued_monotonic": enqueued_monotonic,
+                    "processing_started_monotonic": processing_started_monotonic,
+                    "quote_started_monotonic": finished,
+                    "quote_finished_monotonic": finished,
+                    "quote_network_seconds": 0.0,
+                    "market_event_received_monotonic": event_received,
+                    "strategy_decision_started_monotonic": (
+                        self._signal_monotonic_seconds(
+                            signal, "strategy_decision_started_monotonic_ns"
+                        )
+                    ),
+                    "strategy_store_started_monotonic": (
+                        self._signal_monotonic_seconds(
+                            signal, "strategy_store_started_monotonic_ns"
+                        )
+                    ),
+                    "strategy_store_finished_monotonic": (
+                        self._signal_monotonic_seconds(
+                            signal, "strategy_store_finished_monotonic_ns"
+                        )
+                    ),
+                    "live_candidate_created_monotonic": (
+                        self._signal_monotonic_seconds(
+                            signal, "live_candidate_created_monotonic_ns"
+                        )
+                    ),
+                },
+                outcome=status,
+                placement_started_monotonic=None,
+                placement_finished_monotonic=finished,
+            )
 
     @staticmethod
     def _maximum_reprice_limit(
@@ -3360,8 +3567,14 @@ class LiveM0WEngine:
             self.manual_exit_lock.release()
 
     def _record_blocked_signal(
-        self, signal: dict[str, Any], status: str, message: str
-    ) -> None:
+        self,
+        signal: dict[str, Any],
+        status: str,
+        message: str,
+        *,
+        error_kind: str = "LOCAL_BLOCK",
+        diagnostics: dict[str, Any] | None = None,
+    ) -> int | None:
         market_id = int(signal.get("market_id") or 0)
         reference = self.current_market() or {}
         side = str(signal.get("side") or "UNKNOWN")
@@ -3397,10 +3610,16 @@ class LiveM0WEngine:
             self.ledger.update_order(
                 local_id,
                 status=status,
-                error_kind="LOCAL_BLOCK",
+                error_kind=error_kind,
                 error_message=message,
+                **(
+                    {"response_json": _safe_payload(diagnostics)}
+                    if isinstance(diagnostics, dict)
+                    else {}
+                ),
             )
             self.ledger.record_event("WARN", status, message, market_id)
+        return local_id
 
     def _evaluate_hourly_guard(
         self,
@@ -4469,6 +4688,70 @@ class LiveM0WEngine:
             )
             return
 
+        (
+            latest_prediction_book,
+            book_block_status,
+            book_error_kind,
+            book_block_message,
+            book_diagnostics,
+        ) = self._latest_prediction_book_check(market_id=market_id, side=side)
+        if latest_prediction_book is None:
+            assert book_block_status is not None
+            assert book_error_kind is not None
+            assert book_block_message is not None
+            self._record_prediction_book_block(
+                signal,
+                status=book_block_status,
+                error_kind=book_error_kind,
+                message=book_block_message,
+                diagnostics=book_diagnostics,
+                enqueued_monotonic=enqueued_monotonic,
+                processing_started_monotonic=processing_started_monotonic,
+            )
+            return
+        latest_verified_ask = Decimal(
+            str(latest_prediction_book["latest_ask"])
+        )
+        book_diagnostics["signalPrice"] = float(signal_price)
+        book_diagnostics["signalBookAgeMs"] = _float(
+            signal.get("signal_prediction_book_age_ms")
+        )
+        book_diagnostics["maximumExecutionPrice"] = float(
+            maximum_reprice_limit
+        )
+        event_received_monotonic = self._signal_monotonic_seconds(
+            signal, "market_event_received_monotonic_ns"
+        )
+        book_diagnostics["eventToLocalCheckMs"] = self._elapsed_ms(
+            event_received_monotonic, time.monotonic()
+        )
+        if (
+            latest_verified_ask
+            > maximum_reprice_limit + Decimal("0.00000001")
+        ):
+            self._record_prediction_book_block(
+                signal,
+                status="BLOCKED_LOCAL_PRICE_MOVED",
+                error_kind="LOCAL_PRICE_MOVED",
+                message=(
+                    f"latest verified {side} ask "
+                    f"{format(latest_verified_ask.normalize(), 'f')} exceeds "
+                    "the permitted execution limit "
+                    f"{format(maximum_reprice_limit.normalize(), 'f')}"
+                ),
+                diagnostics=book_diagnostics,
+                enqueued_monotonic=enqueued_monotonic,
+                processing_started_monotonic=processing_started_monotonic,
+            )
+            return
+        with self.lock:
+            self.last_local_price_check = {
+                **book_diagnostics,
+                "status": "PASS",
+                "errorKind": None,
+                "checkedAt": utc_iso(),
+            }
+
         if self._strategy_loss_cooldown_enabled(rules, selected_strategy):
             cooldown_is_safe, cooldown_reason = self._loss_cooldown_is_safe(
                 selected_strategy, market_id
@@ -4522,11 +4805,16 @@ class LiveM0WEngine:
         quote_started_monotonic = time.monotonic()
         quote_network_seconds = 0.0
         reprice_event_message: str | None = None
-        price_limit = (
-            maximum_reprice_limit
-            if selected_strategy == "PAIR_ARB_RISK_020"
-            else signal_price
-        )
+        if selected_strategy == "PAIR_ARB_RISK_020":
+            price_limit = maximum_reprice_limit
+        elif selected_strategy.startswith("PAIR_ARB_"):
+            # Pair strategies retain their exact leg-price consistency rules.
+            price_limit = signal_price
+        else:
+            price_limit = min(
+                max(signal_price, latest_verified_ask),
+                maximum_reprice_limit,
+            )
         price_limit_text = format(price_limit.normalize(), "f")
         latency_context = {
             "market_id": market_id,
@@ -6166,6 +6454,12 @@ class LiveM0WEngine:
                     if self.last_order_latency is not None
                     else None
                 ),
+                "lastLocalPriceCheck": (
+                    dict(self.last_local_price_check)
+                    if self.last_local_price_check is not None
+                    else None
+                ),
+                "maxPredictionBookAgeMs": self.max_prediction_book_age_ms,
                 "droppedSignals": self.dropped_signals,
                 "queueDepth": self.events.qsize(),
                 "balances": list(self.balances),

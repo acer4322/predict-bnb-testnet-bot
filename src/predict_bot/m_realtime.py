@@ -20,6 +20,10 @@ LIVE_FORWARDABLE_OBSERVER_STRATEGIES = {"M01O_F1"}
 LIVE_FORWARDABLE_PAPER_STRATEGIES = (
     LIVE_FORWARDABLE_OBSERVER_STRATEGIES | set(LIVE_RESEARCH_STRATEGIES)
 )
+VERIFIED_PREDICTION_ORIENTATIONS = {
+    "DIRECT_UP_VERIFIED",
+    "INVERTED_TO_UP_VERIFIED",
+}
 
 
 def _finite(value: Any) -> float | None:
@@ -726,6 +730,16 @@ class MSeriesRealtimeEngine:
         ):
             for candidate in opened or []:
                 candidate_created_ns = time.monotonic_ns()
+                candidate_side = str(candidate.get("side") or "").upper()
+                signal_ask_key = (
+                    "up_ask" if candidate_side == "UP" else "down_ask"
+                )
+                signal_ask_size_key = (
+                    "up_ask_size" if candidate_side == "UP" else "down_ask_size"
+                )
+                signal_bid_key = (
+                    "up_bid" if candidate_side == "UP" else "down_bid"
+                )
                 candidate = {
                     **candidate,
                     # Preserve every causal boundary through the live queue.
@@ -740,6 +754,25 @@ class MSeriesRealtimeEngine:
                     "strategy_store_started_monotonic_ns": store_started_ns,
                     "strategy_store_finished_monotonic_ns": store_finished_ns,
                     "live_candidate_created_monotonic_ns": candidate_created_ns,
+                    # Freeze the exact Prediction book which produced this
+                    # decision.  The live executor may compare it with a newer
+                    # verified book, but must never mutate this signal copy.
+                    "signal_prediction_book_age_ms": snapshot.get("book_age_ms"),
+                    "signal_prediction_received_monotonic_ns": context.get(
+                        "prediction_received_monotonic_ns"
+                    ),
+                    "signal_prediction_ask": snapshot.get(signal_ask_key),
+                    "signal_prediction_ask_size": snapshot.get(
+                        signal_ask_size_key
+                    ),
+                    "signal_prediction_bid": snapshot.get(signal_bid_key),
+                    "signal_prediction_orientation": context.get(
+                        "prediction_book_orientation"
+                    ),
+                    "signal_market_data_integrity_ok": context.get(
+                        "market_data_integrity_ok"
+                    ),
+                    "signal_event_sequence": context.get("signal_event_sequence"),
                     # Freeze the causal BTC snapshot used by the drawdown
                     # controller.  Prediction entry_price is a token price and
                     # must never be substituted for Spot here.
@@ -824,6 +857,57 @@ class MSeriesRealtimeEngine:
             self.last_store_duration_ms = max(
                 0.0, (store_finished_ns - store_started_ns) / 1_000_000
             )
+
+    def current_verified_prediction_book(self) -> dict[str, Any] | None:
+        """Return a fast immutable copy of the latest accepted WSS book."""
+        now_ns = time.monotonic_ns()
+        with self.lock:
+            event = dict(self.prediction_event or {})
+            market_id = self.market_id
+        if not event:
+            return None
+        received_ns = int(event.get("received_monotonic_ns") or 0)
+        orientation = str(event.get("prediction_orientation") or "UNVERIFIED")
+        values = self._prediction_values(event, now_ns)
+        if values is None or received_ns <= 0:
+            return None
+
+        def levels(key: str) -> list[list[float]]:
+            result: list[list[float]] = []
+            for raw in event.get(key) or []:
+                if not isinstance(raw, (list, tuple)) or len(raw) < 2:
+                    continue
+                price = _finite(raw[0])
+                size = _finite(raw[1])
+                if price is None or size is None or size <= 0:
+                    continue
+                result.append([price, size])
+            return result
+
+        up_bids = levels("bids")
+        up_asks = levels("asks")
+        down_asks = sorted(
+            [[1.0 - price, size] for price, size in up_bids],
+            key=lambda level: level[0],
+        )
+        return {
+            "market_id": int(event.get("market_id") or market_id or 0),
+            "orientation": orientation,
+            "received_monotonic_ns": received_ns,
+            "book_age_ms": max(0.0, (now_ns - received_ns) / 1_000_000),
+            "up_bid": values["up_bid"],
+            "up_ask": values["up_ask"],
+            "up_bid_size": values["up_bid_size"],
+            "up_ask_size": values["up_ask_size"],
+            "down_bid": values["down_bid"],
+            "down_ask": values["down_ask"],
+            "down_bid_size": values["down_bid_size"],
+            "down_ask_size": values["down_ask_size"],
+            "up_asks": up_asks,
+            "down_asks": down_asks,
+            "event_sequence": self._event_sequence(event),
+            "verified": orientation in VERIFIED_PREDICTION_ORIENTATIONS,
+        }
 
     def _emit_due_m7_deadlines(self, now_monotonic_ns: int) -> None:
         if (

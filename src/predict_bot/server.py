@@ -10342,6 +10342,13 @@ def main() -> None:
         restart_request=request_api_restart,
         m0_hourly_performance=STORE.m0_hourly_guard_snapshot,
         drawdown_market_history=STORE.drawdown_control_market_history,
+        current_verified_prediction_book=(
+            lambda: (
+                M_REALTIME.current_verified_prediction_book()
+                if M_REALTIME is not None
+                else None
+            )
+        ),
     )
     LIVE_M0W.start()
     COLLECTOR.live_signal_sink = LIVE_M0W.submit_signal

@@ -150,9 +150,9 @@ def test_realtime_engine_forwards_all_opened_m_candidates_to_live_filter():
                 snapshot, fee_bps, realtime_context=realtime_context
             )
             return [
-                {"strategy": "M0W", "market_id": 101},
-                {"strategy": "M01T180", "market_id": 101},
-                {"strategy": "M1", "market_id": 101},
+                {"strategy": "M0W", "market_id": 101, "side": "UP"},
+                {"strategy": "M01T180", "market_id": 101, "side": "UP"},
+                {"strategy": "M1", "market_id": 101, "side": "UP"},
             ]
 
     forwarded = []
@@ -183,6 +183,42 @@ def test_realtime_engine_forwards_all_opened_m_candidates_to_live_filter():
         assert candidate["live_candidate_created_monotonic_ns"] >= (
             candidate["strategy_store_finished_monotonic_ns"]
         )
+        assert candidate["signal_prediction_book_age_ms"] >= 0
+        assert candidate["signal_prediction_received_monotonic_ns"] > 0
+        assert candidate["signal_prediction_ask"] == pytest.approx(0.56)
+        assert candidate["signal_prediction_ask_size"] == pytest.approx(8.0)
+        assert candidate["signal_prediction_bid"] == pytest.approx(0.54)
+        assert (
+            candidate["signal_prediction_orientation"]
+            == "DIRECT_UP_VERIFIED"
+        )
+        assert candidate["signal_market_data_integrity_ok"] is True
+        assert candidate["signal_event_sequence"].startswith(
+            "prediction:orderbook:market:101:update:"
+        )
+
+
+def test_current_verified_prediction_book_uses_monotonic_receipt_age():
+    store = FakeStore()
+    engine = MSeriesRealtimeEngine(store=store, current_market=market_reference)
+    received_ns = time.monotonic_ns() - 25_000_000
+    engine._handle(
+        prediction_event(
+            received_monotonic_ns=received_ns,
+            bids=[[0.54, 12.0], [0.53, 20.0]],
+            asks=[[0.56, 8.0], [0.57, 20.0]],
+            updateTimestampMs=0,
+        )
+    )
+
+    book = engine.current_verified_prediction_book()
+
+    assert book["market_id"] == 101
+    assert book["orientation"] == "DIRECT_UP_VERIFIED"
+    assert book["received_monotonic_ns"] == received_ns
+    assert book["book_age_ms"] >= 25.0
+    assert book["up_asks"] == [[0.56, 8.0], [0.57, 20.0]]
+    assert book["down_asks"] == [[0.45999999999999996, 12.0], [0.47, 20.0]]
 
 
 def test_realtime_engine_only_forwards_live_supported_paper_candidates():
