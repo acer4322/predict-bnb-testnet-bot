@@ -912,176 +912,6 @@ def _fresh_source_sample(row: dict[str, float], max_age_ms: float) -> bool:
     )
 
 
-
-def futures_lead_diagnostics(
-    current: dict[str, float],
-    previous: dict[str, float] | None,
-    *,
-    params: dict[str, float] | None = None,
-) -> dict[str, Any]:
-    """Expose the exact inputs and gates used by R_FUTURES_LEAD."""
-    selected = params or RESEARCH_PARAMETERS["R_FUTURES_LEAD"]
-    configured_lag_seconds = float(selected["lag"])
-    min_lead_bps = float(selected["min_lead_bps"])
-    max_source_age_ms = float(selected["max_source_age_ms"])
-
-    def finite_value(value: Any) -> float | None:
-        try:
-            result = float(value)
-        except (TypeError, ValueError):
-            return None
-        return result if math.isfinite(result) else None
-
-    def source_age_ms(row: dict[str, float] | None) -> float | None:
-        if row is None:
-            return None
-        spot_age = finite_value(row.get("spot_age_ms"))
-        futures_age = finite_value(row.get("futures_age_ms"))
-        if spot_age is None or futures_age is None:
-            return None
-        return max(spot_age, futures_age)
-
-    current_timestamp = finite_value(current.get("timestamp_ns"))
-    previous_timestamp = (
-        finite_value(previous.get("timestamp_ns"))
-        if previous is not None
-        else None
-    )
-    actual_lag_seconds = (
-        (current_timestamp - previous_timestamp) / 1_000_000_000
-        if current_timestamp is not None
-        and previous_timestamp is not None
-        else None
-    )
-    lag_valid = bool(
-        actual_lag_seconds is not None
-        and configured_lag_seconds
-        <= actual_lag_seconds
-        <= configured_lag_seconds + 2.5
-    )
-
-    current_spot_age = finite_value(current.get("spot_age_ms"))
-    current_futures_age = finite_value(current.get("futures_age_ms"))
-    previous_spot_age = (
-        finite_value(previous.get("spot_age_ms"))
-        if previous is not None
-        else None
-    )
-    previous_futures_age = (
-        finite_value(previous.get("futures_age_ms"))
-        if previous is not None
-        else None
-    )
-
-    current_fresh = _fresh_source_sample(current, max_source_age_ms)
-    previous_fresh = bool(
-        previous is not None
-        and _fresh_source_sample(previous, max_source_age_ms)
-    )
-
-    current_spot = finite_value(current.get("spot_price"))
-    current_futures = finite_value(current.get("futures_price"))
-    previous_spot = (
-        finite_value(previous.get("spot_price"))
-        if previous is not None
-        else None
-    )
-    previous_futures = (
-        finite_value(previous.get("futures_price"))
-        if previous is not None
-        else None
-    )
-
-    spot_return = (
-        _log_return(previous_spot, current_spot)
-        if previous_spot is not None and current_spot is not None
-        else None
-    )
-    futures_return = (
-        _log_return(previous_futures, current_futures)
-        if previous_futures is not None and current_futures is not None
-        else None
-    )
-    spot_return_bps = (
-        spot_return * 10_000 if spot_return is not None else None
-    )
-    futures_return_bps = (
-        futures_return * 10_000 if futures_return is not None else None
-    )
-    lead_bps = (
-        abs(futures_return_bps) - abs(spot_return_bps)
-        if spot_return_bps is not None and futures_return_bps is not None
-        else None
-    )
-    side = (
-        "UP"
-        if futures_return is not None and futures_return > 0
-        else "DOWN"
-        if futures_return is not None and futures_return < 0
-        else None
-    )
-    signal_bps = (
-        math.copysign(float(lead_bps), float(futures_return))
-        if lead_bps is not None
-        and futures_return is not None
-        and abs(futures_return) >= 1e-12
-        else None
-    )
-
-    if previous is None:
-        reason = "NO_LAGGED_SAMPLE"
-    elif not current_fresh:
-        reason = "CURRENT_SOURCE_STALE"
-    elif not previous_fresh:
-        reason = "PREVIOUS_SOURCE_STALE"
-    elif spot_return is None or futures_return is None:
-        reason = "INVALID_PRICE"
-    elif abs(futures_return) < 1e-12:
-        reason = "FUTURES_NO_MOVE"
-    elif lead_bps is None or lead_bps < min_lead_bps:
-        reason = "LEAD_BELOW_MINIMUM"
-    else:
-        reason = "SIGNAL_READY"
-
-    return {
-        "configuredLagSeconds": configured_lag_seconds,
-        "actualLagSeconds": actual_lag_seconds,
-        "lagSampleFound": previous is not None,
-        "lagValid": lag_valid,
-        "currentTimestampNs": (
-            int(current_timestamp) if current_timestamp is not None else None
-        ),
-        "previousTimestampNs": (
-            int(previous_timestamp) if previous_timestamp is not None else None
-        ),
-        "currentSpot": current_spot,
-        "previousSpot": previous_spot,
-        "currentFutures": current_futures,
-        "previousFutures": previous_futures,
-        "currentSpotAgeMs": current_spot_age,
-        "currentFuturesAgeMs": current_futures_age,
-        "previousSpotAgeMs": previous_spot_age,
-        "previousFuturesAgeMs": previous_futures_age,
-        "currentSourceAgeMs": source_age_ms(current),
-        "previousSourceAgeMs": source_age_ms(previous),
-        "sourceAgeAggregation": "max(spot_age_ms, futures_age_ms)",
-        "maxSourceAgeMs": max_source_age_ms,
-        "currentSourceFresh": current_fresh,
-        "previousSourceFresh": previous_fresh,
-        "sourceFreshPassed": current_fresh and previous_fresh,
-        "spotReturnBps": spot_return_bps,
-        "futuresReturnBps": futures_return_bps,
-        "leadBps": lead_bps,
-        "signalBps": signal_bps,
-        "minLeadBps": min_lead_bps,
-        "leadPassed": bool(
-            lead_bps is not None and lead_bps >= min_lead_bps
-        ),
-        "side": side,
-        "decisionReason": reason,
-    }
-
-
 def _signed_residual_leg(
     previous: dict[str, float],
     current: dict[str, float],
@@ -1469,19 +1299,7 @@ def signal_for_strategy(
 
     if previous is None:
         return None
-    if strategy == "R_FUTURES_LEAD":
-        diagnostics = futures_lead_diagnostics(
-            current,
-            previous,
-            params=params,
-        )
-        if diagnostics["decisionReason"] != "SIGNAL_READY":
-            return None
-        return {
-            "side": str(diagnostics["side"]),
-            "signal": float(diagnostics["signalBps"]),
-        }
-    if strategy == "R_CONSENSUS":
+    if strategy in {"R_FUTURES_LEAD", "R_CONSENSUS"}:
         max_source_age_ms = float(params["max_source_age_ms"])
         if not (
             _fresh_source_sample(previous, max_source_age_ms)
@@ -1500,6 +1318,17 @@ def signal_for_strategy(
 
     if futures_return is None or spot_return is None:
         return None
+    if strategy == "R_FUTURES_LEAD":
+        lead = abs(futures_return) - abs(spot_return)
+        if abs(futures_return) < 1e-12 or lead * 10_000 < params["min_lead_bps"]:
+            return None
+        source_side = "UP" if futures_return > 0 else "DOWN"
+        source_signal = math.copysign(lead * 10_000, futures_return)
+        return {
+            "side": source_side,
+            "signal": source_signal,
+        }
+
     signals = [_microprice_score(current), ofi_score, futures_return, spot_return, up_mid_change]
     up_votes = sum(value > 0 for value in signals)
     down_votes = sum(value < 0 for value in signals)

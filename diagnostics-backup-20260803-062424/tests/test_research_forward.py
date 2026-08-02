@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 from datetime import datetime, timezone
 
 import pytest
@@ -29,7 +28,6 @@ from predict_bot.research_forward import (
     execution_candidate,
     reverse_source_signal,
     filtered_futures_lead_signal,
-    futures_lead_diagnostics,
     futures_lead_observer_decision,
     observer_v6_auto_decision,
     regime_futures_lead_signal,
@@ -83,79 +81,6 @@ def sample(*, timestamp_ns: int, seconds_left: float, current: bool) -> dict:
         "futures_age_ms": 100.0,
         **values,
     }
-
-
-
-def test_futures_lead_diagnostics_exposes_exact_runtime_values() -> None:
-    previous = sample(
-        timestamp_ns=17_000_000_000,
-        seconds_left=183.0,
-        current=False,
-    )
-    current = sample(
-        timestamp_ns=20_000_000_000,
-        seconds_left=180.0,
-        current=True,
-    )
-    diagnostics = futures_lead_diagnostics(current, previous)
-
-    expected_spot = math.log(100.1 / 100.0) * 10_000
-    expected_futures = math.log(100.2 / 100.0) * 10_000
-    expected_lead = abs(expected_futures) - abs(expected_spot)
-
-    assert diagnostics["actualLagSeconds"] == pytest.approx(3.0)
-    assert diagnostics["currentSourceAgeMs"] == pytest.approx(100.0)
-    assert diagnostics["previousSourceAgeMs"] == pytest.approx(100.0)
-    assert diagnostics["spotReturnBps"] == pytest.approx(expected_spot)
-    assert diagnostics["futuresReturnBps"] == pytest.approx(expected_futures)
-    assert diagnostics["leadBps"] == pytest.approx(expected_lead)
-    assert diagnostics["decisionReason"] == "SIGNAL_READY"
-    assert diagnostics["side"] == "UP"
-    json.dumps(diagnostics, allow_nan=False)
-
-
-def test_futures_lead_diagnostics_reports_source_staleness() -> None:
-    previous = sample(
-        timestamp_ns=17_000_000_000,
-        seconds_left=183.0,
-        current=False,
-    )
-    current = {
-        **sample(
-            timestamp_ns=20_000_000_000,
-            seconds_left=180.0,
-            current=True,
-        ),
-        "futures_age_ms": 501.0,
-    }
-    diagnostics = futures_lead_diagnostics(current, previous)
-    assert diagnostics["currentSourceAgeMs"] == pytest.approx(501.0)
-    assert diagnostics["decisionReason"] == "CURRENT_SOURCE_STALE"
-
-    stale_previous = {**previous, "spot_age_ms": 600.0}
-    diagnostics = futures_lead_diagnostics(
-        sample(
-            timestamp_ns=20_000_000_000,
-            seconds_left=180.0,
-            current=True,
-        ),
-        stale_previous,
-    )
-    assert diagnostics["previousSourceAgeMs"] == pytest.approx(600.0)
-    assert diagnostics["decisionReason"] == "PREVIOUS_SOURCE_STALE"
-
-
-def test_futures_lead_diagnostics_keeps_preview_without_lag_sample() -> None:
-    current = sample(
-        timestamp_ns=20_000_000_000,
-        seconds_left=180.0,
-        current=True,
-    )
-    diagnostics = futures_lead_diagnostics(current, None)
-    assert diagnostics["lagSampleFound"] is False
-    assert diagnostics["currentSpot"] == pytest.approx(100.1)
-    assert diagnostics["currentFutures"] == pytest.approx(100.2)
-    assert diagnostics["decisionReason"] == "NO_LAGGED_SAMPLE"
 
 
 def test_confirmation_add_ladder_is_fixed_and_never_live_forwardable():
@@ -593,7 +518,7 @@ def test_futures_lead_reverse_isolated_shadow_opens_beside_original(tmp_path) ->
     assert diagnostics["source_strategy"] == "R_FUTURES_LEAD"
     assert diagnostics["source_trade_id"] > 0
     assert diagnostics["dependency_rule"] == (
-        "open_only_after_same_market_R_FUTURES_LEAD_trade"
+        "open_only_after_R_FUTURES_LEAD_trade"
     )
 
 
