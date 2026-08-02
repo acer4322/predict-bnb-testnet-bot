@@ -289,7 +289,9 @@ def test_state_contract_is_dashboard_safe_without_starting_sockets(tmp_path: Pat
         db_path=tmp_path / "micro.db",
     )
     state = observer.state()
-    assert set(state["streams"]) == {"spot", "futures", "prediction"}
+    assert set(state["streams"]) == {
+        "spot_trade", "spot_book", "futures", "prediction"
+    }
     assert "spotMicroprice" in state["metrics"]
     assert state["storage"]["rawRetentionHours"] > 0
     assert state["recentLiquidityEvents"] == []
@@ -352,6 +354,36 @@ def test_unverified_prediction_reconnect_is_timeout_gated_and_throttled(tmp_path
     assert observer.orientation_reconnect_requests == 1
     assert observer.orientation_failure_reason == "ORIENTATION_TIMEOUT"
     assert observer.state()["streams"]["prediction"]["orientationStatus"] == "DEGRADED"
+
+
+def test_spot_trade_watchdog_reconnects_silence_once_with_throttle(tmp_path: Path):
+    class App:
+        def __init__(self):
+            self.closes = 0
+
+        def close(self):
+            self.closes += 1
+
+    observer = MicrostructureObserver(
+        api_key=None, api_secret=None, current_market_id=lambda: None,
+        db_path=tmp_path / "spot-watchdog.db",
+    )
+    app = App()
+    observer.active_apps["spot_trade"] = app
+    observer.stream_stats["spot_trade"].update(
+        status="LIVE",
+        openedMonotonicNs=time.monotonic_ns() - 6_000_000_000,
+    )
+    thread = threading.Thread(target=observer._spot_trade_reconnect_watchdog, daemon=True)
+    thread.start()
+    try:
+        time.sleep(2.2)
+    finally:
+        observer.stop_event.set()
+        thread.join(timeout=2.0)
+
+    assert app.closes == 1
+    assert observer.spot_trade_reconnect_requests == 1
 
 
 def orientation_reference(
@@ -488,7 +520,9 @@ def test_prediction_orientation_rollover_and_reconnect_clear_candidate(tmp_path:
     assert observer.prediction_orientation == "DIRECT_CANDIDATE"
 
 
-def test_prediction_version_age_is_not_transport_latency(tmp_path: Path):
+def test_prediction_version_age_is_not_transport_latency_but_blocks_features(
+    tmp_path: Path,
+):
     now_wall_ns = time.time_ns()
     now_mono_ns = time.monotonic_ns()
     reference = orientation_reference(received_wall_ns=now_wall_ns)
@@ -508,10 +542,15 @@ def test_prediction_version_age_is_not_transport_latency(tmp_path: Path):
     assert state["transportLatencyMs"] is None
     assert state["bookVersionAgeMs"] >= 54_000
     assert state["localReceiptAgeMs"] < 1_000
-    assert state["orientationStatus"] == "HEALTHY"
+    assert state["orientationStatus"] == "DEGRADED"
+    assert state["orientationHealthy"] is False
+    assert state["bookVersionHealthy"] is False
+    assert state["orientationFailureReason"] == "STALE_BOOK_VERSION"
+    assert state["stalePredictionEvents"] == 2
+    assert state["eligiblePredictionEvents"] == 0
 
 
-@pytest.mark.parametrize("stream_name", ["spot", "futures_public"])
+@pytest.mark.parametrize("stream_name", ["spot_trade", "futures_public"])
 def test_spot_and_futures_transport_latency_remains_available(
     tmp_path: Path, stream_name: str,
 ):
@@ -519,7 +558,7 @@ def test_spot_and_futures_transport_latency_remains_available(
         api_key=None, api_secret=None, current_market_id=lambda: None,
         db_path=tmp_path / f"{stream_name}.db",
     )
-    source = "spot" if stream_name == "spot" else "futures"
+    source = "spot" if stream_name == "spot_trade" else "futures"
     event = {
         "source": source,
         "stream": "trade" if source == "spot" else "aggTrade",

@@ -37,9 +37,19 @@ SNAPSHOT_INTERVAL_MS = max(100, int(os.environ.get("PREDICT_MICRO_SNAPSHOT_INTER
 QUEUE_MAX = max(1_000, int(os.environ.get("PREDICT_MICRO_QUEUE_MAX", "50000")))
 PARSER_VERSION = "microstructure_v2"
 
-SPOT_URL = (
+SPOT_TRADE_URL = (
     "wss://stream.binance.com:9443/stream?streams="
-    "btcusdt@trade/btcusdt@bookTicker/btcusdt@depth10@100ms"
+    "btcusdt@trade"
+)
+SPOT_BOOK_URL = (
+    "wss://stream.binance.com:9443/stream?streams="
+    "btcusdt@bookTicker/btcusdt@depth10@100ms"
+)
+SPOT_TRADE_WATCHDOG_SILENCE_SECONDS = max(
+    4.5, float(os.environ.get("PREDICT_SPOT_TRADE_WATCHDOG_SILENCE_SECONDS", "5.0"))
+)
+SPOT_TRADE_RECONNECT_THROTTLE_SECONDS = max(
+    5.0, float(os.environ.get("PREDICT_SPOT_TRADE_RECONNECT_THROTTLE_SECONDS", "15.0"))
 )
 FUTURES_PUBLIC_URL = (
     "wss://fstream.binance.com/public/stream?streams="
@@ -56,6 +66,12 @@ PREDICTION_ORIENTATION_MIN_ERROR_MARGIN = 0.01
 PREDICTION_ORIENTATION_CONFIRMATIONS = 2
 PREDICTION_ORIENTATION_TIMEOUT_SECONDS = 10.0
 PREDICTION_ORIENTATION_RECONNECT_THROTTLE_SECONDS = 15.0
+PREDICTION_STALE_RECONNECT_SECONDS = 10.0
+PREDICTION_STALE_RECONNECT_THROTTLE_SECONDS = 15.0
+PREDICTION_MAX_VERSION_AGE_MS = max(
+    1_000.0,
+    float(os.environ.get("PREDICT_PREDICTION_MAX_VERSION_AGE_MS", "10000")),
+)
 PREDICTION_VERIFIED_ORIENTATIONS = frozenset(
     {"DIRECT_UP_VERIFIED", "INVERTED_TO_UP_VERIFIED"}
 )
@@ -274,9 +290,10 @@ def parse_prediction_message(
     bids = normalize_levels(inner.get("bids"), reverse=True)
     asks = normalize_levels(inner.get("asks"), reverse=False)
     # updateTimestampMs identifies the version/content age of this orderbook.
-    # It is not a server-send timestamp and must never drive transport latency
-    # or local execution freshness.  exchange_event_ms remains populated only
-    # as a transitional database-compatibility alias.
+    # It is not a transport-latency timestamp, but it must gate strategy and
+    # execution freshness: the Prediction stream can replay minute-old books
+    # while frames continue to arrive locally.  exchange_event_ms remains a
+    # transitional database-compatibility alias.
     prediction_book_version_ms = _int(inner.get("updateTimestampMs"))
     event.update(
         market_id=_int(inner.get("marketId")),
@@ -822,6 +839,7 @@ class MicrostructureObserver:
         self.stop_event = threading.Event()
         self.writer_thread: threading.Thread | None = None
         self.socket_threads: list[threading.Thread] = []
+        self.spot_trade_watchdog_thread: threading.Thread | None = None
         self.apps: list[Any] = []
         self.active_apps: dict[str, Any] = {}
         self.prediction_subscription_market_id: int | None = None
@@ -846,14 +864,19 @@ class MicrostructureObserver:
         self.last_eligible_prediction_at: str | None = None
         self.last_prediction_receipt_monotonic_ns = 0
         self.last_prediction_book_version_ms: int | None = None
+        self.stale_prediction_events = 0
         self.market_watch_thread: threading.Thread | None = None
         self.prediction_rollover_reconnect = threading.Event()
+        self.last_prediction_stale_reconnect_request_ns = 0
+        self.prediction_stale_reconnect_requests = 0
         self.state_lock = threading.RLock()
         self.latest_snapshot: dict[str, Any] = {}
         self.clock_offset_ms = 0.0
         self.dropped_events = 0
         self.dropped_by_stream: dict[str, int] = {
-            name: 0 for name in ("spot", "futures_public", "futures_market", "prediction")
+            name: 0 for name in (
+                "spot_trade", "spot_book", "futures_public", "futures_market", "prediction"
+            )
         }
         self.pending_gap_lock = threading.Lock()
         self.pending_gaps: dict[tuple[str, str], dict[str, Any]] = {}
@@ -868,13 +891,17 @@ class MicrostructureObserver:
         self.writer_last_activity_ns = 0
         self.realtime_sink_errors = 0
         self.realtime_sink_last_error: str | None = None
+        self.spot_trade_reconnect_requests = 0
+        self.last_spot_trade_reconnect_request_ns = 0
         self.stream_stats: dict[str, dict[str, Any]] = {
             name: {
                 "status": "STANDBY", "lastEventAt": None, "error": None,
                 "openedMonotonicNs": None,
                 "times": deque(maxlen=10_000), "latencies": deque(maxlen=200),
             }
-            for name in ("spot", "futures_public", "futures_market", "prediction")
+            for name in (
+                "spot_trade", "spot_book", "futures_public", "futures_market", "prediction"
+            )
         }
 
     def _sync_clock(self) -> None:
@@ -897,7 +924,8 @@ class MicrostructureObserver:
         self.writer_thread = threading.Thread(target=self._writer_loop, name="micro-writer", daemon=True)
         self.writer_thread.start()
         sockets = [
-            ("spot", lambda: SPOT_URL, None),
+            ("spot_trade", lambda: SPOT_TRADE_URL, None),
+            ("spot_book", lambda: SPOT_BOOK_URL, None),
             ("futures_public", lambda: FUTURES_PUBLIC_URL, None),
             ("futures_market", lambda: FUTURES_MARKET_URL, None),
         ]
@@ -915,6 +943,12 @@ class MicrostructureObserver:
             )
             thread.start()
             self.socket_threads.append(thread)
+        self.spot_trade_watchdog_thread = threading.Thread(
+            target=self._spot_trade_reconnect_watchdog,
+            name="micro-spot-trade-watchdog",
+            daemon=True,
+        )
+        self.spot_trade_watchdog_thread.start()
         if self.api_key and self.api_secret:
             self.market_watch_thread = threading.Thread(
                 target=self._prediction_market_loop,
@@ -922,6 +956,50 @@ class MicrostructureObserver:
                 daemon=True,
             )
             self.market_watch_thread.start()
+
+    def _spot_trade_reconnect_watchdog(self) -> None:
+        """Reconnect only the trade socket after a throttled silence window.
+
+        The callback updates stream telemetry before putting an event on the
+        archival queue, so this watchdog detects a transport stall, not a
+        slow SQLite writer or a full strategy queue.
+        """
+        silence_ns = int(SPOT_TRADE_WATCHDOG_SILENCE_SECONDS * 1_000_000_000)
+        throttle_ns = int(SPOT_TRADE_RECONNECT_THROTTLE_SECONDS * 1_000_000_000)
+        last_request_ns = 0
+        while not self.stop_event.wait(1.0):
+            now_ns = time.monotonic_ns()
+            with self.state_lock:
+                stats = self.stream_stats["spot_trade"]
+                app = self.active_apps.get("spot_trade")
+                last_event_ns = (
+                    int(stats["times"][-1])
+                    if stats["times"]
+                    else int(stats.get("openedMonotonicNs") or 0)
+                )
+            if app is None or last_event_ns <= 0:
+                continue
+            if now_ns - last_event_ns <= silence_ns:
+                continue
+            if now_ns - last_request_ns < throttle_ns:
+                continue
+            last_request_ns = now_ns
+            with self.state_lock:
+                self.stream_stats["spot_trade"].update(
+                    status="RETRYING",
+                    error=(
+                        "trade socket watchdog reconnect after "
+                        f"{(now_ns - last_event_ns) / 1_000_000:.0f}ms silence"
+                    ),
+                )
+                self.spot_trade_reconnect_requests = (
+                    getattr(self, "spot_trade_reconnect_requests", 0) + 1
+                )
+                self.last_spot_trade_reconnect_request_ns = now_ns
+            try:
+                app.close()
+            except Exception:
+                pass
 
     def _prediction_url(self) -> str:
         assert self.api_secret is not None
@@ -947,6 +1025,7 @@ class MicrostructureObserver:
                 continue
             if int(wanted) == int(subscribed):
                 self._reconnect_unverified_prediction_if_timed_out()
+                self._reconnect_stale_prediction_if_needed()
                 continue
             self._invalidate_prediction_state(int(wanted))
             # Set this even when the WebSocket is between connection attempts:
@@ -1000,29 +1079,52 @@ class MicrostructureObserver:
         self.orientation_verification_failures += 1
         self.orientation_failure_reason = reason
 
-    def _reconnect_unverified_prediction_if_timed_out(self) -> None:
-        if self.prediction_orientation in PREDICTION_VERIFIED_ORIENTATIONS:
+    def _reconnect_stale_prediction_if_needed(self) -> None:
+        """Reconnect a verified Prediction socket that silently stopped producing books."""
+        if self.prediction_orientation not in PREDICTION_VERIFIED_ORIENTATIONS:
             return
-        started_ns = self.prediction_orientation_unverified_since_ns
-        if started_ns is None:
+
+        last_receipt_ns = int(self.last_prediction_receipt_monotonic_ns or 0)
+        if last_receipt_ns <= 0:
             return
+
         now_ns = time.monotonic_ns()
-        if now_ns - started_ns < int(
-            PREDICTION_ORIENTATION_TIMEOUT_SECONDS * 1_000_000_000
+        stale_age_ns = now_ns - last_receipt_ns
+
+        if stale_age_ns < int(
+            PREDICTION_STALE_RECONNECT_SECONDS * 1_000_000_000
         ):
             return
-        self.orientation_failure_reason = "ORIENTATION_TIMEOUT"
-        if now_ns - self.last_orientation_reconnect_request_ns < int(
-            PREDICTION_ORIENTATION_RECONNECT_THROTTLE_SECONDS * 1_000_000_000
+
+        if (
+            now_ns - self.last_prediction_stale_reconnect_request_ns
+            < int(
+                PREDICTION_STALE_RECONNECT_THROTTLE_SECONDS
+                * 1_000_000_000
+            )
         ):
             return
+
         with self.state_lock:
             app = self.active_apps.get("prediction")
+
         if app is None:
             return
-        self.last_orientation_reconnect_request_ns = now_ns
-        self.orientation_reconnect_requests += 1
+
+        self.last_prediction_stale_reconnect_request_ns = now_ns
+        self.prediction_stale_reconnect_requests += 1
+
+        self._set_stream(
+            "prediction",
+            status="STALE",
+            error=(
+                "verified Prediction stream produced no accepted "
+                f"orderbook for {stale_age_ns / 1_000_000:.0f} ms; reconnecting"
+            ),
+        )
+
         self.prediction_rollover_reconnect.set()
+
         try:
             app.close()
         except Exception:
@@ -1146,6 +1248,16 @@ class MicrostructureObserver:
         event["feature_eligible"] = True
         return previous_orientation not in PREDICTION_VERIFIED_ORIENTATIONS
 
+    def _prediction_version_age_ms(self, event: dict[str, Any]) -> float | None:
+        version_ms = _int(event.get("prediction_book_version_ms"))
+        received_wall_ns = _int(event.get("received_wall_ns"))
+        if version_ms is None or received_wall_ns is None:
+            return None
+        return max(
+            0.0,
+            received_wall_ns / 1_000_000 + self.clock_offset_ms - version_ms,
+        )
+
     def _set_stream(self, name: str, **values: Any) -> None:
         with self.state_lock:
             self.stream_stats[name].update(values)
@@ -1168,7 +1280,7 @@ class MicrostructureObserver:
             def on_open(_: Any) -> None:
                 nonlocal backoff
                 backoff = 1.0
-                if name == "spot":
+                if name == "spot_book":
                     self.last_spot_update = None
                 elif name == "futures_public":
                     self.last_futures_update = None
@@ -1193,7 +1305,7 @@ class MicrostructureObserver:
                             session_id=session_id,
                         )
                     else:
-                        source = "spot" if name == "spot" else "futures"
+                        source = "spot" if name in {"spot_trade", "spot_book"} else "futures"
                         event = parse_combined_message(
                             raw,
                             source=source,
@@ -1252,12 +1364,29 @@ class MicrostructureObserver:
             backoff = min(30.0, backoff * 2.0)
 
     def _accept_event(self, stream_name: str, event: dict[str, Any]) -> None:
+        # Unit-test and replay callers from the pre-split API may still label
+        # Spot trade ingress as "spot".  Normalize that internal alias while
+        # keeping the public health contract split into two streams.
+        if stream_name == "spot":
+            stream_name = "spot_trade"
         if event["source"] == "prediction":
             market_id = event.get("market_id")
             wanted = self.current_market_id()
             if market_id is None or wanted is None or int(market_id) != int(wanted):
                 return
-            just_verified = self._orient_prediction_event(event)
+            version_age_ms = self._prediction_version_age_ms(event)
+            event["prediction_book_version_age_ms"] = version_age_ms
+            if (
+                version_age_ms is None
+                or version_age_ms > PREDICTION_MAX_VERSION_AGE_MS
+            ):
+                just_verified = False
+                event["prediction_orientation"] = "STALE_CONTENT"
+                event["feature_eligible"] = False
+                self.stale_prediction_events += 1
+                self.orientation_failure_reason = "STALE_BOOK_VERSION"
+            else:
+                just_verified = self._orient_prediction_event(event)
             timestamp = event.get("prediction_book_version_ms")
             if timestamp is None:
                 timestamp = event.get("exchange_event_ms")
@@ -1285,7 +1414,7 @@ class MicrostructureObserver:
                 )
             else:
                 self.unverified_prediction_events += 1
-        elif stream_name == "spot" and event["stream"] == "depth":
+        elif stream_name == "spot_book" and event["stream"] == "depth":
             update_id = event.get("update_id")
             if (
                 update_id is not None
@@ -1521,7 +1650,8 @@ class MicrostructureObserver:
             }
 
     def state(self) -> dict[str, Any]:
-        spot = self._public_stream_state(["spot"])
+        spot_trade = self._public_stream_state(["spot_trade"])
+        spot_book = self._public_stream_state(["spot_book"])
         futures = self._public_stream_state(["futures_public", "futures_market"])
         prediction = self._public_stream_state(["prediction"])
         prediction["marketId"] = self.prediction_subscription_market_id
@@ -1540,16 +1670,25 @@ class MicrostructureObserver:
             and orientation_elapsed_ms
             > PREDICTION_ORIENTATION_TIMEOUT_SECONDS * 1_000
         )
-        orientation_healthy = (
+        book_version_age_ms = (
+            max(0.0, now_server_ms - self.last_prediction_book_version_ms)
+            if self.last_prediction_book_version_ms is not None
+            else None
+        )
+        version_healthy = bool(
+            book_version_age_ms is not None
+            and book_version_age_ms <= PREDICTION_MAX_VERSION_AGE_MS
+        )
+        orientation_healthy = bool(
             self.prediction_orientation in PREDICTION_VERIFIED_ORIENTATIONS
+            and version_healthy
         )
         prediction.update(
             {
-                "bookVersionAgeMs": (
-                    max(0.0, now_server_ms - self.last_prediction_book_version_ms)
-                    if self.last_prediction_book_version_ms is not None
-                    else None
-                ),
+                "bookVersionAgeMs": book_version_age_ms,
+                "maxBookVersionAgeMs": PREDICTION_MAX_VERSION_AGE_MS,
+                "staleReconnectRequests": self.prediction_stale_reconnect_requests,
+                "bookVersionHealthy": version_healthy,
                 "localReceiptAgeMs": (
                     max(
                         0.0,
@@ -1565,6 +1704,10 @@ class MicrostructureObserver:
                     if orientation_healthy
                     else "DEGRADED"
                     if orientation_timed_out
+                    or (
+                        book_version_age_ms is not None
+                        and not version_healthy
+                    )
                     else "PENDING"
                 ),
                 "orientationTimedOut": orientation_timed_out,
@@ -1582,14 +1725,19 @@ class MicrostructureObserver:
                 "orientationReceiptDeltaMs": self.orientation_receipt_delta_ms,
                 "orientationDirectError": self.orientation_direct_error,
                 "orientationInvertedError": self.orientation_inverted_error,
-                "orientationFailureReason": self.orientation_failure_reason,
+                "orientationFailureReason": (
+                    "STALE_BOOK_VERSION"
+                    if not version_healthy and book_version_age_ms is not None
+                    else self.orientation_failure_reason
+                ),
                 "orientationReconnectRequests": self.orientation_reconnect_requests,
                 "eligiblePredictionEvents": self.eligible_prediction_events,
                 "unverifiedPredictionEvents": self.unverified_prediction_events,
+                "stalePredictionEvents": self.stale_prediction_events,
                 "lastEligiblePredictionAt": self.last_eligible_prediction_at,
             }
         )
-        groups = (spot, futures, prediction)
+        groups = (spot_trade, spot_book, futures, prediction)
         group_statuses = [str(item["status"]) for item in groups]
         if all(item == "LIVE" for item in group_statuses):
             status = "LIVE"
@@ -1634,7 +1782,17 @@ class MicrostructureObserver:
             db_bytes = 0
         return {
             "status": status,
-            "streams": {"spot": spot, "futures": futures, "prediction": prediction},
+            "streams": {
+                "spot_trade": {
+                    **spot_trade,
+                    "reconnectRequests": self.spot_trade_reconnect_requests,
+                    "watchdogSilenceSeconds": SPOT_TRADE_WATCHDOG_SILENCE_SECONDS,
+                    "reconnectThrottleSeconds": SPOT_TRADE_RECONNECT_THROTTLE_SECONDS,
+                },
+                "spot_book": spot_book,
+                "futures": futures,
+                "prediction": prediction,
+            },
             "metrics": metrics,
             "recentLiquidityEvents": self.engine.recent(),
             "storage": {
@@ -1674,6 +1832,8 @@ class MicrostructureObserver:
                 pass
         for thread in self.socket_threads:
             thread.join(timeout=2)
+        if self.spot_trade_watchdog_thread:
+            self.spot_trade_watchdog_thread.join(timeout=2)
         if self.market_watch_thread:
             self.market_watch_thread.join(timeout=2)
         if self.writer_thread:

@@ -23,6 +23,7 @@ Changes from v1
 
 from __future__ import annotations
 
+import math
 import sqlite3
 import statistics
 import threading
@@ -32,6 +33,8 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 
 ER_SAMPLE_INTERVAL_SECONDS = 1.0
+MAX_PREDICTION_BOOK_AGE_SECONDS = 2.0
+MAX_PREDICTION_BOOK_SKEW_MS = 500.0
 
 
 # ---------------------------------------------------------------------------
@@ -264,6 +267,7 @@ class MarketStateObserver:
         self._er_60s_sample_times: List[float] = []
         self._last_spot_update_ts: Optional[float] = None
         self._last_book_update_ts: Optional[float] = None
+        self._last_book_quality_error: Optional[str] = None
         self._pending_rounds: Dict[int, Dict[str, Any]] = {}
         self._classification_cache: Optional[
             Tuple[
@@ -394,6 +398,7 @@ class MarketStateObserver:
             self._er_60s_sample_times = []
             self._last_spot_update_ts = None
             self._last_book_update_ts = None
+            self._last_book_quality_error = None
 
     def update_tick(
         self,
@@ -403,6 +408,9 @@ class MarketStateObserver:
         down_ask: Optional[float] = None,
         touch_threshold: Optional[float] = None,
         market_id: Optional[int] = None,
+        book_age_seconds: Optional[float] = None,
+        book_skew_ms: Optional[float] = None,
+        require_verified_book_freshness: bool = False,
     ) -> None:
         with self.lock:
             if market_id is not None and market_id != self.current_market_id:
@@ -482,15 +490,68 @@ class MarketStateObserver:
                             self._last_er_sample_ts = now_ts
 
             # ── Prediction-book touches ────────────────────────────────────
-            if up_ask is not None and up_ask > 0:
-                self._last_book_update_ts = float(now_ts)
+            has_book = bool(
+                (up_ask is not None and up_ask > 0)
+                or (down_ask is not None and down_ask > 0)
+            )
+            normalized_book_age: Optional[float] = None
+            normalized_book_skew: Optional[float] = None
+            book_is_fresh = True
+            quality_error: Optional[str] = None
+            if book_age_seconds is not None:
+                try:
+                    normalized_book_age = float(book_age_seconds)
+                except (TypeError, ValueError):
+                    normalized_book_age = None
+                if normalized_book_age is not None and not math.isfinite(
+                    normalized_book_age
+                ):
+                    normalized_book_age = None
+            if book_skew_ms is not None:
+                try:
+                    normalized_book_skew = float(book_skew_ms)
+                except (TypeError, ValueError):
+                    normalized_book_skew = None
+                if normalized_book_skew is not None and not math.isfinite(
+                    normalized_book_skew
+                ):
+                    normalized_book_skew = None
+            if has_book and require_verified_book_freshness:
+                if normalized_book_age is None or normalized_book_age < 0:
+                    book_is_fresh = False
+                    quality_error = "Prediction book content age is unavailable"
+                elif normalized_book_age > MAX_PREDICTION_BOOK_AGE_SECONDS:
+                    book_is_fresh = False
+                    quality_error = (
+                        "Prediction book content age "
+                        f"{normalized_book_age:.3f}s exceeds "
+                        f"{MAX_PREDICTION_BOOK_AGE_SECONDS:.3f}s"
+                    )
+                elif normalized_book_skew is None or normalized_book_skew < 0:
+                    book_is_fresh = False
+                    quality_error = "Prediction book skew is unavailable"
+                elif normalized_book_skew > MAX_PREDICTION_BOOK_SKEW_MS:
+                    book_is_fresh = False
+                    quality_error = (
+                        f"Prediction book skew {normalized_book_skew:.3f}ms exceeds "
+                        f"{MAX_PREDICTION_BOOK_SKEW_MS:.3f}ms"
+                    )
+            if has_book:
+                content_ts = float(now_ts) - max(0.0, normalized_book_age or 0.0)
+                self._last_book_update_ts = (
+                    content_ts
+                    if self._last_book_update_ts is None
+                    else max(self._last_book_update_ts, content_ts)
+                )
+                self._last_book_quality_error = quality_error
+
+            if book_is_fresh and up_ask is not None and up_ask > 0:
                 if self.up_min_ask is None or up_ask < self.up_min_ask:
                     self.up_min_ask = up_ask
                 if up_ask <= threshold:
                     self.up_touched = True
 
-            if down_ask is not None and down_ask > 0:
-                self._last_book_update_ts = float(now_ts)
+            if book_is_fresh and down_ask is not None and down_ask > 0:
                 if self.down_min_ask is None or down_ask < self.down_min_ask:
                     self.down_min_ask = down_ask
                 if down_ask <= threshold:
@@ -1091,6 +1152,8 @@ class MarketStateObserver:
             data_issues: List[str] = []
             if self.last_error:
                 data_issues.append("市場觀測器為 DEGRADED")
+            if self._last_book_quality_error:
+                data_issues.append(self._last_book_quality_error)
             if self.current_market_id is None or market_age is None:
                 data_issues.append("尚未建立當輪市場")
             if market_age is not None and market_age >= 5.0:
@@ -1100,7 +1163,7 @@ class MarketStateObserver:
                     data_issues.append(f"Spot 資料已延遲 {spot_age:.1f} 秒")
                 if book_age is None:
                     data_issues.append("當輪尚無 Prediction Ask 資料")
-                elif book_age > 5.0:
+                elif book_age > MAX_PREDICTION_BOOK_AGE_SECONDS:
                     data_issues.append(
                         f"Prediction Ask 已延遲 {book_age:.1f} 秒"
                     )

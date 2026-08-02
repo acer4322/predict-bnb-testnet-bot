@@ -141,17 +141,21 @@ def test_reset_baseline_persists_when_store_reopens(tmp_path: Path):
 
 def test_reset_accepts_all_supported_strategies(tmp_path: Path):
     store = Store(tmp_path / "sim.db")
-    assert len(SUPPORTED_STRATEGIES) == 50
+    assert len(SUPPORTED_STRATEGIES) == len(set(SUPPORTED_STRATEGIES))
+    assert {
+        "R_FUTURES_LEAD_SIGNAL_100",
+        "R_FUTURES_LEAD_MIN_ENTRY_020",
+    } <= set(SUPPORTED_STRATEGIES)
     for strategy in SUPPORTED_STRATEGIES:
         assert store.reset_strategy_measurement(strategy)
     assert store.db.execute(
         "SELECT COUNT(*) FROM strategy_measurement_resets"
-    ).fetchone()[0] == 50
+    ).fetchone()[0] == len(SUPPORTED_STRATEGIES)
 
     second_a_reset = store.reset_strategy_measurement("A")
     assert store.db.execute(
         "SELECT COUNT(*) FROM strategy_measurement_resets"
-    ).fetchone()[0] == 51
+    ).fetchone()[0] == len(SUPPORTED_STRATEGIES) + 1
     assert store.dashboard(collector_stub())["summaries"]["A"]["resetAt"] == (
         second_a_reset["resetAt"]
     )
@@ -160,7 +164,7 @@ def test_reset_accepts_all_supported_strategies(tmp_path: Path):
         store.reset_strategy_measurement("UNKNOWN")
     assert store.db.execute(
         "SELECT COUNT(*) FROM strategy_measurement_resets"
-    ).fetchone()[0] == 51
+    ).fetchone()[0] == len(SUPPORTED_STRATEGIES) + 1
 
 
 def test_m0_summary_reports_current_and_average_win_loss_streaks(tmp_path: Path):

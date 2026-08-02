@@ -9,6 +9,82 @@ from typing import Any
 from .core import taker_fee
 
 
+CONFIRMATION_ADD_STRATEGY = "R_CONFIRM_ADD_10"
+CONFIRMATION_ADD_SOURCE_STRATEGIES = (
+    "R_MICROPRICE",
+    "R_CALIBRATED_VALUE",
+    "M01O_F1",
+)
+CONFIRMATION_ADD_TRANCHE_USDT = 1.0
+CONFIRMATION_ADD_MULTIPLIERS = (1.0, 1.1, 1.2, 1.3, 1.4)
+CONFIRMATION_ADD_MAX_PRICE = 0.99
+CONFIRMATION_ADD_MIN_SECONDS_LEFT = 30.0
+CONFIRMATION_ADD_SLIPPAGE_BPS = 50.0
+CONFIRMATION_ADD_FEE_BPS = 200
+CONFIRMATION_ADD_MAX_SPREAD = 0.03
+CONFIRMATION_ADD_MAX_BOOK_AGE_MS = 2000.0
+CONFIRMATION_ADD_MAX_BOOK_SKEW_MS = 500.0
+
+
+def confirmation_add_levels(base_price: float) -> tuple[float, ...]:
+    """Return the frozen +10% confirmation ladder for one source fill."""
+    base = float(base_price)
+    if not math.isfinite(base) or not 0 < base < 1:
+        raise ValueError("confirmation-add base price must be between 0 and 1")
+    return tuple(
+        min(CONFIRMATION_ADD_MAX_PRICE, base * multiplier)
+        for multiplier in CONFIRMATION_ADD_MULTIPLIERS
+    )
+
+
+def confirmation_add_book_event_key(
+    snapshot: dict[str, Any], side: str
+) -> str:
+    normalized = str(side).upper()
+    timestamp = snapshot.get(f"{normalized.lower()}_book_timestamp_ms")
+    if timestamp is not None:
+        return f"{normalized}:{timestamp}"
+    return f"{normalized}:observation:{snapshot.get('id') or snapshot.get('timestamp')}"
+
+
+def confirmation_add_book_is_safe(
+    snapshot: dict[str, Any], side: str
+) -> tuple[bool, str]:
+    """Fail closed on the same freshness/spread constraints used in replay."""
+    normalized = str(side).upper()
+    if normalized not in {"UP", "DOWN"}:
+        return False, "unsupported side"
+    prefix = normalized.lower()
+    try:
+        seconds_left = float(snapshot["seconds_left"])
+        ask = float(snapshot[f"{prefix}_ask"])
+        bid = float(snapshot[f"{prefix}_bid"])
+        ask_size = float(snapshot[f"{prefix}_ask_size"])
+        book_age_ms = float(snapshot["book_age_ms"])
+        book_skew_ms = float(snapshot["book_skew_ms"])
+    except (KeyError, TypeError, ValueError):
+        return False, "required book field unavailable"
+    values = (seconds_left, ask, bid, ask_size, book_age_ms, book_skew_ms)
+    if not all(math.isfinite(value) for value in values):
+        return False, "required book field is not finite"
+    if seconds_left <= CONFIRMATION_ADD_MIN_SECONDS_LEFT:
+        return False, "confirmation cutoff reached"
+    if not 0 < ask < 1 or bid < 0 or ask_size <= 0:
+        return False, "book price or depth is unusable"
+    if not 0 <= ask - bid <= CONFIRMATION_ADD_MAX_SPREAD:
+        return False, "spread exceeds confirmation limit"
+    if not 0 <= book_age_ms <= CONFIRMATION_ADD_MAX_BOOK_AGE_MS:
+        return False, "book age exceeds confirmation limit"
+    if not 0 <= book_skew_ms <= CONFIRMATION_ADD_MAX_BOOK_SKEW_MS:
+        return False, "book skew exceeds confirmation limit"
+    return True, "safe"
+
+
+def confirmation_add_execution_price(ask: float) -> float | None:
+    price = float(ask) * (1.0 + CONFIRMATION_ADD_SLIPPAGE_BPS / 10_000.0)
+    return price if math.isfinite(price) and 0 < price < 1 else None
+
+
 PRIMARY_RESEARCH_STRATEGIES = (
     "R_MICROPRICE",
     "R_OFI",
@@ -25,6 +101,8 @@ SHADOW_RESEARCH_STRATEGIES = (
     "R_FUTURES_LEAD_EXIT30",
     "R_FUTURES_LEAD_DISTANCE",
     "R_FUTURES_LEAD_EXIT30_DISTANCE",
+    "R_FUTURES_LEAD_SIGNAL_100",
+    "R_FUTURES_LEAD_MIN_ENTRY_020",
     "R_OFI_MIN040",
     "R_OFI_EVENT_CUM",
     "R_OFI_EVENT_CUM_FILTERED",
@@ -37,6 +115,8 @@ SHADOW_RESEARCH_STRATEGIES = (
     "R_MICROPRICE_OBSERVER_V3",
     "R_MICROPRICE_OBSERVER_V6",
     "R_CALIBRATED_VALUE_OBSERVER_V6",
+    "R_MICROPRICE_OBSERVER_AUTO_V6",
+    "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6",
 )
 
 RESEARCH_STRATEGIES = (*PRIMARY_RESEARCH_STRATEGIES, *SHADOW_RESEARCH_STRATEGIES)
@@ -61,6 +141,18 @@ FUTURES_LEAD_DISTANCE_STRATEGIES = (
     "R_FUTURES_LEAD_EXIT30_DISTANCE",
 )
 
+FUTURES_LEAD_FILTER_RULES = {
+    "R_FUTURES_LEAD_SIGNAL_100": {
+        "source_strategy": "R_FUTURES_LEAD",
+        "min_abs_signal_bps": 1.0,
+    },
+    "R_FUTURES_LEAD_MIN_ENTRY_020": {
+        "source_strategy": "R_FUTURES_LEAD",
+        "min_source_entry_exclusive": 0.20,
+    },
+}
+FUTURES_LEAD_FILTER_STRATEGIES = tuple(FUTURES_LEAD_FILTER_RULES)
+
 FUTURES_LEAD_OBSERVER_VERSIONS = ("F1", "V2", "V3", "V4", "V6")
 FUTURES_LEAD_OBSERVER_STRATEGIES = tuple(
     f"R_FUTURES_LEAD_OBSERVER_{version}"
@@ -77,6 +169,8 @@ FUTURES_LEAD_LIVE_OBSERVER_STRATEGIES = (
     "R_FUTURES_LEAD",
     "R_FUTURES_LEAD_REVERSE",
     "R_FUTURES_LEAD_REGIME_REVERSE_3L",
+    "R_FUTURES_LEAD_DISTANCE",
+    *FUTURES_LEAD_FILTER_STRATEGIES,
 )
 
 OBSERVER_COMBINATION_STRATEGY_RULES = {
@@ -88,6 +182,16 @@ OBSERVER_COMBINATION_STRATEGY_RULES = {
 OBSERVER_COMBINATION_STRATEGIES = tuple(
     OBSERVER_COMBINATION_STRATEGY_RULES
 )
+
+OBSERVER_AUTO_V6_STRATEGY_RULES = {
+    "R_MICROPRICE_OBSERVER_AUTO_V6": "R_MICROPRICE",
+    "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6": "R_CALIBRATED_VALUE",
+}
+OBSERVER_AUTO_V6_STRATEGIES = tuple(OBSERVER_AUTO_V6_STRATEGY_RULES)
+OBSERVER_AUTO_V6_FAST_WINDOW = 30
+OBSERVER_AUTO_V6_SLOW_WINDOW = 100
+OBSERVER_AUTO_V6_MIN_FAST_COHORT = 5
+OBSERVER_AUTO_V6_MIN_SLOW_COHORT = 15
 
 FUTURES_LEAD_EXPERIMENT_BASE = {
     "horizon": 180.0,
@@ -136,6 +240,7 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "horizon": 180.0,
         "lag": 3.0,
         "min_lead_bps": 0.25,
+        "max_source_age_ms": 500.0,
         "max_ask": 0.55,
     },
     "R_FUTURES_LEAD_CONTINUOUS_V2": {
@@ -194,6 +299,22 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "beta_0": -0.15376836312439016,
         "beta_1": 0.9895606377583307,
     },
+    "R_MICROPRICE_OBSERVER_AUTO_V6": {
+        "horizon": 180.0,
+        "threshold": 0.20,
+        "max_ask": 0.55,
+        "fast_history_window": float(OBSERVER_AUTO_V6_FAST_WINDOW),
+        "slow_history_window": float(OBSERVER_AUTO_V6_SLOW_WINDOW),
+    },
+    "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6": {
+        "horizon": 60.0,
+        "min_edge": 0.01,
+        "max_ask": 0.70,
+        "beta_0": -0.15376836312439016,
+        "beta_1": 0.9895606377583307,
+        "fast_history_window": float(OBSERVER_AUTO_V6_FAST_WINDOW),
+        "slow_history_window": float(OBSERVER_AUTO_V6_SLOW_WINDOW),
+    },
     "R_FUTURES_LEAD_EXIT30": {
         **FUTURES_LEAD_EXPERIMENT_BASE,
         "max_ask": 0.55,
@@ -212,6 +333,19 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "exit_after_seconds": 30.0,
         "exit_grace_seconds": 15.0,
     },
+    "R_FUTURES_LEAD_SIGNAL_100": {
+        "horizon": 180.0,
+        "lag": 3.0,
+        "min_lead_bps": 1.0,
+        "max_ask": 0.55,
+    },
+    "R_FUTURES_LEAD_MIN_ENTRY_020": {
+        "horizon": 180.0,
+        "lag": 3.0,
+        "min_lead_bps": 0.25,
+        "min_ask": 0.20,
+        "max_ask": 0.55,
+    },
     "R_CALIBRATED_VALUE": {
         "horizon": 60.0,
         "min_edge": 0.01,
@@ -228,7 +362,13 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "min_bucket_history": 5.0,
         "prior_strength": 10.0,
     },
-    "R_CONSENSUS": {"horizon": 180.0, "lag": 10.0, "votes": 4.0, "max_ask": 0.85},
+    "R_CONSENSUS": {
+        "horizon": 180.0,
+        "lag": 10.0,
+        "votes": 4.0,
+        "max_source_age_ms": 500.0,
+        "max_ask": 0.85,
+    },
 }
 
 
@@ -341,6 +481,98 @@ def futures_lead_observer_decision(
     result["status"] = "ALLOW" if allowed else "BLOCK"
     result["reason"] = "allowed" if allowed else reason
     return result
+
+
+def observer_v6_auto_decision(
+    history: list[dict[str, Any]],
+    current_gate: dict[str, Any] | None,
+    *,
+    expected_market_id: int | None = None,
+) -> dict[str, Any]:
+    """Choose V6 or bypass from prior official source results only.
+
+    Every history row is an earlier settled source trade with its frozen V6
+    counterfactual.  V6 is applied only when both the recent and slow windows
+    show a profitable allowed cohort and a losing blocked cohort.  Otherwise
+    the source signal is preserved.  This function is intentionally paper-only.
+    """
+
+    usable: list[dict[str, Any]] = []
+    for row in history[-OBSERVER_AUTO_V6_SLOW_WINDOW:]:
+        try:
+            unit_pnl = float(row["unit_pnl"])
+            v6_allowed = row["v6_allowed"]
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not math.isfinite(unit_pnl) or not isinstance(v6_allowed, bool):
+            continue
+        usable.append(
+            {
+                "market_id": row.get("market_id"),
+                "unit_pnl": unit_pnl,
+                "v6_allowed": v6_allowed,
+            }
+        )
+
+    def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        allowed = [row for row in rows if row["v6_allowed"]]
+        blocked = [row for row in rows if not row["v6_allowed"]]
+        return {
+            "samples": len(rows),
+            "allowedSamples": len(allowed),
+            "blockedSamples": len(blocked),
+            "passRatePct": len(allowed) / len(rows) * 100.0 if rows else None,
+            "sourceUnitPnl": sum(row["unit_pnl"] for row in rows),
+            "allowedUnitPnl": sum(row["unit_pnl"] for row in allowed),
+            "blockedUnitPnl": sum(row["unit_pnl"] for row in blocked),
+        }
+
+    fast = summarize(usable[-OBSERVER_AUTO_V6_FAST_WINDOW:])
+    slow = summarize(usable)
+    history_ready = slow["samples"] >= OBSERVER_AUTO_V6_SLOW_WINDOW
+    cohorts_ready = bool(
+        fast["allowedSamples"] >= OBSERVER_AUTO_V6_MIN_FAST_COHORT
+        and fast["blockedSamples"] >= OBSERVER_AUTO_V6_MIN_FAST_COHORT
+        and slow["allowedSamples"] >= OBSERVER_AUTO_V6_MIN_SLOW_COHORT
+        and slow["blockedSamples"] >= OBSERVER_AUTO_V6_MIN_SLOW_COHORT
+    )
+    v6_proven_better = bool(
+        history_ready
+        and cohorts_ready
+        and fast["allowedUnitPnl"] > 0
+        and slow["allowedUnitPnl"] > 0
+        and fast["blockedUnitPnl"] < 0
+        and slow["blockedUnitPnl"] < 0
+    )
+    mode = "APPLY_V6" if v6_proven_better else "BYPASS_V6"
+    reason = (
+        "V6_IMPROVES_FAST_AND_SLOW_OFFICIAL_WINDOWS"
+        if v6_proven_better
+        else "OFFICIAL_HISTORY_WARMUP"
+        if not history_ready
+        else "INSUFFICIENT_ALLOW_BLOCK_COHORTS"
+        if not cohorts_ready
+        else "V6_NOT_PROVEN_BETTER"
+    )
+    current_v6 = futures_lead_observer_decision(
+        "V6", current_gate, expected_market_id=expected_market_id
+    )
+    allowed = mode == "BYPASS_V6" or current_v6["allowed"] is True
+    return {
+        "allowed": allowed,
+        "status": "ALLOW" if allowed else "BLOCK",
+        "mode": mode,
+        "reason": reason if allowed else str(current_v6.get("reason") or reason),
+        "paperOnly": True,
+        "liveOrdersAffected": False,
+        "officialHistoryOnly": True,
+        "currentMarketExcluded": True,
+        "fastWindow": fast,
+        "slowWindow": slow,
+        "minimumFastCohort": OBSERVER_AUTO_V6_MIN_FAST_COHORT,
+        "minimumSlowCohort": OBSERVER_AUTO_V6_MIN_SLOW_COHORT,
+        "currentV6Decision": current_v6,
+    }
 
 
 def _finite(*values: Any) -> bool:
@@ -883,6 +1115,38 @@ def continuous_calibration_decision(
     }
 
 
+def filtered_futures_lead_signal(
+    strategy: str,
+    *,
+    source_side: str,
+    source_signal: float,
+    source_entry: float,
+) -> dict[str, Any] | None:
+    """Apply a frozen filter to an opened same-market Futures Lead trade."""
+    rule = FUTURES_LEAD_FILTER_RULES.get(strategy)
+    if rule is None or source_side not in {"UP", "DOWN"}:
+        return None
+    if not _finite(source_signal, source_entry):
+        return None
+    minimum_signal = rule.get("min_abs_signal_bps")
+    if minimum_signal is not None and abs(float(source_signal)) < minimum_signal:
+        return None
+    minimum_entry = rule.get("min_source_entry_exclusive")
+    if minimum_entry is not None and float(source_entry) <= minimum_entry:
+        return None
+    return {
+        "side": source_side,
+        "signal": float(source_signal),
+        "source_strategy": str(rule["source_strategy"]),
+        "source_side": source_side,
+        "source_signal": float(source_signal),
+        "source_entry": float(source_entry),
+        "filter_rule": {
+            key: value for key, value in rule.items() if key != "source_strategy"
+        },
+    }
+
+
 def signal_for_strategy(
     strategy: str,
     current: dict[str, float],
@@ -897,10 +1161,12 @@ def signal_for_strategy(
     params = RESEARCH_PARAMETERS[strategy]
     if strategy in {
         *CONTINUOUS_CALIBRATION_STRATEGIES,
+        *FUTURES_LEAD_FILTER_STRATEGIES,
         "R_FUTURES_LEAD_REVERSE",
         "R_FUTURES_LEAD_REGIME_REVERSE_3L",
         *FUTURES_LEAD_OBSERVER_STRATEGIES,
         *OBSERVER_COMBINATION_STRATEGIES,
+        *OBSERVER_AUTO_V6_STRATEGIES,
     }:
         # This shadow is derived from an actual R_FUTURES_LEAD paper entry by
         # the store.  It must never create an independent market signal.
@@ -985,6 +1251,13 @@ def signal_for_strategy(
 
     if previous is None:
         return None
+    if strategy in {"R_FUTURES_LEAD", "R_CONSENSUS"}:
+        max_source_age_ms = float(params["max_source_age_ms"])
+        if not (
+            _fresh_source_sample(previous, max_source_age_ms)
+            and _fresh_source_sample(current, max_source_age_ms)
+        ):
+            return None
     spot_return = _log_return(previous["spot_price"], current["spot_price"])
     futures_return = _log_return(previous["futures_price"], current["futures_price"])
     ofi_score = _ofi(previous, current, "UP") - _ofi(previous, current, "DOWN")
