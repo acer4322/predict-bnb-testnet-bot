@@ -12,6 +12,7 @@ from predict_bot.m_realtime import (
 from predict_bot.research_forward import (
     CONFIRMATION_ADD_STRATEGY,
     CONTINUOUS_CALIBRATION_STRATEGIES,
+    PAIRED_REVERSE_STRATEGIES,
     FUTURES_LEAD_EXPERIMENT_STRATEGIES,
     FUTURES_LEAD_FILTER_STRATEGIES,
     FUTURES_LEAD_OBSERVER_STRATEGIES,
@@ -25,6 +26,7 @@ from predict_bot.research_forward import (
     confirmed_futures_lead_signal,
     continuous_calibration_decision,
     execution_candidate,
+    reverse_source_signal,
     filtered_futures_lead_signal,
     futures_lead_observer_decision,
     observer_v6_auto_decision,
@@ -86,6 +88,94 @@ def test_confirmation_add_ladder_is_fixed_and_never_live_forwardable():
     assert CONFIRMATION_ADD_STRATEGY not in LIVE_FORWARDABLE_PAPER_STRATEGIES
     assert CONFIRMATION_ADD_STRATEGY not in LIVE_FORWARDABLE_OBSERVER_STRATEGIES
 
+def test_reverse_source_signal_flips_side_and_probability() -> None:
+    microprice = reverse_source_signal(
+        "R_MICROPRICE",
+        "UP",
+        0.75,
+    )
+
+    assert microprice is not None
+    assert microprice["side"] == "DOWN"
+    assert microprice["signal"] == pytest.approx(-0.75)
+    assert microprice["source_strategy"] == "R_MICROPRICE"
+    assert microprice["direction_reversed"] is True
+
+    calibrated = reverse_source_signal(
+        "R_CALIBRATED_VALUE",
+        "DOWN",
+        0.04,
+        source_probability=0.72,
+    )
+
+    assert calibrated is not None
+    assert calibrated["side"] == "UP"
+    assert calibrated["signal"] == pytest.approx(-0.04)
+    assert calibrated["model_probability"] == pytest.approx(0.28)
+    assert calibrated["source_strategy"] == "R_CALIBRATED_VALUE"
+
+def test_microprice_reverse_opens_only_beside_source(tmp_path) -> None:
+    store = Store(tmp_path / "simulation.db")
+
+    values = {
+        key: False
+        for key in DEFAULT_CONFIG
+        if key.endswith("_enabled")
+    }
+    values["strategy_r_microprice_enabled"] = True
+    values["strategy_r_microprice_reverse_enabled"] = True
+    store.update_config(values)
+
+    current = sample(
+        timestamp_ns=20_000_000_000,
+        seconds_left=180.0,
+        current=True,
+    )
+
+    opened = store.maybe_enter_m_series(
+        current,
+        0,
+        realtime_context=prediction_context(1),
+    )
+
+    assert [
+        (item["strategy"], item["side"])
+        for item in opened
+    ] == [
+        ("R_MICROPRICE", "UP"),
+        ("R_MICROPRICE_REVERSE", "DOWN"),
+    ]
+
+    reverse = store.db.execute(
+        """
+        SELECT diagnostics_json
+        FROM trades
+        WHERE strategy='R_MICROPRICE_REVERSE'
+        """
+    ).fetchone()
+
+    diagnostics = json.loads(reverse["diagnostics_json"])
+
+    assert diagnostics["shadow_only"] is True
+    assert diagnostics["direction_reversed"] is True
+    assert diagnostics["source_strategy"] == "R_MICROPRICE"
+    assert diagnostics["source_trade_id"] > 0
+
+def test_reverse_shadows_never_generate_independent_signal() -> None:
+    current = sample(
+        timestamp_ns=20_000_000_000,
+        seconds_left=180.0,
+        current=True,
+    )
+
+    for strategy in PAIRED_REVERSE_STRATEGIES:
+        assert signal_for_strategy(
+            strategy,
+            current,
+            None,
+            fee_bps=0,
+            slippage_bps=50.0,
+        ) is None
 
 def test_confirmation_add_book_gate_fails_closed_at_cutoff_and_on_stale_book():
     book = sample(timestamp_ns=1, seconds_left=31.0, current=True)

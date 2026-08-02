@@ -95,6 +95,8 @@ PRIMARY_RESEARCH_STRATEGIES = (
 
 SHADOW_RESEARCH_STRATEGIES = (
     "R_CALIBRATED_VALUE_CONTINUOUS_V2",
+    "R_MICROPRICE_REVERSE",
+    "R_CALIBRATED_VALUE_REVERSE",
     "R_FUTURES_LEAD_CONTINUOUS_V2",
     "R_FUTURES_LEAD_REVERSE",
     "R_FUTURES_LEAD_REGIME_REVERSE_3L",
@@ -126,6 +128,12 @@ CONTINUOUS_CALIBRATION_RULES = {
     "R_FUTURES_LEAD_CONTINUOUS_V2": "R_FUTURES_LEAD",
 }
 CONTINUOUS_CALIBRATION_STRATEGIES = tuple(CONTINUOUS_CALIBRATION_RULES)
+PAIRED_REVERSE_RULES = {
+    "R_MICROPRICE_REVERSE": "R_MICROPRICE",
+    "R_CALIBRATED_VALUE_REVERSE": "R_CALIBRATED_VALUE",
+}
+
+PAIRED_REVERSE_STRATEGIES = tuple(PAIRED_REVERSE_RULES)
 
 FUTURES_LEAD_EXPERIMENT_STRATEGIES = (
     "R_FUTURES_LEAD_EXIT30",
@@ -211,6 +219,14 @@ FUTURES_LEAD_EXPERIMENT_BASE = {
 
 RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
     "R_MICROPRICE": {"horizon": 180.0, "threshold": 0.20, "max_ask": 0.55},
+    "R_MICROPRICE_REVERSE": {
+        "horizon": 180.0,
+        "max_ask": 0.99,
+    },
+    "R_CALIBRATED_VALUE_REVERSE": {
+        "horizon": 60.0,
+        "max_ask": 0.99,
+    },
     "R_OFI": {"horizon": 60.0, "lag": 10.0, "threshold": 0.20, "max_ask": 0.85},
     "R_OFI_MIN040": {
         "horizon": 60.0,
@@ -812,23 +828,54 @@ def _log_return(previous: float, current: float) -> float | None:
     if not _finite(previous, current) or previous <= 0 or current <= 0:
         return None
     return math.log(current / previous)
+def reverse_source_signal(
+    source_strategy: str,
+    source_side: str,
+    source_signal: float,
+    *,
+    source_probability: float | None = None,
+) -> dict[str, Any] | None:
+    """Create an opposite-direction shadow from an actually opened source trade."""
+    normalized_strategy = str(source_strategy).strip().upper()
+    normalized_side = str(source_side).strip().upper()
 
+    if (
+        not normalized_strategy
+        or normalized_side not in {"UP", "DOWN"}
+        or not _finite(source_signal)
+    ):
+        return None
+
+    result: dict[str, Any] = {
+        "side": "DOWN" if normalized_side == "UP" else "UP",
+        "signal": -float(source_signal),
+        "source_strategy": normalized_strategy,
+        "source_side": normalized_side,
+        "source_signal": float(source_signal),
+        "direction_reversed": True,
+        "paired_counterfactual": True,
+    }
+
+    # CALIBRATED_VALUE has a probability estimate. Its opposite side has 1-p.
+    if (
+        source_probability is not None
+        and _finite(source_probability)
+        and 0.0 < float(source_probability) < 1.0
+    ):
+        result["model_probability"] = 1.0 - float(source_probability)
+
+    return result
 
 def reverse_futures_lead_signal(
     source_side: str, source_signal: float
 ) -> dict[str, Any] | None:
     """Derive the shadow direction only from an opened Futures Lead trade."""
     normalized_side = str(source_side).upper()
-    if normalized_side not in {"UP", "DOWN"} or not _finite(source_signal):
-        return None
-    return {
-        "side": "DOWN" if normalized_side == "UP" else "UP",
-        "signal": -float(source_signal),
-        "source_strategy": "R_FUTURES_LEAD",
-        "source_side": normalized_side,
-        "source_signal": float(source_signal),
-        "direction_reversed": True,
-    }
+    return reverse_source_signal(
+        "R_FUTURES_LEAD",
+        source_side,
+        source_signal,
+    )
 
 
 def regime_futures_lead_signal(
@@ -1161,6 +1208,7 @@ def signal_for_strategy(
     params = RESEARCH_PARAMETERS[strategy]
     if strategy in {
         *CONTINUOUS_CALIBRATION_STRATEGIES,
+        *PAIRED_REVERSE_STRATEGIES,
         *FUTURES_LEAD_FILTER_STRATEGIES,
         "R_FUTURES_LEAD_REVERSE",
         "R_FUTURES_LEAD_REGIME_REVERSE_3L",

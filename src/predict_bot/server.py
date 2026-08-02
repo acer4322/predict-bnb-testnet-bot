@@ -51,6 +51,8 @@ from .research_forward import (
     RESEARCH_PARAMETERS,
     RESEARCH_STRATEGIES,
     SHADOW_RESEARCH_STRATEGIES,
+    PAIRED_REVERSE_RULES,
+    PAIRED_REVERSE_STRATEGIES,
     ResearchSampleBuffer,
     confirmation_add_book_event_key,
     confirmation_add_book_is_safe,
@@ -63,6 +65,7 @@ from .research_forward import (
     observer_v6_auto_decision,
     regime_futures_lead_signal as research_regime_futures_lead_signal,
     reverse_futures_lead_signal as research_reverse_futures_lead_signal,
+    reverse_source_signal as research_reverse_source_signal,
     sampling_active as research_sampling_active,
     signal_for_strategy as research_signal_for_strategy,
 )
@@ -330,6 +333,8 @@ DEFAULT_CONFIG: dict[str, float | bool] = {
     # capital pool. Counterfactual variants are isolated paper shadows.
     "strategy_r_microprice_enabled": True,
     "strategy_r_microprice_stake": 5.0,
+    "strategy_r_microprice_reverse_enabled": True,
+    "strategy_r_microprice_reverse_stake": 5.0,
     "strategy_r_ofi_enabled": True,
     "strategy_r_ofi_stake": 5.0,
     "strategy_r_ofi_min040_enabled": True,
@@ -382,6 +387,8 @@ DEFAULT_CONFIG: dict[str, float | bool] = {
     "strategy_r_calibrated_value_observer_auto_v6_stake": 5.0,
     "strategy_r_calibrated_value_enabled": True,
     "strategy_r_calibrated_value_stake": 5.0,
+    "strategy_r_calibrated_value_reverse_enabled": True,
+    "strategy_r_calibrated_value_reverse_stake": 5.0,
     "strategy_r_calibrated_value_continuous_v2_enabled": True,
     "strategy_r_calibrated_value_continuous_v2_stake": 5.0,
     "strategy_r_consensus_enabled": True,
@@ -5412,6 +5419,7 @@ class Store:
             if strategy in {
                 *CONTINUOUS_CALIBRATION_STRATEGIES,
                 *FUTURES_LEAD_FILTER_STRATEGIES,
+                *PAIRED_REVERSE_STRATEGIES,
                 "R_FUTURES_LEAD_REVERSE",
                 "R_FUTURES_LEAD_REGIME_REVERSE_3L",
                 *FUTURES_LEAD_OBSERVER_STRATEGIES,
@@ -5423,6 +5431,8 @@ class Store:
                     if strategy in CONTINUOUS_CALIBRATION_STRATEGIES
                     else FUTURES_LEAD_FILTER_RULES[strategy]["source_strategy"]
                     if strategy in FUTURES_LEAD_FILTER_STRATEGIES
+                    else PAIRED_REVERSE_RULES[strategy]
+                    if strategy in PAIRED_REVERSE_STRATEGIES
                     else OBSERVER_COMBINATION_STRATEGY_RULES[strategy][0]
                     if strategy in OBSERVER_COMBINATION_STRATEGIES
                     else OBSERVER_AUTO_V6_STRATEGY_RULES[strategy]
@@ -5492,6 +5502,13 @@ class Store:
                             calibration_decision["calibrated_edge"]
                         ),
                     }
+                elif strategy in PAIRED_REVERSE_STRATEGIES:
+                    signal = research_reverse_source_signal(
+                        source_strategy,
+                        str(source_trade["side"]),
+                        source_signal,
+                        source_probability=source_trade["model_probability"],
+                    )
                 elif strategy in OBSERVER_AUTO_V6_STRATEGIES:
                     observer_gates = context.get("m01o_observer_gates")
                     observer_gate = (
@@ -5649,6 +5666,22 @@ class Store:
             )
             if candidate is None:
                 continue
+            if (
+                strategy in PAIRED_REVERSE_STRATEGIES
+                and candidate.get("model_probability") is not None
+            ):
+                counterfactual_effective_cost = (
+                    float(candidate["entry"])
+                    + taker_fee(1.0, float(candidate["entry"]), fee_bps)
+                )
+
+                candidate["model_edge"] = (
+                    float(candidate["model_probability"])
+                    - counterfactual_effective_cost
+                )
+                candidate["counterfactual_effective_cost"] = (
+                    counterfactual_effective_cost
+                )
             if strategy in CONTINUOUS_CALIBRATION_STRATEGIES:
                 actual_effective_cost = float(candidate["entry"]) + taker_fee(
                     1.0, float(candidate["entry"]), fee_bps
@@ -5663,6 +5696,7 @@ class Store:
             sample_segment = None
             if strategy in {
                 *CONTINUOUS_CALIBRATION_STRATEGIES,
+                *PAIRED_REVERSE_STRATEGIES,
                 *FUTURES_LEAD_FILTER_STRATEGIES,
                 *FUTURES_LEAD_EXPERIMENT_STRATEGIES,
                 *FUTURES_LEAD_OBSERVER_STRATEGIES,
@@ -5742,14 +5776,32 @@ class Store:
                 diagnostics["event_ofi_count"] = candidate["event_ofi_count"]
                 diagnostics["event_ofi_window_seconds"] = params["window"]
             if candidate.get("direction_reversed") is True:
-                diagnostics["direction_reversed"] = True
-                diagnostics["source_strategy"] = candidate.get("source_strategy")
-                diagnostics["source_side"] = candidate.get("source_side")
-                diagnostics["source_signal"] = candidate.get("source_signal")
-                diagnostics["source_trade_id"] = int(source_trade["id"])
-                diagnostics["source_trade_opened_at"] = source_trade["opened_at"]
-                diagnostics["dependency_rule"] = (
-                    "open_only_after_R_FUTURES_LEAD_trade"
+                    source_name = str(
+                        candidate.get("source_strategy")
+                        or source_strategy
+                        or ""
+                    )
+
+                    diagnostics["direction_reversed"] = True
+                    diagnostics["paired_counterfactual"] = True
+                    diagnostics["source_strategy"] = source_name
+                    diagnostics["source_side"] = candidate.get("source_side")
+                    diagnostics["source_signal"] = candidate.get("source_signal")
+                    diagnostics["source_trade_id"] = int(source_trade["id"])
+                    diagnostics["source_trade_opened_at"] = source_trade["opened_at"]
+                    diagnostics["dependency_rule"] = (
+                        f"open_only_after_same_market_{source_name}_trade"
+                    )
+            if strategy in PAIRED_REVERSE_STRATEGIES:
+                diagnostics.update(
+                    {
+                        "paired_reverse_shadow": True,
+                        "counterfactual_same_market": True,
+                        "counterfactual_same_book": True,
+                        "counterfactual_effective_cost": candidate.get(
+                            "counterfactual_effective_cost"
+                        ),
+                    }
                 )
             if strategy == "R_FUTURES_LEAD_REGIME_REVERSE_3L":
                 diagnostics["regime_rule"] = (
@@ -5884,6 +5936,7 @@ class Store:
                     if strategy in {
                         *CONTINUOUS_CALIBRATION_STRATEGIES,
                         *FUTURES_LEAD_FILTER_STRATEGIES,
+                        *PAIRED_REVERSE_STRATEGIES,
                         "R_FUTURES_LEAD_REVERSE",
                         "R_FUTURES_LEAD_REGIME_REVERSE_3L",
                     }
@@ -5944,6 +5997,16 @@ class Store:
                         "source_trade_id": int(source_trade["id"]),
                         "source_entry_price": float(source_trade["entry_price"]),
                         "filter_rule": signal["filter_rule"],
+                    }
+                )
+            elif strategy in PAIRED_REVERSE_STRATEGIES:
+                opened_candidate.update(
+                    {
+                        "paired_shadow": True,
+                        "source_strategy": source_strategy,
+                        "source_side": str(candidate.get("source_side") or ""),
+                        "source_trade_id": int(source_trade["id"]),
+                        "direction_reversed": True,
                     }
                 )
             elif strategy == "R_FUTURES_LEAD_REVERSE":
@@ -9896,6 +9959,7 @@ class Store:
                         self._research_experiment_validation_state(strategy)
                         if strategy in {
                             *CONTINUOUS_CALIBRATION_STRATEGIES,
+                            *PAIRED_REVERSE_STRATEGIES,
                             *FUTURES_LEAD_EXPERIMENT_STRATEGIES,
                             *FUTURES_LEAD_OBSERVER_STRATEGIES,
                             *OBSERVER_COMBINATION_STRATEGIES,
