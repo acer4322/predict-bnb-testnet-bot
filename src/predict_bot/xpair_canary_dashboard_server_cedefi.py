@@ -5,14 +5,16 @@ from typing import Any
 
 from . import xpair_canary_dashboard_server as base
 
+_OriginalLaunchRequest = base.LaunchRequest
 
-class CeDeFiLaunchRequest(base.LaunchRequest):
+
+class CeDeFiLaunchRequest(_OriginalLaunchRequest):
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "CeDeFiLaunchRequest":
         normalized = dict(payload)
         # Reuse the original validation for every field except account type.
         normalized["accountType"] = "SPOT"
-        validated = base.LaunchRequest.from_payload(normalized)
+        validated = _OriginalLaunchRequest.from_payload(normalized)
         values = asdict(validated)
         values["account_type"] = "CeDeFi"
         return cls(**values)
