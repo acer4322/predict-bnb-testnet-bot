@@ -79,6 +79,7 @@ type MonitorDefaults = {
   slippageBps: number;
   accountType: "CeDeFi";
   quoteIntervalSeconds?: number;
+  maximumPairBudgetUsdt?: number;
 };
 
 type SafetyState = {
@@ -156,6 +157,7 @@ export default function XPairCanaryPage() {
   const [formInitialized, setFormInitialized] = useState(false);
   const [requestState, setRequestState] = useState("等待常駐監控 API");
   const [apiError, setApiError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -198,6 +200,16 @@ export default function XPairCanaryPage() {
     return () => window.clearInterval(timer);
   }, [refresh]);
 
+  const maxPairBudget = state?.defaults.maximumPairBudgetUsdt ?? 10;
+  const pairBudgetValue = Number(form.pairBudgetUsdt);
+  const budgetError = !Number.isFinite(pairBudgetValue)
+    ? "請輸入有效的兩腿總預算"
+    : pairBudgetValue < 2
+      ? "兩腿總預算不得低於 2.00 USDT"
+      : pairBudgetValue > maxPairBudget
+        ? `目前實單安全上限為 ${maxPairBudget.toFixed(2)} USDT`
+        : null;
+
   const requestPayload = useCallback(() => ({
     selection: form.selection,
     pairBudgetUsdt: numberOr(form.pairBudgetUsdt, 3),
@@ -211,6 +223,11 @@ export default function XPairCanaryPage() {
   }), [form]);
 
   const saveConfig = async () => {
+    if (budgetError) {
+      setActionError(budgetError);
+      return;
+    }
+    setActionError(null);
     setRequestState("儲存監控條件中…");
     try {
       const response = await fetch(apiUrl("/api/xpair-canary/config"), {
@@ -223,17 +240,24 @@ export default function XPairCanaryPage() {
       setState(payload);
       setRequestState("條件已套用；背景會自動取得 quote");
     } catch (error) {
-      setRequestState(error instanceof Error ? error.message : "監控條件儲存失敗");
+      const message = error instanceof Error ? error.message : "監控條件儲存失敗";
+      setActionError(message);
+      setRequestState(message);
     }
   };
 
   const arm = async () => {
+    if (budgetError) {
+      setActionError(budgetError);
+      return;
+    }
     const accepted = window.confirm(
       `這不會立刻送單，而是武裝下一個符合條件的 BTC／ETH 兩腿 quote。\n\n` +
-      `總預算上限 ${form.pairBudgetUsdt} USDT；一旦兩腿報價通過，程式會自動嘗試送出一次，無法再等你確認。\n\n` +
+      `總預算上限 ${Number(form.pairBudgetUsdt).toFixed(2)} USDT；一旦兩腿報價通過，程式會自動嘗試送出一次，無法再等你確認。\n\n` +
       `兩腿非原子，可能只成交一腿；另一個正式實單程序必須先停止。\n\n確定武裝嗎？`,
     );
     if (!accepted) return;
+    setActionError(null);
     setRequestState("正在武裝下一次正式單…");
     try {
       const response = await fetch(apiUrl("/api/xpair-canary/arm"), {
@@ -249,11 +273,14 @@ export default function XPairCanaryPage() {
       setState(payload);
       setRequestState("已武裝；下一個符合條件的 quote 會自動嘗試一次正式送單");
     } catch (error) {
-      setRequestState(error instanceof Error ? error.message : "武裝失敗");
+      const message = error instanceof Error ? error.message : "武裝失敗";
+      setActionError(message);
+      setRequestState(message);
     }
   };
 
   const disarm = async () => {
+    setActionError(null);
     setRequestState("取消武裝中…");
     try {
       const response = await fetch(apiUrl("/api/xpair-canary/disarm"), {
@@ -266,7 +293,9 @@ export default function XPairCanaryPage() {
       setState(payload);
       setRequestState("已取消武裝；背景 quote 監控仍會繼續");
     } catch (error) {
-      setRequestState(error instanceof Error ? error.message : "取消武裝失敗");
+      const message = error instanceof Error ? error.message : "取消武裝失敗";
+      setActionError(message);
+      setRequestState(message);
     }
   };
 
@@ -299,6 +328,7 @@ export default function XPairCanaryPage() {
       <strong>武裝不是立即下單</strong>
       <p>按下武裝後會先出現瀏覽器確認；確認後程式等待下一個符合價格、深度、時間窗與 signed quote 成本限制的機會，再自動送出一次。報價不合格時會繼續等，不會放寬條件。</p>
       <p>真正送單前仍會重新檢查活動訂單、持倉與持久化事故鎖。不再需要輸入額外確認字串。</p>
+      {actionError ? <p className={styles.errorText}><strong>操作被拒絕：</strong> {actionError}</p> : null}
     </section>
 
     <section className={styles.summaryGrid}>
@@ -323,7 +353,20 @@ export default function XPairCanaryPage() {
           </select>
         </label>
         <label>兩腿總預算（USDT）
-          <input type="number" min="2" max="3" step="0.01" value={form.pairBudgetUsdt} onChange={event => setForm(current => ({ ...current, pairBudgetUsdt: event.target.value }))} />
+          <input
+            type="number"
+            min="2"
+            max={maxPairBudget}
+            step="0.01"
+            value={form.pairBudgetUsdt}
+            onChange={event => {
+              setActionError(null);
+              setForm(current => ({ ...current, pairBudgetUsdt: event.target.value }));
+            }}
+          />
+          <small className={budgetError ? styles.errorText : styles.muted}>
+            {budgetError ?? `可設定 2.00～${maxPairBudget.toFixed(2)} USDT`}
+          </small>
         </label>
         <label>餘額緩衝（USDT）
           <input type="number" min="0" max="1" step="0.01" value={form.balanceBufferUsdt} onChange={event => setForm(current => ({ ...current, balanceBufferUsdt: event.target.value }))} />
@@ -349,7 +392,7 @@ export default function XPairCanaryPage() {
       </div>
 
       <div className={styles.actionGrid}>
-        <button className={styles.secondaryButton} disabled={runtime?.armed} onClick={() => void saveConfig()}>
+        <button className={styles.secondaryButton} disabled={runtime?.armed || Boolean(budgetError)} onClick={() => void saveConfig()}>
           儲存監控條件
           <small>背景 quote 不會停止；下一輪立即套用</small>
         </button>
@@ -358,9 +401,9 @@ export default function XPairCanaryPage() {
           <small>只取消送單；自動 quote 繼續運行</small>
         </button>
         <div className={styles.liveAction}>
-          <button className={styles.liveButton} disabled={runtime?.armed || !runtime?.running || safetyLocked} onClick={() => void arm()}>
+          <button className={styles.liveButton} disabled={runtime?.armed || !runtime?.running || safetyLocked || Boolean(budgetError)} onClick={() => void arm()}>
             武裝下一次符合條件正式單
-            <small>{safetyLocked ? "事故安全鎖生效中" : "按鈕確認 · 合格 quote 出現時自動嘗試一次"}</small>
+            <small>{safetyLocked ? "事故安全鎖生效中" : budgetError ?? "按鈕確認 · 合格 quote 出現時自動嘗試一次"}</small>
           </button>
         </div>
       </div>
