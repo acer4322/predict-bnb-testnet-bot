@@ -3,8 +3,6 @@ from __future__ import annotations
 import threading
 from decimal import Decimal
 
-import pytest
-
 from predict_bot import live_trading as live
 from predict_bot.pair_arb_live_minimum import (
     PAIR_ARB_MIN_LEG_STAKE_USDT,
@@ -51,19 +49,20 @@ def test_dynamic_pair_leg_stake_is_used_directly() -> None:
     assert stake == Decimal("1.25")
 
 
-def test_pair_total_stake_below_two_is_rejected() -> None:
+def test_pair_configuration_remains_loadable_for_paper_and_legacy_tests() -> None:
     install_pair_arb_minimum()
-    with pytest.raises(ValueError, match="at least 2.00 USDT"):
-        live.normalize_live_rules(
-            {
-                "strategies": ["PAIR_ARB_010"],
-                "strategyStakesUsdt": [1.99],
-            }
-        )
+    rules = live.normalize_live_rules(
+        {
+            "strategies": ["PAIR_ARB_010"],
+            "strategyStakesUsdt": [1.0],
+        }
+    )
+    assert rules["strategyStakesUsdt"] == [1.0]
 
 
-def test_non_pair_strategy_keeps_existing_minimum() -> None:
+def test_non_pair_global_minimum_is_unchanged() -> None:
     install_pair_arb_minimum()
+    assert live.LIVE_MIN_CONFIGURABLE_STAKE_USDT == Decimal("0.01")
     rules = live.normalize_live_rules(
         {
             "strategies": ["M01O_F1"],
