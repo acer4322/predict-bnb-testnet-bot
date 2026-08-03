@@ -43,6 +43,7 @@ def preflight_wallet(
     client.quota_status()
 
     requested_type = normalize_account_type(account_type)
+    requested_key = requested_type.upper()
     balance_payload = client.payment_option_balances()
     enabled = [
         item
@@ -52,7 +53,7 @@ def preflight_wallet(
     matching = [
         item
         for item in enabled
-        if normalize_account_type(item.get("accountType")) == requested_type
+        if str(item.get("accountType") or "").strip().upper() == requested_key
     ]
     if not matching:
         available_types = ", ".join(
