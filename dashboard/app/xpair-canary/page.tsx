@@ -17,9 +17,9 @@ type RuntimeLog = {
 type RuntimeState = {
   running: boolean;
   phase: string;
+  runId?: number | null;
   startedAt?: string | null;
   completedAt?: string | null;
-  exitCode?: number | null;
   lastError?: string | null;
   logs?: RuntimeLog[];
 };
@@ -31,30 +31,48 @@ type CanaryRun = {
   variant?: string | null;
   status: string;
   pair_budget_usdt: number;
+  required_balance_usdt: number;
   btc_market_id?: number | null;
   eth_market_id?: number | null;
+  target_shares?: number | null;
   modeled_cost_per_share?: number | null;
   quoted_cost_per_share?: number | null;
+  btc_order_id?: string | null;
+  eth_order_id?: string | null;
   btc_order_status?: string | null;
   eth_order_status?: string | null;
   message?: string | null;
-  updated_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 type CanaryState = {
+  strategy: string;
+  nonAtomic: boolean;
   defaults: {
     pairBudgetUsdt: number;
     balanceBufferUsdt: number;
     requiredBalanceUsdt: number;
+    recommendedAvailableBalanceUsdt: string;
     maxTotalCost: number;
     maxLegReprice: number;
     entrySecondsLeft: number;
     entryWindowSeconds: number;
     slippageBps: number;
-    accountType: "SPOT" | "FUNDING";
+    accountType: "CeDeFi" | "SPOT" | "FUNDING";
+  };
+  policy: {
+    oneActiveRunPerProcess: boolean;
+    oneLiveAttemptPerAlignedMarket: boolean;
+    retryPlacement: boolean;
+    automaticCancel: boolean;
+    automaticUnwind: boolean;
+    liveConfirmationPhrase: string;
+    otherLiveExecutorMustBeStopped: boolean;
   };
   runtime: RuntimeState;
   recentRuns: CanaryRun[];
+  updatedAt: string;
 };
 
 type FormState = {
@@ -66,7 +84,7 @@ type FormState = {
   entrySecondsLeft: string;
   entryWindowSeconds: string;
   slippageBps: string;
-  accountType: "SPOT" | "FUNDING";
+  accountType: "CeDeFi" | "SPOT" | "FUNDING";
 };
 
 function apiUrl(path: string) {
@@ -106,7 +124,7 @@ const DEFAULT_FORM: FormState = {
   entrySecondsLeft: "180",
   entryWindowSeconds: "10",
   slippageBps: "100",
-  accountType: "SPOT",
+  accountType: "CeDeFi",
 };
 
 export default function XPairCanaryPage() {
@@ -140,8 +158,8 @@ export default function XPairCanaryPage() {
     if (!state?.defaults) return;
     setForm(current => current === DEFAULT_FORM ? {
       selection: "BTC_DOWN_ETH_UP",
-      pairBudgetUsdt: state.defaults.pairBudgetUsdt.toFixed(2),
-      balanceBufferUsdt: state.defaults.balanceBufferUsdt.toFixed(2),
+      pairBudgetUsdt: String(state.defaults.pairBudgetUsdt.toFixed(2)),
+      balanceBufferUsdt: String(state.defaults.balanceBufferUsdt.toFixed(2)),
       maxTotalCost: String(state.defaults.maxTotalCost),
       maxLegReprice: String(state.defaults.maxLegReprice),
       entrySecondsLeft: String(state.defaults.entrySecondsLeft),
@@ -269,7 +287,8 @@ export default function XPairCanaryPage() {
           <input type="number" min="0" max="500" step="10" value={form.slippageBps} onChange={event => setForm(current => ({ ...current, slippageBps: event.target.value }))} />
         </label>
         <label>付款帳戶
-          <select value={form.accountType} onChange={event => setForm(current => ({ ...current, accountType: event.target.value as "SPOT" | "FUNDING" }))}>
+          <select value={form.accountType} onChange={event => setForm(current => ({ ...current, accountType: event.target.value as "CeDeFi" | "SPOT" | "FUNDING" }))}>
+            <option value="CeDeFi">CeDeFi / Prediction Wallet</option>
             <option value="SPOT">SPOT</option>
             <option value="FUNDING">FUNDING</option>
           </select>
@@ -278,15 +297,25 @@ export default function XPairCanaryPage() {
 
       <div className={styles.actionGrid}>
         <button className={styles.secondaryButton} disabled={runtime?.running} onClick={() => void submit("dry-run")}>
-          Dry-run<small>只讀訂單簿，不取 signed quote</small>
+          Dry-run
+          <small>只讀訂單簿，不取 signed quote</small>
         </button>
         <button className={styles.quoteButton} disabled={runtime?.running} onClick={() => void submit("quote-only")}>
-          Quote-only<small>驗證最低金額與雙腿等 shares，不送單</small>
+          Quote-only
+          <small>驗證最低金額與雙腿等 shares，不送單</small>
         </button>
         <div className={styles.liveAction}>
-          <input aria-label="正式送單確認字串" placeholder={LIVE_CONFIRM_VALUE} value={confirmation} onChange={event => setConfirmation(event.target.value)} autoComplete="off" spellCheck={false} />
+          <input
+            aria-label="正式送單確認字串"
+            placeholder={LIVE_CONFIRM_VALUE}
+            value={confirmation}
+            onChange={event => setConfirmation(event.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+          />
           <button className={styles.liveButton} disabled={runtime?.running || !liveUnlocked} onClick={() => void submit("live")}>
-            送出一次正式 Canary<small>真實資金 · 不可自動復原</small>
+            送出一次正式 Canary
+            <small>真實資金 · 不可自動復原</small>
           </button>
         </div>
       </div>
@@ -296,9 +325,9 @@ export default function XPairCanaryPage() {
       <article className={styles.runtimeCard}>
         <div className={styles.sectionHead}><div><span className={styles.eyebrow}>RUNTIME</span><h2>目前執行</h2></div><span className={`${styles.statusPill} ${statusTone(runtime?.phase ?? "IDLE")}`}>{runtime?.phase ?? "IDLE"}</span></div>
         <dl>
+          <div><dt>Run ID</dt><dd>{runtime?.runId ?? "—"}</dd></div>
           <div><dt>開始</dt><dd>{timeLabel(runtime?.startedAt)}</dd></div>
           <div><dt>完成</dt><dd>{timeLabel(runtime?.completedAt)}</dd></div>
-          <div><dt>Exit code</dt><dd>{runtime?.exitCode ?? "—"}</dd></div>
           <div><dt>錯誤</dt><dd className={styles.errorText}>{runtime?.lastError ?? "—"}</dd></div>
         </dl>
       </article>
@@ -319,7 +348,8 @@ export default function XPairCanaryPage() {
           <thead><tr><th>ID</th><th>模式</th><th>狀態</th><th>組合</th><th>市場</th><th>成本/share</th><th>訂單狀態</th><th>時間</th></tr></thead>
           <tbody>
             {recent.length === 0 ? <tr><td colSpan={8} className={styles.empty}>尚無紀錄</td></tr> : recent.map(run => <tr key={run.id}>
-              <td>#{run.id}</td><td>{run.mode}</td>
+              <td>#{run.id}</td>
+              <td>{run.mode}</td>
               <td><span className={`${styles.statusPill} ${statusTone(run.status)}`}>{run.status}</span></td>
               <td>{run.variant ?? run.selection}</td>
               <td>BTC {run.btc_market_id ?? "—"}<br />ETH {run.eth_market_id ?? "—"}</td>
