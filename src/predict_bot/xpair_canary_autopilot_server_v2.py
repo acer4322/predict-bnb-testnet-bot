@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import threading
 import time
-from decimal import Decimal
 from http.server import ThreadingHTTPServer
 
 from . import xpair_canary_autopilot_server as base
@@ -83,13 +82,18 @@ def monitor_loop() -> None:
                             "startMs": min(btc.start_ms, eth.start_ms),
                             "endMs": min(btc.end_ms, eth.end_ms),
                         }
+                        attempted_current_market = (
+                            base.STATE.last_attempt_market_key == key
+                        )
 
                     inside_window = (
                         config.entry_seconds_left - config.entry_window_seconds
                         <= seconds_left
                         <= config.entry_seconds_left
                     )
-                    if not inside_window:
+                    if attempted_current_market:
+                        status = "LIVE_ATTEMPT_RECORDED_WAIT_NEXT_MARKET"
+                    elif not inside_window:
                         status = f"WAITING_ENTRY_WINDOW left={seconds_left:.1f}s"
                     elif loop_started < next_quote_at:
                         status = "QUOTE_COOLDOWN"
@@ -145,10 +149,9 @@ def monitor_loop() -> None:
                             live_wallet_id = wallet_id
                             live_block_reason: str | None = None
                             if base.STATE.is_armed():
-                                # Do all slow wallet/order/position checks before
-                                # requesting the short-lived signed quotes. Once
-                                # the quote pair is accepted, placement follows
-                                # immediately without another preflight round trip.
+                                # Complete the slow safety checks before requesting
+                                # short-lived signed quotes. Once both final quotes
+                                # pass, placement follows immediately.
                                 try:
                                     live_wallet, live_wallet_id, _ = (
                                         base.strict_live_preflight(client, config)
