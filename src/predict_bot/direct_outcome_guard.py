@@ -254,7 +254,7 @@ def install_direct_outcome_guard() -> None:
                 and forwarded_from_realtime
                 and not signal_has_direct_outcome_provenance(signal)
             ):
-                return self._record_blocked_signal(
+                self._record_blocked_signal(
                     signal,
                     DIRECT_OUTCOME_BLOCK_STATUS,
                     (
@@ -277,6 +277,7 @@ def install_direct_outcome_guard() -> None:
                         ),
                     },
                 )
+                return None
             return original_single_signal(
                 self,
                 signal,
