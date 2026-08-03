@@ -12,3 +12,9 @@ dashboard/dev.stderr.log
 dashboard/tsconfig.tsbuildinfo
 .api.pid
 .web.pid
+apply_prediction_content_freshness_telemetry.py
+apply_prediction_content_freshness_telemetry_v2.py
+apply_prediction_rollover_supervisor.py
+apply_prediction_rollover_supervisor_v2.py
+apply_prediction_rollover_supervisor_v3.py
+apply_prediction_rollover_supervisor_v4.py

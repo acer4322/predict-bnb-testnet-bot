@@ -38,14 +38,6 @@ LIVE_DEFAULT_MAX_STAKE_USDT = Decimal("1.00")
 LIVE_MIN_CONFIGURABLE_STAKE_USDT = Decimal("0.01")
 LIVE_MAX_CONFIGURABLE_STAKE_USDT = Decimal("100.00")
 LIVE_MAX_SELECTED_STRATEGIES = 4
-LIVE_EXECUTION_MODE_FIXED = "FIXED"
-LIVE_EXECUTION_MODE_CONFIRMATION_ADD = "CONFIRMATION_ADD"
-LIVE_EXECUTION_MODES = (
-    LIVE_EXECUTION_MODE_FIXED,
-    LIVE_EXECUTION_MODE_CONFIRMATION_ADD,
-)
-LIVE_CONFIRMATION_ADD_TRANCHES = 4
-LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT = Decimal("1.00")
 LIVE_DEFAULT_STRATEGY = "M01O_F1"
 LIVE_RESEARCH_STRATEGIES = (
     "R_MICROPRICE",
@@ -317,11 +309,6 @@ def normalize_live_rules(
         "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
         "futuresLeadObserverEnabled": False,
         "futuresLeadObserverVersion": "F1",
-        "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
-        "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
-        "strategyConfirmationAddStakesUsdt": [
-            float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
-        ],
         "strategyDrawdownControlEnabled": [False],
         "strategyLossCooldownEnabled": [False],
         "reliabilityGateTags": [],
@@ -392,99 +379,6 @@ def normalize_live_rules(
             )
         _stake_amount_wei(stake)
         stakes.append(stake)
-    def normalized_list_setting(name: str, fallback: Any) -> list[Any]:
-        raw = candidate.get(name)
-        if name in values:
-            raw = values[name]
-        if isinstance(raw, str):
-            try:
-                decoded = json.loads(raw)
-                raw = decoded if isinstance(decoded, list) else [raw]
-            except json.JSONDecodeError:
-                raw = [raw]
-        if not isinstance(raw, list):
-            raw = [fallback] * len(strategies)
-        default_value = raw[0] if raw else fallback
-        return (raw + [default_value] * len(strategies))[:len(strategies)]
-
-    strategy_execution_modes = [
-        str(value or LIVE_EXECUTION_MODE_FIXED).strip().upper()
-        for value in normalized_list_setting(
-            "strategyExecutionModes", LIVE_EXECUTION_MODE_FIXED
-        )
-    ]
-    invalid_modes = sorted(
-        set(strategy_execution_modes) - set(LIVE_EXECUTION_MODES)
-    )
-    if invalid_modes:
-        raise ValueError(
-            "each strategy execution mode must be one of: "
-            + ", ".join(LIVE_EXECUTION_MODES)
-        )
-
-    raw_initial_stakes = normalized_list_setting(
-        "strategyInitialStakesUsdt", float(stakes[0])
-    )
-    raw_add_stakes = normalized_list_setting(
-        "strategyConfirmationAddStakesUsdt",
-        float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT),
-    )
-    strategy_initial_stakes: list[Decimal] = []
-    strategy_add_stakes: list[Decimal] = []
-    strategy_total_caps: list[Decimal] = []
-    for index, strategy in enumerate(strategies):
-        mode = strategy_execution_modes[index]
-        initial = _decimal(raw_initial_stakes[index])
-        add_stake = _decimal(raw_add_stakes[index])
-        if mode == LIVE_EXECUTION_MODE_FIXED:
-            initial = stakes[index]
-        if initial is None or not (
-            LIVE_MIN_CONFIGURABLE_STAKE_USDT
-            <= initial
-            <= LIVE_MAX_CONFIGURABLE_STAKE_USDT
-        ):
-            raise ValueError(
-                "each initial live stake must be between "
-                f"{LIVE_MIN_CONFIGURABLE_STAKE_USDT} and "
-                f"{LIVE_MAX_CONFIGURABLE_STAKE_USDT}"
-            )
-        if add_stake is None or not (
-            LIVE_MIN_CONFIGURABLE_STAKE_USDT
-            <= add_stake
-            <= LIVE_MAX_CONFIGURABLE_STAKE_USDT
-        ):
-            raise ValueError(
-                "each confirmation add stake must be between "
-                f"{LIVE_MIN_CONFIGURABLE_STAKE_USDT} and "
-                f"{LIVE_MAX_CONFIGURABLE_STAKE_USDT}"
-            )
-        if mode == LIVE_EXECUTION_MODE_CONFIRMATION_ADD:
-            if strategy not in CONFIRMATION_ADD_SOURCE_STRATEGIES:
-                raise ValueError(
-                    f"{strategy} does not support CONFIRMATION_ADD; supported: "
-                    + ", ".join(CONFIRMATION_ADD_SOURCE_STRATEGIES)
-                )
-            if strategy in {
-                "R_FUTURES_LEAD_REVERSE",
-                "R_MICROPRICE_REVERSE",
-                "R_CALIBRATED_VALUE_REVERSE",
-            } or strategy.startswith("PAIR_ARB_"):
-                raise ValueError(f"{strategy} may not use CONFIRMATION_ADD")
-            total_cap = initial + add_stake * LIVE_CONFIRMATION_ADD_TRANCHES
-            if total_cap > LIVE_MAX_CONFIGURABLE_STAKE_USDT:
-                raise ValueError(
-                    "initial stake plus four confirmation adds may not exceed "
-                    f"{LIVE_MAX_CONFIGURABLE_STAKE_USDT} USDT"
-                )
-        else:
-            total_cap = initial
-        _stake_amount_wei(initial)
-        _stake_amount_wei(add_stake)
-        _stake_amount_wei(total_cap)
-        strategy_initial_stakes.append(initial)
-        strategy_add_stakes.append(add_stake)
-        strategy_total_caps.append(total_cap)
-    stakes = strategy_total_caps
     min_win_rate = _float(candidate.get("minHourlyWinRatePct"))
     max_win_then_loss = _float(
         candidate.get("maxHourlyWinThenLossRatePct")
@@ -614,13 +508,6 @@ def normalize_live_rules(
         "strategies": strategies,
         "maxStakeUsdt": float(stakes[0]),
         "strategyStakesUsdt": [float(stake) for stake in stakes],
-        "strategyExecutionModes": strategy_execution_modes,
-        "strategyInitialStakesUsdt": [
-            float(stake) for stake in strategy_initial_stakes
-        ],
-        "strategyConfirmationAddStakesUsdt": [
-            float(stake) for stake in strategy_add_stakes
-        ],
         "minHourlyWinRatePct": float(min_win_rate),
         "maxHourlyWinThenLossRatePct": float(max_win_then_loss),
         # The scalar fields remain aliases for strategy slot 1 so old clients
@@ -712,50 +599,6 @@ def _decimal(value: Any) -> Decimal | None:
 def _float(value: Any) -> float | None:
     result = _decimal(value)
     return float(result) if result is not None else None
-
-
-
-def live_strategy_execution_plan(
-    rules: dict[str, Any], strategy: str
-) -> dict[str, Any]:
-    normalized = str(strategy or "").strip().upper()
-    try:
-        index = [
-            str(value).strip().upper() for value in rules["strategies"]
-        ].index(normalized)
-        total_cap = Decimal(str(rules["strategyStakesUsdt"][index]))
-        mode = str(
-            rules.get("strategyExecutionModes", [])[index]
-        ).strip().upper()
-        initial = Decimal(
-            str(rules.get("strategyInitialStakesUsdt", [])[index])
-        )
-        add_stake = Decimal(
-            str(rules.get("strategyConfirmationAddStakesUsdt", [])[index])
-        )
-    except (KeyError, IndexError, TypeError, ValueError, InvalidOperation):
-        try:
-            index = [
-                str(value).strip().upper() for value in rules["strategies"]
-            ].index(normalized)
-            total_cap = Decimal(str(rules["strategyStakesUsdt"][index]))
-        except (KeyError, IndexError, TypeError, ValueError, InvalidOperation):
-            total_cap = Decimal(str(rules.get("maxStakeUsdt") or 0))
-        mode = LIVE_EXECUTION_MODE_FIXED
-        initial = total_cap
-        add_stake = LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT
-    if mode not in LIVE_EXECUTION_MODES:
-        mode = LIVE_EXECUTION_MODE_FIXED
-    if mode == LIVE_EXECUTION_MODE_FIXED:
-        initial = total_cap
-    return {
-        "strategy": normalized,
-        "mode": mode,
-        "initialStakeUsdt": initial,
-        "addStakeUsdt": add_stake,
-        "totalCapUsdt": total_cap,
-        "tranches": LIVE_CONFIRMATION_ADD_TRANCHES,
-    }
 
 
 def evaluate_live_reliability_tags(
@@ -1080,27 +923,6 @@ class LiveLedger:
                 );
                 CREATE INDEX IF NOT EXISTS live_confirmation_add_market_idx
                     ON live_confirmation_add_mirrors(market_id, status);
-                CREATE TABLE IF NOT EXISTS live_confirmation_add_plans (
-                    source_order_local_id INTEGER PRIMARY KEY,
-                    strategy TEXT NOT NULL,
-                    topic_id INTEGER NOT NULL,
-                    market_id INTEGER NOT NULL,
-                    side TEXT NOT NULL,
-                    token_id TEXT NOT NULL,
-                    configured_initial_stake_usdt REAL NOT NULL,
-                    actual_initial_stake_usdt REAL,
-                    add_stake_usdt REAL NOT NULL,
-                    base_price REAL,
-                    levels_json TEXT NOT NULL DEFAULT '[]',
-                    status TEXT NOT NULL DEFAULT 'PENDING_FILL',
-                    created_at TEXT NOT NULL,
-                    activated_at TEXT,
-                    settled_at TEXT,
-                    updated_at TEXT NOT NULL,
-                    FOREIGN KEY(source_order_local_id) REFERENCES live_orders(id)
-                );
-                CREATE INDEX IF NOT EXISTS live_confirmation_add_plans_market_idx
-                    ON live_confirmation_add_plans(market_id, status);
                 CREATE TABLE IF NOT EXISTS live_strategy_loss_cooldown_results (
                     order_local_id INTEGER PRIMARY KEY,
                     strategy TEXT NOT NULL,
@@ -1296,9 +1118,6 @@ class LiveLedger:
             "strategy",
             "strategies",
             "strategyStakesUsdt",
-            "strategyExecutionModes",
-            "strategyInitialStakesUsdt",
-            "strategyConfirmationAddStakesUsdt",
             "maxStakeUsdt",
             "minHourlyWinRatePct",
             "maxHourlyWinThenLossRatePct",
@@ -1327,9 +1146,6 @@ class LiveLedger:
                     "strategy",
                     "strategies",
                     "strategyStakesUsdt",
-            "strategyExecutionModes",
-            "strategyInitialStakesUsdt",
-            "strategyConfirmationAddStakesUsdt",
                     "maxStakeUsdt",
                     "minHourlyWinRatePct",
                     "maxHourlyWinThenLossRatePct",
@@ -1353,9 +1169,6 @@ class LiveLedger:
                             if key in {
                                 "strategies",
                                 "strategyStakesUsdt",
-            "strategyExecutionModes",
-            "strategyInitialStakesUsdt",
-            "strategyConfirmationAddStakesUsdt",
                                 "strategyObserverEnabled",
                                 "strategyObserverVersions",
                                 "strategyDrawdownControlEnabled",
@@ -1721,7 +1534,6 @@ class LiveLedger:
             ),
             response_json=_safe_payload(order),
         )
-        self._activate_live_confirmation_add_plan(local_id)
         self._capture_filled_reliability_sample(local_id)
 
     def _capture_filled_reliability_sample(self, local_id: int) -> None:
@@ -1853,225 +1665,6 @@ class LiveLedger:
             ),
         )
 
-    def create_live_confirmation_add_plan(
-        self,
-        *,
-        source_order_local_id: int,
-        strategy: str,
-        topic_id: int,
-        market_id: int,
-        side: str,
-        token_id: str,
-        configured_initial_stake_usdt: float,
-        add_stake_usdt: float,
-    ) -> None:
-        normalized = str(strategy or "").strip().upper()
-        if normalized not in CONFIRMATION_ADD_SOURCE_STRATEGIES:
-            raise ValueError(
-                f"{normalized} does not support live confirmation adds"
-            )
-        initial = float(configured_initial_stake_usdt)
-        add = float(add_stake_usdt)
-        if initial <= 0 or add <= 0:
-            raise ValueError("confirmation-add amounts must be positive")
-        now = utc_iso()
-        with self.lock:
-            self.db.execute(
-                """INSERT OR IGNORE INTO live_confirmation_add_plans(
-                       source_order_local_id, strategy, topic_id, market_id,
-                       side, token_id, configured_initial_stake_usdt,
-                       add_stake_usdt, status, created_at, updated_at
-                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING_FILL', ?, ?)""",
-                (
-                    int(source_order_local_id), normalized, int(topic_id),
-                    int(market_id), str(side).upper(), str(token_id),
-                    initial, add, now, now,
-                ),
-            )
-            self.db.commit()
-
-    def _activate_live_confirmation_add_plan(self, local_id: int) -> None:
-        with self.lock:
-            row = self.db.execute(
-                """SELECT o.*, p.source_order_local_id
-                     FROM live_orders AS o
-                     JOIN live_confirmation_add_plans AS p
-                       ON p.source_order_local_id=o.id
-                    WHERE o.id=?""",
-                (int(local_id),),
-            ).fetchone()
-            if row is None or ":" in str(row["strategy"] or ""):
-                return
-            filled_cost = _float(row["filled_usdt_amount"])
-            quote_cost = self._wei_amount(row["quote_amount_in_wei"])
-            positive_costs = [
-                value for value in (filled_cost, quote_cost)
-                if value is not None and value > 0
-            ]
-            if not positive_costs:
-                return
-            actual_initial = min(positive_costs)
-            base_price = _float(row["quote_average_price"])
-            if base_price is None:
-                shares = _float(row["filled_share_qty"])
-                base_price = (
-                    actual_initial / shares
-                    if shares is not None and shares > 0
-                    else _float(row["signal_price"])
-                )
-            if base_price is None or not 0 < base_price < 1:
-                return
-            now = utc_iso()
-            self.db.execute(
-                """UPDATE live_confirmation_add_plans
-                      SET actual_initial_stake_usdt=?, base_price=?,
-                          levels_json=?, status='ACTIVE',
-                          activated_at=COALESCE(activated_at, ?),
-                          updated_at=?
-                    WHERE source_order_local_id=?
-                      AND status IN ('PENDING_FILL','ACTIVE')""",
-                (
-                    actual_initial,
-                    base_price,
-                    json.dumps(list(confirmation_add_levels(base_price))),
-                    now,
-                    now,
-                    int(local_id),
-                ),
-            )
-            self.db.commit()
-
-    def live_confirmation_add_candidates(
-        self, snapshot: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        try:
-            market_id = int(snapshot["market_id"])
-        except (KeyError, TypeError, ValueError):
-            return []
-        candidates: list[dict[str, Any]] = []
-        with self.lock:
-            plans = self.db.execute(
-                """SELECT * FROM live_confirmation_add_plans
-                    WHERE market_id=? AND status='ACTIVE'
-                    ORDER BY source_order_local_id ASC""",
-                (market_id,),
-            ).fetchall()
-            for plan in plans:
-                side = str(plan["side"] or "").upper()
-                safe, _reason = confirmation_add_book_is_safe(snapshot, side)
-                if not safe:
-                    continue
-                prefix = side.lower()
-                try:
-                    ask = float(snapshot[f"{prefix}_ask"])
-                    ask_size = float(snapshot[f"{prefix}_ask_size"])
-                    levels = [
-                        float(value)
-                        for value in json.loads(plan["levels_json"] or "[]")
-                    ]
-                    seconds_left = float(snapshot["seconds_left"])
-                    book_age_ms = float(snapshot["book_age_ms"])
-                    book_skew_ms = float(snapshot["book_skew_ms"])
-                except (
-                    KeyError, TypeError, ValueError, json.JSONDecodeError
-                ):
-                    continue
-                execution_limit = confirmation_add_execution_price(ask)
-                if execution_limit is None:
-                    continue
-                for tranche_index in range(
-                    1,
-                    min(len(levels), LIVE_CONFIRMATION_ADD_TRANCHES + 1),
-                ):
-                    target = levels[tranche_index]
-                    if ask + 1e-12 < target:
-                        continue
-                    ledger_strategy = (
-                        f"{str(plan['strategy'])}:CONFIRM_ADD_{tranche_index}"
-                    )
-                    existing = self.db.execute(
-                        """SELECT id FROM live_orders
-                            WHERE strategy=? AND market_id=? LIMIT 1""",
-                        (ledger_strategy, market_id),
-                    ).fetchone()
-                    if existing is not None:
-                        continue
-                    candidates.append(
-                        {
-                            "strategy": str(plan["strategy"]),
-                            "ledgerStrategy": ledger_strategy,
-                            "sourceOrderLocalId": int(
-                                plan["source_order_local_id"]
-                            ),
-                            "trancheIndex": tranche_index,
-                            "topicId": int(plan["topic_id"]),
-                            "marketId": market_id,
-                            "side": side,
-                            "targetPrice": target,
-                            "observedAsk": ask,
-                            "observedAskSize": ask_size,
-                            "executionLimit": float(execution_limit),
-                            "stakeUsdt": float(plan["add_stake_usdt"]),
-                            "secondsLeft": seconds_left,
-                            "bookAgeMs": book_age_ms,
-                            "bookSkewMs": book_skew_ms,
-                            "timestamp": snapshot.get("timestamp") or utc_iso(),
-                        }
-                    )
-                    # Queue only the earliest unmet tranche from one snapshot.
-                    # A later current-market snapshot may advance the next
-                    # stage after the durable attempt row exists.
-                    break
-        return candidates
-
-    def live_confirmation_add_summary(self) -> dict[str, Any]:
-        with self.lock:
-            plans = [
-                dict(row)
-                for row in self.db.execute(
-                    """SELECT * FROM live_confirmation_add_plans
-                        ORDER BY source_order_local_id DESC LIMIT 100"""
-                ).fetchall()
-            ]
-            for plan in plans:
-                rows = self.db.execute(
-                    """SELECT strategy, status, order_id,
-                              filled_usdt_amount, filled_share_qty,
-                              error_kind, error_message
-                         FROM live_orders
-                        WHERE market_id=? AND strategy LIKE ?
-                        ORDER BY id ASC""",
-                    (
-                        int(plan["market_id"]),
-                        f"{plan['strategy']}:CONFIRM_ADD_%",
-                    ),
-                ).fetchall()
-                plan["tranches"] = [dict(row) for row in rows]
-                try:
-                    plan["levels"] = json.loads(plan.pop("levels_json"))
-                except (TypeError, json.JSONDecodeError):
-                    plan["levels"] = []
-                plan.pop("token_id", None)
-        active = [plan for plan in plans if plan["status"] == "ACTIVE"]
-        return {
-            "status": "ACTIVE" if active else "WAITING",
-            "supportedSourceStrategies": list(
-                CONFIRMATION_ADD_SOURCE_STRATEGIES
-            ),
-            "multipliers": [1.0, 1.1, 1.2, 1.3, 1.4],
-            "minimumSecondsLeftExclusive": 30.0,
-            "activePlans": len(active),
-            "submittedAddOrders": sum(
-                1 for plan in plans for row in plan["tranches"]
-                if row.get("order_id")
-            ),
-            "filledAddOrders": sum(
-                1 for plan in plans for row in plan["tranches"]
-                if float(row.get("filled_usdt_amount") or 0) > 0
-            ),
-            "recentPlans": plans[:20],
-        }
-
     def record_confirmation_add_snapshot(
         self, snapshot: dict[str, Any]
     ) -> dict[str, Any]:
@@ -2195,21 +1788,15 @@ class LiveLedger:
         result: str,
         settled_at: str,
     ) -> None:
-        normalized = str(result).upper()
-        if normalized not in {"WIN", "LOSS"}:
-            return
-        self.db.execute(
-            """UPDATE live_confirmation_add_plans
-                  SET status='SETTLED', settled_at=?, updated_at=?
-                WHERE source_order_local_id=?""",
-            (settled_at, utc_iso(), int(order_local_id)),
-        )
         row = self.db.execute(
             """SELECT * FROM live_confirmation_add_mirrors
                 WHERE order_local_id=? LIMIT 1""",
             (int(order_local_id),),
         ).fetchone()
         if row is None:
+            return
+        normalized = str(result).upper()
+        if normalized not in {"WIN", "LOSS"}:
             return
         stake = float(row["hypothetical_stake_usdt"] or 0.0)
         fees = float(row["hypothetical_fees_usdt"] or 0.0)
@@ -3141,8 +2728,6 @@ class LiveLedger:
         result: str,
         processed_at: str,
     ) -> None:
-        if ":CONFIRM_ADD_" in str(strategy or "").upper():
-            return
         normalized_strategy = self._loss_cooldown_strategy(strategy)
         normalized_result = str(result).upper()
         if not normalized_strategy or normalized_result not in {"WIN", "LOSS"}:
@@ -3378,80 +2963,42 @@ class LiveLedger:
         return dict(row) if row is not None else None
 
     def strategy_performance(self, strategy: str | None = None) -> dict[str, Any]:
-        normalized = str(strategy or "").upper()
-        pair_strategy = bool(normalized and normalized.startswith("PAIR_ARB_"))
-        confirmation_family = normalized in CONFIRMATION_ADD_SOURCE_STRATEGIES
+        pair_strategy = bool(strategy and str(strategy).startswith("PAIR_ARB_"))
+        order_filter = (
+            " AND strategy LIKE ?" if pair_strategy
+            else " AND strategy=?" if strategy
+            else ""
+        )
+        settlement_filter = (
+            " WHERE order_local_id IN (SELECT id FROM live_orders WHERE strategy LIKE ?)"
+            if pair_strategy
+            else " WHERE order_local_id IN (SELECT id FROM live_orders WHERE strategy=?)"
+            if strategy
+            else ""
+        )
+        parameters: tuple[Any, ...] = (
+            (f"{strategy}:%",) if pair_strategy
+            else (str(strategy),) if strategy
+            else ()
+        )
         with self.lock:
-            if confirmation_family:
-                pattern = f"{normalized}:CONFIRM_ADD_%"
-                executed_row = self.db.execute(
-                    """SELECT COUNT(DISTINCT market_id) AS executed
-                         FROM live_orders
-                        WHERE COALESCE(filled_usdt_amount, 0)>0
-                          AND (strategy=? OR strategy LIKE ?)""",
-                    (normalized, pattern),
-                ).fetchone()
-                row = self.db.execute(
-                    """SELECT
-                           COUNT(*) AS settled,
-                           COALESCE(SUM(CASE WHEN result='WIN' THEN 1 ELSE 0 END),0) AS wins,
-                           COALESCE(SUM(CASE WHEN result='LOSS' THEN 1 ELSE 0 END),0) AS losses,
-                           COALESCE(SUM(cost),0) AS cost,
-                           COALESCE(SUM(payout),0) AS payout,
-                           COALESCE(SUM(pnl),0) AS pnl
-                         FROM (
-                           SELECT o.market_id,
-                                  MAX(s.result) AS result,
-                                  SUM(s.cost_usdt) AS cost,
-                                  SUM(s.payout_usdt) AS payout,
-                                  SUM(s.pnl_usdt) AS pnl
-                             FROM live_strategy_settlements AS s
-                             JOIN live_orders AS o
-                               ON o.id=s.order_local_id
-                            WHERE o.strategy=? OR o.strategy LIKE ?
-                            GROUP BY o.market_id
-                         )""",
-                    (normalized, pattern),
-                ).fetchone()
-            else:
-                order_filter = (
-                    " AND strategy LIKE ?" if pair_strategy
-                    else " AND strategy=?" if strategy
-                    else ""
-                )
-                settlement_filter = (
-                    " WHERE order_local_id IN "
-                    "(SELECT id FROM live_orders WHERE strategy LIKE ?)"
-                    if pair_strategy
-                    else " WHERE order_local_id IN "
-                    "(SELECT id FROM live_orders WHERE strategy=?)"
-                    if strategy
-                    else ""
-                )
-                parameters: tuple[Any, ...] = (
-                    (f"{normalized}:%",)
-                    if pair_strategy
-                    else (normalized,)
-                    if strategy
-                    else ()
-                )
-                executed_row = self.db.execute(
-                    f"""SELECT COUNT(*) executed
-                         FROM live_orders
-                        WHERE COALESCE(filled_usdt_amount, 0)>0{order_filter}""",
-                    parameters,
-                ).fetchone()
-                row = self.db.execute(
-                    f"""SELECT
-                           COUNT(*) settled,
-                           COALESCE(SUM(CASE WHEN result='WIN' THEN 1 ELSE 0 END),0) wins,
-                           COALESCE(SUM(CASE WHEN result='LOSS' THEN 1 ELSE 0 END),0) losses,
-                           COALESCE(SUM(cost_usdt),0) cost,
-                           COALESCE(SUM(payout_usdt),0) payout,
-                           COALESCE(SUM(pnl_usdt),0) pnl
-                         FROM live_strategy_settlements{settlement_filter}""",
-                    parameters,
-                ).fetchone()
+            executed_row = self.db.execute(
+                f"""SELECT COUNT(*) executed
+                     FROM live_orders
+                    WHERE COALESCE(filled_usdt_amount, 0)>0{order_filter}""",
+                parameters,
+            ).fetchone()
+            row = self.db.execute(
+                f"""SELECT
+                       COUNT(*) settled,
+                       COALESCE(SUM(CASE WHEN result='WIN' THEN 1 ELSE 0 END),0) wins,
+                       COALESCE(SUM(CASE WHEN result='LOSS' THEN 1 ELSE 0 END),0) losses,
+                       COALESCE(SUM(cost_usdt),0) cost,
+                       COALESCE(SUM(payout_usdt),0) payout,
+                       COALESCE(SUM(pnl_usdt),0) pnl
+                     FROM live_strategy_settlements{settlement_filter}""",
+                parameters,
+            ).fetchone()
         executed = int(executed_row["executed"])
         settled = int(row["settled"])
         wins = int(row["wins"])
@@ -3470,8 +3017,6 @@ class LiveLedger:
             "settledPayoutUsdt": payout,
             "profitUsdt": pnl,
             "roiPct": ((pnl / cost) * 100.0 if cost > 0 else None),
-            "includesConfirmationAddOrders": confirmation_family,
-            "sampleUnit": "market" if confirmation_family else "order",
         }
 
     def recent_events(self, limit: int = 50) -> list[dict[str, Any]]:
@@ -3785,7 +3330,6 @@ class LiveM0WEngine:
         self.pending_futures_lead_hedges: dict[
             int, dict[str, dict[str, Any]]
         ] = {}
-        self.pending_confirmation_add_signals: set[str] = set()
         self.hourly_performance_snapshot: dict[str, Any] | None = None
         self.hourly_guard_state: dict[str, Any] = {
             "status": "WAITING" if self.m0_hourly_performance else "DISABLED",
@@ -3862,9 +3406,6 @@ class LiveM0WEngine:
             "strategies",
             "maxStakeUsdt",
             "strategyStakesUsdt",
-            "strategyExecutionModes",
-            "strategyInitialStakesUsdt",
-            "strategyConfirmationAddStakesUsdt",
             "minHourlyWinRatePct",
             "maxHourlyWinThenLossRatePct",
             "futuresLeadObserverEnabled",
@@ -3943,88 +3484,8 @@ class LiveM0WEngine:
     def record_confirmation_add_snapshot(
         self, snapshot: dict[str, Any]
     ) -> dict[str, Any]:
-        """Advance Shadow mirrors and optionally queue live add-on tranches."""
-        paper_result = self.ledger.record_confirmation_add_snapshot(snapshot)
-        live_result = self._queue_live_confirmation_add_snapshot(snapshot)
-        return {
-            **paper_result,
-            "queuedLiveAddOrders": live_result["queued"],
-            "liveCandidateOrders": live_result["candidates"],
-            "liveOrdersAffected": live_result["queued"] > 0,
-        }
-
-    def _queue_live_confirmation_add_snapshot(
-        self, snapshot: dict[str, Any]
-    ) -> dict[str, int]:
-        with self.lock:
-            rules = dict(self.live_rules)
-            placement_enabled = self.runtime_enabled and self.armed
-        if not placement_enabled:
-            return {"candidates": 0, "queued": 0}
-        candidates = self.ledger.live_confirmation_add_candidates(snapshot)
-        queued = 0
-        for candidate in candidates:
-            strategy = str(candidate["strategy"]).upper()
-            plan = live_strategy_execution_plan(rules, strategy)
-            if plan["mode"] != LIVE_EXECUTION_MODE_CONFIRMATION_ADD:
-                continue
-            key = (
-                f"{int(candidate['sourceOrderLocalId'])}:"
-                f"{int(candidate['trancheIndex'])}"
-            )
-            with self.lock:
-                if key in self.pending_confirmation_add_signals:
-                    continue
-                self.pending_confirmation_add_signals.add(key)
-            signal = {
-                "strategy": strategy,
-                "topic_id": int(candidate["topicId"]),
-                "market_id": int(candidate["marketId"]),
-                "side": str(candidate["side"]),
-                "entry_price": float(candidate["observedAsk"]),
-                "seconds_left": float(candidate["secondsLeft"]),
-                "signal_timestamp": str(candidate["timestamp"]),
-                "book_age_ms": float(candidate["bookAgeMs"]),
-                "book_skew_ms": float(candidate["bookSkewMs"]),
-                "signal_prediction_book_age_ms": float(
-                    candidate["bookAgeMs"]
-                ),
-                "signal_prediction_ask": float(candidate["observedAsk"]),
-                "signal_prediction_ask_size": float(
-                    candidate["observedAskSize"]
-                ),
-                "market_event_received_monotonic_ns": time.monotonic_ns(),
-                "market_data_integrity_ok": True,
-                "_live_confirmation_add": True,
-                "_confirmation_add_key": key,
-                "_confirmation_source_order_local_id": int(
-                    candidate["sourceOrderLocalId"]
-                ),
-                "_confirmation_tranche_index": int(
-                    candidate["trancheIndex"]
-                ),
-                "_confirmation_target_price": float(
-                    candidate["targetPrice"]
-                ),
-                "_confirmation_execution_limit": float(
-                    candidate["executionLimit"]
-                ),
-                "_live_ledger_strategy": str(candidate["ledgerStrategy"]),
-                "_live_stake_override_usdt": float(candidate["stakeUsdt"]),
-                "_live_enqueued_monotonic_ns": time.monotonic_ns(),
-            }
-            try:
-                self.events.put_nowait(signal)
-                queued += 1
-            except queue.Full:
-                with self.lock:
-                    self.pending_confirmation_add_signals.discard(key)
-                    self.dropped_signals += 1
-                    self.status = "DEGRADED"
-                    self.last_error = (
-                        "live confirmation-add queue overflow; no order placed"
-                    )
-        return {"candidates": len(candidates), "queued": queued}
+        """Record counterfactual add-on fills; never reaches the order queue."""
+        return self.ledger.record_confirmation_add_snapshot(snapshot)
 
     def _preflight(self) -> None:
         with self.lock:
@@ -5404,21 +4865,13 @@ class LiveM0WEngine:
             signal_price = 0.0
         with self.lock:
             rules = dict(self.live_rules)
-        strategy = str(
-            signal.get("strategy") or rules["strategy"]
-        ).upper()
-        is_confirmation_add = signal.get("_live_confirmation_add") is True
-        execution_plan = live_strategy_execution_plan(rules, strategy)
-        configured_stake = execution_plan["initialStakeUsdt"]
-        if is_confirmation_add:
-            override = _decimal(signal.get("_live_stake_override_usdt"))
-            if override is not None and override > 0:
-                configured_stake = override
+        strategy = str(signal.get("strategy") or rules["strategy"])
+        try:
+            strategy_index = list(rules["strategies"]).index(strategy)
+            configured_stake = rules["strategyStakesUsdt"][strategy_index]
+        except (KeyError, IndexError, TypeError, ValueError):
+            configured_stake = rules["maxStakeUsdt"]
         stake = Decimal(str(configured_stake))
-        ledger_strategy = (
-            str(signal.get("_live_ledger_strategy") or "")
-            if is_confirmation_add else strategy
-        ) or strategy
         dynamic_leg_stake = _decimal(
             signal.get("_pair_dynamic_leg_stake_usdt")
         )
@@ -5432,7 +4885,7 @@ class LiveM0WEngine:
             signal_price=signal_price,
             account_type=self.account_type,
             signal_at=str(signal.get("signal_timestamp") or utc_iso()),
-            strategy=ledger_strategy,
+            strategy=strategy,
             max_stake_usdt=float(stake),
             requested_amount_wei=str(_stake_amount_wei(stake)),
         )
@@ -6679,52 +6132,9 @@ class LiveM0WEngine:
         if signal_strategy not in set(str(value) for value in rules["strategies"]):
             return
         selected_strategy = signal_strategy
-        is_confirmation_add = signal.get("_live_confirmation_add") is True
-        execution_plan = live_strategy_execution_plan(
-            rules, selected_strategy
-        )
-        if is_confirmation_add:
-            if (
-                execution_plan["mode"]
-                != LIVE_EXECUTION_MODE_CONFIRMATION_ADD
-                or selected_strategy not in CONFIRMATION_ADD_SOURCE_STRATEGIES
-            ):
-                self._record_blocked_signal(
-                    signal,
-                    "BLOCKED_CONFIRMATION_ADD_DISABLED",
-                    "順勢確認加碼目前未啟用或來源策略不支援",
-                )
-                return
-            max_stake = _decimal(signal.get("_live_stake_override_usdt"))
-            if (
-                max_stake is None
-                or max_stake <= 0
-                or max_stake > execution_plan["addStakeUsdt"]
-            ):
-                self._record_blocked_signal(
-                    signal,
-                    "BLOCKED_INVALID_CONFIRMATION_ADD_STAKE",
-                    "加碼金額缺失或超過已凍結的每階上限",
-                )
-                return
-            try:
-                if float(signal.get("seconds_left")) <= 30.0:
-                    self._record_blocked_signal(
-                        signal,
-                        "SKIPPED_CONFIRMATION_ADD_LAST_30_SECONDS",
-                        "剩餘時間不高於 30 秒；停止實單加碼",
-                    )
-                    return
-            except (TypeError, ValueError):
-                self._record_blocked_signal(
-                    signal,
-                    "BLOCKED_CONFIRMATION_ADD_TIME_UNAVAILABLE",
-                    "加碼訊號缺少有效剩餘時間",
-                )
-                return
-        else:
-            max_stake = execution_plan["initialStakeUsdt"]
-        if selected_strategy in LIVE_RESEARCH_STRATEGIES and not is_confirmation_add:
+        strategy_index = list(rules["strategies"]).index(selected_strategy)
+        max_stake = Decimal(str(rules["strategyStakesUsdt"][strategy_index]))
+        if selected_strategy in LIVE_RESEARCH_STRATEGIES:
             price_allowed, price_reason = self._research_signal_price_is_allowed(
                 signal, selected_strategy
             )
@@ -6805,7 +6215,7 @@ class LiveM0WEngine:
             return
         hourly_guard = (
             {"blocked": False}
-            if selected_strategy.startswith("PAIR_ARB_") or is_confirmation_add
+            if selected_strategy.startswith("PAIR_ARB_")
             else self._evaluate_cached_hourly_guard(
                 at=str(signal.get("signal_timestamp") or utc_iso())
             )
@@ -6853,10 +6263,8 @@ class LiveM0WEngine:
                     },
                 )
                 return
-        reliability_is_safe, reliability_reason = (
-            (True, "")
-            if is_confirmation_add
-            else self._reliability_gate_is_safe(signal, rules)
+        reliability_is_safe, reliability_reason = self._reliability_gate_is_safe(
+            signal, rules
         )
         if not reliability_is_safe:
             self._record_blocked_signal(
@@ -6867,8 +6275,7 @@ class LiveM0WEngine:
             rules, selected_strategy
         )
         if (
-            not is_confirmation_add
-            and drawdown_enabled
+            drawdown_enabled
             and signal.get("_drawdown_control_validated") is not True
         ):
             drawdown_is_safe, drawdown_reason = self._drawdown_control_is_safe(
@@ -6884,11 +6291,7 @@ class LiveM0WEngine:
         observer_enabled, observer_version = self._strategy_observer_config(
             rules, selected_strategy
         )
-        if (
-            not is_confirmation_add
-            and selected_strategy in LIVE_OBSERVER_STRATEGIES
-            and observer_enabled
-        ):
+        if selected_strategy in LIVE_OBSERVER_STRATEGIES and observer_enabled:
             gate_is_safe, gate_reason = self._strategy_observer_gate_is_safe(
                 signal,
                 reference,
@@ -6906,7 +6309,7 @@ class LiveM0WEngine:
                     gate_reason,
                 )
                 return
-        if not is_confirmation_add and selected_strategy in {"M0W", "M01W"}:
+        if selected_strategy in {"M0W", "M01W"}:
             gate_is_safe, gate_reason = self._strategy_gate_is_safe(
                 signal, reference
             )
@@ -6915,7 +6318,7 @@ class LiveM0WEngine:
                     signal, "BLOCKED_STRATEGY_GATE", gate_reason
                 )
                 return
-        if not is_confirmation_add and selected_strategy == "M01O_F1":
+        if selected_strategy == "M01O_F1":
             time_is_safe, time_reason = self._f1_entry_time_is_safe(
                 signal, reference, client
             )
@@ -6981,25 +6384,11 @@ class LiveM0WEngine:
         try:
             signal_price_text = self._price_limit(signal.get("entry_price"))
             signal_price = Decimal(signal_price_text)
-            if is_confirmation_add:
-                confirmation_limit = _decimal(
-                    signal.get("_confirmation_execution_limit")
-                )
-                if (
-                    confirmation_limit is None
-                    or not Decimal("0") < confirmation_limit < Decimal("1")
-                ):
-                    raise ValueError(
-                        "confirmation-add execution limit is unavailable"
-                    )
-                maximum_reprice_limit = confirmation_limit
-            else:
-                maximum_reprice_limit = self._maximum_reprice_limit(
-                    signal, selected_strategy, signal_price
-                )
+            maximum_reprice_limit = self._maximum_reprice_limit(
+                signal, selected_strategy, signal_price
+            )
             if (
-                not is_confirmation_add
-                and selected_strategy == "R_CALIBRATED_VALUE"
+                selected_strategy == "R_CALIBRATED_VALUE"
                 and "RC_LOW_ENTRY" in rules["reliabilityGateTags"]
             ):
                 maximum_reprice_limit = min(
@@ -7011,10 +6400,7 @@ class LiveM0WEngine:
             )
             return
 
-        if (
-            not is_confirmation_add
-            and self._strategy_loss_cooldown_enabled(rules, selected_strategy)
-        ):
+        if self._strategy_loss_cooldown_enabled(rules, selected_strategy):
             cooldown_is_safe, cooldown_reason = self._loss_cooldown_is_safe(
                 selected_strategy, market_id
             )
@@ -7066,29 +6452,6 @@ class LiveM0WEngine:
         latest_verified_ask = Decimal(
             str(latest_prediction_book["latest_ask"])
         )
-        if is_confirmation_add:
-            target_price = _decimal(signal.get("_confirmation_target_price"))
-            if (
-                target_price is None
-                or latest_verified_ask + Decimal("0.00000001") < target_price
-            ):
-                book_diagnostics["confirmationTargetPrice"] = (
-                    float(target_price) if target_price is not None else None
-                )
-                self._record_prediction_book_block(
-                    signal,
-                    status="BLOCKED_CONFIRMATION_REVERSED",
-                    error_kind="CONFIRMATION_TARGET_NO_LONGER_MET",
-                    message=(
-                        f"latest verified {side} ask "
-                        f"{format(latest_verified_ask.normalize(), 'f')} "
-                        "fell below the confirmation target"
-                    ),
-                    diagnostics=book_diagnostics,
-                    enqueued_monotonic=enqueued_monotonic,
-                    processing_started_monotonic=processing_started_monotonic,
-                )
-                return
         book_diagnostics["signalPrice"] = float(signal_price)
         book_diagnostics["signalBookAgeMs"] = _float(
             signal.get("signal_prediction_book_age_ms")
@@ -7209,25 +6572,13 @@ class LiveM0WEngine:
             }
 
         ledger_strategy = (
-            str(signal.get("_live_ledger_strategy") or "")
-            if is_confirmation_add
-            else (
-                f"{selected_strategy}:{side}"
-                if selected_strategy.startswith("PAIR_ARB_")
-                else selected_strategy
-            )
-        ) or selected_strategy
+            f"{selected_strategy}:{side}"
+            if selected_strategy.startswith("PAIR_ARB_")
+            else selected_strategy
+        )
         accepted_event_message = (
-            (
-                f"{ledger_strategy} threshold "
-                f"{float(signal.get('_confirmation_target_price')):.6f} "
-                f"accepted for {float(max_stake):.8g} USDT LIMIT quote"
-            )
-            if is_confirmation_add
-            else (
-                f"{selected_strategy} {side} signal accepted for "
-                f"{float(max_stake):.8g} USDT LIMIT quote"
-            )
+            f"{selected_strategy} {side} signal accepted for "
+            f"{float(max_stake):.8g} USDT LIMIT quote"
         )
         accepted_ledger_started_monotonic = time.monotonic()
         local_id = self.ledger.record_accepted_signal(
@@ -7241,7 +6592,7 @@ class LiveM0WEngine:
             strategy=ledger_strategy,
             max_stake_usdt=float(max_stake),
             requested_amount_wei=str(amount_in_wei),
-            reliability_context=(None if is_confirmation_add else signal),
+            reliability_context=signal,
             event_message=accepted_event_message,
         )
         if local_id is None:
@@ -7252,22 +6603,6 @@ class LiveM0WEngine:
                 market_id,
             )
             return
-
-        if (
-            not is_confirmation_add
-            and execution_plan["mode"]
-            == LIVE_EXECUTION_MODE_CONFIRMATION_ADD
-        ):
-            self.ledger.create_live_confirmation_add_plan(
-                source_order_local_id=local_id,
-                strategy=selected_strategy,
-                topic_id=int(reference["topic_id"]),
-                market_id=market_id,
-                side=side,
-                token_id=token_id,
-                configured_initial_stake_usdt=float(max_stake),
-                add_stake_usdt=float(execution_plan["addStakeUsdt"]),
-            )
 
         accepted_ledger_finished_monotonic = time.monotonic()
         quote: dict[str, Any] | None = None
@@ -7392,7 +6727,7 @@ class LiveM0WEngine:
                 safe, reason = self._research_quote_range_is_safe(
                     quote, selected_strategy
                 )
-            if safe and not is_confirmation_add:
+            if safe:
                 safe, reason = self._reliability_quote_is_safe(
                     quote, selected_strategy, rules
                 )
@@ -8884,22 +8219,7 @@ class LiveM0WEngine:
             already_verified = self.quote_access == "VERIFIED"
             runtime_enabled = self.runtime_enabled
             armed = self.armed
-            execution_plans = [
-                live_strategy_execution_plan(
-                    self.live_rules, str(strategy)
-                )
-                for strategy in self.live_rules["strategies"]
-            ]
-            max_stake = max(
-                max(
-                    plan["initialStakeUsdt"],
-                    plan["addStakeUsdt"]
-                    if plan["mode"]
-                    == LIVE_EXECUTION_MODE_CONFIRMATION_ADD
-                    else plan["initialStakeUsdt"],
-                )
-                for plan in execution_plans
-            )
+            max_stake = Decimal(str(self.live_rules["maxStakeUsdt"]))
             amount_in_wei = _stake_amount_wei(max_stake)
         if (
             client is None
@@ -8994,12 +8314,6 @@ class LiveM0WEngine:
                         "ERROR", "EXECUTOR_ERROR", str(exc)[:400]
                     )
                 finally:
-                    confirmation_key = signal.get("_confirmation_add_key")
-                    if confirmation_key:
-                        with self.lock:
-                            self.pending_confirmation_add_signals.discard(
-                                str(confirmation_key)
-                            )
                     self.order_in_flight.clear()
         with self.lock:
             self.status = "STOPPED"
@@ -9219,24 +8533,11 @@ class LiveM0WEngine:
             "reliabilityResearch": self.ledger.reliability_research_summary(
                 enabled_tags=rules["reliabilityGateTags"]
             ),
-            "confirmationAddLive": (
-                self.ledger.live_confirmation_add_summary()
-            ),
             "events": self.ledger.recent_events(),
             "updatedAt": utc_iso(),
             "policy": {
                 "oneAttemptPerMarket": True,
                 "oneAttemptPerStrategyPerMarket": True,
-                "confirmationAdd": {
-                    "optionalPerStrategySlot": True,
-                    "supportedSources": list(
-                        CONFIRMATION_ADD_SOURCE_STRATEGIES
-                    ),
-                    "multipliers": [1.0, 1.1, 1.2, 1.3, 1.4],
-                    "minimumSecondsLeftExclusive": 30.0,
-                    "eachTrancheOneAttempt": True,
-                    "retryAmbiguousPlacement": False,
-                },
                 "retryAmbiguousPlacement": False,
                 "marketOrderDisabled": True,
                 "m01oF1MinSecondsLeftExclusive": float(

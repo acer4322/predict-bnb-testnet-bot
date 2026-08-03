@@ -237,12 +237,8 @@ type ReliabilityCandidateTagId = "RC_LOW_ENTRY" | "MP_LATE_WINDOW" | "MP_FRESH_B
 const RELIABILITY_CANDIDATE_TAG_IDS: ReliabilityCandidateTagId[] = [
   "RC_LOW_ENTRY", "MP_LATE_WINDOW", "MP_FRESH_BOOK",
 ];
-type LiveExecutionMode = "FIXED" | "CONFIRMATION_ADD";
 type LiveRules = {
   strategy: string; strategies: string[]; maxStakeUsdt: number; strategyStakesUsdt: number[];
-  strategyExecutionModes: LiveExecutionMode[];
-  strategyInitialStakesUsdt: number[];
-  strategyConfirmationAddStakesUsdt: number[];
   minHourlyWinRatePct: number; maxHourlyWinThenLossRatePct: number;
   futuresLeadObserverEnabled: boolean;
   futuresLeadObserverVersion: "F1" | "V2" | "V3" | "V4" | "V6";
@@ -254,9 +250,6 @@ type LiveRules = {
 };
 const DEFAULT_LIVE_RULES: LiveRules = {
   strategy: "M01O_F1", strategies: ["M01O_F1"], maxStakeUsdt: 1, strategyStakesUsdt: [1],
-  strategyExecutionModes: ["FIXED"],
-  strategyInitialStakesUsdt: [1],
-  strategyConfirmationAddStakesUsdt: [1],
   minHourlyWinRatePct: 50, maxHourlyWinThenLossRatePct: 50,
   futuresLeadObserverEnabled: false, futuresLeadObserverVersion: "F1",
   strategyObserverEnabled: [false], strategyObserverVersions: ["F1"],
@@ -308,21 +301,12 @@ function parseLiveRulesDraft(raw: string | null): LiveRules | null {
     const strategyLossCooldownEnabled = Array.isArray(value.strategyLossCooldownEnabled)
       ? value.strategyLossCooldownEnabled.slice(0, strategies.length).map(Boolean)
       : strategies.map(() => false);
-    const strategyExecutionModes = Array.isArray(value.strategyExecutionModes)
-      ? value.strategyExecutionModes.slice(0, strategies.length).map(mode => mode === "CONFIRMATION_ADD" ? "CONFIRMATION_ADD" : "FIXED") as LiveExecutionMode[]
-      : strategies.map(() => "FIXED" as LiveExecutionMode);
-    const strategyInitialStakesUsdt = Array.isArray(value.strategyInitialStakesUsdt)
-      ? value.strategyInitialStakesUsdt.slice(0, strategies.length).map(Number)
-      : strategyStakesUsdt.map(Number);
-    const strategyConfirmationAddStakesUsdt = Array.isArray(value.strategyConfirmationAddStakesUsdt)
-      ? value.strategyConfirmationAddStakesUsdt.slice(0, strategies.length).map(Number)
-      : strategies.map(() => 1);
     const reliabilityGateTags = Array.isArray(value.reliabilityGateTags)
       ? value.reliabilityGateTags.filter((tag): tag is ReliabilityCandidateTagId => RELIABILITY_CANDIDATE_TAG_IDS.includes(tag as ReliabilityCandidateTagId))
       : [];
-    if (!strategies.length || strategyStakesUsdt.length !== strategies.length || ![...strategyStakesUsdt, ...strategyInitialStakesUsdt, ...strategyConfirmationAddStakesUsdt, maxStakeUsdt, minHourlyWinRatePct, maxHourlyWinThenLossRatePct].every(Number.isFinite)) return null;
-    if (strategyObserverEnabled.length !== strategies.length || strategyObserverVersions.length !== strategies.length || strategyDrawdownControlEnabled.length !== strategies.length || strategyLossCooldownEnabled.length !== strategies.length || strategyExecutionModes.length !== strategies.length || strategyInitialStakesUsdt.length !== strategies.length || strategyConfirmationAddStakesUsdt.length !== strategies.length) return null;
-    return { strategy: strategies[0], strategies, maxStakeUsdt: strategyStakesUsdt[0], strategyStakesUsdt, strategyExecutionModes, strategyInitialStakesUsdt, strategyConfirmationAddStakesUsdt, minHourlyWinRatePct, maxHourlyWinThenLossRatePct, futuresLeadObserverEnabled: strategyObserverEnabled[0], futuresLeadObserverVersion: strategyObserverVersions[0], strategyObserverEnabled, strategyObserverVersions, strategyDrawdownControlEnabled, strategyLossCooldownEnabled, reliabilityGateTags };
+    if (!strategies.length || strategyStakesUsdt.length !== strategies.length || ![...strategyStakesUsdt, maxStakeUsdt, minHourlyWinRatePct, maxHourlyWinThenLossRatePct].every(Number.isFinite)) return null;
+    if (strategyObserverEnabled.length !== strategies.length || strategyObserverVersions.length !== strategies.length || strategyDrawdownControlEnabled.length !== strategies.length || strategyLossCooldownEnabled.length !== strategies.length) return null;
+    return { strategy: strategies[0], strategies, maxStakeUsdt: strategyStakesUsdt[0], strategyStakesUsdt, minHourlyWinRatePct, maxHourlyWinThenLossRatePct, futuresLeadObserverEnabled: strategyObserverEnabled[0], futuresLeadObserverVersion: strategyObserverVersions[0], strategyObserverEnabled, strategyObserverVersions, strategyDrawdownControlEnabled, strategyLossCooldownEnabled, reliabilityGateTags };
   } catch { return null; }
 }
 const LIVE_STRATEGY_LABELS: Record<string, string> = {
@@ -351,11 +335,6 @@ const LIVE_STRATEGY_LABELS: Record<string, string> = {
   R_CALIBRATED_VALUE_CONTINUOUS_V2: "Shadow · Value 持續校準 V2",
   R_OFI_EVENT_CUM: "研究實單 · 累積事件級 OFI",
 };
-const LIVE_CONFIRMATION_ADD_SOURCE_STRATEGIES = new Set([
-  "R_MICROPRICE",
-  "R_CALIBRATED_VALUE",
-  "M01O_F1",
-]);
 const LIVE_OBSERVER_STRATEGIES = new Set([
   "R_FUTURES_LEAD",
   "R_FUTURES_LEAD_REVERSE",
@@ -2020,15 +1999,7 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
   };
   const saveRules = async () => {
     if (!rulesDirty) return;
-    const strategySummary = rulesDraft.strategies.map((strategy, index) => {
-      const mode = rulesDraft.strategyExecutionModes[index] ?? "FIXED";
-      if (mode === "CONFIRMATION_ADD") {
-        const initial = rulesDraft.strategyInitialStakesUsdt[index] ?? 1;
-        const add = rulesDraft.strategyConfirmationAddStakesUsdt[index] ?? 1;
-        return `${strategy} 順勢確認：初始 ${initial}、每階 ${add}、總上限 ${initial + add * 4} USDT`;
-      }
-      return `${strategy} 固定 ${rulesDraft.strategyStakesUsdt[index]} USDT`;
-    }).join("、");
+    const strategySummary = rulesDraft.strategies.map((strategy, index) => `${strategy} ${rulesDraft.strategyStakesUsdt[index]} USDT`).join("、");
     const observerSummary = rulesDraft.strategies.map((strategy, index) => (
       `${strategy} Observer ${rulesDraft.strategyObserverEnabled[index] ? rulesDraft.strategyObserverVersions[index] : "關閉"}`
     )).join("、");
@@ -2059,9 +2030,6 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
     const observerVersions = [...rulesDraft.strategyObserverVersions];
     const drawdownControls = [...rulesDraft.strategyDrawdownControlEnabled];
     const lossCooldowns = [...rulesDraft.strategyLossCooldownEnabled];
-    const executionModes = [...rulesDraft.strategyExecutionModes];
-    const initialStakes = [...rulesDraft.strategyInitialStakesUsdt];
-    const addStakes = [...rulesDraft.strategyConfirmationAddStakesUsdt];
     if (!value) {
       strategies.splice(index);
       stakes.splice(index);
@@ -2069,9 +2037,6 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
       observerVersions.splice(index);
       drawdownControls.splice(index);
       lossCooldowns.splice(index);
-      executionModes.splice(index);
-      initialStakes.splice(index);
-      addStakes.splice(index);
     } else {
       strategies[index] = value;
       stakes[index] = stakes[index] ?? stakes[0] ?? 1;
@@ -2081,14 +2046,6 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
       observerVersions[index] = observerVersions[index] ?? "F1";
       drawdownControls[index] = drawdownControls[index] ?? false;
       lossCooldowns[index] = lossCooldowns[index] ?? false;
-      executionModes[index] = LIVE_CONFIRMATION_ADD_SOURCE_STRATEGIES.has(value)
-        ? executionModes[index] ?? "FIXED"
-        : "FIXED";
-      initialStakes[index] = initialStakes[index] ?? stakes[index] ?? 1;
-      addStakes[index] = addStakes[index] ?? 1;
-      stakes[index] = executionModes[index] === "CONFIRMATION_ADD"
-        ? initialStakes[index] + addStakes[index] * 4
-        : initialStakes[index];
     }
     onRulesUpdate("strategies", strategies);
     onRulesUpdate("strategyStakesUsdt", stakes);
@@ -2096,9 +2053,6 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
     onRulesUpdate("strategyObserverVersions", observerVersions);
     onRulesUpdate("strategyDrawdownControlEnabled", drawdownControls);
     onRulesUpdate("strategyLossCooldownEnabled", lossCooldowns);
-    onRulesUpdate("strategyExecutionModes", executionModes);
-    onRulesUpdate("strategyInitialStakesUsdt", initialStakes);
-    onRulesUpdate("strategyConfirmationAddStakesUsdt", addStakes);
     onRulesUpdate("reliabilityGateTags", rulesDraft.reliabilityGateTags.filter(tag => {
       const definition = RELIABILITY_LIVE_GATE_OPTIONS.find(option => option.id === tag);
       return Boolean(definition && strategies.includes(definition.strategy));
@@ -2110,27 +2064,12 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
       onRulesUpdate("futuresLeadObserverVersion", observerVersions[0]);
     }
   };
-  const updateStrategyExposure = (index: number, mode: LiveExecutionMode, initial: number, add: number) => {
-    const modes = [...rulesDraft.strategyExecutionModes];
-    const initials = [...rulesDraft.strategyInitialStakesUsdt];
-    const adds = [...rulesDraft.strategyConfirmationAddStakesUsdt];
-    const totals = [...rulesDraft.strategyStakesUsdt];
-    modes[index] = mode;
-    initials[index] = initial;
-    adds[index] = add;
-    totals[index] = mode === "CONFIRMATION_ADD" ? initial + add * 4 : initial;
-    onRulesUpdate("strategyExecutionModes", modes);
-    onRulesUpdate("strategyInitialStakesUsdt", initials);
-    onRulesUpdate("strategyConfirmationAddStakesUsdt", adds);
-    onRulesUpdate("strategyStakesUsdt", totals);
-    if (index === 0) onRulesUpdate("maxStakeUsdt", totals[index]);
+  const updateStrategyStake = (index: number, value: number) => {
+    const stakes = [...rulesDraft.strategyStakesUsdt];
+    stakes[index] = value;
+    onRulesUpdate("strategyStakesUsdt", stakes);
+    if (index === 0) onRulesUpdate("maxStakeUsdt", value);
   };
-  const updateStrategyExecutionMode = (index: number, mode: LiveExecutionMode) => {
-    const supported = LIVE_CONFIRMATION_ADD_SOURCE_STRATEGIES.has(rulesDraft.strategies[index]);
-    updateStrategyExposure(index, mode === "CONFIRMATION_ADD" && supported ? mode : "FIXED", rulesDraft.strategyInitialStakesUsdt[index] ?? rulesDraft.strategyStakesUsdt[index] ?? 1, rulesDraft.strategyConfirmationAddStakesUsdt[index] ?? 1);
-  };
-  const updateStrategyInitialStake = (index: number, value: number) => updateStrategyExposure(index, rulesDraft.strategyExecutionModes[index] ?? "FIXED", value, rulesDraft.strategyConfirmationAddStakesUsdt[index] ?? 1);
-  const updateStrategyAddStake = (index: number, value: number) => updateStrategyExposure(index, rulesDraft.strategyExecutionModes[index] ?? "FIXED", rulesDraft.strategyInitialStakesUsdt[index] ?? 1, value);
   const updateStrategyObserver = (index: number, enabled: boolean) => {
     const observers = [...rulesDraft.strategyObserverEnabled];
     observers[index] = enabled;
@@ -2179,12 +2118,7 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
         {LIVE_STRATEGY_SLOT_INDEXES.map(index => {
           const selected = rulesDraft.strategies[index] ?? "";
           const slotEnabled = index === 0 || Boolean(rulesDraft.strategies[index - 1]);
-          const mode = rulesDraft.strategyExecutionModes[index] ?? "FIXED";
-          const confirmationSupported = LIVE_CONFIRMATION_ADD_SOURCE_STRATEGIES.has(selected);
-          const initialStake = rulesDraft.strategyInitialStakesUsdt[index] ?? rulesDraft.strategyStakesUsdt[index] ?? 1;
-          const addStake = rulesDraft.strategyConfirmationAddStakesUsdt[index] ?? 1;
-          const totalExposure = mode === "CONFIRMATION_ADD" ? initialStake + addStake * 4 : initialStake;
-          return <label key={`live-strategy-${index}`}><span>實單策略 {index + 1}</span><select aria-label={`實單策略 ${index + 1}`} disabled={!slotEnabled} value={selected} onChange={event => updateStrategySlot(index, event.target.value)}>{index > 0 && <option value="">不啟用第{LIVE_STRATEGY_SLOT_NAMES[index]}策略</option>}{strategyOptions.filter(strategy => strategy === selected || !rulesDraft.strategies.includes(strategy)).map(strategy => <option key={strategy} value={strategy}>{LIVE_STRATEGY_LABELS[strategy] ?? strategy}</option>)}</select><select aria-label={`實單策略 ${index + 1} 資金模式`} disabled={!selected} value={mode} onChange={event => updateStrategyExecutionMode(index, event.target.value as LiveExecutionMode)}><option value="FIXED">固定一次下單</option><option value="CONFIRMATION_ADD" disabled={!confirmationSupported}>順勢確認加碼 Shadow 實單版</option></select>{mode === "CONFIRMATION_ADD" ? <><div className="live-rule-number"><input type="number" min={data?.configurableStakeRangeUsdt?.min ?? .01} max={data?.configurableStakeRangeUsdt?.max ?? 100} step="0.01" value={initialStake} onChange={event => updateStrategyInitialStake(index, Number(event.target.value))} /><b>初始 USDT</b></div><div className="live-rule-number"><input type="number" min={data?.configurableStakeRangeUsdt?.min ?? .01} max={data?.configurableStakeRangeUsdt?.max ?? 100} step="0.01" value={addStake} onChange={event => updateStrategyAddStake(index, Number(event.target.value))} /><b>每階 USDT</b></div><small>1.1×／1.2×／1.3×／1.4× 各加一次；單市場總曝險 {totalExposure.toFixed(2)} USDT，剩餘 ≤30 秒停止。</small></> : <><div className="live-rule-number"><input type="number" min={data?.configurableStakeRangeUsdt?.min ?? .01} max={data?.configurableStakeRangeUsdt?.max ?? 100} step="0.01" value={initialStake} onChange={event => updateStrategyInitialStake(index, Number(event.target.value))} /><b>USDT</b></div><small>固定一次下單金額</small></>}</label>;
+          return <label key={`live-strategy-${index}`}><span>實單策略 {index + 1}</span><select aria-label={`實單策略 ${index + 1}`} disabled={!slotEnabled} value={selected} onChange={event => updateStrategySlot(index, event.target.value)}>{index > 0 && <option value="">不啟用第{LIVE_STRATEGY_SLOT_NAMES[index]}策略</option>}{strategyOptions.filter(strategy => strategy === selected || !rulesDraft.strategies.includes(strategy)).map(strategy => <option key={strategy} value={strategy}>{LIVE_STRATEGY_LABELS[strategy] ?? strategy}</option>)}</select><div className="live-rule-number"><input type="number" min={data?.configurableStakeRangeUsdt?.min ?? .01} max={data?.configurableStakeRangeUsdt?.max ?? 100} step="0.01" disabled={!selected} value={rulesDraft.strategyStakesUsdt[index] ?? rulesDraft.strategyStakesUsdt[0]} onChange={event => updateStrategyStake(index, Number(event.target.value))} /><b>USDT</b></div><small>{index === 3 ? "第四格固定不使用 Observer；只執行所選策略本身" : index === 1 ? "Lead＋Reverse 仍會先取得兩腿 signed quote；其餘策略可獨立執行" : `策略 ${index + 1} 每筆／每組互補單的獨立上限`}</small></label>;
         })}
         {RELIABILITY_LIVE_GATE_OPTIONS.map(option => {
           const supported = rulesDraft.strategies.includes(option.strategy);
