@@ -107,6 +107,10 @@ def expose_armed_decision_messages(payload: dict[str, Any]) -> dict[str, Any]:
 def state_payload() -> dict[str, Any]:
     payload = expose_armed_decision_messages(v5.state_payload())
     payload["defaults"]["maximumPairBudgetUsdt"] = float(MAX_PAIR_BUDGET_USDT)
+    payload["defaults"]["bookMonitorIntervalSeconds"] = float(
+        base.STATE.config.interval_seconds
+    )
+    payload.setdefault("runtime", {})["bookAnalysis"] = v2.latest_book_analysis()
     policy = payload.setdefault("policy", {})
     policy.pop("liveConfirmationPhrase", None)
     policy["liveArmConfirmation"] = "dashboard_button_and_browser_dialog"
@@ -124,6 +128,22 @@ def state_payload() -> dict[str, Any]:
         "XPAIR_ALLOW_EXPERIMENTAL_DIRECTIONS"
     )
     policy["experimentalDirectionsEnabled"] = experimental_directions_enabled()
+    policy["continuousBookMonitoring"] = True
+    policy["bookMonitoringModel"] = (
+        "PAIR_ARB_STYLE_INDEPENDENT_OUTCOME_BOOK_EVALUATION"
+    )
+    policy["bookMonitoringIntervalSeconds"] = float(
+        base.STATE.config.interval_seconds
+    )
+    policy["signedQuotesRestrictedToEntryWindow"] = True
+    policy["livePlacementRestrictedToEntryWindow"] = True
+    policy["entryWindowSecondsLeft"] = {
+        "from": float(base.STATE.config.entry_seconds_left),
+        "to": float(
+            base.STATE.config.entry_seconds_left
+            - base.STATE.config.entry_window_seconds
+        ),
+    }
     return payload
 
 
@@ -133,7 +153,7 @@ def validate_button_arm_header(value: str | None) -> None:
 
 
 class Handler(v4.Handler):
-    server_version = "BTC5MLabXPairAutopilot/6.4"
+    server_version = "BTC5MLabXPairAutopilot/6.5"
 
     def do_POST(self) -> None:
         path = urlsplit(self.path).path
@@ -200,11 +220,13 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        f"XPAIR autopilot v6.4 API listening on http://{base.API_HOST}:{base.API_PORT}; "
-        f"pair budgets from {MIN_PAIR_BUDGET_USDT:.2f} to "
-        f"{MAX_PAIR_BUDGET_USDT:.2f} USDT are enabled, live direction defaults "
-        "to BTC_DOWN_ETH_UP with an empirical direction gate, armed non-entry "
-        "decisions are persisted, and incident protection remains active"
+        f"XPAIR autopilot v6.5 API listening on http://{base.API_HOST}:{base.API_PORT}; "
+        f"PAIR_ARB-style book evaluation runs every "
+        f"{base.STATE.config.interval_seconds:.2f}s, signed quotes and placement "
+        f"remain limited to the {base.STATE.config.entry_seconds_left:.0f}-"
+        f"{base.STATE.config.entry_seconds_left - base.STATE.config.entry_window_seconds:.0f}s "
+        "window, live direction defaults to BTC_DOWN_ETH_UP, and persistent "
+        "incident protection remains active"
     )
     try:
         server.serve_forever()
