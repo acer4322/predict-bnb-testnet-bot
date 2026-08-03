@@ -1,5 +1,8 @@
 """Predict.fun BNB Testnet research bot."""
 
+from .confirmation_add_sources_patch import (
+    install_confirmation_add_sources_patch as _install_confirmation_add_sources_patch,
+)
 from .decision_snapshot_diagnostics import (
     install_decision_snapshot_diagnostics as _install_decision_snapshot_diagnostics,
 )
@@ -21,6 +24,8 @@ _install_decision_snapshot_state()
 _install_direct_outcome_guard()
 _install_microprice_variants()
 _install_microprice_dashboard_patch()
+_install_confirmation_add_sources_patch()
+del _install_confirmation_add_sources_patch
 del _install_decision_snapshot_diagnostics
 del _install_decision_snapshot_state
 del _install_direct_outcome_guard
