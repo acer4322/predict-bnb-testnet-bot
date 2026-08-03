@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+import ConfirmationAddModeOptionGuard from "./confirmation-add-mode-option-guard";
 import FuturesLeadConfirmationAddControlV2 from "./futures-lead-confirmation-add-control-v2";
 import MicropriceVariantDashboard from "./microprice-variant-dashboard";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {children}
       <MicropriceVariantDashboard />
       <FuturesLeadConfirmationAddControlV2 />
+      <ConfirmationAddModeOptionGuard />
     </body>
   </html>;
 }
