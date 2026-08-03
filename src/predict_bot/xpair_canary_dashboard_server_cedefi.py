@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .xpair_canary_autopilot_server_v5 import main
+from .xpair_canary_autopilot_server_v6 import main
 
 
 if __name__ == "__main__":
