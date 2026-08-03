@@ -36,6 +36,32 @@ def configured_max_pair_budget() -> Decimal:
 MAX_PAIR_BUDGET_USDT = configured_max_pair_budget()
 
 
+def validate_monitor_config(self: base.MonitorConfig) -> None:
+    if self.selection not in {
+        "BTC_DOWN_ETH_UP",
+        "BTC_UP_ETH_DOWN",
+        "CHEAPEST_ELIGIBLE",
+    }:
+        raise ValueError("unsupported XPAIR selection")
+    if not MIN_PAIR_BUDGET_USDT <= self.pair_budget_usdt <= MAX_PAIR_BUDGET_USDT:
+        raise ValueError(
+            f"pair budget must be between {MIN_PAIR_BUDGET_USDT:.2f} and "
+            f"{MAX_PAIR_BUDGET_USDT:.2f} USDT"
+        )
+    if self.balance_buffer_usdt < 0:
+        raise ValueError("balance buffer cannot be negative")
+    if not Decimal("0") < self.max_total_cost < Decimal("2"):
+        raise ValueError("max total cost must be between 0 and 2")
+    if not Decimal("0") <= self.max_leg_reprice <= Decimal("0.05"):
+        raise ValueError("max leg reprice must be between 0 and 0.05")
+    if not 0 < self.entry_window_seconds < self.entry_seconds_left:
+        raise ValueError("entry window must be positive and below entry time")
+    if not 0 <= self.slippage_bps <= 500:
+        raise ValueError("slippage bps must be between 0 and 500")
+    if not 0.25 <= self.quote_interval_seconds <= 10:
+        raise ValueError("quote interval must be between 0.25 and 10 seconds")
+
+
 def state_payload() -> dict[str, Any]:
     payload = v5.state_payload()
     payload["defaults"]["maximumPairBudgetUsdt"] = float(MAX_PAIR_BUDGET_USDT)
@@ -80,10 +106,12 @@ class Handler(v4.Handler):
 
 
 def install_patches() -> None:
-    # The base validator reads this module-level value at runtime. Set it before
-    # installing v3/v5 so edited dashboard budgets are accepted consistently.
     base.MAX_PAIR_BUDGET_USDT = MAX_PAIR_BUDGET_USDT
     v5.install_patches()
+    # v3 adds the 1 USDT-per-leg rule but inherits a legacy 3 USDT validation
+    # message. Install the final validator after v5 so edited budgets and error
+    # text use the same dynamic limit shown by the dashboard.
+    base.MonitorConfig.validate = validate_monitor_config
     base.state_payload = state_payload
     v4.state_payload = state_payload
 
