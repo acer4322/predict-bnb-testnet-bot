@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import json
 import math
-import time
 from functools import wraps
 from typing import Any
 
 from . import m_realtime as _realtime
-from .core import taker_fee
 
 
 MICROPRICE_CONFIRM_STRATEGY = "R_MICROPRICE_CONFIRM"
@@ -593,11 +590,14 @@ class MicropriceVariantTracker:
 
 def _wrap_store(engine: Any, store: Any) -> None:
     if getattr(store, "_microprice_variants_wrapped", False):
-        engine.microprice_variant_tracker = getattr(
+        tracker = getattr(
             store,
             "_microprice_variant_tracker",
             None,
         )
+        if isinstance(tracker, MicropriceVariantTracker):
+            tracker.engine = engine
+        engine.microprice_variant_tracker = tracker
         return
     original = getattr(store, "maybe_enter_m_series", None)
     if not callable(original):
