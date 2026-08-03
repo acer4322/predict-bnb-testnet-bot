@@ -25,7 +25,14 @@ PAPER_MIN_SECONDS_LEFT = 20.0
 PAPER_DISCOVERY_INTERVAL_SECONDS = 5.0
 PAPER_SETTLEMENT_INTERVAL_SECONDS = 15.0
 PAPER_POLL_INTERVAL_SECONDS = 0.25
-PAPER_RECENT_LIMIT = 30
+PAPER_RECENT_LIMIT = 40
+PAPER_VARIANTS = ("BTC_DOWN_ETH_UP", "BTC_UP_ETH_DOWN")
+PAPER_DB_PATH = Path(
+    os.environ.get(
+        "XPAIR_DASHBOARD_PAPER_DB",
+        str(base.DB_PATH.with_name("xpair_dashboard_dual_paper.db")),
+    )
+)
 _VARIANT_SIDES = {
     "BTC_DOWN_ETH_UP": ("DOWN", "UP"),
     "BTC_UP_ETH_DOWN": ("UP", "DOWN"),
@@ -148,7 +155,8 @@ def trial_for_store(preview: dict[str, Any]) -> dict[str, Any] | None:
         "diagnostics": {
             "paper_only": True,
             "source": "dashboard_continuous_book_monitor",
-            "entry_rule": "FIRST_ELIGIBLE_ONCE_PER_ALIGNED_MARKET",
+            "experiment": "DUAL_VARIANT_FIRST_ELIGIBLE",
+            "entry_rule": "FIRST_ELIGIBLE_ONCE_PER_VARIANT_PER_ALIGNED_MARKET",
             "minimum_seconds_after_start": PAPER_MIN_SECONDS_AFTER_START,
             "minimum_seconds_left": PAPER_MIN_SECONDS_LEFT,
             "signed_quote_used": False,
@@ -157,19 +165,43 @@ def trial_for_store(preview: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def _aggregate(db: sqlite3.Connection) -> dict[str, Any]:
+def captured_variants(
+    db: sqlite3.Connection,
+    *,
+    btc_market_id: int,
+    eth_market_id: int,
+) -> set[str]:
+    rows = db.execute(
+        """SELECT variant FROM xpair_trials
+             WHERE btc_market_id=? AND eth_market_id=? AND eligible=1""",
+        (int(btc_market_id), int(eth_market_id)),
+    ).fetchall()
+    return {str(row["variant"]) for row in rows}
+
+
+def _summary_query(
+    db: sqlite3.Connection,
+    *,
+    variant: str | None = None,
+) -> dict[str, Any]:
+    where = "eligible=1"
+    parameters: tuple[Any, ...] = ()
+    if variant is not None:
+        where += " AND variant=?"
+        parameters = (variant,)
     row = db.execute(
-        """SELECT
-               COUNT(*) AS captured,
-               SUM(CASE WHEN settlement_status='PENDING' THEN 1 ELSE 0 END) AS pending,
-               SUM(CASE WHEN settlement_status='SETTLED' THEN 1 ELSE 0 END) AS settled,
-               SUM(CASE WHEN settlement_status='SETTLED' AND winning_legs=1 THEN 1 ELSE 0 END) AS one_win,
-               SUM(CASE WHEN settlement_status='SETTLED' AND winning_legs=2 THEN 1 ELSE 0 END) AS two_wins,
-               SUM(CASE WHEN settlement_status='SETTLED' AND winning_legs=0 THEN 1 ELSE 0 END) AS double_losses,
-               SUM(CASE WHEN settlement_status='SETTLED' THEN total_cost ELSE 0 END) AS total_cost,
-               SUM(CASE WHEN settlement_status='SETTLED' THEN pnl ELSE 0 END) AS pnl
-           FROM xpair_trials
-          WHERE eligible=1"""
+        f"""SELECT
+                COUNT(*) AS captured,
+                SUM(CASE WHEN settlement_status='PENDING' THEN 1 ELSE 0 END) AS pending,
+                SUM(CASE WHEN settlement_status='SETTLED' THEN 1 ELSE 0 END) AS settled,
+                SUM(CASE WHEN settlement_status='SETTLED' AND winning_legs=1 THEN 1 ELSE 0 END) AS one_win,
+                SUM(CASE WHEN settlement_status='SETTLED' AND winning_legs=2 THEN 1 ELSE 0 END) AS two_wins,
+                SUM(CASE WHEN settlement_status='SETTLED' AND winning_legs=0 THEN 1 ELSE 0 END) AS double_losses,
+                SUM(CASE WHEN settlement_status='SETTLED' THEN total_cost ELSE 0 END) AS total_cost,
+                SUM(CASE WHEN settlement_status='SETTLED' THEN pnl ELSE 0 END) AS pnl
+            FROM xpair_trials
+           WHERE {where}""",
+        parameters,
     ).fetchone()
     captured = int(row["captured"] or 0)
     pending = int(row["pending"] or 0)
@@ -195,10 +227,78 @@ def _aggregate(db: sqlite3.Connection) -> dict[str, Any]:
     }
 
 
-def paper_dashboard_payload(path: Path = base.DB_PATH) -> dict[str, Any]:
+def _comparison(db: sqlite3.Connection, variants: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    paired_captured = int(
+        db.execute(
+            """SELECT COUNT(*) FROM (
+                   SELECT btc_market_id, eth_market_id
+                     FROM xpair_trials
+                    WHERE eligible=1
+                    GROUP BY btc_market_id, eth_market_id
+                   HAVING COUNT(DISTINCT variant)=2
+               )"""
+        ).fetchone()[0]
+    )
+    paired_settled = int(
+        db.execute(
+            """SELECT COUNT(*) FROM (
+                   SELECT btc_market_id, eth_market_id
+                     FROM xpair_trials
+                    WHERE eligible=1 AND settlement_status='SETTLED'
+                    GROUP BY btc_market_id, eth_market_id
+                   HAVING COUNT(DISTINCT variant)=2
+               )"""
+        ).fetchone()[0]
+    )
+    unique_markets = int(
+        db.execute(
+            """SELECT COUNT(*) FROM (
+                   SELECT DISTINCT btc_market_id, eth_market_id
+                     FROM xpair_trials WHERE eligible=1
+               )"""
+        ).fetchone()[0]
+    )
+    down = variants["BTC_DOWN_ETH_UP"]
+    up = variants["BTC_UP_ETH_DOWN"]
+
+    def difference(first: Any, second: Any) -> float | None:
+        left = _finite(first)
+        right = _finite(second)
+        return left - right if left is not None and right is not None else None
+
+    return {
+        "uniqueMarkets": unique_markets,
+        "bothVariantsCapturedMarkets": paired_captured,
+        "bothVariantsSettledMarkets": paired_settled,
+        "downMinusUpRoi": difference(down.get("roi"), up.get("roi")),
+        "downMinusUpPnlUsdt": difference(down.get("pnlUsdt"), up.get("pnlUsdt")),
+        "downMinusUpDoubleLossRate": difference(
+            down.get("doubleLossRate"), up.get("doubleLossRate")
+        ),
+        "downMinusUpAverageCostPerTrade": difference(
+            (
+                down["totalCostUsdt"] / down["settled"]
+                if down.get("settled")
+                else None
+            ),
+            (
+                up["totalCostUsdt"] / up["settled"]
+                if up.get("settled")
+                else None
+            ),
+        ),
+    }
+
+
+def paper_dashboard_payload(path: Path = PAPER_DB_PATH) -> dict[str, Any]:
     store = XPairStore(Path(path))
     try:
-        summary = _aggregate(store.db)
+        variants = {
+            variant: _summary_query(store.db, variant=variant)
+            for variant in PAPER_VARIANTS
+        }
+        summary = _summary_query(store.db)
+        comparison = _comparison(store.db, variants)
         rows = store.db.execute(
             """SELECT id, variant, btc_market_id, eth_market_id, signal_at,
                       seconds_left, filled_shares, cost_per_share, total_cost,
@@ -215,12 +315,16 @@ def paper_dashboard_payload(path: Path = base.DB_PATH) -> dict[str, Any]:
     return {
         **PAPER_RUNTIME.snapshot(),
         "paperOnly": True,
-        "entryRule": "FIRST_ELIGIBLE_ONCE_PER_ALIGNED_MARKET",
+        "experiment": "DUAL_VARIANT_FIRST_ELIGIBLE",
+        "entryRule": "FIRST_ELIGIBLE_ONCE_PER_VARIANT_PER_ALIGNED_MARKET",
         "minimumSecondsAfterStart": PAPER_MIN_SECONDS_AFTER_START,
         "minimumSecondsLeft": PAPER_MIN_SECONDS_LEFT,
         "usesSignedQuote": False,
         "independentOfLiveArm": True,
+        "ledgerPath": str(path),
         "summary": summary,
+        "variants": variants,
+        "comparison": comparison,
         "recent": recent,
     }
 
@@ -233,7 +337,7 @@ def paper_simulation_loop() -> None:
         return
 
     client = BinancePredictionClient(api_key, api_secret)
-    store = XPairStore(base.DB_PATH)
+    store = XPairStore(PAPER_DB_PATH)
     pair: tuple[MarketRef, MarketRef] | None = None
     next_discovery = 0.0
     next_settlement = 0.0
@@ -266,14 +370,29 @@ def paper_simulation_loop() -> None:
                 else:
                     btc, eth = pair
                     key = base.market_key(btc, eth)
-                    seconds_left = max(0.0, (min(btc.end_ms, eth.end_ms) - now_ms) / 1000.0)
-                    seconds_after_start = max(0.0, (now_ms - max(btc.start_ms, eth.start_ms)) / 1000.0)
-                    if store.has_capture(btc.market_id, eth.market_id):
-                        status = f"CAPTURED_WAIT_SETTLEMENT market={key}"
+                    seconds_left = max(
+                        0.0, (min(btc.end_ms, eth.end_ms) - now_ms) / 1000.0
+                    )
+                    seconds_after_start = max(
+                        0.0, (now_ms - max(btc.start_ms, eth.start_ms)) / 1000.0
+                    )
+                    already_captured = captured_variants(
+                        store.db,
+                        btc_market_id=btc.market_id,
+                        eth_market_id=eth.market_id,
+                    )
+                    missing_variants = [
+                        item for item in PAPER_VARIANTS if item not in already_captured
+                    ]
+                    if not missing_variants:
+                        status = f"BOTH_VARIANTS_CAPTURED_WAIT_SETTLEMENT market={key}"
                     elif seconds_after_start < PAPER_MIN_SECONDS_AFTER_START:
                         status = f"WAITING_START_GUARD elapsed={seconds_after_start:.1f}s"
                     elif seconds_left <= PAPER_MIN_SECONDS_LEFT:
-                        status = f"NO_ENTRY_LATE_MARKET left={seconds_left:.1f}s"
+                        status = (
+                            f"NO_ENTRY_LATE_MARKET left={seconds_left:.1f}s "
+                            f"missing={','.join(missing_variants)}"
+                        )
                     else:
                         analysis = v2.latest_book_analysis()
                         analysis_age = _analysis_age_seconds(analysis or {})
@@ -282,12 +401,12 @@ def paper_simulation_loop() -> None:
                         elif analysis_age is None or analysis_age > 3.0:
                             status = f"WAITING_FRESH_ANALYSIS age={analysis_age}"
                         else:
-                            selection = base.STATE.config.selection
-                            preview = selected_preview_trial(analysis, selection)
-                            trial = trial_for_store(preview or {}) if preview else None
-                            if trial is None:
-                                status = f"WAITING_FIRST_ELIGIBLE selection={selection}"
-                            else:
+                            captured_now: list[dict[str, Any]] = []
+                            for variant in missing_variants:
+                                preview = selected_preview_trial(analysis, variant)
+                                trial = trial_for_store(preview or {}) if preview else None
+                                if trial is None:
+                                    continue
                                 store.record_capture(
                                     btc=btc,
                                     eth=eth,
@@ -299,22 +418,53 @@ def paper_simulation_loop() -> None:
                                     cross_book_skew_ms=_finite(preview.get("crossBookSkewMs")),
                                     trials=[trial],
                                 )
-                                capture = {
-                                    "marketKey": key,
-                                    "variant": trial["variant"],
-                                    "secondsLeft": seconds_left,
-                                    "filledShares": trial["filled_shares"],
-                                    "costPerShare": trial["cost_per_share"],
-                                    "totalCostUsdt": trial["total_cost"],
-                                    "capturedAt": utc_iso(),
-                                }
-                                PAPER_RUNTIME.update("PAPER_ENTRY_CAPTURED", capture=capture)
+                                captured_now.append(
+                                    {
+                                        "variant": trial["variant"],
+                                        "secondsLeft": seconds_left,
+                                        "filledShares": trial["filled_shares"],
+                                        "costPerShare": trial["cost_per_share"],
+                                        "totalCostUsdt": trial["total_cost"],
+                                    }
+                                )
                                 base.STATE.log(
                                     f"PAPER_XPAIR_CAPTURED market={key} variant={trial['variant']} "
-                                    f"left={seconds_left:.1f}s cost/share={trial['cost_per_share']:.6f}",
+                                    f"left={seconds_left:.1f}s "
+                                    f"cost/share={trial['cost_per_share']:.6f}",
                                     "INFO",
                                 )
-                                status = f"CAPTURED_WAIT_SETTLEMENT market={key}"
+
+                            if captured_now:
+                                capture = {
+                                    "marketKey": key,
+                                    "variant": "+".join(
+                                        str(item["variant"]) for item in captured_now
+                                    ),
+                                    "variants": captured_now,
+                                    "capturedAt": utc_iso(),
+                                }
+                                PAPER_RUNTIME.update(
+                                    "PAPER_DUAL_ENTRY_CAPTURED",
+                                    capture=capture,
+                                )
+                                after_capture = already_captured | {
+                                    str(item["variant"]) for item in captured_now
+                                }
+                                remaining = [
+                                    item for item in PAPER_VARIANTS
+                                    if item not in after_capture
+                                ]
+                                status = (
+                                    f"BOTH_VARIANTS_CAPTURED_WAIT_SETTLEMENT market={key}"
+                                    if not remaining
+                                    else f"ONE_VARIANT_CAPTURED_WAIT_OTHER "
+                                    f"market={key} missing={','.join(remaining)}"
+                                )
+                            else:
+                                status = (
+                                    "WAITING_FIRST_ELIGIBLE_BOTH_VARIANTS "
+                                    f"missing={','.join(missing_variants)}"
+                                )
 
                 if status != last_status:
                     PAPER_RUNTIME.update(status)
