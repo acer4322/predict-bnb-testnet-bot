@@ -12,6 +12,7 @@ from . import xpair_canary_autopilot_server_v8 as v8
 from .xpair_dashboard_paper_sim import (
     PAPER_MIN_SECONDS_AFTER_START,
     PAPER_MIN_SECONDS_LEFT,
+    PAPER_VARIANTS,
     paper_dashboard_payload,
     paper_simulation_loop,
 )
@@ -27,19 +28,24 @@ def state_payload() -> dict[str, Any]:
         {
             "dashboardPaperSimulation": True,
             "paperSimulationIndependentOfLiveArm": True,
-            "paperSimulationOneEntryPerAlignedMarket": True,
-            "paperSimulationEntryRule": "FIRST_ELIGIBLE_ONCE_PER_ALIGNED_MARKET",
+            "paperSimulationDualVariant": True,
+            "paperSimulationVariants": list(PAPER_VARIANTS),
+            "paperSimulationOneEntryPerVariantPerAlignedMarket": True,
+            "paperSimulationEntryRule": (
+                "FIRST_ELIGIBLE_ONCE_PER_VARIANT_PER_ALIGNED_MARKET"
+            ),
             "paperSimulationMinimumSecondsAfterStart": PAPER_MIN_SECONDS_AFTER_START,
             "paperSimulationMinimumSecondsLeft": PAPER_MIN_SECONDS_LEFT,
             "paperSimulationUsesSignedQuote": False,
             "paperSimulationSettlementUsesMarketEndPrice": True,
+            "paperSimulationSeparateComparisonLedger": True,
         }
     )
     return payload
 
 
 class Handler(v8.Handler):
-    server_version = "BTC5MLabXPairAutopilot/9.0"
+    server_version = "BTC5MLabXPairAutopilot/9.1"
 
 
 def install_patches() -> None:
@@ -82,10 +88,10 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        "XPAIR autopilot v9 API listening on "
-        f"http://{base.API_HOST}:{base.API_PORT}; dashboard paper simulation records "
-        "the first eligible selected-direction entry once per aligned market, "
-        f"from {PAPER_MIN_SECONDS_AFTER_START:.0f}s after start until "
+        "XPAIR autopilot v9.1 API listening on "
+        f"http://{base.API_HOST}:{base.API_PORT}; dashboard paper simulation tracks "
+        "BTC_DOWN_ETH_UP and BTC_UP_ETH_DOWN independently, once per variant per "
+        f"aligned market, from {PAPER_MIN_SECONDS_AFTER_START:.0f}s after start until "
         f"{PAPER_MIN_SECONDS_LEFT:.0f}s before settlement"
     )
     try:
