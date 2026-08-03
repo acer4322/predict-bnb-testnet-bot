@@ -278,9 +278,45 @@ def recent_runs() -> list[dict[str, Any]]:
     try:
         store = CanaryStore(DB_PATH)
         try:
-            return store.recent()
+            rows = store.recent()
         finally:
             store.close()
+        result: list[dict[str, Any]] = []
+        for raw in rows:
+            item = dict(raw)
+            try:
+                details = json.loads(str(item.pop("details_json", "{}") or "{}"))
+            except json.JSONDecodeError:
+                details = {}
+            item["details"] = details
+            item["selection"] = item.get("variant")
+            placements = details.get("placements") if isinstance(details, dict) else None
+            orders = details.get("orders") if isinstance(details, dict) else None
+            placements = placements if isinstance(placements, list) else []
+            orders = orders if isinstance(orders, dict) else {}
+            for placement in placements:
+                if not isinstance(placement, dict):
+                    continue
+                symbol = str(placement.get("symbol") or "")
+                prefix = (
+                    "btc"
+                    if symbol == "BTCUSDT"
+                    else "eth"
+                    if symbol == "ETHUSDT"
+                    else ""
+                )
+                if not prefix:
+                    continue
+                order_id = str(placement.get("orderId") or "")
+                exchange = orders.get(order_id) if order_id else None
+                item[f"{prefix}_order_id"] = order_id or None
+                item[f"{prefix}_order_status"] = str(
+                    (exchange.get("status") if isinstance(exchange, dict) else None)
+                    or placement.get("status")
+                    or "UNKNOWN"
+                ).upper()
+            result.append(item)
+        return result
     except Exception as exc:
         return [{"id": -1, "status": "LEDGER_ERROR", "message": str(exc)[:500]}]
 
