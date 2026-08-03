@@ -66,27 +66,9 @@ def install_pair_arb_minimum() -> None:
     if _PATCHED:
         return
 
-    original_normalize = live.normalize_live_rules
     original_single = live.LiveM0WEngine._process_single_signal
     original_requote = live.LiveM0WEngine._requote_qc_pair
     original_depth_plan = live.LiveM0WEngine._pair_010_profitable_depth_plan
-
-    def normalize_live_rules(
-        values: dict[str, Any], current: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
-        rules = original_normalize(values, current)
-        for strategy, stake in zip(
-            rules.get("strategies") or [],
-            rules.get("strategyStakesUsdt") or [],
-        ):
-            if str(strategy).startswith("PAIR_ARB_"):
-                parsed = _decimal(stake)
-                if parsed is None or parsed < PAIR_ARB_MIN_TOTAL_STAKE_USDT:
-                    raise ValueError(
-                        "each PAIR_ARB total stake must be at least 2.00 USDT "
-                        "because Binance requires at least 1.00 USDT on each leg"
-                    )
-        return rules
 
     def process_single_signal(
         self: live.LiveM0WEngine,
@@ -181,7 +163,6 @@ def install_pair_arb_minimum() -> None:
             )
         return plan, error
 
-    live.normalize_live_rules = normalize_live_rules
     live.LiveM0WEngine._process_single_signal = process_single_signal
     live.LiveM0WEngine._requote_qc_pair = requote_qc_pair
     live.LiveM0WEngine._pair_010_profitable_depth_plan = staticmethod(
