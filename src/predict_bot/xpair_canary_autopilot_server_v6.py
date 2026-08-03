@@ -14,6 +14,11 @@ from . import xpair_canary_autopilot_server_v5 as v5
 DEFAULT_MAX_PAIR_BUDGET_USDT = Decimal("10.00")
 ABSOLUTE_MAX_PAIR_BUDGET_USDT = Decimal("100.00")
 MIN_PAIR_BUDGET_USDT = Decimal("2.00")
+ARMED_DECISION_STATUSES = {
+    "ARMED_NO_ELIGIBLE_VARIANT",
+    "ARMED_QUOTE_REJECTED",
+    "ARMED_WAITING_SAFE_WALLET",
+}
 
 
 def configured_max_pair_budget() -> Decimal:
@@ -62,8 +67,21 @@ def validate_monitor_config(self: base.MonitorConfig) -> None:
         raise ValueError("quote interval must be between 0.25 and 10 seconds")
 
 
+def expose_armed_decision_messages(payload: dict[str, Any]) -> dict[str, Any]:
+    """Make persisted armed non-entry reasons visible in the existing table."""
+    for run in payload.get("recentRuns") or []:
+        if not isinstance(run, dict):
+            continue
+        canonical_status = str(run.get("status") or "")
+        message = str(run.get("message") or "").strip()
+        if canonical_status in ARMED_DECISION_STATUSES and message:
+            run["canonical_status"] = canonical_status
+            run["status"] = f"{canonical_status} — {message[:300]}"
+    return payload
+
+
 def state_payload() -> dict[str, Any]:
-    payload = v5.state_payload()
+    payload = expose_armed_decision_messages(v5.state_payload())
     payload["defaults"]["maximumPairBudgetUsdt"] = float(MAX_PAIR_BUDGET_USDT)
     policy = payload.setdefault("policy", {})
     policy.pop("liveConfirmationPhrase", None)
@@ -71,6 +89,8 @@ def state_payload() -> dict[str, Any]:
     policy["typedLiveConfirmationRequired"] = False
     policy["maximumPairBudgetUsdt"] = float(MAX_PAIR_BUDGET_USDT)
     policy["maximumPairBudgetEnvironment"] = "XPAIR_MAX_PAIR_BUDGET_USDT"
+    policy["armedDecisionLedger"] = True
+    policy["armedDecisionReasonsVisibleInHistory"] = True
     return payload
 
 
@@ -80,7 +100,7 @@ def validate_button_arm_header(value: str | None) -> None:
 
 
 class Handler(v4.Handler):
-    server_version = "BTC5MLabXPairAutopilot/6.1"
+    server_version = "BTC5MLabXPairAutopilot/6.2"
 
     def do_POST(self) -> None:
         path = urlsplit(self.path).path
@@ -135,10 +155,10 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        f"XPAIR autopilot v6.1 API listening on http://{base.API_HOST}:{base.API_PORT}; "
+        f"XPAIR autopilot v6.2 API listening on http://{base.API_HOST}:{base.API_PORT}; "
         f"pair budgets from {MIN_PAIR_BUDGET_USDT:.2f} to "
-        f"{MAX_PAIR_BUDGET_USDT:.2f} USDT are enabled, while persistent "
-        "incident protection remains active"
+        f"{MAX_PAIR_BUDGET_USDT:.2f} USDT are enabled, armed non-entry "
+        "decisions are persisted, and incident protection remains active"
     )
     try:
         server.serve_forever()
