@@ -7,7 +7,9 @@ import pytest
 from predict_bot.xpair_btc_eth_paper import MarketRef, XPairStore, utc_iso
 from predict_bot.xpair_dashboard_paper_sim import (
     captured_variants,
+    migrate_legacy_paper_ledgers,
     paper_dashboard_payload,
+    paper_history_payload,
     selected_preview_trial,
     trial_for_store,
 )
@@ -58,6 +60,15 @@ def paper_trial(variant: str) -> dict:
     chosen = selected_preview_trial(analysis(), variant)
     trial = trial_for_store(chosen or {})
     assert trial is not None
+    return trial
+
+
+def legacy_trial(variant: str) -> dict:
+    trial = paper_trial(variant)
+    trial["diagnostics"] = {
+        "paper_only": True,
+        "source": "legacy_selected_direction_dashboard",
+    }
     return trial
 
 
@@ -212,3 +223,81 @@ def test_dashboard_compares_dual_variant_outcomes_pnl_and_roi(tmp_path: Path) ->
         (-3.6 / 7.6) - (4.48 / 7.52)
     )
     assert comparison["downMinusUpDoubleLossRate"] == pytest.approx(0.5)
+
+
+def test_persistent_history_paginates_without_deleting_old_rows(tmp_path: Path) -> None:
+    path = tmp_path / "permanent.db"
+    store = XPairStore(path)
+    try:
+        for index in range(3):
+            btc = market("BTCUSDT", 100 + index, 1_000 + index)
+            eth = market("ETHUSDT", 200 + index, 2_000 + index)
+            store.record_capture(
+                btc=btc,
+                eth=eth,
+                signal_at=f"2026-08-04T00:0{index}:00+00:00",
+                seconds_left=250.0 - index,
+                requested_stake=4.0,
+                btc_book_age_ms=100.0,
+                eth_book_age_ms=100.0,
+                cross_book_skew_ms=100.0,
+                trials=[paper_trial("BTC_DOWN_ETH_UP")],
+            )
+    finally:
+        store.close()
+
+    first = paper_history_payload(path=path, limit=1, offset=0)
+    second = paper_history_payload(path=path, limit=1, offset=1)
+    third = paper_history_payload(path=path, limit=1, offset=2)
+
+    assert first["persistent"] is True
+    assert first["autoDelete"] is False
+    assert first["total"] == 3
+    assert first["hasMore"] is True
+    assert second["total"] == 3
+    assert third["total"] == 3
+    assert first["items"][0]["btc_market_id"] == 1_002
+    assert second["items"][0]["btc_market_id"] == 1_001
+    assert third["items"][0]["btc_market_id"] == 1_000
+    assert third["hasMore"] is False
+
+
+def test_legacy_import_is_visible_but_excluded_from_dual_stats(tmp_path: Path) -> None:
+    legacy_path = tmp_path / "legacy.db"
+    permanent_path = tmp_path / "permanent.db"
+    legacy = XPairStore(legacy_path)
+    btc = market("BTCUSDT", 1, 11)
+    eth = market("ETHUSDT", 2, 22)
+    try:
+        legacy.record_capture(
+            btc=btc,
+            eth=eth,
+            signal_at=utc_iso(),
+            seconds_left=180.0,
+            requested_stake=4.0,
+            btc_book_age_ms=100.0,
+            eth_book_age_ms=100.0,
+            cross_book_skew_ms=100.0,
+            trials=[legacy_trial("BTC_DOWN_ETH_UP")],
+        )
+    finally:
+        legacy.close()
+
+    permanent = XPairStore(permanent_path)
+    try:
+        migration = migrate_legacy_paper_ledgers(
+            permanent,
+            source_paths=[legacy_path],
+        )
+    finally:
+        permanent.close()
+
+    assert migration["importedNow"] == 1
+    history = paper_history_payload(path=permanent_path, limit=50, offset=0)
+    dashboard = paper_dashboard_payload(permanent_path)
+
+    assert history["total"] == 1
+    assert history["items"][0]["ledger_class"] == "LEGACY_ARCHIVE"
+    assert dashboard["storage"]["historyTotal"] == 1
+    assert dashboard["summary"]["captured"] == 0
+    assert dashboard["comparison"]["uniqueMarkets"] == 0
