@@ -10,6 +10,7 @@ from predict_bot.xpair_canary_autopilot_server_v6 import (
     install_patches,
     state_payload,
     validate_button_arm_header,
+    validate_live_selection,
 )
 
 
@@ -30,22 +31,45 @@ def test_typed_live_confirmation_is_not_advertised() -> None:
     assert "liveConfirmationPhrase" not in policy
 
 
-def test_default_selection_uses_cheapest_eligible_direction() -> None:
+def test_default_selection_uses_positive_eligible_sample_direction() -> None:
     install_patches()
     payload = state_payload()
-    assert base.STATE.config.selection == "CHEAPEST_ELIGIBLE"
-    assert payload["defaults"]["selection"] == "CHEAPEST_ELIGIBLE"
-    assert payload["policy"]["automaticDirectionSelection"] is True
-    assert payload["policy"]["defaultSelection"] == "CHEAPEST_ELIGIBLE"
+    assert base.STATE.config.selection == "BTC_DOWN_ETH_UP"
+    assert payload["defaults"]["selection"] == "BTC_DOWN_ETH_UP"
+    assert payload["policy"]["automaticDirectionSelection"] is False
+    assert payload["policy"]["defaultSelection"] == "BTC_DOWN_ETH_UP"
+    assert payload["policy"]["liveAllowedSelections"] == ["BTC_DOWN_ETH_UP"]
 
 
-def test_fixed_direction_can_still_be_selected_explicitly() -> None:
+def test_production_direction_is_allowed_for_live() -> None:
+    validate_live_selection("BTC_DOWN_ETH_UP")
+
+
+def test_negative_sample_direction_is_blocked_for_live_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("XPAIR_ALLOW_EXPERIMENTAL_DIRECTIONS", raising=False)
+    with pytest.raises(ValueError, match="empirical direction gate"):
+        validate_live_selection("BTC_UP_ETH_DOWN")
+    with pytest.raises(ValueError, match="empirical direction gate"):
+        validate_live_selection("CHEAPEST_ELIGIBLE")
+
+
+def test_experimental_direction_requires_explicit_environment_opt_in(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("XPAIR_ALLOW_EXPERIMENTAL_DIRECTIONS", "1")
+    validate_live_selection("BTC_UP_ETH_DOWN")
+    validate_live_selection("CHEAPEST_ELIGIBLE")
+
+
+def test_experimental_direction_can_still_be_selected_for_monitoring() -> None:
     install_patches()
     config = base.MonitorConfig.from_payload(
-        {"selection": "BTC_DOWN_ETH_UP"},
+        {"selection": "CHEAPEST_ELIGIBLE"},
         base.STATE.config,
     )
-    assert config.selection == "BTC_DOWN_ETH_UP"
+    assert config.selection == "CHEAPEST_ELIGIBLE"
 
 
 def test_edited_pair_budgets_are_accepted_through_ten_usdt() -> None:
