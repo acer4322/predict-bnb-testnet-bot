@@ -7,7 +7,7 @@ import MicropriceVariantV2Label from "./microprice-variant-v2-label";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
-const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const mono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "BTC 5M Lab · M 系列模擬實驗 + 實單 Canary",
