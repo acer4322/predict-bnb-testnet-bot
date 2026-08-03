@@ -25,3 +25,12 @@ apply_r_futures_lead_diagnostics.py
 apply_live_confirmation_add.py
 apply_autov6_conservative_reset_v2.py
 apply_autov6_conservative_reset.py
+apply_autov6_conservative_reset.py
+apply_autov6_conservative_reset_v2.py
+apply_live_confirmation_add.py
+apply_r_futures_lead_diagnostics.py
+audit_prediction_contamination.py
+audit_prediction_contamination_v2.py
+audit_prediction_feed_availability.py
+apply_autov6_conservative_reset.py
+apply_autov6_conservative_reset.py
