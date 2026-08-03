@@ -5,6 +5,11 @@ from decimal import Decimal
 import pytest
 
 from predict_bot import xpair_canary_autopilot_server as base
+from predict_bot.xpair_canary_autopilot_server_v2 import (
+    clear_book_analysis,
+    latest_book_analysis,
+    publish_book_analysis,
+)
 from predict_bot.xpair_canary_autopilot_server_v6 import (
     configured_max_pair_budget,
     install_patches,
@@ -70,6 +75,76 @@ def test_experimental_direction_can_still_be_selected_for_monitoring() -> None:
         base.STATE.config,
     )
     assert config.selection == "CHEAPEST_ELIGIBLE"
+
+
+def test_continuous_book_analysis_is_exposed_without_signed_quote() -> None:
+    clear_book_analysis()
+    publish_book_analysis(
+        market_key="101:202",
+        seconds_left=247.5,
+        inside_entry_window=False,
+        selection="BTC_DOWN_ETH_UP",
+        trials=[
+            {
+                "variant": "BTC_UP_ETH_DOWN",
+                "entry_status": "SKIPPED_PRICE",
+                "eligible": False,
+                "rejection_reason": "total cost exceeds cap",
+                "cost_per_share": None,
+            },
+            {
+                "variant": "BTC_DOWN_ETH_UP",
+                "entry_status": "ELIGIBLE",
+                "eligible": True,
+                "rejection_reason": None,
+                "cost_per_share": 0.91,
+                "filled_shares": 3.1,
+                "btc_vwap": 0.48,
+                "eth_vwap": 0.43,
+            },
+        ],
+        chosen={
+            "variant": "BTC_DOWN_ETH_UP",
+            "cost_per_share": 0.91,
+            "filled_shares": 3.1,
+        },
+    )
+    install_patches()
+    payload = state_payload()
+    analysis = payload["runtime"]["bookAnalysis"]
+    assert analysis["marketKey"] == "101:202"
+    assert analysis["insideEntryWindow"] is False
+    assert analysis["selectedVariant"] == "BTC_DOWN_ETH_UP"
+    assert analysis["trials"][1]["entryStatus"] == "ELIGIBLE"
+    assert payload["policy"]["continuousBookMonitoring"] is True
+    assert payload["policy"]["signedQuotesRestrictedToEntryWindow"] is True
+    assert payload["policy"]["livePlacementRestrictedToEntryWindow"] is True
+    clear_book_analysis()
+
+
+def test_latest_book_analysis_returns_a_defensive_copy() -> None:
+    clear_book_analysis()
+    publish_book_analysis(
+        market_key="1:2",
+        seconds_left=250,
+        inside_entry_window=False,
+        selection="BTC_DOWN_ETH_UP",
+        trials=[
+            {
+                "variant": "BTC_DOWN_ETH_UP",
+                "entry_status": "ELIGIBLE",
+                "eligible": True,
+            }
+        ],
+        chosen={"variant": "BTC_DOWN_ETH_UP"},
+    )
+    first = latest_book_analysis()
+    assert first is not None
+    first["trials"][0]["entryStatus"] = "MUTATED"
+    second = latest_book_analysis()
+    assert second is not None
+    assert second["trials"][0]["entryStatus"] == "ELIGIBLE"
+    clear_book_analysis()
 
 
 def test_edited_pair_budgets_are_accepted_through_ten_usdt() -> None:
