@@ -41,7 +41,9 @@ type ApiState = {
   };
   policy?: {
     liveAllowedSelections?: string[];
-    signedQuotesRestrictedToEntryWindow?: boolean;
+    firstEligibleLiveExecution?: boolean;
+    executionStartGuardSeconds?: number;
+    executionMinimumSecondsLeft?: number;
   };
 };
 
@@ -94,11 +96,12 @@ export default function BookMonitorPanel() {
 
   const analysis = state?.runtime?.bookAnalysis;
   const trials = analysis?.trials ?? [];
-  const entryFrom = state?.defaults?.entrySecondsLeft ?? 180;
-  const entryTo = entryFrom - (state?.defaults?.entryWindowSeconds ?? 10);
   const interval = state?.defaults?.bookMonitorIntervalSeconds ?? 1;
   const liveDirections = state?.policy?.liveAllowedSelections?.join(", ")
     ?? "BTC_DOWN_ETH_UP";
+  const startGuard = state?.policy?.executionStartGuardSeconds ?? 5;
+  const minimumLeft = state?.policy?.executionMinimumSecondsLeft ?? 20;
+  const firstEligible = state?.policy?.firstEligibleLiveExecution === true;
 
   return <aside className={styles.panel}>
     <div className={styles.header}>
@@ -110,7 +113,7 @@ export default function BookMonitorPanel() {
         {error
           ? "API OFFLINE"
           : analysis?.insideEntryWindow
-            ? "SIGNED QUOTE WINDOW"
+            ? "LIVE ELIGIBLE ZONE"
             : "BOOK MONITORING"}
       </span>
     </div>
@@ -159,7 +162,9 @@ export default function BookMonitorPanel() {
     </div>
 
     <p className={styles.note}>
-      普通訂單簿會整場常駐判定；signed Quote 與正式送單仍只在剩餘 {entryFrom.toFixed(0)}～{entryTo.toFixed(0)} 秒執行。
+      {firstEligible
+        ? `實單已改為 FIRST_ELIGIBLE：市場開始 ${startGuard.toFixed(0)} 秒後至剩餘 ${minimumLeft.toFixed(0)} 秒以前，只要目前實單方向符合就立即申請 signed Quote；已武裝且 Quote 通過便立即送單，不再等待目標剩餘秒數。`
+        : "普通訂單簿會整場常駐判定。"}
       實單方向 gate 目前只允許 {liveDirections}，不會因另一方向當輪較便宜而自動切換。
     </p>
   </aside>;
