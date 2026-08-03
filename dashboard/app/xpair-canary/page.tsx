@@ -16,38 +16,28 @@ type LatestMarket = {
   btcMarketId?: number;
   ethMarketId?: number;
   secondsLeft?: number;
-  startMs?: number;
-  endMs?: number;
 };
 
 type LatestQuote = {
   accepted?: boolean;
-  marketKey?: string;
   variant?: string;
   costPerShare?: number;
-  targetShares?: number;
-  updatedAt?: string;
   error?: string;
-  armed?: boolean;
 };
 
 type RuntimeState = {
   running: boolean;
   phase: string;
-  startedAt?: string | null;
-  updatedAt?: string | null;
-  lastError?: string | null;
-  lastWarning?: string | null;
   armed: boolean;
   armedAt?: string | null;
-  armedGeneration?: number;
   lastAttemptMarketKey?: string | null;
   latestMarket?: LatestMarket | null;
-  latestPlan?: Record<string, unknown> | null;
   latestQuote?: LatestQuote | null;
   quoteAttempts?: number;
   quoteAccepts?: number;
   liveAttempts?: number;
+  lastWarning?: string | null;
+  lastError?: string | null;
   logs?: RuntimeLog[];
 };
 
@@ -56,14 +46,12 @@ type CanaryRun = {
   mode: string;
   variant?: string | null;
   status: string;
-  pair_budget_usdt: number;
   btc_market_id?: number | null;
   eth_market_id?: number | null;
   modeled_cost_per_share?: number | null;
   quoted_cost_per_share?: number | null;
   btc_order_status?: string | null;
   eth_order_status?: string | null;
-  message?: string | null;
   updated_at?: string | null;
 };
 
@@ -71,13 +59,9 @@ type MonitorDefaults = {
   selection: Selection;
   pairBudgetUsdt: number;
   balanceBufferUsdt: number;
-  requiredBalanceUsdt: number;
   maxTotalCost: number;
   maxLegReprice: number;
-  entrySecondsLeft: number;
-  entryWindowSeconds: number;
   slippageBps: number;
-  accountType: "CeDeFi";
   quoteIntervalSeconds?: number;
   maximumPairBudgetUsdt?: number;
 };
@@ -86,17 +70,21 @@ type SafetyState = {
   locked?: boolean;
   lockKind?: string;
   status?: string;
-  reason?: string | null;
+};
+
+type PolicyState = {
+  firstEligibleLiveExecution?: boolean;
+  executionStartGuardSeconds?: number;
+  executionMinimumSecondsLeft?: number;
+  liveAllowedSelections?: string[];
 };
 
 type CanaryState = {
-  strategy: string;
-  nonAtomic: boolean;
   defaults: MonitorDefaults;
   runtime: RuntimeState;
   safety?: SafetyState;
+  policy?: PolicyState;
   recentRuns: CanaryRun[];
-  updatedAt: string;
 };
 
 type FormState = {
@@ -105,9 +93,16 @@ type FormState = {
   balanceBufferUsdt: string;
   maxTotalCost: string;
   maxLegReprice: string;
-  entrySecondsLeft: string;
-  entryWindowSeconds: string;
   slippageBps: string;
+};
+
+const DEFAULT_FORM: FormState = {
+  selection: "BTC_DOWN_ETH_UP",
+  pairBudgetUsdt: "3.00",
+  balanceBufferUsdt: "0.10",
+  maxTotalCost: "0.98",
+  maxLegReprice: "0.01",
+  slippageBps: "100",
 };
 
 function apiUrl(path: string) {
@@ -121,11 +116,11 @@ function numberOr(value: string, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function fixed(value: number | null | undefined, digits = 4) {
+function fixed(value?: number | null, digits = 4) {
   return value == null || !Number.isFinite(value) ? "—" : value.toFixed(digits);
 }
 
-function timeLabel(value: string | null | undefined) {
+function timeLabel(value?: string | null) {
   if (!value) return "—";
   const date = new Date(value);
   return Number.isNaN(date.getTime())
@@ -134,28 +129,17 @@ function timeLabel(value: string | null | undefined) {
 }
 
 function statusTone(status: string) {
-  if (/AUTO_QUOTE_READY|FILLED_BOTH|MONITORING/.test(status)) return styles.good;
-  if (/ERROR|INCOMPLETE|ONE_SIDED|REJECTED|INCIDENT/.test(status)) return styles.bad;
-  if (/ARMED|PLACE|SUBMITTED|WAITING_SAFE|TRACKING/.test(status)) return styles.warn;
+  if (/AUTO_QUOTE_READY|FILLED_BOTH|HOLD_PROFITABLE|MONITORING/.test(status)) return styles.good;
+  if (/ERROR|INCOMPLETE|ONE_SIDED|REJECTED|INCIDENT|UNWIND/.test(status)) return styles.bad;
+  if (/ARMED|PLACE|SUBMITTED|WAITING|TRACKING|QUOTE/.test(status)) return styles.warn;
   return styles.neutral;
 }
-
-const DEFAULT_FORM: FormState = {
-  selection: "BTC_DOWN_ETH_UP",
-  pairBudgetUsdt: "3.00",
-  balanceBufferUsdt: "0.10",
-  maxTotalCost: "0.98",
-  maxLegReprice: "0.01",
-  entrySecondsLeft: "180",
-  entryWindowSeconds: "10",
-  slippageBps: "100",
-};
 
 export default function XPairCanaryPage() {
   const [state, setState] = useState<CanaryState | null>(null);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
-  const [formInitialized, setFormInitialized] = useState(false);
-  const [requestState, setRequestState] = useState("等待常駐監控 API");
+  const [initialized, setInitialized] = useState(false);
+  const [message, setMessage] = useState("等待 XPAIR API");
   const [apiError, setApiError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -163,36 +147,35 @@ export default function XPairCanaryPage() {
     try {
       const response = await fetch(apiUrl("/api/xpair-canary"), { cache: "no-store" });
       const payload = await response.json() as CanaryState & { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Canary API 回應失敗");
+      if (!response.ok) throw new Error(payload.error ?? "XPAIR API 回應失敗");
       setState(payload);
       setApiError(null);
-      setRequestState(
+      setMessage(
         payload.safety?.locked
           ? `安全鎖：${payload.safety.status ?? payload.safety.lockKind ?? "LOCKED"}`
           : payload.runtime.armed
-            ? "已武裝：等待下一個符合條件的 quote"
+            ? "已武裝：選定方向首次符合後立即 Quote／送單"
             : payload.runtime.running
-              ? `自動 Quote 監控中：${payload.runtime.phase}`
+              ? `持續監控：${payload.runtime.phase}`
               : `監控尚未啟動：${payload.runtime.phase}`,
       );
-      if (!formInitialized && payload.defaults) {
+      if (!initialized) {
         setForm({
           selection: payload.defaults.selection,
           pairBudgetUsdt: payload.defaults.pairBudgetUsdt.toFixed(2),
           balanceBufferUsdt: payload.defaults.balanceBufferUsdt.toFixed(2),
           maxTotalCost: String(payload.defaults.maxTotalCost),
           maxLegReprice: String(payload.defaults.maxLegReprice),
-          entrySecondsLeft: String(payload.defaults.entrySecondsLeft),
-          entryWindowSeconds: String(payload.defaults.entryWindowSeconds),
           slippageBps: String(payload.defaults.slippageBps),
         });
-        setFormInitialized(true);
+        setInitialized(true);
       }
-    } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Canary API 無法連線");
-      setRequestState("常駐監控 API 離線");
+    } catch (caught) {
+      const text = caught instanceof Error ? caught.message : "XPAIR API 無法連線";
+      setApiError(text);
+      setMessage(text);
     }
-  }, [formInitialized]);
+  }, [initialized]);
 
   useEffect(() => {
     void refresh();
@@ -201,13 +184,13 @@ export default function XPairCanaryPage() {
   }, [refresh]);
 
   const maxPairBudget = state?.defaults.maximumPairBudgetUsdt ?? 10;
-  const pairBudgetValue = Number(form.pairBudgetUsdt);
-  const budgetError = !Number.isFinite(pairBudgetValue)
+  const pairBudget = Number(form.pairBudgetUsdt);
+  const budgetError = !Number.isFinite(pairBudget)
     ? "請輸入有效的兩腿總預算"
-    : pairBudgetValue < 2
+    : pairBudget < 2
       ? "兩腿總預算不得低於 2.00 USDT"
-      : pairBudgetValue > maxPairBudget
-        ? `目前實單安全上限為 ${maxPairBudget.toFixed(2)} USDT`
+      : pairBudget > maxPairBudget
+        ? `目前安全上限為 ${maxPairBudget.toFixed(2)} USDT`
         : null;
 
   const requestPayload = useCallback(() => ({
@@ -216,8 +199,6 @@ export default function XPairCanaryPage() {
     balanceBufferUsdt: numberOr(form.balanceBufferUsdt, 0.1),
     maxTotalCost: numberOr(form.maxTotalCost, 0.98),
     maxLegReprice: numberOr(form.maxLegReprice, 0.01),
-    entrySecondsLeft: numberOr(form.entrySecondsLeft, 180),
-    entryWindowSeconds: numberOr(form.entryWindowSeconds, 10),
     slippageBps: Math.round(numberOr(form.slippageBps, 100)),
     accountType: "CeDeFi",
   }), [form]);
@@ -228,7 +209,6 @@ export default function XPairCanaryPage() {
       return;
     }
     setActionError(null);
-    setRequestState("儲存監控條件中…");
     try {
       const response = await fetch(apiUrl("/api/xpair-canary/config"), {
         method: "POST",
@@ -238,11 +218,11 @@ export default function XPairCanaryPage() {
       const payload = await response.json() as CanaryState & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "監控條件儲存失敗");
       setState(payload);
-      setRequestState("條件已套用；背景會自動取得 quote");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "監控條件儲存失敗";
-      setActionError(message);
-      setRequestState(message);
+      setMessage("條件已套用；FIRST_ELIGIBLE 監控持續運行");
+    } catch (caught) {
+      const text = caught instanceof Error ? caught.message : "監控條件儲存失敗";
+      setActionError(text);
+      setMessage(text);
     }
   };
 
@@ -251,14 +231,15 @@ export default function XPairCanaryPage() {
       setActionError(budgetError);
       return;
     }
+    const startGuard = state?.policy?.executionStartGuardSeconds ?? 5;
+    const minimumLeft = state?.policy?.executionMinimumSecondsLeft ?? 20;
     const accepted = window.confirm(
-      `這不會立刻送單，而是武裝下一個符合條件的 BTC／ETH 兩腿 quote。\n\n` +
-      `總預算上限 ${Number(form.pairBudgetUsdt).toFixed(2)} USDT；一旦兩腿報價通過，程式會自動嘗試送出一次，無法再等你確認。\n\n` +
-      `兩腿非原子，可能只成交一腿；另一個正式實單程序必須先停止。\n\n確定武裝嗎？`,
+      `武裝後不會等待 180 秒。\n\n` +
+      `市場開始 ${startGuard.toFixed(0)} 秒後至剩餘 ${minimumLeft.toFixed(0)} 秒以前，只要 ${form.selection} 首次符合，程式就立即申請 signed Quote；Quote 通過便自動送出一次。\n\n` +
+      `總預算上限 ${pairBudget.toFixed(2)} USDT。兩腿非原子，可能只成交一腿。確定武裝嗎？`,
     );
     if (!accepted) return;
     setActionError(null);
-    setRequestState("正在武裝下一次正式單…");
     try {
       const response = await fetch(apiUrl("/api/xpair-canary/arm"), {
         method: "POST",
@@ -271,17 +252,16 @@ export default function XPairCanaryPage() {
       const payload = await response.json() as CanaryState & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "武裝失敗");
       setState(payload);
-      setRequestState("已武裝；下一個符合條件的 quote 會自動嘗試一次正式送單");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "武裝失敗";
-      setActionError(message);
-      setRequestState(message);
+      setMessage("已武裝：下一個合格 tick 立即 Quote／嘗試送單");
+    } catch (caught) {
+      const text = caught instanceof Error ? caught.message : "武裝失敗";
+      setActionError(text);
+      setMessage(text);
     }
   };
 
   const disarm = async () => {
     setActionError(null);
-    setRequestState("取消武裝中…");
     try {
       const response = await fetch(apiUrl("/api/xpair-canary/disarm"), {
         method: "POST",
@@ -291,59 +271,61 @@ export default function XPairCanaryPage() {
       const payload = await response.json() as CanaryState & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "取消武裝失敗");
       setState(payload);
-      setRequestState("已取消武裝；背景 quote 監控仍會繼續");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "取消武裝失敗";
-      setActionError(message);
-      setRequestState(message);
+      setMessage("已取消正式單武裝；簿面與紙單仍持續運行");
+    } catch (caught) {
+      const text = caught instanceof Error ? caught.message : "取消武裝失敗";
+      setActionError(text);
+      setMessage(text);
     }
   };
 
   const runtime = state?.runtime;
-  const latestMarket = runtime?.latestMarket;
-  const latestQuote = runtime?.latestQuote;
+  const market = runtime?.latestMarket;
+  const quote = runtime?.latestQuote;
   const logs = runtime?.logs ?? [];
   const recent = state?.recentRuns ?? [];
   const safetyLocked = Boolean(state?.safety?.locked);
-  const requiredBalance = useMemo(() => (
-    numberOr(form.pairBudgetUsdt, 3) + numberOr(form.balanceBufferUsdt, 0.1)
-  ), [form.balanceBufferUsdt, form.pairBudgetUsdt]);
+  const requiredBalance = useMemo(
+    () => numberOr(form.pairBudgetUsdt, 3) + numberOr(form.balanceBufferUsdt, 0.1),
+    [form.balanceBufferUsdt, form.pairBudgetUsdt],
+  );
+  const startGuard = state?.policy?.executionStartGuardSeconds ?? 5;
+  const minimumLeft = state?.policy?.executionMinimumSecondsLeft ?? 20;
 
   return <main className={styles.page}>
     <header className={styles.hero}>
       <div>
-        <span className={styles.eyebrow}>BTC 5M LAB · ALWAYS-ON QUOTE CANARY</span>
-        <h1>BTC／ETH 自動報價＋一次性實單武裝</h1>
-        <p>背景會持續讀取價格並在進場窗內自動取得 signed quote；按下武裝按鈕並確認後，下一個合格 quote 才會嘗試一次正式送單。</p>
+        <span className={styles.eyebrow}>BTC 5M LAB · FIRST ELIGIBLE LIVE EXECUTION</span>
+        <h1>BTC／ETH 常駐判價＋一次性實單武裝</h1>
+        <p>不再等待目標剩餘秒數。選定方向符合普通簿與 signed Quote 條件後，已武裝的實單會立即嘗試送出。</p>
       </div>
       <div className={styles.heroActions}>
         <a href="/">返回主監控</a>
         <span className={`${styles.statusPill} ${safetyLocked ? styles.bad : runtime?.armed ? styles.warn : apiError ? styles.bad : runtime?.running ? styles.good : styles.neutral}`}>
-          {apiError ? "API OFFLINE" : safetyLocked ? "SAFETY LOCKED" : runtime?.armed ? "LIVE ARMED" : runtime?.running ? "QUOTE MONITORING" : runtime?.phase ?? "STARTING"}
+          {apiError ? "API OFFLINE" : safetyLocked ? "SAFETY LOCKED" : runtime?.armed ? "LIVE ARMED" : runtime?.running ? "FIRST ELIGIBLE" : runtime?.phase ?? "STARTING"}
         </span>
       </div>
     </header>
 
     <section className={styles.warningBox}>
-      <strong>武裝不是立即下單</strong>
-      <p>按下武裝後會先出現瀏覽器確認；確認後程式等待下一個符合價格、深度、時間窗與 signed quote 成本限制的機會，再自動送出一次。報價不合格時會繼續等，不會放寬條件。</p>
-      <p>真正送單前仍會重新檢查活動訂單、持倉與持久化事故鎖。不再需要輸入額外確認字串。</p>
+      <strong>FIRST_ELIGIBLE 執行規則</strong>
+      <p>市場開始 {startGuard.toFixed(0)} 秒後至剩餘 {minimumLeft.toFixed(0)} 秒以前，每秒持續判定；選定方向符合就立即申請 signed Quote。未武裝只監控，已武裝則 Quote 通過後立即送出一次。</p>
+      <p>兩腿成功取得 order ID 後，該市場停止後續 Quote；事故鎖、成交後盈利檢查與自動撤退仍全部保留。</p>
       {actionError ? <p className={styles.errorText}><strong>操作被拒絕：</strong> {actionError}</p> : null}
     </section>
 
     <section className={styles.summaryGrid}>
-      <article><span>背景監控</span><strong>{runtime?.running ? "持續運行" : "未運行"}</strong><small>進場窗內約每 {state?.defaults.quoteIntervalSeconds ?? 1} 秒取得新 quote</small></article>
-      <article><span>武裝狀態</span><strong>{runtime?.armed ? "等待自動送單" : "未武裝"}</strong><small>{runtime?.armedAt ? `武裝於 ${timeLabel(runtime.armedAt)}` : "平常只取得 quote，不送單"}</small></article>
-      <article><span>最新 signed quote</span><strong>{latestQuote?.accepted ? fixed(latestQuote.costPerShare, 6) : "尚無合格 quote"}</strong><small>{latestQuote?.variant ?? latestQuote?.error ?? "等待進場窗"}</small></article>
-      <article><span>目前市場</span><strong>{latestMarket?.secondsLeft == null ? "—" : `${fixed(latestMarket.secondsLeft, 1)} 秒`}</strong><small>BTC #{latestMarket?.btcMarketId ?? "—"} · ETH #{latestMarket?.ethMarketId ?? "—"}</small></article>
+      <article><span>背景監控</span><strong>{runtime?.running ? "持續運行" : "未運行"}</strong><small>合格時約每 {state?.defaults.quoteIntervalSeconds ?? 1} 秒驗證 Quote</small></article>
+      <article><span>武裝狀態</span><strong>{runtime?.armed ? "等待首個合格 tick" : "未武裝"}</strong><small>{runtime?.armedAt ? `武裝於 ${timeLabel(runtime.armedAt)}` : "紙單不受武裝影響"}</small></article>
+      <article><span>最新 signed Quote</span><strong>{quote?.accepted ? fixed(quote.costPerShare, 6) : "尚無合格 Quote"}</strong><small>{quote?.variant ?? quote?.error ?? "等待符合"}</small></article>
+      <article><span>目前市場</span><strong>{market?.secondsLeft == null ? "—" : `${fixed(market.secondsLeft, 1)} 秒`}</strong><small>BTC #{market?.btcMarketId ?? "—"} · ETH #{market?.ethMarketId ?? "—"}</small></article>
     </section>
 
     <section className={styles.console}>
       <div className={styles.sectionHead}>
-        <div><span className={styles.eyebrow}>AUTO QUOTE · ONE-SHOT ARM</span><h2>監控條件</h2></div>
-        <span className={styles.muted}>CeDeFi / Prediction Wallet · API 127.0.0.1:8767</span>
+        <div><span className={styles.eyebrow}>LIVE CONFIGURATION</span><h2>監控與實單條件</h2></div>
+        <span className={styles.muted}>固定執行區：開始後 {startGuard.toFixed(0)} 秒～剩餘 {minimumLeft.toFixed(0)} 秒</span>
       </div>
-
       <div className={styles.formGrid}>
         <label>配對方向
           <select value={form.selection} onChange={event => setForm(current => ({ ...current, selection: event.target.value as Selection }))}>
@@ -353,23 +335,11 @@ export default function XPairCanaryPage() {
           </select>
         </label>
         <label>兩腿總預算（USDT）
-          <input
-            type="number"
-            min="2"
-            max={maxPairBudget}
-            step="0.01"
-            value={form.pairBudgetUsdt}
-            onChange={event => {
-              setActionError(null);
-              setForm(current => ({ ...current, pairBudgetUsdt: event.target.value }));
-            }}
-          />
-          <small className={budgetError ? styles.errorText : styles.muted}>
-            {budgetError ?? `可設定 2.00～${maxPairBudget.toFixed(2)} USDT`}
-          </small>
+          <input type="number" min="2" max={maxPairBudget} step="0.01" value={form.pairBudgetUsdt} onChange={event => setForm(current => ({ ...current, pairBudgetUsdt: event.target.value }))} />
+          <small className={budgetError ? styles.errorText : styles.muted}>{budgetError ?? `可設定 2.00～${maxPairBudget.toFixed(2)} USDT`}</small>
         </label>
         <label>餘額緩衝（USDT）
-          <input type="number" min="0" max="1" step="0.01" value={form.balanceBufferUsdt} onChange={event => setForm(current => ({ ...current, balanceBufferUsdt: event.target.value }))} />
+          <input type="number" min="0" max="5" step="0.01" value={form.balanceBufferUsdt} onChange={event => setForm(current => ({ ...current, balanceBufferUsdt: event.target.value }))} />
         </label>
         <label>最高總成本／share
           <input type="number" min="0.01" max="1.99" step="0.001" value={form.maxTotalCost} onChange={event => setForm(current => ({ ...current, maxTotalCost: event.target.value }))} />
@@ -377,33 +347,29 @@ export default function XPairCanaryPage() {
         <label>單腿最大重定價
           <input type="number" min="0" max="0.05" step="0.001" value={form.maxLegReprice} onChange={event => setForm(current => ({ ...current, maxLegReprice: event.target.value }))} />
         </label>
-        <label>目標剩餘秒數
-          <input type="number" min="30" max="290" step="1" value={form.entrySecondsLeft} onChange={event => setForm(current => ({ ...current, entrySecondsLeft: event.target.value }))} />
-        </label>
-        <label>進場窗寬度（秒）
-          <input type="number" min="1" max="60" step="1" value={form.entryWindowSeconds} onChange={event => setForm(current => ({ ...current, entryWindowSeconds: event.target.value }))} />
-        </label>
         <label>Slippage（bps）
           <input type="number" min="0" max="500" step="10" value={form.slippageBps} onChange={event => setForm(current => ({ ...current, slippageBps: event.target.value }))} />
+        </label>
+        <label>執行模式
+          <input value="FIRST_ELIGIBLE_CONTINUOUS" readOnly />
         </label>
         <label>最低可用餘額
           <input value={`${requiredBalance.toFixed(2)} USDT`} readOnly />
         </label>
       </div>
-
       <div className={styles.actionGrid}>
         <button className={styles.secondaryButton} disabled={runtime?.armed || Boolean(budgetError)} onClick={() => void saveConfig()}>
           儲存監控條件
-          <small>背景 quote 不會停止；下一輪立即套用</small>
+          <small>下一個 tick 立即套用</small>
         </button>
         <button className={styles.quoteButton} disabled={!runtime?.armed} onClick={() => void disarm()}>
           取消正式單武裝
-          <small>只取消送單；自動 quote 繼續運行</small>
+          <small>簿面與紙單繼續運行</small>
         </button>
         <div className={styles.liveAction}>
           <button className={styles.liveButton} disabled={runtime?.armed || !runtime?.running || safetyLocked || Boolean(budgetError)} onClick={() => void arm()}>
-            武裝下一次符合條件正式單
-            <small>{safetyLocked ? "事故安全鎖生效中" : budgetError ?? "按鈕確認 · 合格 quote 出現時自動嘗試一次"}</small>
+            武裝首個合格機會
+            <small>{safetyLocked ? "事故安全鎖生效中" : budgetError ?? "符合即 Quote／送單，不等待目標秒數"}</small>
           </button>
         </div>
       </div>
@@ -418,7 +384,7 @@ export default function XPairCanaryPage() {
           <div><dt>上次嘗試市場</dt><dd>{runtime?.lastAttemptMarketKey ?? "—"}</dd></div>
           <div><dt>最新警告</dt><dd>{runtime?.lastWarning ?? "—"}</dd></div>
           <div><dt>最新錯誤</dt><dd className={styles.errorText}>{runtime?.lastError ?? "—"}</dd></div>
-          <div><dt>畫面狀態</dt><dd>{requestState}</dd></div>
+          <div><dt>畫面狀態</dt><dd>{message}</dd></div>
         </dl>
       </article>
       <article className={styles.logCard}>
