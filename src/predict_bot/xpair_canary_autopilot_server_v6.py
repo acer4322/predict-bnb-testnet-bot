@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import threading
+from dataclasses import replace
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.parse import urlsplit
@@ -14,6 +15,7 @@ from . import xpair_canary_autopilot_server_v5 as v5
 DEFAULT_MAX_PAIR_BUDGET_USDT = Decimal("10.00")
 ABSOLUTE_MAX_PAIR_BUDGET_USDT = Decimal("100.00")
 MIN_PAIR_BUDGET_USDT = Decimal("2.00")
+DEFAULT_SELECTION = "CHEAPEST_ELIGIBLE"
 ARMED_DECISION_STATUSES = {
     "ARMED_NO_ELIGIBLE_VARIANT",
     "ARMED_QUOTE_REJECTED",
@@ -91,6 +93,12 @@ def state_payload() -> dict[str, Any]:
     policy["maximumPairBudgetEnvironment"] = "XPAIR_MAX_PAIR_BUDGET_USDT"
     policy["armedDecisionLedger"] = True
     policy["armedDecisionReasonsVisibleInHistory"] = True
+    policy["defaultSelection"] = DEFAULT_SELECTION
+    policy["automaticDirectionSelection"] = True
+    policy["automaticDirectionRule"] = (
+        "choose the eligible BTC/ETH opposite-side variant with the lowest "
+        "modeled cost per share"
+    )
     return payload
 
 
@@ -100,7 +108,7 @@ def validate_button_arm_header(value: str | None) -> None:
 
 
 class Handler(v4.Handler):
-    server_version = "BTC5MLabXPairAutopilot/6.2"
+    server_version = "BTC5MLabXPairAutopilot/6.3"
 
     def do_POST(self) -> None:
         path = urlsplit(self.path).path
@@ -134,6 +142,15 @@ def install_patches() -> None:
     base.MonitorConfig.validate = validate_monitor_config
     base.state_payload = state_payload
     v4.state_payload = state_payload
+    # The original canary default was a fixed BTC_DOWN/ETH_UP direction. That
+    # discarded valid opposite-direction opportunities. Start new processes in
+    # automatic cheapest-eligible mode; users can still explicitly select a
+    # fixed direction from the dashboard after startup.
+    with base.STATE.lock:
+        base.STATE.config = replace(
+            base.STATE.config,
+            selection=DEFAULT_SELECTION,
+        )
 
 
 def main() -> None:
@@ -155,10 +172,11 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        f"XPAIR autopilot v6.2 API listening on http://{base.API_HOST}:{base.API_PORT}; "
+        f"XPAIR autopilot v6.3 API listening on http://{base.API_HOST}:{base.API_PORT}; "
         f"pair budgets from {MIN_PAIR_BUDGET_USDT:.2f} to "
-        f"{MAX_PAIR_BUDGET_USDT:.2f} USDT are enabled, armed non-entry "
-        "decisions are persisted, and incident protection remains active"
+        f"{MAX_PAIR_BUDGET_USDT:.2f} USDT are enabled, the cheapest eligible "
+        "direction is selected automatically, armed non-entry decisions are "
+        "persisted, and incident protection remains active"
     )
     try:
         server.serve_forever()
