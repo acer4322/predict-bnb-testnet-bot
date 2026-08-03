@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import BookMonitorPanel from "./BookMonitorPanel";
 
 export default function XPairLayout({ children }: { children: ReactNode }) {
   return <>
@@ -19,6 +20,7 @@ export default function XPairLayout({ children }: { children: ReactNode }) {
       <a href="/xpair-canary/safety" style={{ color: "#ffb45c" }}>事故安全台</a>
       <a href="/" style={{ marginLeft: "auto", color: "#8e9ba0" }}>主監控</a>
     </nav>
+    <BookMonitorPanel />
     {children}
   </>;
 }
