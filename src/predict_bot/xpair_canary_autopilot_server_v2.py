@@ -26,11 +26,76 @@ from .xpair_btc_eth_paper import (
 )
 
 
+_BOOK_ANALYSIS_LOCK = threading.RLock()
+_LATEST_BOOK_ANALYSIS: dict[str, Any] | None = None
+
+
 def trial_status_summary(trials: list[dict[str, Any]]) -> str:
     return ", ".join(
         f"{item.get('variant', 'UNKNOWN')}={item.get('entry_status', 'UNKNOWN')}"
         for item in trials
     )
+
+
+def _preview_trial(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "variant": item.get("variant"),
+        "entryStatus": item.get("entry_status"),
+        "eligible": item.get("eligible") is True,
+        "rejectionReason": item.get("rejection_reason"),
+        "costPerShare": item.get("cost_per_share"),
+        "filledShares": item.get("filled_shares"),
+        "btcVwap": item.get("btc_vwap"),
+        "ethVwap": item.get("eth_vwap"),
+        "btcBookAgeMs": item.get("btc_book_age_ms"),
+        "ethBookAgeMs": item.get("eth_book_age_ms"),
+        "crossBookSkewMs": item.get("cross_book_skew_ms"),
+    }
+
+
+def publish_book_analysis(
+    *,
+    market_key: str,
+    seconds_left: float,
+    inside_entry_window: bool,
+    selection: str,
+    trials: list[dict[str, Any]],
+    chosen: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Publish the latest four-book evaluation without requesting signed quotes."""
+    global _LATEST_BOOK_ANALYSIS
+    analysis = {
+        "marketKey": market_key,
+        "updatedAt": utc_iso(),
+        "secondsLeft": float(seconds_left),
+        "insideEntryWindow": bool(inside_entry_window),
+        "selection": selection,
+        "selectedVariant": chosen.get("variant") if chosen else None,
+        "selectedCostPerShare": chosen.get("cost_per_share") if chosen else None,
+        "selectedFilledShares": chosen.get("filled_shares") if chosen else None,
+        "trials": [_preview_trial(item) for item in trials],
+    }
+    with _BOOK_ANALYSIS_LOCK:
+        _LATEST_BOOK_ANALYSIS = analysis
+    return analysis
+
+
+def clear_book_analysis() -> None:
+    global _LATEST_BOOK_ANALYSIS
+    with _BOOK_ANALYSIS_LOCK:
+        _LATEST_BOOK_ANALYSIS = None
+
+
+def latest_book_analysis() -> dict[str, Any] | None:
+    with _BOOK_ANALYSIS_LOCK:
+        if _LATEST_BOOK_ANALYSIS is None:
+            return None
+        return {
+            **_LATEST_BOOK_ANALYSIS,
+            "trials": [
+                dict(item) for item in _LATEST_BOOK_ANALYSIS.get("trials", [])
+            ],
+        }
 
 
 def record_armed_decision(
@@ -117,7 +182,8 @@ def monitor_loop() -> None:
     pair: tuple[MarketRef, MarketRef] | None = None
     next_discovery = 0.0
     next_quote_at = 0.0
-    last_status = ""
+    last_log_signature = ""
+    last_market_key: str | None = None
     wallet_address = wallet_id = ""
     try:
         config = base.STATE.config
@@ -133,10 +199,17 @@ def monitor_loop() -> None:
         while True:
             loop_started = time.monotonic()
             config = base.STATE.config
+            status = "MONITORING"
+            log_signature = status
             try:
                 now_ms = client.server_timestamp_ms()
                 if pair is not None and now_ms >= max(pair[0].end_ms, pair[1].end_ms):
                     pair = None
+                    last_market_key = None
+                    clear_book_analysis()
+                    with base.STATE.lock:
+                        base.STATE.latest_plan = None
+                        base.STATE.latest_quote = None
                 if pair is None and loop_started >= next_discovery:
                     next_discovery = loop_started + config.discovery_interval_seconds
                     pair = discover_active_pair(
@@ -148,12 +221,19 @@ def monitor_loop() -> None:
 
                 if pair is None:
                     status = "WAITING_FOR_ALIGNED_BTC_ETH_MARKETS"
+                    log_signature = status
                 else:
                     btc, eth = pair
                     seconds_left = max(
                         0.0, (min(btc.end_ms, eth.end_ms) - now_ms) / 1000.0
                     )
                     key = base.market_key(btc, eth)
+                    if key != last_market_key:
+                        last_market_key = key
+                        next_quote_at = 0.0
+                        with base.STATE.lock:
+                            base.STATE.latest_plan = None
+                            base.STATE.latest_quote = None
                     with base.STATE.lock:
                         base.STATE.latest_market = {
                             "marketKey": key,
@@ -172,198 +252,237 @@ def monitor_loop() -> None:
                         <= seconds_left
                         <= config.entry_seconds_left
                     )
+
+                    # PAIR_ARB-style split: independent outcome books are read and
+                    # evaluated throughout the five-minute market. Signed quotes
+                    # and live placement remain behind the entry-window gate.
+                    books = fetch_books(client, btc, eth)
+                    capture_ms = client.server_timestamp_ms()
+                    trials, _ = build_trials(
+                        btc=btc,
+                        eth=eth,
+                        books=books,
+                        total_stake=float(config.pair_budget_usdt),
+                        max_total_cost_per_share=float(config.max_total_cost),
+                        minimum_filled_shares=1e-8,
+                        max_book_age_ms=config.max_book_age_ms,
+                        max_book_skew_ms=config.max_book_skew_ms,
+                        max_cross_book_skew_ms=config.max_cross_book_skew_ms,
+                        now_ms=capture_ms,
+                    )
+                    chosen = choose_trial(trials, config.selection)
+                    analysis = publish_book_analysis(
+                        market_key=key,
+                        seconds_left=seconds_left,
+                        inside_entry_window=inside_window,
+                        selection=config.selection,
+                        trials=trials,
+                        chosen=chosen,
+                    )
+                    reasons = trial_status_summary(trials)
+
                     if attempted_current_market:
                         status = "LIVE_ATTEMPT_RECORDED_WAIT_NEXT_MARKET"
+                        log_signature = status
                     elif not inside_window:
-                        status = f"WAITING_ENTRY_WINDOW left={seconds_left:.1f}s"
+                        with base.STATE.lock:
+                            base.STATE.latest_plan = None
+                        if chosen is None:
+                            status = (
+                                f"BOOK_MONITOR_NO_ELIGIBLE left={seconds_left:.1f}s "
+                                f"{reasons}"
+                            )
+                            log_signature = f"BOOK_MONITOR_NO_ELIGIBLE|{reasons}"
+                        else:
+                            selected_cost = analysis.get("selectedCostPerShare")
+                            cost_text = (
+                                f"{float(selected_cost):.6f}"
+                                if selected_cost is not None
+                                else "UNKNOWN"
+                            )
+                            status = (
+                                f"BOOK_MONITOR_ELIGIBLE left={seconds_left:.1f}s "
+                                f"variant={chosen.get('variant')} "
+                                f"cost/share={cost_text}"
+                            )
+                            log_signature = (
+                                f"BOOK_MONITOR_ELIGIBLE|{chosen.get('variant')}|"
+                                f"{reasons}"
+                            )
                     elif loop_started < next_quote_at:
                         status = "QUOTE_COOLDOWN"
-                    else:
-                        next_quote_at = loop_started + config.quote_interval_seconds
-                        books = fetch_books(client, btc, eth)
-                        capture_ms = client.server_timestamp_ms()
-                        trials, _ = build_trials(
-                            btc=btc,
-                            eth=eth,
-                            books=books,
-                            total_stake=float(config.pair_budget_usdt),
-                            max_total_cost_per_share=float(config.max_total_cost),
-                            minimum_filled_shares=1e-8,
-                            max_book_age_ms=config.max_book_age_ms,
-                            max_book_skew_ms=config.max_book_skew_ms,
-                            max_cross_book_skew_ms=config.max_cross_book_skew_ms,
-                            now_ms=capture_ms,
-                        )
-                        chosen = choose_trial(trials, config.selection)
-                        if chosen is None:
-                            reasons = trial_status_summary(trials)
-                            with base.STATE.lock:
-                                base.STATE.latest_plan = None
-                                base.STATE.latest_quote = None
-                            if base.STATE.is_armed():
-                                message = f"selection={config.selection}; {reasons}"
-                                record_armed_decision(
-                                    store,
-                                    status="ARMED_NO_ELIGIBLE_VARIANT",
-                                    btc_market_id=btc.market_id,
-                                    eth_market_id=eth.market_id,
-                                    pair_budget=config.pair_budget_usdt,
-                                    selection=config.selection,
-                                    trials=trials,
-                                    message=message,
-                                    extra_details={
-                                        "secondsLeft": seconds_left,
-                                        "marketKey": key,
-                                    },
-                                )
-                                status = f"ARMED_NO_ELIGIBLE_VARIANT {message}"
-                            else:
-                                status = f"NO_ELIGIBLE_VARIANT {reasons}"
-                        else:
-                            plan = build_canary_plan(
-                                chosen=chosen,
-                                btc=btc,
-                                eth=eth,
-                                max_leg_reprice=config.max_leg_reprice,
-                            )
-                            plan_details = _plan_details(plan)
-                            with base.STATE.lock:
-                                base.STATE.latest_plan = plan_details
-                                base.STATE.quote_attempts += 1
-
-                            run_id = store.begin(
-                                mode="AUTO_MONITOR",
-                                status="PLANNED",
+                        log_signature = status
+                    elif chosen is None:
+                        with base.STATE.lock:
+                            base.STATE.latest_plan = None
+                            base.STATE.latest_quote = None
+                        if base.STATE.is_armed():
+                            message = f"selection={config.selection}; {reasons}"
+                            record_armed_decision(
+                                store,
+                                status="ARMED_NO_ELIGIBLE_VARIANT",
                                 btc_market_id=btc.market_id,
                                 eth_market_id=eth.market_id,
                                 pair_budget=config.pair_budget_usdt,
-                                plan=plan,
-                                details={"plan": plan_details, "trials": trials},
+                                selection=config.selection,
+                                trials=trials,
+                                message=message,
+                                extra_details={
+                                    "secondsLeft": seconds_left,
+                                    "marketKey": key,
+                                },
                             )
+                            status = f"ARMED_NO_ELIGIBLE_VARIANT {message}"
+                        else:
+                            status = f"NO_ELIGIBLE_VARIANT {reasons}"
+                        log_signature = status
+                    else:
+                        next_quote_at = loop_started + config.quote_interval_seconds
+                        plan = build_canary_plan(
+                            chosen=chosen,
+                            btc=btc,
+                            eth=eth,
+                            max_leg_reprice=config.max_leg_reprice,
+                        )
+                        plan_details = _plan_details(plan)
+                        with base.STATE.lock:
+                            base.STATE.latest_plan = plan_details
+                            base.STATE.quote_attempts += 1
 
-                            live_ready = False
-                            live_wallet = wallet_address
-                            live_wallet_id = wallet_id
-                            live_block_reason: str | None = None
-                            if base.STATE.is_armed():
-                                # Complete the slow safety checks before requesting
-                                # short-lived signed quotes. Once both final quotes
-                                # pass, placement follows immediately.
-                                try:
-                                    live_wallet, live_wallet_id, _ = (
-                                        base.strict_live_preflight(client, config)
-                                    )
-                                except Exception as exc:
-                                    live_block_reason = str(exc)[:500]
-                                else:
-                                    live_ready = True
+                        run_id = store.begin(
+                            mode="AUTO_MONITOR",
+                            status="PLANNED",
+                            btc_market_id=btc.market_id,
+                            eth_market_id=eth.market_id,
+                            pair_budget=config.pair_budget_usdt,
+                            plan=plan,
+                            details={"plan": plan_details, "trials": trials},
+                        )
 
+                        live_ready = False
+                        live_wallet = wallet_address
+                        live_wallet_id = wallet_id
+                        live_block_reason: str | None = None
+                        if base.STATE.is_armed():
+                            # Slow safety checks finish before requesting the
+                            # short-lived final pair of signed quotes.
                             try:
-                                quotes, quoted_cost = quote_equal_share_pair(
-                                    client,
-                                    wallet_address=wallet_address,
-                                    plan=plan,
-                                    pair_budget=config.pair_budget_usdt,
-                                    max_total_cost_per_share=config.max_total_cost,
-                                    slippage_bps=config.slippage_bps,
+                                live_wallet, live_wallet_id, _ = (
+                                    base.strict_live_preflight(client, config)
                                 )
                             except Exception as exc:
-                                armed = base.STATE.is_armed()
-                                record_status = (
-                                    "ARMED_QUOTE_REJECTED" if armed else "QUOTE_REJECTED"
-                                )
-                                status = f"{record_status} {str(exc)[:240]}"
-                                store.update(
-                                    run_id,
-                                    status=record_status,
-                                    details={
-                                        "plan": plan_details,
-                                        "trials": trials,
-                                        "armed": armed,
-                                        "decision": {
-                                            "status": record_status,
-                                            "message": str(exc)[:500],
-                                            "recordedAt": utc_iso(),
-                                        },
-                                    },
-                                    message=str(exc),
-                                )
-                                with base.STATE.lock:
-                                    base.STATE.latest_quote = {
-                                        "accepted": False,
-                                        "marketKey": key,
-                                        "error": str(exc)[:500],
-                                        "updatedAt": utc_iso(),
-                                    }
+                                live_block_reason = str(exc)[:500]
                             else:
-                                details = _quote_details(plan, quotes)
+                                live_ready = True
+
+                        try:
+                            quotes, quoted_cost = quote_equal_share_pair(
+                                client,
+                                wallet_address=wallet_address,
+                                plan=plan,
+                                pair_budget=config.pair_budget_usdt,
+                                max_total_cost_per_share=config.max_total_cost,
+                                slippage_bps=config.slippage_bps,
+                            )
+                        except Exception as exc:
+                            armed = base.STATE.is_armed()
+                            record_status = (
+                                "ARMED_QUOTE_REJECTED" if armed else "QUOTE_REJECTED"
+                            )
+                            status = f"{record_status} {str(exc)[:240]}"
+                            store.update(
+                                run_id,
+                                status=record_status,
+                                details={
+                                    "plan": plan_details,
+                                    "trials": trials,
+                                    "armed": armed,
+                                    "decision": {
+                                        "status": record_status,
+                                        "message": str(exc)[:500],
+                                        "recordedAt": utc_iso(),
+                                    },
+                                },
+                                message=str(exc),
+                            )
+                            with base.STATE.lock:
+                                base.STATE.latest_quote = {
+                                    "accepted": False,
+                                    "marketKey": key,
+                                    "error": str(exc)[:500],
+                                    "updatedAt": utc_iso(),
+                                }
+                            log_signature = status
+                        else:
+                            details = _quote_details(plan, quotes)
+                            store.update(
+                                run_id,
+                                status="AUTO_QUOTE_READY",
+                                quoted_cost=quoted_cost,
+                                details={
+                                    **details,
+                                    "plan": plan_details,
+                                    "trials": trials,
+                                },
+                            )
+                            with base.STATE.lock:
+                                base.STATE.quote_accepts += 1
+                                base.STATE.latest_quote = {
+                                    "accepted": True,
+                                    "marketKey": key,
+                                    "variant": plan.variant,
+                                    "costPerShare": float(quoted_cost),
+                                    "targetShares": float(plan.target_shares),
+                                    "quotes": details["quotes"],
+                                    "updatedAt": utc_iso(),
+                                    "armed": base.STATE.armed,
+                                }
+
+                            if base.STATE.is_armed() and live_ready:
+                                base.execute_live_attempt(
+                                    client=client,
+                                    store=store,
+                                    config=config,
+                                    wallet_address=live_wallet,
+                                    wallet_id=live_wallet_id,
+                                    btc=btc,
+                                    eth=eth,
+                                    plan=plan,
+                                    quotes=quotes,
+                                    quoted_cost=quoted_cost,
+                                    run_id=run_id,
+                                )
+                                status = base.STATE.phase
+                            elif base.STATE.is_armed() and live_block_reason:
+                                status = (
+                                    "ARMED_WAITING_SAFE_WALLET "
+                                    f"{live_block_reason[:240]}"
+                                )
                                 store.update(
                                     run_id,
-                                    status="AUTO_QUOTE_READY",
+                                    status="ARMED_WAITING_SAFE_WALLET",
                                     quoted_cost=quoted_cost,
                                     details={
                                         **details,
                                         "plan": plan_details,
                                         "trials": trials,
-                                    },
-                                )
-                                with base.STATE.lock:
-                                    base.STATE.quote_accepts += 1
-                                    base.STATE.latest_quote = {
-                                        "accepted": True,
-                                        "marketKey": key,
-                                        "variant": plan.variant,
-                                        "costPerShare": float(quoted_cost),
-                                        "targetShares": float(plan.target_shares),
-                                        "quotes": details["quotes"],
-                                        "updatedAt": utc_iso(),
-                                        "armed": base.STATE.armed,
-                                    }
-
-                                if base.STATE.is_armed() and live_ready:
-                                    base.execute_live_attempt(
-                                        client=client,
-                                        store=store,
-                                        config=config,
-                                        wallet_address=live_wallet,
-                                        wallet_id=live_wallet_id,
-                                        btc=btc,
-                                        eth=eth,
-                                        plan=plan,
-                                        quotes=quotes,
-                                        quoted_cost=quoted_cost,
-                                        run_id=run_id,
-                                    )
-                                    status = base.STATE.phase
-                                elif base.STATE.is_armed() and live_block_reason:
-                                    status = (
-                                        "ARMED_WAITING_SAFE_WALLET "
-                                        f"{live_block_reason[:240]}"
-                                    )
-                                    store.update(
-                                        run_id,
-                                        status="ARMED_WAITING_SAFE_WALLET",
-                                        quoted_cost=quoted_cost,
-                                        details={
-                                            **details,
-                                            "plan": plan_details,
-                                            "trials": trials,
-                                            "armed": True,
-                                            "decision": {
-                                                "status": "ARMED_WAITING_SAFE_WALLET",
-                                                "message": live_block_reason,
-                                                "recordedAt": utc_iso(),
-                                            },
+                                        "armed": True,
+                                        "decision": {
+                                            "status": "ARMED_WAITING_SAFE_WALLET",
+                                            "message": live_block_reason,
+                                            "recordedAt": utc_iso(),
                                         },
-                                        message=live_block_reason,
-                                    )
-                                else:
-                                    status = (
-                                        f"AUTO_QUOTE_READY cost/share={quoted_cost:.6f}"
-                                    )
+                                    },
+                                    message=live_block_reason,
+                                )
+                            else:
+                                status = (
+                                    f"AUTO_QUOTE_READY cost/share={quoted_cost:.6f}"
+                                )
+                            log_signature = status
 
                 base.STATE.set_phase(status.split(" ", 1)[0])
-                if status != last_status:
+                if log_signature != last_log_signature:
                     level = (
                         "WARN"
                         if status.startswith((
@@ -375,7 +494,7 @@ def monitor_loop() -> None:
                         else "INFO"
                     )
                     base.STATE.log(status, level)
-                    last_status = status
+                    last_log_signature = log_signature
             except Exception as exc:
                 base.STATE.set_phase("MONITOR_ERROR")
                 base.STATE.log(
@@ -387,6 +506,7 @@ def monitor_loop() -> None:
             elapsed = time.monotonic() - loop_started
             time.sleep(max(0.0, config.interval_seconds - elapsed))
     finally:
+        clear_book_analysis()
         with base.STATE.lock:
             base.STATE.running = False
         client.close()
@@ -403,8 +523,8 @@ def main() -> None:
     server = ThreadingHTTPServer((base.API_HOST, base.API_PORT), base.Handler)
     print(
         f"XPAIR autopilot canary API listening on "
-        f"http://{base.API_HOST}:{base.API_PORT}; signed quotes are monitored "
-        "continuously and live placement is disarmed"
+        f"http://{base.API_HOST}:{base.API_PORT}; order books are evaluated "
+        "continuously, while signed quotes and live placement remain gated"
     )
     try:
         server.serve_forever()
