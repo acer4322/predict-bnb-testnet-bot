@@ -43,7 +43,7 @@ def test_edited_pair_budgets_are_accepted_through_ten_usdt() -> None:
 
 def test_pair_budget_above_configured_max_is_rejected() -> None:
     install_patches()
-    with pytest.raises(ValueError, match="between 0.02 and 10.00 USDT"):
+    with pytest.raises(ValueError, match="between 2.00 and 10.00 USDT"):
         base.MonitorConfig.from_payload(
             {"pairBudgetUsdt": "10.01"},
             base.STATE.config,
