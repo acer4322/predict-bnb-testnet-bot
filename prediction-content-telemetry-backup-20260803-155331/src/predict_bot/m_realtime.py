@@ -87,20 +87,10 @@ def direct_rest_prediction_event(
         )
         version_ms = min(up_version, down_version)
         book_skew_ms = abs(up_version - down_version)
-        up_book_content_age_ms = max(
-            0.0, float(current_timestamp_ms - up_version)
-        )
-        down_book_content_age_ms = max(
-            0.0, float(current_timestamp_ms - down_version)
-        )
-        book_age_ms = max(
-            up_book_content_age_ms,
-            down_book_content_age_ms,
-        )
+        book_age_ms = max(0.0, float(current_timestamp_ms - version_ms))
     except (TypeError, ValueError):
         up_version = down_version = version_ms = None
         book_skew_ms = book_age_ms = None
-        up_book_content_age_ms = down_book_content_age_ms = None
     top_levels_valid = bool(up_bids and up_asks and down_bids and down_asks)
     return {
         "source": "prediction",
@@ -141,10 +131,6 @@ def direct_rest_prediction_event(
         "down_book_timestamp_ms": down_version,
         "book_skew_ms": book_skew_ms,
         "book_age_ms": book_age_ms,
-        "content_version_age_ms": book_age_ms,
-        "up_book_content_age_ms": up_book_content_age_ms,
-        "down_book_content_age_ms": down_book_content_age_ms,
-        "transport_receipt_age_ms": 0.0,
     }
 
 
@@ -604,34 +590,9 @@ class MSeriesRealtimeEngine:
                 event.get("prediction_book_version_age_ms"),
             )
         )
-        up_source_content_age_ms = _finite(
-            event.get("up_book_content_age_ms")
-        )
-        down_source_content_age_ms = _finite(
-            event.get("down_book_content_age_ms")
-        )
-        if up_source_content_age_ms is None:
-            up_source_content_age_ms = source_age_ms
-        if down_source_content_age_ms is None:
-            down_source_content_age_ms = source_age_ms
-        up_content_age_ms = (
-            up_source_content_age_ms + local_receipt_age_ms
-            if up_source_content_age_ms is not None
-            else None
-        )
-        down_content_age_ms = (
-            down_source_content_age_ms + local_receipt_age_ms
-            if down_source_content_age_ms is not None
-            else None
-        )
-        effective_content_ages = [
-            age
-            for age in (up_content_age_ms, down_content_age_ms)
-            if age is not None
-        ]
         book_age_ms = (
-            max(local_receipt_age_ms, *effective_content_ages)
-            if effective_content_ages
+            max(local_receipt_age_ms, source_age_ms + local_receipt_age_ms)
+            if source_age_ms is not None
             else local_receipt_age_ms
         )
         if event.get("direct_outcome_books") is True:
@@ -670,11 +631,6 @@ class MSeriesRealtimeEngine:
             "down_bid_size": down_bid_size,
             "down_ask_size": down_ask_size,
             "book_age_ms": book_age_ms,
-            "effective_book_age_ms": book_age_ms,
-            "content_version_age_ms": book_age_ms,
-            "transport_receipt_age_ms": local_receipt_age_ms,
-            "up_book_content_age_ms": up_content_age_ms,
-            "down_book_content_age_ms": down_content_age_ms,
             "book_skew_ms": book_skew_ms,
             "book_timestamp_ms": book_timestamp_ms,
         }
@@ -1217,11 +1173,6 @@ class MSeriesRealtimeEngine:
             "orientation": orientation,
             "received_monotonic_ns": received_ns,
             "book_age_ms": values["book_age_ms"],
-            "effective_book_age_ms": values["effective_book_age_ms"],
-            "content_version_age_ms": values["content_version_age_ms"],
-            "transport_receipt_age_ms": values["transport_receipt_age_ms"],
-            "up_book_content_age_ms": values["up_book_content_age_ms"],
-            "down_book_content_age_ms": values["down_book_content_age_ms"],
             "book_skew_ms": values["book_skew_ms"],
             "up_bid": values["up_bid"],
             "up_ask": values["up_ask"],

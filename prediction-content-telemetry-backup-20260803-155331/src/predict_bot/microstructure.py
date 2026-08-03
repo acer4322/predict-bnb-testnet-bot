@@ -95,15 +95,6 @@ PREDICTION_MARKET_WATCH_HEARTBEAT_STALE_SECONDS = max(
         )
     ),
 )
-PREDICTION_CONTENT_WARNING_AGE_MS = max(
-    250.0,
-    float(
-        os.environ.get(
-            "PREDICT_PREDICTION_CONTENT_WARNING_AGE_MS",
-            "2000",
-        )
-    ),
-)
 PREDICTION_MAX_VERSION_AGE_MS = max(
     1_000.0,
     float(os.environ.get("PREDICT_PREDICTION_MAX_VERSION_AGE_MS", "10000")),
@@ -900,23 +891,6 @@ class MicrostructureObserver:
         self.last_eligible_prediction_at: str | None = None
         self.last_prediction_receipt_monotonic_ns = 0
         self.last_prediction_book_version_ms: int | None = None
-        # Transport receipt freshness and exchange content freshness
-        # are deliberately tracked separately. Repeated WSS frames
-        # can be locally fresh while carrying an unchanged book version.
-        self.last_prediction_frame_receipt_monotonic_ns = 0
-        self.last_prediction_unique_version_ms: int | None = None
-        self.last_prediction_unique_version_receipt_monotonic_ns = 0
-        self.last_prediction_unique_version_at: str | None = None
-        self.last_prediction_top_of_book_signature: tuple[Any, ...] | None = None
-        self.last_prediction_top_of_book_change_monotonic_ns = 0
-        self.last_prediction_top_of_book_change_at: str | None = None
-        self.prediction_content_frames = 0
-        self.prediction_unique_version_events = 0
-        self.prediction_same_version_events = 0
-        self.prediction_same_version_consecutive_events = 0
-        self.prediction_top_of_book_change_events = 0
-        self.prediction_top_of_book_unchanged_events = 0
-        self.prediction_top_of_book_unchanged_consecutive_events = 0
         self.stale_prediction_events = 0
         self.market_watch_thread: threading.Thread | None = None
         self.prediction_supervisor_thread: threading.Thread | None = None
@@ -1265,20 +1239,6 @@ class MicrostructureObserver:
         )
         self.last_prediction_receipt_monotonic_ns = 0
         self.last_prediction_book_version_ms = None
-        self.last_prediction_frame_receipt_monotonic_ns = 0
-        self.last_prediction_unique_version_ms = None
-        self.last_prediction_unique_version_receipt_monotonic_ns = 0
-        self.last_prediction_unique_version_at = None
-        self.last_prediction_top_of_book_signature = None
-        self.last_prediction_top_of_book_change_monotonic_ns = 0
-        self.last_prediction_top_of_book_change_at = None
-        self.prediction_content_frames = 0
-        self.prediction_unique_version_events = 0
-        self.prediction_same_version_events = 0
-        self.prediction_same_version_consecutive_events = 0
-        self.prediction_top_of_book_change_events = 0
-        self.prediction_top_of_book_unchanged_events = 0
-        self.prediction_top_of_book_unchanged_consecutive_events = 0
         if market_id is not None:
             self.last_prediction_timestamp.pop(int(market_id), None)
         with self.state_lock:
@@ -1508,61 +1468,6 @@ class MicrostructureObserver:
             received_wall_ns / 1_000_000 + self.clock_offset_ms - version_ms,
         )
 
-    def _observe_prediction_content(
-        self,
-        event: dict[str, Any],
-        version_ms: int | None,
-    ) -> None:
-        # Telemetry only: this method must never make a book eligible.
-        received_mono_ns = int(event.get("received_monotonic_ns") or 0)
-        received_wall_ns = int(event.get("received_wall_ns") or 0)
-        if received_mono_ns <= 0:
-            return
-        normalized_version = (
-            int(version_ms) if version_ms is not None else None
-        )
-        top_signature = (
-            event.get("best_bid"),
-            event.get("best_bid_qty"),
-            event.get("best_ask"),
-            event.get("best_ask_qty"),
-        )
-        with self.state_lock:
-            self.last_prediction_frame_receipt_monotonic_ns = received_mono_ns
-            self.prediction_content_frames += 1
-
-            if normalized_version is not None:
-                if normalized_version != self.last_prediction_unique_version_ms:
-                    self.last_prediction_unique_version_ms = normalized_version
-                    self.last_prediction_unique_version_receipt_monotonic_ns = (
-                        received_mono_ns
-                    )
-                    self.last_prediction_unique_version_at = (
-                        _utc_iso_from_ns(received_wall_ns)
-                        if received_wall_ns > 0
-                        else None
-                    )
-                    self.prediction_unique_version_events += 1
-                    self.prediction_same_version_consecutive_events = 0
-                else:
-                    self.prediction_same_version_events += 1
-                    self.prediction_same_version_consecutive_events += 1
-
-            if top_signature != self.last_prediction_top_of_book_signature:
-                self.last_prediction_top_of_book_signature = top_signature
-                self.last_prediction_top_of_book_change_monotonic_ns = (
-                    received_mono_ns
-                )
-                self.last_prediction_top_of_book_change_at = (
-                    _utc_iso_from_ns(received_wall_ns)
-                    if received_wall_ns > 0
-                    else None
-                )
-                self.prediction_top_of_book_change_events += 1
-                self.prediction_top_of_book_unchanged_consecutive_events = 0
-            else:
-                self.prediction_top_of_book_unchanged_events += 1
-                self.prediction_top_of_book_unchanged_consecutive_events += 1
     def _set_stream(self, name: str, **values: Any) -> None:
         with self.state_lock:
             self.stream_stats[name].update(values)
@@ -1695,10 +1600,6 @@ class MicrostructureObserver:
             timestamp = event.get("prediction_book_version_ms")
             if timestamp is None:
                 timestamp = event.get("exchange_event_ms")
-            self._observe_prediction_content(
-                event,
-                int(timestamp) if timestamp is not None else None,
-            )
             previous = self.last_prediction_timestamp.get(int(market_id))
             if (
                 timestamp is not None
@@ -1984,66 +1885,6 @@ class MicrostructureObserver:
             if self.last_prediction_book_version_ms is not None
             else None
         )
-        transport_receipt_age_ms = (
-            max(
-                0.0,
-                (
-                    now_mono_ns
-                    - self.last_prediction_frame_receipt_monotonic_ns
-                )
-                / 1_000_000,
-            )
-            if self.last_prediction_frame_receipt_monotonic_ns
-            else None
-        )
-        unique_version_receipt_age_ms = (
-            max(
-                0.0,
-                (
-                    now_mono_ns
-                    - self.last_prediction_unique_version_receipt_monotonic_ns
-                )
-                / 1_000_000,
-            )
-            if self.last_prediction_unique_version_receipt_monotonic_ns
-            else None
-        )
-        top_of_book_unchanged_age_ms = (
-            max(
-                0.0,
-                (
-                    now_mono_ns
-                    - self.last_prediction_top_of_book_change_monotonic_ns
-                )
-                / 1_000_000,
-            )
-            if self.last_prediction_top_of_book_change_monotonic_ns
-            else None
-        )
-        same_version_receipt_ratio = (
-            self.prediction_same_version_events
-            / self.prediction_content_frames
-            if self.prediction_content_frames
-            else None
-        )
-        if transport_receipt_age_ms is None:
-            content_freshness_classification = "NO_CURRENT_MARKET_FRAME"
-        elif (
-            transport_receipt_age_ms
-            > PREDICTION_CONTENT_WARNING_AGE_MS
-        ):
-            content_freshness_classification = "TRANSPORT_STALE"
-        elif book_version_age_ms is None:
-            content_freshness_classification = "CONTENT_VERSION_UNAVAILABLE"
-        elif (
-            book_version_age_ms
-            > PREDICTION_CONTENT_WARNING_AGE_MS
-        ):
-            content_freshness_classification = (
-                "CONTENT_VERSION_OLD_TRANSPORT_LIVE"
-            )
-        else:
-            content_freshness_classification = "CONTENT_CURRENT"
         version_healthy = bool(
             book_version_age_ms is not None
             and book_version_age_ms <= PREDICTION_MAX_VERSION_AGE_MS
@@ -2130,55 +1971,6 @@ class MicrostructureObserver:
         prediction.update(
             {
                 "bookVersionAgeMs": book_version_age_ms,
-                "contentVersionAgeMs": book_version_age_ms,
-                "transportReceiptAgeMs": transport_receipt_age_ms,
-                "uniqueVersionReceiptAgeMs": (
-                    unique_version_receipt_age_ms
-                ),
-                "topOfBookUnchangedAgeMs": (
-                    top_of_book_unchanged_age_ms
-                ),
-                "contentWarningAgeMs": (
-                    PREDICTION_CONTENT_WARNING_AGE_MS
-                ),
-                "contentFreshnessClassification": (
-                    content_freshness_classification
-                ),
-                "contentFreshnessHealthy": (
-                    content_freshness_classification
-                    == "CONTENT_CURRENT"
-                ),
-                "lastUniqueBookVersionMs": (
-                    self.last_prediction_unique_version_ms
-                ),
-                "lastUniqueBookVersionAt": (
-                    self.last_prediction_unique_version_at
-                ),
-                "lastTopOfBookChangeAt": (
-                    self.last_prediction_top_of_book_change_at
-                ),
-                "contentFrames": self.prediction_content_frames,
-                "uniqueVersionEvents": (
-                    self.prediction_unique_version_events
-                ),
-                "sameVersionEvents": (
-                    self.prediction_same_version_events
-                ),
-                "sameVersionConsecutiveEvents": (
-                    self.prediction_same_version_consecutive_events
-                ),
-                "sameVersionReceiptRatio": (
-                    same_version_receipt_ratio
-                ),
-                "topOfBookChangeEvents": (
-                    self.prediction_top_of_book_change_events
-                ),
-                "topOfBookUnchangedEvents": (
-                    self.prediction_top_of_book_unchanged_events
-                ),
-                "topOfBookUnchangedConsecutiveEvents": (
-                    self.prediction_top_of_book_unchanged_consecutive_events
-                ),
                 "maxBookVersionAgeMs": PREDICTION_MAX_VERSION_AGE_MS,
                 "staleReconnectRequests": self.prediction_stale_reconnect_requests,
                 "rolloverReconnectRequests": (
