@@ -72,13 +72,14 @@ exposure. It only permits a future arm.
 
 The normal live engine now installs a PAIR_ARB-only runtime safety patch:
 
-- each configured PAIR_ARB total stake must be at least 2.00 USDT;
-- each calculated or dynamically sized leg must be at least 1.00 USDT;
+- every calculated or dynamically sized live leg must be at least 1.00 USDT;
 - an equal-share requote is blocked before Binance if either revised leg would
   fall below 1.00 USDT; and
 - profitable-depth sizing is rejected if either final leg is below 1.00 USDT.
 
-The global minimum for non-pair strategies is unchanged.
+Low legacy or paper configurations can still be loaded, but they cannot reach a
+real signed-quote request when either calculated leg is below the exchange
+minimum. The global minimum for non-pair strategies remains 0.01 USDT.
 
 ## Startup
 
