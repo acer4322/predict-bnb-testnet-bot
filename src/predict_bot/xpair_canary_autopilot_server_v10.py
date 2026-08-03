@@ -11,6 +11,8 @@ from . import xpair_canary_autopilot_server_v5 as v5
 from . import xpair_canary_autopilot_server_v7 as v7
 from . import xpair_canary_autopilot_server_v8 as v8
 from . import xpair_canary_autopilot_server_v9 as v9
+from .core import BinancePredictionTradingClient
+from .xpair_btc_eth_canary_cedefi import preflight_wallet
 from .xpair_dashboard_paper_sim import paper_simulation_loop
 
 EXECUTION_START_GUARD_SECONDS = 5.0
@@ -62,6 +64,24 @@ def execution_allowed(seconds_left: float) -> bool:
     return EXECUTION_MIN_SECONDS_LEFT <= float(seconds_left) <= EXECUTION_ENTRY_SECONDS_LEFT
 
 
+def strict_live_preflight_allow_settled_positions(
+    client: BinancePredictionTradingClient,
+    config: base.MonitorConfig,
+) -> tuple[str, str, Any]:
+    """Allow filled positions waiting for settlement, but never working orders.
+
+    Available balance is still checked after other positions reserve their funds.
+    XPAIR's own durable tracking/incident lock remains a separate hard gate.
+    """
+    return preflight_wallet(
+        client,
+        account_type=config.account_type,
+        required_balance=config.required_balance,
+        allow_existing_positions=True,
+        allow_existing_orders=False,
+    )
+
+
 def state_payload() -> dict[str, Any]:
     payload = _V9_STATE_PAYLOAD()
     defaults = payload.setdefault("defaults", {})
@@ -88,13 +108,17 @@ def state_payload() -> dict[str, Any]:
             "liveFixedSelection": LIVE_SELECTION,
             "paperSimulationTestsBothDirections": True,
             "paperDirectionsDoNotAffectLiveSelection": True,
+            "existingFilledPositionsAllowed": True,
+            "existingWorkingOrdersBlocked": True,
+            "availableBalanceStillRequired": True,
+            "persistentXpairSafetyLockStillRequired": True,
         }
     )
     return payload
 
 
 class Handler(v9.Handler):
-    server_version = "BTC5MLabXPairAutopilot/10.1"
+    server_version = "BTC5MLabXPairAutopilot/10.2"
 
 
 def install_patches() -> None:
@@ -103,6 +127,7 @@ def install_patches() -> None:
         return
     v9.install_patches()
     base.MonitorConfig.from_payload = classmethod(first_eligible_from_payload)
+    base.strict_live_preflight = strict_live_preflight_allow_settled_positions
     with base.STATE.lock:
         base.STATE.config = replace(
             base.STATE.config,
@@ -149,9 +174,10 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        "XPAIR autopilot v10.1 API listening on "
+        "XPAIR autopilot v10.2 API listening on "
         f"http://{base.API_HOST}:{base.API_PORT}; live direction is fixed to "
-        f"{LIVE_SELECTION}, dual-direction paper simulation remains independent, "
+        f"{LIVE_SELECTION}, filled Prediction positions waiting for settlement are "
+        "allowed when available balance is sufficient, working orders remain blocked, "
         "and armed live execution requests signed quotes on the first eligible "
         f"book state from {EXECUTION_START_GUARD_SECONDS:.0f}s after market start "
         f"until {EXECUTION_MIN_SECONDS_LEFT:.0f}s before settlement"
