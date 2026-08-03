@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import ConfirmationAddModeOptionGuard from "./confirmation-add-mode-option-guard";
-import FuturesLeadConfirmationAddControlV2 from "./futures-lead-confirmation-add-control-v2";
 import MicropriceVariantDashboard from "./microprice-variant-dashboard";
 import MicropriceVariantV2Label from "./microprice-variant-v2-label";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
-const mono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] });
+const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "BTC 5M Lab · M 系列模擬實驗 + 實單 Canary",
@@ -37,7 +36,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {children}
       <MicropriceVariantDashboard />
       <MicropriceVariantV2Label />
-      <FuturesLeadConfirmationAddControlV2 />
       <ConfirmationAddModeOptionGuard />
     </body>
   </html>;
