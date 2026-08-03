@@ -2,10 +2,19 @@
 
 import { useEffect } from "react";
 
-const NATIVE_CONFIRMATION_SOURCES = new Set([
+const LEGACY_NATIVE_SOURCE_SET = [
   "R_MICROPRICE",
   "R_CALIBRATED_VALUE",
-]);
+  "M01O_F1",
+] as const;
+
+function isLegacyConfirmationSourceSet(
+  target: Set<unknown>,
+  originalHas: (this: Set<unknown>, value: unknown) => boolean,
+) {
+  return target.size === LEGACY_NATIVE_SOURCE_SET.length
+    && LEGACY_NATIVE_SOURCE_SET.every(value => originalHas.call(target, value));
+}
 
 function synchronizeOptions() {
   document.querySelectorAll<HTMLSelectElement>(
@@ -23,13 +32,8 @@ function synchronizeOptions() {
     if (!strategySelect || !option) return;
 
     const strategy = strategySelect.value;
-    const desiredDisabled = !NATIVE_CONFIRMATION_SOURCES.has(strategy);
-    const desiredText = strategy === "M01O_F1"
-      ? "順勢確認加碼（F1 已移除）"
-      : strategy === "R_FUTURES_LEAD"
-        ? "順勢確認加碼（使用下方 Lead 控制）"
-        : "順勢確認加碼 Shadow 實單版";
-
+    const desiredDisabled = !strategy;
+    const desiredText = "順勢確認加碼 Shadow 實單版";
     if (option.disabled !== desiredDisabled) option.disabled = desiredDisabled;
     if (option.textContent !== desiredText) option.textContent = desiredText;
   });
@@ -37,6 +41,27 @@ function synchronizeOptions() {
 
 export default function ConfirmationAddModeOptionGuard() {
   useEffect(() => {
+    const originalHas = Set.prototype.has as (
+      this: Set<unknown>,
+      value: unknown,
+    ) => boolean;
+    const universalHas = function(this: Set<unknown>, value: unknown) {
+      if (
+        typeof value === "string"
+        && value.length > 0
+        && isLegacyConfirmationSourceSet(this, originalHas)
+      ) {
+        return true;
+      }
+      return originalHas.call(this, value);
+    };
+
+    Object.defineProperty(Set.prototype, "has", {
+      configurable: true,
+      writable: true,
+      value: universalHas,
+    });
+
     const handleChange = () => window.requestAnimationFrame(synchronizeOptions);
     const observer = new MutationObserver(synchronizeOptions);
     observer.observe(document.body, {
@@ -47,9 +72,17 @@ export default function ConfirmationAddModeOptionGuard() {
     });
     document.addEventListener("change", handleChange, true);
     synchronizeOptions();
+
     return () => {
       observer.disconnect();
       document.removeEventListener("change", handleChange, true);
+      if (Set.prototype.has === universalHas) {
+        Object.defineProperty(Set.prototype, "has", {
+          configurable: true,
+          writable: true,
+          value: originalHas,
+        });
+      }
     };
   }, []);
   return null;
