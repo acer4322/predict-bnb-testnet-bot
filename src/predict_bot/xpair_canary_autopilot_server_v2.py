@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import json
 import threading
 import time
 from http.server import ThreadingHTTPServer
+from typing import Any
 
 from . import xpair_canary_autopilot_server as base
 from .core import BinancePredictionTradingClient, select_binary_market
 from .xpair_btc_eth_canary import (
+    STRATEGY_NAME,
     CanaryStore,
     _plan_details,
     _quote_details,
@@ -21,6 +24,84 @@ from .xpair_btc_eth_paper import (
     fetch_books,
     utc_iso,
 )
+
+
+def trial_status_summary(trials: list[dict[str, Any]]) -> str:
+    return ", ".join(
+        f"{item.get('variant', 'UNKNOWN')}={item.get('entry_status', 'UNKNOWN')}"
+        for item in trials
+    )
+
+
+def record_armed_decision(
+    store: CanaryStore,
+    *,
+    status: str,
+    btc_market_id: int,
+    eth_market_id: int,
+    pair_budget: Any,
+    selection: str,
+    trials: list[dict[str, Any]],
+    message: str,
+    extra_details: dict[str, Any] | None = None,
+) -> int:
+    """Upsert the latest armed no-placement decision for one aligned market."""
+    now = utc_iso()
+    details: dict[str, Any] = {
+        "armed": True,
+        "selection": selection,
+        "trials": trials,
+        "decision": {
+            "status": status,
+            "message": message,
+            "recordedAt": now,
+        },
+    }
+    if extra_details:
+        details.update(extra_details)
+    encoded = json.dumps(details, ensure_ascii=False, sort_keys=True, default=str)
+    cursor = store.db.execute(
+        """INSERT INTO canary_runs(
+               strategy, mode, status, btc_market_id, eth_market_id,
+               variant, pair_budget_usdt, modeled_cost_per_share,
+               quoted_cost_per_share, details_json, message, created_at, updated_at
+           ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(btc_market_id, eth_market_id) DO UPDATE SET
+               mode=excluded.mode,
+               status=excluded.status,
+               variant=excluded.variant,
+               pair_budget_usdt=excluded.pair_budget_usdt,
+               modeled_cost_per_share=NULL,
+               quoted_cost_per_share=NULL,
+               details_json=excluded.details_json,
+               message=excluded.message,
+               updated_at=excluded.updated_at""",
+        (
+            STRATEGY_NAME,
+            "LIVE_ARMED_MONITOR",
+            status,
+            int(btc_market_id),
+            int(eth_market_id),
+            selection,
+            float(pair_budget),
+            None,
+            None,
+            encoded,
+            message[:500],
+            now,
+            now,
+        ),
+    )
+    store.db.commit()
+    if cursor.lastrowid:
+        return int(cursor.lastrowid)
+    row = store.db.execute(
+        "SELECT id FROM canary_runs WHERE btc_market_id=? AND eth_market_id=?",
+        (int(btc_market_id), int(eth_market_id)),
+    ).fetchone()
+    if row is None:
+        raise RuntimeError("failed to persist armed XPAIR decision")
+    return int(row["id"])
 
 
 def monitor_loop() -> None:
@@ -115,14 +196,29 @@ def monitor_loop() -> None:
                         )
                         chosen = choose_trial(trials, config.selection)
                         if chosen is None:
-                            reasons = ", ".join(
-                                f"{item['variant']}={item['entry_status']}"
-                                for item in trials
-                            )
-                            status = f"NO_ELIGIBLE_VARIANT {reasons}"
+                            reasons = trial_status_summary(trials)
                             with base.STATE.lock:
                                 base.STATE.latest_plan = None
                                 base.STATE.latest_quote = None
+                            if base.STATE.is_armed():
+                                message = f"selection={config.selection}; {reasons}"
+                                record_armed_decision(
+                                    store,
+                                    status="ARMED_NO_ELIGIBLE_VARIANT",
+                                    btc_market_id=btc.market_id,
+                                    eth_market_id=eth.market_id,
+                                    pair_budget=config.pair_budget_usdt,
+                                    selection=config.selection,
+                                    trials=trials,
+                                    message=message,
+                                    extra_details={
+                                        "secondsLeft": seconds_left,
+                                        "marketKey": key,
+                                    },
+                                )
+                                status = f"ARMED_NO_ELIGIBLE_VARIANT {message}"
+                            else:
+                                status = f"NO_ELIGIBLE_VARIANT {reasons}"
                         else:
                             plan = build_canary_plan(
                                 chosen=chosen,
@@ -130,8 +226,9 @@ def monitor_loop() -> None:
                                 eth=eth,
                                 max_leg_reprice=config.max_leg_reprice,
                             )
+                            plan_details = _plan_details(plan)
                             with base.STATE.lock:
-                                base.STATE.latest_plan = _plan_details(plan)
+                                base.STATE.latest_plan = plan_details
                                 base.STATE.quote_attempts += 1
 
                             run_id = store.begin(
@@ -141,7 +238,7 @@ def monitor_loop() -> None:
                                 eth_market_id=eth.market_id,
                                 pair_budget=config.pair_budget_usdt,
                                 plan=plan,
-                                details={"plan": _plan_details(plan), "trials": trials},
+                                details={"plan": plan_details, "trials": trials},
                             )
 
                             live_ready = False
@@ -171,10 +268,24 @@ def monitor_loop() -> None:
                                     slippage_bps=config.slippage_bps,
                                 )
                             except Exception as exc:
-                                status = f"QUOTE_REJECTED {str(exc)[:240]}"
+                                armed = base.STATE.is_armed()
+                                record_status = (
+                                    "ARMED_QUOTE_REJECTED" if armed else "QUOTE_REJECTED"
+                                )
+                                status = f"{record_status} {str(exc)[:240]}"
                                 store.update(
                                     run_id,
-                                    status="QUOTE_REJECTED",
+                                    status=record_status,
+                                    details={
+                                        "plan": plan_details,
+                                        "trials": trials,
+                                        "armed": armed,
+                                        "decision": {
+                                            "status": record_status,
+                                            "message": str(exc)[:500],
+                                            "recordedAt": utc_iso(),
+                                        },
+                                    },
                                     message=str(exc),
                                 )
                                 with base.STATE.lock:
@@ -190,7 +301,11 @@ def monitor_loop() -> None:
                                     run_id,
                                     status="AUTO_QUOTE_READY",
                                     quoted_cost=quoted_cost,
-                                    details=details,
+                                    details={
+                                        **details,
+                                        "plan": plan_details,
+                                        "trials": trials,
+                                    },
                                 )
                                 with base.STATE.lock:
                                     base.STATE.quote_accepts += 1
@@ -225,6 +340,23 @@ def monitor_loop() -> None:
                                         "ARMED_WAITING_SAFE_WALLET "
                                         f"{live_block_reason[:240]}"
                                     )
+                                    store.update(
+                                        run_id,
+                                        status="ARMED_WAITING_SAFE_WALLET",
+                                        quoted_cost=quoted_cost,
+                                        details={
+                                            **details,
+                                            "plan": plan_details,
+                                            "trials": trials,
+                                            "armed": True,
+                                            "decision": {
+                                                "status": "ARMED_WAITING_SAFE_WALLET",
+                                                "message": live_block_reason,
+                                                "recordedAt": utc_iso(),
+                                            },
+                                        },
+                                        message=live_block_reason,
+                                    )
                                 else:
                                     status = (
                                         f"AUTO_QUOTE_READY cost/share={quoted_cost:.6f}"
@@ -234,7 +366,12 @@ def monitor_loop() -> None:
                 if status != last_status:
                     level = (
                         "WARN"
-                        if status.startswith(("ARMED", "LIVE", "SUBMITTED", "PLACE"))
+                        if status.startswith((
+                            "ARMED",
+                            "LIVE",
+                            "SUBMITTED",
+                            "PLACE",
+                        ))
                         else "INFO"
                     )
                     base.STATE.log(status, level)
