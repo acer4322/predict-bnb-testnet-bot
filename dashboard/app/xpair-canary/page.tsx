@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 
-type Selection = "BTC_DOWN_ETH_UP" | "BTC_UP_ETH_DOWN" | "CHEAPEST_ELIGIBLE";
+const LIVE_SELECTION = "BTC_DOWN_ETH_UP";
 
 type RuntimeLog = {
   timestamp: string;
@@ -56,7 +56,7 @@ type CanaryRun = {
 };
 
 type MonitorDefaults = {
-  selection: Selection;
+  selection: string;
   pairBudgetUsdt: number;
   balanceBufferUsdt: number;
   maxTotalCost: number;
@@ -77,6 +77,9 @@ type PolicyState = {
   executionStartGuardSeconds?: number;
   executionMinimumSecondsLeft?: number;
   liveAllowedSelections?: string[];
+  liveSelectionFixed?: boolean;
+  liveFixedSelection?: string;
+  paperSimulationTestsBothDirections?: boolean;
 };
 
 type CanaryState = {
@@ -88,7 +91,6 @@ type CanaryState = {
 };
 
 type FormState = {
-  selection: Selection;
   pairBudgetUsdt: string;
   balanceBufferUsdt: string;
   maxTotalCost: string;
@@ -97,7 +99,6 @@ type FormState = {
 };
 
 const DEFAULT_FORM: FormState = {
-  selection: "BTC_DOWN_ETH_UP",
   pairBudgetUsdt: "3.00",
   balanceBufferUsdt: "0.10",
   maxTotalCost: "0.98",
@@ -154,14 +155,13 @@ export default function XPairCanaryPage() {
         payload.safety?.locked
           ? `安全鎖：${payload.safety.status ?? payload.safety.lockKind ?? "LOCKED"}`
           : payload.runtime.armed
-            ? "已武裝：選定方向首次符合後立即 Quote／送單"
+            ? "已武裝：BTC_DOWN_ETH_UP 首次符合後立即 Quote／送單"
             : payload.runtime.running
               ? `持續監控：${payload.runtime.phase}`
               : `監控尚未啟動：${payload.runtime.phase}`,
       );
       if (!initialized) {
         setForm({
-          selection: payload.defaults.selection,
           pairBudgetUsdt: payload.defaults.pairBudgetUsdt.toFixed(2),
           balanceBufferUsdt: payload.defaults.balanceBufferUsdt.toFixed(2),
           maxTotalCost: String(payload.defaults.maxTotalCost),
@@ -194,7 +194,7 @@ export default function XPairCanaryPage() {
         : null;
 
   const requestPayload = useCallback(() => ({
-    selection: form.selection,
+    selection: LIVE_SELECTION,
     pairBudgetUsdt: numberOr(form.pairBudgetUsdt, 3),
     balanceBufferUsdt: numberOr(form.balanceBufferUsdt, 0.1),
     maxTotalCost: numberOr(form.maxTotalCost, 0.98),
@@ -218,7 +218,7 @@ export default function XPairCanaryPage() {
       const payload = await response.json() as CanaryState & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "監控條件儲存失敗");
       setState(payload);
-      setMessage("條件已套用；FIRST_ELIGIBLE 監控持續運行");
+      setMessage("條件已套用；實單固定 BTC_DOWN_ETH_UP，雙方向紙單繼續運行");
     } catch (caught) {
       const text = caught instanceof Error ? caught.message : "監控條件儲存失敗";
       setActionError(text);
@@ -235,7 +235,7 @@ export default function XPairCanaryPage() {
     const minimumLeft = state?.policy?.executionMinimumSecondsLeft ?? 20;
     const accepted = window.confirm(
       `武裝後不會等待 180 秒。\n\n` +
-      `市場開始 ${startGuard.toFixed(0)} 秒後至剩餘 ${minimumLeft.toFixed(0)} 秒以前，只要 ${form.selection} 首次符合，程式就立即申請 signed Quote；Quote 通過便自動送出一次。\n\n` +
+      `實單固定為 BTC DOWN＋ETH UP。市場開始 ${startGuard.toFixed(0)} 秒後至剩餘 ${minimumLeft.toFixed(0)} 秒以前，只要此方向首次符合，程式就立即申請 signed Quote；Quote 通過便自動送出一次。\n\n` +
       `總預算上限 ${pairBudget.toFixed(2)} USDT。兩腿非原子，可能只成交一腿。確定武裝嗎？`,
     );
     if (!accepted) return;
@@ -252,7 +252,7 @@ export default function XPairCanaryPage() {
       const payload = await response.json() as CanaryState & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "武裝失敗");
       setState(payload);
-      setMessage("已武裝：下一個合格 tick 立即 Quote／嘗試送單");
+      setMessage("已武裝：BTC_DOWN_ETH_UP 下一個合格 tick 立即 Quote／嘗試送單");
     } catch (caught) {
       const text = caught instanceof Error ? caught.message : "武裝失敗";
       setActionError(text);
@@ -271,7 +271,7 @@ export default function XPairCanaryPage() {
       const payload = await response.json() as CanaryState & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "取消武裝失敗");
       setState(payload);
-      setMessage("已取消正式單武裝；簿面與紙單仍持續運行");
+      setMessage("已取消正式單武裝；簿面與雙方向紙單仍持續運行");
     } catch (caught) {
       const text = caught instanceof Error ? caught.message : "取消武裝失敗";
       setActionError(text);
@@ -297,7 +297,7 @@ export default function XPairCanaryPage() {
       <div>
         <span className={styles.eyebrow}>BTC 5M LAB · FIRST ELIGIBLE LIVE EXECUTION</span>
         <h1>BTC／ETH 常駐判價＋一次性實單武裝</h1>
-        <p>不再等待目標剩餘秒數。選定方向符合普通簿與 signed Quote 條件後，已武裝的實單會立即嘗試送出。</p>
+        <p>實單固定 BTC DOWN＋ETH UP；模擬帳本才同時測試兩個相反方向。符合普通簿與 signed Quote 條件後，已武裝的實單會立即嘗試送出。</p>
       </div>
       <div className={styles.heroActions}>
         <a href="/">返回主監控</a>
@@ -308,9 +308,9 @@ export default function XPairCanaryPage() {
     </header>
 
     <section className={styles.warningBox}>
-      <strong>FIRST_ELIGIBLE 執行規則</strong>
-      <p>市場開始 {startGuard.toFixed(0)} 秒後至剩餘 {minimumLeft.toFixed(0)} 秒以前，每秒持續判定；選定方向符合就立即申請 signed Quote。未武裝只監控，已武裝則 Quote 通過後立即送出一次。</p>
-      <p>兩腿成功取得 order ID 後，該市場停止後續 Quote；事故鎖、成交後盈利檢查與自動撤退仍全部保留。</p>
+      <strong>實單與雙方向模擬已分離</strong>
+      <p>實單只使用 BTC_DOWN_ETH_UP；BTC_UP_ETH_DOWN 只存在於雙方向紙上比較，不會再進入武裝 payload。</p>
+      <p>市場開始 {startGuard.toFixed(0)} 秒後至剩餘 {minimumLeft.toFixed(0)} 秒以前，每秒持續判定；實單方向符合就立即申請 signed Quote。兩腿成功取得 order ID 後，該市場停止後續 Quote。</p>
       {actionError ? <p className={styles.errorText}><strong>操作被拒絕：</strong> {actionError}</p> : null}
     </section>
 
@@ -327,12 +327,9 @@ export default function XPairCanaryPage() {
         <span className={styles.muted}>固定執行區：開始後 {startGuard.toFixed(0)} 秒～剩餘 {minimumLeft.toFixed(0)} 秒</span>
       </div>
       <div className={styles.formGrid}>
-        <label>配對方向
-          <select value={form.selection} onChange={event => setForm(current => ({ ...current, selection: event.target.value as Selection }))}>
-            <option value="BTC_DOWN_ETH_UP">BTC DOWN + ETH UP</option>
-            <option value="BTC_UP_ETH_DOWN">BTC UP + ETH DOWN</option>
-            <option value="CHEAPEST_ELIGIBLE">當輪最低成本組合</option>
-          </select>
+        <label>實單配對方向
+          <input value="BTC DOWN + ETH UP" readOnly />
+          <small className={styles.muted}>雙方向比較只在模擬帳本運作</small>
         </label>
         <label>兩腿總預算（USDT）
           <input type="number" min="2" max={maxPairBudget} step="0.01" value={form.pairBudgetUsdt} onChange={event => setForm(current => ({ ...current, pairBudgetUsdt: event.target.value }))} />
@@ -364,12 +361,12 @@ export default function XPairCanaryPage() {
         </button>
         <button className={styles.quoteButton} disabled={!runtime?.armed} onClick={() => void disarm()}>
           取消正式單武裝
-          <small>簿面與紙單繼續運行</small>
+          <small>簿面與雙方向紙單繼續運行</small>
         </button>
         <div className={styles.liveAction}>
           <button className={styles.liveButton} disabled={runtime?.armed || !runtime?.running || safetyLocked || Boolean(budgetError)} onClick={() => void arm()}>
             武裝首個合格機會
-            <small>{safetyLocked ? "事故安全鎖生效中" : budgetError ?? "符合即 Quote／送單，不等待目標秒數"}</small>
+            <small>{safetyLocked ? "事故安全鎖生效中" : budgetError ?? "BTC DOWN＋ETH UP 符合即 Quote／送單"}</small>
           </button>
         </div>
       </div>
