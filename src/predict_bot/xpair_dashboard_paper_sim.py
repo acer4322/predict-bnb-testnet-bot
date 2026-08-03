@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 import os
 import sqlite3
@@ -7,7 +8,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from . import xpair_canary_autopilot_server as base
 from . import xpair_canary_autopilot_server_v2 as v2
@@ -25,18 +26,70 @@ PAPER_MIN_SECONDS_LEFT = 20.0
 PAPER_DISCOVERY_INTERVAL_SECONDS = 5.0
 PAPER_SETTLEMENT_INTERVAL_SECONDS = 15.0
 PAPER_POLL_INTERVAL_SECONDS = 0.25
-PAPER_RECENT_LIMIT = 40
+PAPER_RECENT_LIMIT = 20
+PAPER_HISTORY_DEFAULT_LIMIT = 50
+PAPER_HISTORY_MAX_LIMIT = 200
 PAPER_VARIANTS = ("BTC_DOWN_ETH_UP", "BTC_UP_ETH_DOWN")
+PAPER_EXPERIMENT = "DUAL_VARIANT_FIRST_ELIGIBLE"
+# Keep this filename stable across server versions. Pulling code, restarting the
+# process, or changing the vN wrapper must never select a new paper ledger.
 PAPER_DB_PATH = Path(
     os.environ.get(
         "XPAIR_DASHBOARD_PAPER_DB",
         str(base.DB_PATH.with_name("xpair_dashboard_dual_paper.db")),
     )
+).expanduser()
+LEGACY_PAPER_DB_PATHS = (
+    base.DB_PATH,
+    base.DB_PATH.with_name("xpair_btc_eth_paper.db"),
 )
 _VARIANT_SIDES = {
     "BTC_DOWN_ETH_UP": ("DOWN", "UP"),
     "BTC_UP_ETH_DOWN": ("UP", "DOWN"),
 }
+_TRIAL_COLUMNS = (
+    "strategy",
+    "variant",
+    "btc_topic_id",
+    "btc_market_id",
+    "eth_topic_id",
+    "eth_market_id",
+    "start_ms",
+    "end_ms",
+    "btc_start_price",
+    "eth_start_price",
+    "signal_at",
+    "seconds_left",
+    "btc_side",
+    "eth_side",
+    "entry_status",
+    "rejection_reason",
+    "eligible",
+    "requested_stake",
+    "requested_shares",
+    "filled_shares",
+    "fill_ratio",
+    "btc_vwap",
+    "eth_vwap",
+    "btc_fee",
+    "eth_fee",
+    "total_cost",
+    "cost_per_share",
+    "btc_book_age_ms",
+    "eth_book_age_ms",
+    "cross_book_skew_ms",
+    "btc_winner",
+    "eth_winner",
+    "winning_legs",
+    "double_loss",
+    "payout",
+    "pnl",
+    "settlement_status",
+    "settled_at",
+    "diagnostics_json",
+)
+_MIGRATION_LOCK = threading.RLock()
+_MIGRATION_DONE = False
 
 
 class PaperRuntime:
@@ -102,6 +155,134 @@ def _analysis_age_seconds(analysis: dict[str, Any]) -> float | None:
     return max(0.0, (datetime.now(timezone.utc) - parsed).total_seconds())
 
 
+def _same_path(first: Path, second: Path) -> bool:
+    try:
+        return first.resolve() == second.resolve()
+    except OSError:
+        return str(first.absolute()) == str(second.absolute())
+
+
+def _table_exists(db: sqlite3.Connection, table: str) -> bool:
+    return (
+        db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        ).fetchone()
+        is not None
+    )
+
+
+def _init_persistence_metadata(db: sqlite3.Connection) -> None:
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS xpair_paper_imports(
+               source_path TEXT PRIMARY KEY,
+               imported_rows INTEGER NOT NULL DEFAULT 0,
+               last_checked_at TEXT NOT NULL
+           )"""
+    )
+    db.commit()
+
+
+def migrate_legacy_paper_ledgers(
+    store: XPairStore,
+    source_paths: Iterable[Path] = LEGACY_PAPER_DB_PATHS,
+) -> dict[str, Any]:
+    """Merge old paper databases without changing current A/B statistics.
+
+    Imported rows remain visible in permanent history. They are excluded from the
+    current dual-direction comparison unless their diagnostics already identify
+    them as the same experiment.
+    """
+    _init_persistence_metadata(store.db)
+    imported_now = 0
+    checked_sources: list[str] = []
+    columns = ", ".join(_TRIAL_COLUMNS)
+    placeholders = ", ".join("?" for _ in _TRIAL_COLUMNS)
+    insert_sql = (
+        f"INSERT OR IGNORE INTO xpair_trials ({columns}) "
+        f"VALUES ({placeholders})"
+    )
+
+    for raw_path in source_paths:
+        source_path = Path(raw_path).expanduser()
+        if _same_path(source_path, PAPER_DB_PATH) or not source_path.exists():
+            continue
+        source_name = str(source_path.resolve())
+        checked_sources.append(source_name)
+        source = sqlite3.connect(source_path, timeout=5.0)
+        source.row_factory = sqlite3.Row
+        source.execute("PRAGMA busy_timeout=5000")
+        try:
+            if not _table_exists(source, "xpair_trials"):
+                rows: list[sqlite3.Row] = []
+            else:
+                source_columns = {
+                    str(row[1]) for row in source.execute("PRAGMA table_info(xpair_trials)")
+                }
+                if not set(_TRIAL_COLUMNS).issubset(source_columns):
+                    rows = []
+                else:
+                    rows = source.execute(
+                        f"SELECT {columns} FROM xpair_trials WHERE eligible=1"
+                    ).fetchall()
+        finally:
+            source.close()
+
+        before = store.db.total_changes
+        if rows:
+            store.db.executemany(
+                insert_sql,
+                [tuple(row[column] for column in _TRIAL_COLUMNS) for row in rows],
+            )
+        imported = store.db.total_changes - before
+        imported_now += imported
+        store.db.execute(
+            """INSERT INTO xpair_paper_imports(
+                   source_path, imported_rows, last_checked_at
+               ) VALUES (?, ?, ?)
+               ON CONFLICT(source_path) DO UPDATE SET
+                   imported_rows=xpair_paper_imports.imported_rows + excluded.imported_rows,
+                   last_checked_at=excluded.last_checked_at""",
+            (source_name, int(imported), utc_iso()),
+        )
+        store.db.commit()
+
+    row = store.db.execute(
+        "SELECT COALESCE(SUM(imported_rows), 0) FROM xpair_paper_imports"
+    ).fetchone()
+    return {
+        "importedNow": int(imported_now),
+        "importedTotal": int(row[0] or 0),
+        "checkedSources": checked_sources,
+    }
+
+
+def ensure_legacy_paper_migration() -> dict[str, Any]:
+    global _MIGRATION_DONE
+    with _MIGRATION_LOCK:
+        if _MIGRATION_DONE:
+            store = XPairStore(PAPER_DB_PATH)
+            try:
+                _init_persistence_metadata(store.db)
+                row = store.db.execute(
+                    "SELECT COALESCE(SUM(imported_rows), 0) FROM xpair_paper_imports"
+                ).fetchone()
+                return {
+                    "importedNow": 0,
+                    "importedTotal": int(row[0] or 0),
+                    "checkedSources": [],
+                }
+            finally:
+                store.close()
+        store = XPairStore(PAPER_DB_PATH)
+        try:
+            result = migrate_legacy_paper_ledgers(store)
+            _MIGRATION_DONE = True
+            return result
+        finally:
+            store.close()
+
+
 def selected_preview_trial(
     analysis: dict[str, Any], selection: str
 ) -> dict[str, Any] | None:
@@ -155,7 +336,7 @@ def trial_for_store(preview: dict[str, Any]) -> dict[str, Any] | None:
         "diagnostics": {
             "paper_only": True,
             "source": "dashboard_continuous_book_monitor",
-            "experiment": "DUAL_VARIANT_FIRST_ELIGIBLE",
+            "experiment": PAPER_EXPERIMENT,
             "entry_rule": "FIRST_ELIGIBLE_ONCE_PER_VARIANT_PER_ALIGNED_MARKET",
             "minimum_seconds_after_start": PAPER_MIN_SECONDS_AFTER_START,
             "minimum_seconds_left": PAPER_MIN_SECONDS_LEFT,
@@ -173,8 +354,13 @@ def captured_variants(
 ) -> set[str]:
     rows = db.execute(
         """SELECT variant FROM xpair_trials
-             WHERE btc_market_id=? AND eth_market_id=? AND eligible=1""",
-        (int(btc_market_id), int(eth_market_id)),
+             WHERE btc_market_id=? AND eth_market_id=? AND eligible=1
+               AND diagnostics_json LIKE ?""",
+        (
+            int(btc_market_id),
+            int(eth_market_id),
+            f"%{PAPER_EXPERIMENT}%",
+        ),
     ).fetchall()
     return {str(row["variant"]) for row in rows}
 
@@ -184,11 +370,11 @@ def _summary_query(
     *,
     variant: str | None = None,
 ) -> dict[str, Any]:
-    where = "eligible=1"
-    parameters: tuple[Any, ...] = ()
+    where = "eligible=1 AND diagnostics_json LIKE ?"
+    parameters: list[Any] = [f"%{PAPER_EXPERIMENT}%"]
     if variant is not None:
         where += " AND variant=?"
-        parameters = (variant,)
+        parameters.append(variant)
     row = db.execute(
         f"""SELECT
                 COUNT(*) AS captured,
@@ -201,7 +387,7 @@ def _summary_query(
                 SUM(CASE WHEN settlement_status='SETTLED' THEN pnl ELSE 0 END) AS pnl
             FROM xpair_trials
            WHERE {where}""",
-        parameters,
+        tuple(parameters),
     ).fetchone()
     captured = int(row["captured"] or 0)
     pending = int(row["pending"] or 0)
@@ -228,15 +414,17 @@ def _summary_query(
 
 
 def _comparison(db: sqlite3.Connection, variants: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    experiment_pattern = f"%{PAPER_EXPERIMENT}%"
     paired_captured = int(
         db.execute(
             """SELECT COUNT(*) FROM (
                    SELECT btc_market_id, eth_market_id
                      FROM xpair_trials
-                    WHERE eligible=1
+                    WHERE eligible=1 AND diagnostics_json LIKE ?
                     GROUP BY btc_market_id, eth_market_id
                    HAVING COUNT(DISTINCT variant)=2
-               )"""
+               )""",
+            (experiment_pattern,),
         ).fetchone()[0]
     )
     paired_settled = int(
@@ -245,17 +433,21 @@ def _comparison(db: sqlite3.Connection, variants: dict[str, dict[str, Any]]) -> 
                    SELECT btc_market_id, eth_market_id
                      FROM xpair_trials
                     WHERE eligible=1 AND settlement_status='SETTLED'
+                      AND diagnostics_json LIKE ?
                     GROUP BY btc_market_id, eth_market_id
                    HAVING COUNT(DISTINCT variant)=2
-               )"""
+               )""",
+            (experiment_pattern,),
         ).fetchone()[0]
     )
     unique_markets = int(
         db.execute(
             """SELECT COUNT(*) FROM (
                    SELECT DISTINCT btc_market_id, eth_market_id
-                     FROM xpair_trials WHERE eligible=1
-               )"""
+                     FROM xpair_trials
+                    WHERE eligible=1 AND diagnostics_json LIKE ?
+               )""",
+            (experiment_pattern,),
         ).fetchone()[0]
     )
     down = variants["BTC_DOWN_ETH_UP"]
@@ -290,7 +482,87 @@ def _comparison(db: sqlite3.Connection, variants: dict[str, dict[str, Any]]) -> 
     }
 
 
+def _history_item(row: sqlite3.Row) -> dict[str, Any]:
+    item = dict(row)
+    raw_diagnostics = item.pop("diagnostics_json", None)
+    try:
+        diagnostics = json.loads(str(raw_diagnostics or "{}"))
+    except json.JSONDecodeError:
+        diagnostics = {}
+    experiment = str(diagnostics.get("experiment") or "LEGACY_ARCHIVE")
+    item["experiment"] = experiment
+    item["ledger_class"] = (
+        "CURRENT_DUAL_EXPERIMENT"
+        if experiment == PAPER_EXPERIMENT
+        else "LEGACY_ARCHIVE"
+    )
+    return item
+
+
+def _history_rows(
+    db: sqlite3.Connection,
+    *,
+    limit: int,
+    offset: int,
+) -> list[dict[str, Any]]:
+    rows = db.execute(
+        """SELECT id, strategy, variant, btc_market_id, eth_market_id,
+                  signal_at, seconds_left, filled_shares, cost_per_share,
+                  total_cost, btc_winner, eth_winner, winning_legs, payout,
+                  pnl, settlement_status, settled_at, diagnostics_json
+             FROM xpair_trials
+            WHERE eligible=1
+            ORDER BY signal_at DESC, id DESC
+            LIMIT ? OFFSET ?""",
+        (int(limit), int(offset)),
+    ).fetchall()
+    return [_history_item(row) for row in rows]
+
+
+def paper_history_payload(
+    *,
+    limit: int = PAPER_HISTORY_DEFAULT_LIMIT,
+    offset: int = 0,
+    path: Path = PAPER_DB_PATH,
+) -> dict[str, Any]:
+    if _same_path(Path(path), PAPER_DB_PATH):
+        migration = ensure_legacy_paper_migration()
+    else:
+        migration = {"importedNow": 0, "importedTotal": 0, "checkedSources": []}
+    safe_limit = max(1, min(PAPER_HISTORY_MAX_LIMIT, int(limit)))
+    safe_offset = max(0, int(offset))
+    store = XPairStore(Path(path))
+    try:
+        total = int(
+            store.db.execute(
+                "SELECT COUNT(*) FROM xpair_trials WHERE eligible=1"
+            ).fetchone()[0]
+        )
+        items = _history_rows(
+            store.db,
+            limit=safe_limit,
+            offset=safe_offset,
+        )
+    finally:
+        store.close()
+    return {
+        "persistent": True,
+        "autoDelete": False,
+        "ledgerPath": str(Path(path).resolve()),
+        "total": total,
+        "limit": safe_limit,
+        "offset": safe_offset,
+        "hasMore": safe_offset + len(items) < total,
+        "items": items,
+        "migration": migration,
+    }
+
+
 def paper_dashboard_payload(path: Path = PAPER_DB_PATH) -> dict[str, Any]:
+    if _same_path(Path(path), PAPER_DB_PATH):
+        migration = ensure_legacy_paper_migration()
+    else:
+        migration = {"importedNow": 0, "importedTotal": 0, "checkedSources": []}
     store = XPairStore(Path(path))
     try:
         variants = {
@@ -299,29 +571,32 @@ def paper_dashboard_payload(path: Path = PAPER_DB_PATH) -> dict[str, Any]:
         }
         summary = _summary_query(store.db)
         comparison = _comparison(store.db, variants)
-        rows = store.db.execute(
-            """SELECT id, variant, btc_market_id, eth_market_id, signal_at,
-                      seconds_left, filled_shares, cost_per_share, total_cost,
-                      btc_winner, eth_winner, winning_legs, payout, pnl,
-                      settlement_status, settled_at
-                 FROM xpair_trials
-                WHERE eligible=1
-                ORDER BY id DESC LIMIT ?""",
-            (PAPER_RECENT_LIMIT,),
-        ).fetchall()
-        recent = [dict(row) for row in rows]
+        history_total = int(
+            store.db.execute(
+                "SELECT COUNT(*) FROM xpair_trials WHERE eligible=1"
+            ).fetchone()[0]
+        )
+        recent = _history_rows(store.db, limit=PAPER_RECENT_LIMIT, offset=0)
     finally:
         store.close()
     return {
         **PAPER_RUNTIME.snapshot(),
         "paperOnly": True,
-        "experiment": "DUAL_VARIANT_FIRST_ELIGIBLE",
+        "experiment": PAPER_EXPERIMENT,
         "entryRule": "FIRST_ELIGIBLE_ONCE_PER_VARIANT_PER_ALIGNED_MARKET",
         "minimumSecondsAfterStart": PAPER_MIN_SECONDS_AFTER_START,
         "minimumSecondsLeft": PAPER_MIN_SECONDS_LEFT,
         "usesSignedQuote": False,
         "independentOfLiveArm": True,
-        "ledgerPath": str(path),
+        "ledgerPath": str(Path(path).resolve()),
+        "storage": {
+            "persistent": True,
+            "autoDelete": False,
+            "historyTotal": history_total,
+            "recentPreviewLimit": PAPER_RECENT_LIMIT,
+            "historyPageSize": PAPER_HISTORY_DEFAULT_LIMIT,
+            "importedLegacyRows": migration["importedTotal"],
+        },
         "summary": summary,
         "variants": variants,
         "comparison": comparison,
@@ -333,9 +608,18 @@ def paper_simulation_loop() -> None:
     api_key = os.environ.get("BINANCE_API_KEY")
     api_secret = os.environ.get("BINANCE_API_SECRET")
     if not api_key or not api_secret:
-        PAPER_RUNTIME.update("DISABLED_MISSING_CREDENTIALS", error="missing Binance credentials")
+        PAPER_RUNTIME.update(
+            "DISABLED_MISSING_CREDENTIALS",
+            error="missing Binance credentials",
+        )
         return
 
+    migration = ensure_legacy_paper_migration()
+    if migration["importedNow"]:
+        base.STATE.log(
+            f"PAPER_HISTORY_IMPORTED rows={migration['importedNow']}",
+            "INFO",
+        )
     client = BinancePredictionClient(api_key, api_secret)
     store = XPairStore(PAPER_DB_PATH)
     pair: tuple[MarketRef, MarketRef] | None = None
@@ -352,7 +636,10 @@ def paper_simulation_loop() -> None:
                     next_settlement = loop_started + PAPER_SETTLEMENT_INTERVAL_SECONDS
                     settled = reconcile_settlements(store, client, now_ms)
                     if settled:
-                        base.STATE.log(f"PAPER_XPAIR_SETTLED count={settled}", "INFO")
+                        base.STATE.log(
+                            f"PAPER_XPAIR_SETTLED count={settled}",
+                            "INFO",
+                        )
 
                 if pair is not None and now_ms >= max(pair[0].end_ms, pair[1].end_ms):
                     pair = None
@@ -371,10 +658,12 @@ def paper_simulation_loop() -> None:
                     btc, eth = pair
                     key = base.market_key(btc, eth)
                     seconds_left = max(
-                        0.0, (min(btc.end_ms, eth.end_ms) - now_ms) / 1000.0
+                        0.0,
+                        (min(btc.end_ms, eth.end_ms) - now_ms) / 1000.0,
                     )
                     seconds_after_start = max(
-                        0.0, (now_ms - max(btc.start_ms, eth.start_ms)) / 1000.0
+                        0.0,
+                        (now_ms - max(btc.start_ms, eth.start_ms)) / 1000.0,
                     )
                     already_captured = captured_variants(
                         store.db,
@@ -412,10 +701,18 @@ def paper_simulation_loop() -> None:
                                     eth=eth,
                                     signal_at=utc_iso(),
                                     seconds_left=seconds_left,
-                                    requested_stake=float(base.STATE.config.pair_budget_usdt),
-                                    btc_book_age_ms=_finite(preview.get("btcBookAgeMs")),
-                                    eth_book_age_ms=_finite(preview.get("ethBookAgeMs")),
-                                    cross_book_skew_ms=_finite(preview.get("crossBookSkewMs")),
+                                    requested_stake=float(
+                                        base.STATE.config.pair_budget_usdt
+                                    ),
+                                    btc_book_age_ms=_finite(
+                                        preview.get("btcBookAgeMs")
+                                    ),
+                                    eth_book_age_ms=_finite(
+                                        preview.get("ethBookAgeMs")
+                                    ),
+                                    cross_book_skew_ms=_finite(
+                                        preview.get("crossBookSkewMs")
+                                    ),
                                     trials=[trial],
                                 )
                                 captured_now.append(
@@ -428,7 +725,8 @@ def paper_simulation_loop() -> None:
                                     }
                                 )
                                 base.STATE.log(
-                                    f"PAPER_XPAIR_CAPTURED market={key} variant={trial['variant']} "
+                                    f"PAPER_XPAIR_CAPTURED market={key} "
+                                    f"variant={trial['variant']} "
                                     f"left={seconds_left:.1f}s "
                                     f"cost/share={trial['cost_per_share']:.6f}",
                                     "INFO",
@@ -438,7 +736,8 @@ def paper_simulation_loop() -> None:
                                 capture = {
                                     "marketKey": key,
                                     "variant": "+".join(
-                                        str(item["variant"]) for item in captured_now
+                                        str(item["variant"])
+                                        for item in captured_now
                                     ),
                                     "variants": captured_now,
                                     "capturedAt": utc_iso(),
@@ -448,16 +747,18 @@ def paper_simulation_loop() -> None:
                                     capture=capture,
                                 )
                                 after_capture = already_captured | {
-                                    str(item["variant"]) for item in captured_now
+                                    str(item["variant"])
+                                    for item in captured_now
                                 }
                                 remaining = [
-                                    item for item in PAPER_VARIANTS
+                                    item
+                                    for item in PAPER_VARIANTS
                                     if item not in after_capture
                                 ]
                                 status = (
                                     f"BOTH_VARIANTS_CAPTURED_WAIT_SETTLEMENT market={key}"
                                     if not remaining
-                                    else f"ONE_VARIANT_CAPTURED_WAIT_OTHER "
+                                    else "ONE_VARIANT_CAPTURED_WAIT_OTHER "
                                     f"market={key} missing={','.join(remaining)}"
                                 )
                             else:
