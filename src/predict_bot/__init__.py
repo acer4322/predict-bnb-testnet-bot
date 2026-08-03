@@ -12,12 +12,17 @@ from .direct_outcome_guard import (
 from .microprice_variants import (
     install_microprice_variants as _install_microprice_variants,
 )
+from .microprice_dashboard_patch import (
+    install_microprice_dashboard_patch as _install_microprice_dashboard_patch,
+)
 
 _install_decision_snapshot_diagnostics()
 _install_decision_snapshot_state()
 _install_direct_outcome_guard()
 _install_microprice_variants()
+_install_microprice_dashboard_patch()
 del _install_decision_snapshot_diagnostics
 del _install_decision_snapshot_state
 del _install_direct_outcome_guard
 del _install_microprice_variants
+del _install_microprice_dashboard_patch
