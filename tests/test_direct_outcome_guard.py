@@ -23,6 +23,17 @@ class _Store:
         return []
 
 
+class _Observer:
+    def __init__(self):
+        self.calls = []
+
+    def reset_market(self, *args, **kwargs):
+        self.calls.append(("reset_market", args, kwargs))
+
+    def update_tick(self, *args, **kwargs):
+        self.calls.append(("update_tick", args, kwargs))
+
+
 def _market():
     now_ms = time.time_ns() / 1_000_000
     return {
@@ -58,6 +69,13 @@ def _single_outcome_wss():
         "prediction_book_version_age_ms": 0.0,
         "book_skew_ms": 0.0,
     }
+
+
+def _unmarked_single_outcome_wss():
+    event = _single_outcome_wss()
+    event.pop("prediction_data_source")
+    event.pop("direct_outcome_books")
+    return event
 
 
 def _dual_rest_event():
@@ -114,6 +132,30 @@ def test_explicit_single_outcome_wss_is_rejected_before_evaluation():
         "DIRECT_DUAL_TOKEN_REST_ONLY"
     )
     assert state["rejectedNonDirectPredictionEvents"] == 1
+
+
+def test_missing_provenance_is_also_rejected_fail_closed():
+    observer = _Observer()
+    engine = MSeriesRealtimeEngine(
+        store=_Store(),
+        current_market=_market,
+        market_observer=observer,
+    )
+    engine._evaluate = lambda *args, **kwargs: None
+    event = _unmarked_single_outcome_wss()
+
+    assert is_direct_outcome_event(event) is False
+    assert engine._prediction_values(event, time.monotonic_ns()) is None
+
+    engine._update_market_observer(event)
+    assert observer.calls == []
+
+    engine._handle(event)
+    assert engine.prediction_event is None
+    assert engine.rejected_non_direct_prediction_events == 1
+    assert engine.state()["predictionSourceGuardVersion"] == (
+        DIRECT_OUTCOME_GUARD_VERSION
+    )
 
 
 def test_independent_dual_rest_book_preserves_real_down_prices():

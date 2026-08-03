@@ -8,7 +8,7 @@ from . import live_trading as _live
 from . import m_realtime as _realtime
 
 
-DIRECT_OUTCOME_GUARD_VERSION = "DIRECT_OUTCOME_GUARD_V1"
+DIRECT_OUTCOME_GUARD_VERSION = "DIRECT_OUTCOME_GUARD_V2"
 DIRECT_OUTCOME_DATA_SOURCE = "dual_token_rest"
 DIRECT_OUTCOME_BLOCK_STATUS = "BLOCKED_NON_DIRECT_PREDICTION_SOURCE"
 
@@ -23,22 +23,14 @@ def is_direct_outcome_event(event: Any) -> bool:
 
 
 def is_explicit_non_direct_event(event: Any) -> bool:
-    """Identify production events which explicitly lack independent outcomes.
+    """Fail closed unless the event explicitly proves independent outcomes.
 
-    Older unit fixtures predate provenance fields and are allowed to continue
-    exercising unrelated timing logic.  They still cannot receive direct-book
-    live provenance, so the real-money executor remains fail closed.
+    Missing provenance is unsafe in production because legacy single-outcome
+    WSS frames did not always carry ``prediction_data_source`` or
+    ``direct_outcome_books``. Treating those fields as optional allowed the old
+    ``DOWN = 1 - UP`` compatibility path to reach strategy calculations.
     """
-    if not isinstance(event, dict):
-        return True
-    source = event.get("prediction_data_source")
-    direct = event.get("direct_outcome_books")
-    return bool(
-        source is not None
-        and source != DIRECT_OUTCOME_DATA_SOURCE
-        or direct is not None
-        and direct is not True
-    )
+    return not is_direct_outcome_event(event)
 
 
 def signal_has_direct_outcome_provenance(signal: Any) -> bool:
@@ -88,8 +80,9 @@ def install_direct_outcome_guard() -> None:
     """Fail closed unless strategy prices come from independent UP/DOWN books.
 
     Prediction WSS remains available to the microstructure transport-health
-    layer.  Explicit single-outcome WSS books are rejected by the strategy
-    engine because the legacy fallback inferred DOWN as ``1 - UP top level``.
+    layer. Every non-direct or provenance-missing Prediction event is rejected
+    before Market Observer and strategy evaluation because the legacy fallback
+    inferred DOWN as ``1 - UP top level``.
     """
 
     engine_cls = _realtime.MSeriesRealtimeEngine
@@ -110,6 +103,27 @@ def install_direct_outcome_guard() -> None:
         init_with_guard._direct_outcome_guard = True  # type: ignore[attr-defined]
         engine_cls.__init__ = init_with_guard
 
+    original_update_market_observer = engine_cls._update_market_observer
+    if not getattr(
+        original_update_market_observer, "_direct_outcome_guard", False
+    ):
+
+        @wraps(original_update_market_observer)
+        def update_market_observer_direct_only(
+            self: Any,
+            event: dict[str, Any],
+        ) -> Any:
+            if (
+                str(event.get("source") or "") == "prediction"
+                and str(event.get("stream") or "") == "orderbook"
+                and not is_direct_outcome_event(event)
+            ):
+                return None
+            return original_update_market_observer(self, event)
+
+        update_market_observer_direct_only._direct_outcome_guard = True  # type: ignore[attr-defined]
+        engine_cls._update_market_observer = update_market_observer_direct_only
+
     original_prediction_values = engine_cls._prediction_values
     if not getattr(
         original_prediction_values, "_direct_outcome_guard", False
@@ -123,7 +137,7 @@ def install_direct_outcome_guard() -> None:
             *,
             require_feature_eligible: bool = True,
         ) -> dict[str, float] | None:
-            if is_explicit_non_direct_event(event):
+            if not is_direct_outcome_event(event):
                 return None
             return original_prediction_values(
                 self,
@@ -149,7 +163,7 @@ def install_direct_outcome_guard() -> None:
             *,
             require_feature_eligible: bool = True,
         ) -> dict[str, Any] | None:
-            if is_explicit_non_direct_event(event):
+            if not is_direct_outcome_event(event):
                 return None
             return original_prediction_book_copy(
                 self,
@@ -173,7 +187,7 @@ def install_direct_outcome_guard() -> None:
             if (
                 str(event.get("source") or "") == "prediction"
                 and str(event.get("stream") or "") == "orderbook"
-                and is_explicit_non_direct_event(event)
+                and not is_direct_outcome_event(event)
             ):
                 with self.lock:
                     self.rejected_non_direct_prediction_events = int(
