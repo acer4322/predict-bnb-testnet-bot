@@ -30,6 +30,24 @@ def test_typed_live_confirmation_is_not_advertised() -> None:
     assert "liveConfirmationPhrase" not in policy
 
 
+def test_default_selection_uses_cheapest_eligible_direction() -> None:
+    install_patches()
+    payload = state_payload()
+    assert base.STATE.config.selection == "CHEAPEST_ELIGIBLE"
+    assert payload["defaults"]["selection"] == "CHEAPEST_ELIGIBLE"
+    assert payload["policy"]["automaticDirectionSelection"] is True
+    assert payload["policy"]["defaultSelection"] == "CHEAPEST_ELIGIBLE"
+
+
+def test_fixed_direction_can_still_be_selected_explicitly() -> None:
+    install_patches()
+    config = base.MonitorConfig.from_payload(
+        {"selection": "BTC_DOWN_ETH_UP"},
+        base.STATE.config,
+    )
+    assert config.selection == "BTC_DOWN_ETH_UP"
+
+
 def test_edited_pair_budgets_are_accepted_through_ten_usdt() -> None:
     install_patches()
     current = base.STATE.config
