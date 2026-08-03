@@ -5171,38 +5171,18 @@ class Store:
             "causalNextMarketOnly": True,
         }
 
-    def _research_observer_auto_v6_reset_state(
-        self,
-        strategy: str,
-    ) -> dict[str, Any]:
-        with self.lock:
-            row = self.db.execute(
-                """SELECT cutoff_trade_id, reset_at
-                     FROM strategy_measurement_resets
-                    WHERE strategy=?
-                    ORDER BY id DESC
-                    LIMIT 1""",
-                (str(strategy).upper(),),
-            ).fetchone()
-        return {
-            "resetAt": str(row["reset_at"]) if row else None,
-            "cutoffTradeId": int(row["cutoff_trade_id"]) if row else 0,
-        }
-
     def _research_observer_auto_v6_history(
         self,
         source_strategy: str,
         *,
         before_market_id: int,
-        after_trade_id: int = 0,
     ) -> list[dict[str, Any]]:
-        """Return post-reset prior official source results with frozen V6 decisions."""
+        """Return prior official source results with frozen V6 decisions."""
         rows = self.db.execute(
-            """SELECT t.id AS source_trade_id, t.market_id, t.stake, t.pnl,
-                      t.diagnostics_json
+            """SELECT t.market_id, t.stake, t.pnl, t.diagnostics_json
                  FROM trades AS t
                  JOIN market_settlements AS s ON s.market_id=t.market_id
-                WHERE t.strategy=? AND t.market_id < ? AND t.id > ?
+                WHERE t.strategy=? AND t.market_id < ?
                   AND s.status='OFFICIAL' AND s.official_winner IS NOT NULL
                   AND t.status IN ('SETTLED_WIN', 'SETTLED_LOSS')
                   AND t.pnl IS NOT NULL AND t.stake > 0
@@ -5211,7 +5191,6 @@ class Store:
             (
                 source_strategy,
                 int(before_market_id),
-                max(0, int(after_trade_id)),
                 OBSERVER_AUTO_V6_SLOW_WINDOW * 5,
             ),
         ).fetchall()
@@ -5244,7 +5223,6 @@ class Store:
             )
             history.append(
                 {
-                    "source_trade_id": int(row["source_trade_id"]),
                     "market_id": market_id,
                     "unit_pnl": float(row["pnl"]) / float(row["stake"]),
                     "v6_allowed": bool(decision["allowed"]),
@@ -5258,24 +5236,14 @@ class Store:
         self, strategy: str
     ) -> dict[str, Any]:
         source_strategy = OBSERVER_AUTO_V6_STRATEGY_RULES[strategy]
-        reset = self._research_observer_auto_v6_reset_state(strategy)
         history = self._research_observer_auto_v6_history(
             source_strategy,
             before_market_id=2**63 - 1,
-            after_trade_id=int(reset["cutoffTradeId"]),
         )
         return {
             **observer_v6_auto_decision(history, None),
             "strategy": strategy,
             "sourceStrategy": source_strategy,
-            "historyResetAt": reset["resetAt"],
-            "historyCutoffTradeId": (
-                int(reset["cutoffTradeId"])
-                if reset["resetAt"] is not None
-                else None
-            ),
-            "postResetSamples": len(history),
-            "historyScope": "source trades opened after the latest reset marker",
         }
 
     @staticmethod
@@ -5664,32 +5632,14 @@ class Store:
                         if isinstance(observer_gates, dict)
                         else None
                     )
-                    auto_reset = self._research_observer_auto_v6_reset_state(
-                        strategy
-                    )
                     auto_history = self._research_observer_auto_v6_history(
                         source_strategy,
                         before_market_id=market_id,
-                        after_trade_id=int(auto_reset["cutoffTradeId"]),
                     )
                     observer_auto_v6_decision = observer_v6_auto_decision(
                         auto_history,
                         observer_gate,
                         expected_market_id=market_id,
-                    )
-                    observer_auto_v6_decision.update(
-                        {
-                            "historyResetAt": auto_reset["resetAt"],
-                            "historyCutoffTradeId": (
-                                int(auto_reset["cutoffTradeId"])
-                                if auto_reset["resetAt"] is not None
-                                else None
-                            ),
-                            "postResetSamples": len(auto_history),
-                            "historyScope": (
-                                "source trades opened after the latest reset marker"
-                            ),
-                        }
                     )
                     if observer_auto_v6_decision["allowed"] is not True:
                         continue

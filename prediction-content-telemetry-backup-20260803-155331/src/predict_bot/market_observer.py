@@ -519,11 +519,11 @@ class MarketStateObserver:
             if has_book and require_verified_book_freshness:
                 if normalized_book_age is None or normalized_book_age < 0:
                     book_is_fresh = False
-                    quality_error = "Prediction book content version age is unavailable"
+                    quality_error = "Prediction book content age is unavailable"
                 elif normalized_book_age > MAX_PREDICTION_BOOK_AGE_SECONDS:
                     book_is_fresh = False
                     quality_error = (
-                        "Prediction book content version age "
+                        "Prediction book content age "
                         f"{normalized_book_age:.3f}s exceeds "
                         f"{MAX_PREDICTION_BOOK_AGE_SECONDS:.3f}s"
                     )
@@ -1165,7 +1165,7 @@ class MarketStateObserver:
                     data_issues.append("當輪尚無 Prediction Ask 資料")
                 elif book_age > MAX_PREDICTION_BOOK_AGE_SECONDS:
                     data_issues.append(
-                        f"Prediction Ask 內容版本未更新 {book_age:.1f} 秒"
+                        f"Prediction Ask 已延遲 {book_age:.1f} 秒"
                     )
 
             blockers: List[str] = []

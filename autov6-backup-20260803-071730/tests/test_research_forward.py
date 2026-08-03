@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 from datetime import datetime, timezone
 
 import pytest
@@ -29,7 +28,6 @@ from predict_bot.research_forward import (
     execution_candidate,
     reverse_source_signal,
     filtered_futures_lead_signal,
-    futures_lead_diagnostics,
     futures_lead_observer_decision,
     observer_v6_auto_decision,
     regime_futures_lead_signal,
@@ -83,79 +81,6 @@ def sample(*, timestamp_ns: int, seconds_left: float, current: bool) -> dict:
         "futures_age_ms": 100.0,
         **values,
     }
-
-
-
-def test_futures_lead_diagnostics_exposes_exact_runtime_values() -> None:
-    previous = sample(
-        timestamp_ns=17_000_000_000,
-        seconds_left=183.0,
-        current=False,
-    )
-    current = sample(
-        timestamp_ns=20_000_000_000,
-        seconds_left=180.0,
-        current=True,
-    )
-    diagnostics = futures_lead_diagnostics(current, previous)
-
-    expected_spot = math.log(100.1 / 100.0) * 10_000
-    expected_futures = math.log(100.2 / 100.0) * 10_000
-    expected_lead = abs(expected_futures) - abs(expected_spot)
-
-    assert diagnostics["actualLagSeconds"] == pytest.approx(3.0)
-    assert diagnostics["currentSourceAgeMs"] == pytest.approx(100.0)
-    assert diagnostics["previousSourceAgeMs"] == pytest.approx(100.0)
-    assert diagnostics["spotReturnBps"] == pytest.approx(expected_spot)
-    assert diagnostics["futuresReturnBps"] == pytest.approx(expected_futures)
-    assert diagnostics["leadBps"] == pytest.approx(expected_lead)
-    assert diagnostics["decisionReason"] == "SIGNAL_READY"
-    assert diagnostics["side"] == "UP"
-    json.dumps(diagnostics, allow_nan=False)
-
-
-def test_futures_lead_diagnostics_reports_source_staleness() -> None:
-    previous = sample(
-        timestamp_ns=17_000_000_000,
-        seconds_left=183.0,
-        current=False,
-    )
-    current = {
-        **sample(
-            timestamp_ns=20_000_000_000,
-            seconds_left=180.0,
-            current=True,
-        ),
-        "futures_age_ms": 501.0,
-    }
-    diagnostics = futures_lead_diagnostics(current, previous)
-    assert diagnostics["currentSourceAgeMs"] == pytest.approx(501.0)
-    assert diagnostics["decisionReason"] == "CURRENT_SOURCE_STALE"
-
-    stale_previous = {**previous, "spot_age_ms": 600.0}
-    diagnostics = futures_lead_diagnostics(
-        sample(
-            timestamp_ns=20_000_000_000,
-            seconds_left=180.0,
-            current=True,
-        ),
-        stale_previous,
-    )
-    assert diagnostics["previousSourceAgeMs"] == pytest.approx(600.0)
-    assert diagnostics["decisionReason"] == "PREVIOUS_SOURCE_STALE"
-
-
-def test_futures_lead_diagnostics_keeps_preview_without_lag_sample() -> None:
-    current = sample(
-        timestamp_ns=20_000_000_000,
-        seconds_left=180.0,
-        current=True,
-    )
-    diagnostics = futures_lead_diagnostics(current, None)
-    assert diagnostics["lagSampleFound"] is False
-    assert diagnostics["currentSpot"] == pytest.approx(100.1)
-    assert diagnostics["currentFutures"] == pytest.approx(100.2)
-    assert diagnostics["decisionReason"] == "NO_LAGGED_SAMPLE"
 
 
 def test_confirmation_add_ladder_is_fixed_and_never_live_forwardable():
@@ -593,7 +518,7 @@ def test_futures_lead_reverse_isolated_shadow_opens_beside_original(tmp_path) ->
     assert diagnostics["source_strategy"] == "R_FUTURES_LEAD"
     assert diagnostics["source_trade_id"] > 0
     assert diagnostics["dependency_rule"] == (
-        "open_only_after_same_market_R_FUTURES_LEAD_trade"
+        "open_only_after_R_FUTURES_LEAD_trade"
     )
 
 
@@ -802,7 +727,7 @@ def test_auto_v6_switch_requires_profitable_allowed_and_losing_blocked_cohorts()
         observer_gate(currentMarketId=200),
         expected_market_id=200,
     )
-    assert applied["mode"] == "APPLY_V6_PROVEN"
+    assert applied["mode"] == "APPLY_V6"
     assert applied["allowed"] is True
     assert applied["fastWindow"]["samples"] == 30
     assert applied["slowWindow"]["samples"] == 100
@@ -812,7 +737,7 @@ def test_auto_v6_switch_requires_profitable_allowed_and_losing_blocked_cohorts()
         observer_gate(currentMarketId=200, currentEffectiveCrossovers=1),
         expected_market_id=200,
     )
-    assert blocked_current["mode"] == "APPLY_V6_PROVEN"
+    assert blocked_current["mode"] == "APPLY_V6"
     assert blocked_current["allowed"] is False
 
     bypass_history = [
@@ -824,14 +749,12 @@ def test_auto_v6_switch_requires_profitable_allowed_and_losing_blocked_cohorts()
         observer_gate(currentMarketId=200, currentEffectiveCrossovers=0),
         expected_market_id=200,
     )
-    assert bypassed["mode"] == "BYPASS_V6_PROVEN"
-    assert bypassed["reason"] == "BLOCKED_COHORT_PROFITABLE_FAST_AND_SLOW"
+    assert bypassed["mode"] == "BYPASS_V6"
+    assert bypassed["reason"] == "V6_NOT_PROVEN_BETTER"
     assert bypassed["allowed"] is True
 
 
-def test_auto_v6_shadow_uses_static_v6_during_official_history_warmup(
-    tmp_path,
-) -> None:
+def test_auto_v6_shadow_bypasses_during_official_history_warmup(tmp_path) -> None:
     store = Store(tmp_path / "simulation.db")
     values = {key: False for key in DEFAULT_CONFIG if key.endswith("_enabled")}
     values["strategy_r_microprice_enabled"] = True
@@ -852,113 +775,22 @@ def test_auto_v6_shadow_uses_static_v6_during_official_history_warmup(
         ),
     )
 
-    assert [item["strategy"] for item in opened] == ["R_MICROPRICE"]
-    assert set(OBSERVER_AUTO_V6_STRATEGIES).issubset(RESEARCH_STRATEGIES)
-    decision = observer_v6_auto_decision(
-        [],
-        observer_gate(currentMarketId=11, currentEffectiveCrossovers=0),
-        expected_market_id=11,
-    )
-    assert decision["mode"] == "APPLY_V6_WARMUP"
-    assert decision["modeReason"] == "OFFICIAL_HISTORY_WARMUP_USE_V6"
-    assert decision["currentV6Decision"]["allowed"] is False
-    assert decision["allowed"] is False
-
-
-def test_auto_v6_cohort_shortage_uses_v6_instead_of_bypass() -> None:
-    history = [
-        {
-            "market_id": index,
-            "v6_allowed": index >= 96,
-            "unit_pnl": 0.25 if index >= 96 else -0.25,
-        }
-        for index in range(100)
+    assert [item["strategy"] for item in opened] == [
+        "R_MICROPRICE",
+        "R_MICROPRICE_OBSERVER_AUTO_V6",
     ]
-    decision = observer_v6_auto_decision(
-        history,
-        observer_gate(currentMarketId=200, currentEffectiveCrossovers=1),
-        expected_market_id=200,
-    )
-    assert decision["fastWindow"]["allowedSamples"] == 4
-    assert decision["slowWindow"]["allowedSamples"] == 4
-    assert decision["mode"] == "APPLY_V6_COHORT_WARMUP"
-    assert decision["modeReason"] == "INSUFFICIENT_ALLOW_BLOCK_COHORTS_USE_V6"
-    assert decision["allowed"] is False
+    assert set(OBSERVER_AUTO_V6_STRATEGIES).issubset(RESEARCH_STRATEGIES)
+    diagnostics = json.loads(store.db.execute(
+        "SELECT diagnostics_json FROM trades "
+        "WHERE strategy='R_MICROPRICE_OBSERVER_AUTO_V6'"
+    ).fetchone()[0])
+    decision = diagnostics["observer_auto_v6"]
+    assert decision["mode"] == "BYPASS_V6"
+    assert decision["reason"] == "OFFICIAL_HISTORY_WARMUP"
+    assert decision["currentV6Decision"]["allowed"] is False
+    assert diagnostics["official_history_only"] is True
+    assert diagnostics["current_market_excluded_from_history"] is True
 
-
-def test_auto_v6_reset_marker_excludes_pre_reset_source_history(tmp_path) -> None:
-    store = Store(tmp_path / "simulation.db")
-
-    def insert_source(*, market_id: int, pnl: float, v6_allowed: bool) -> int:
-        gate = observer_gate(
-            currentMarketId=market_id,
-            currentEffectiveCrossovers=2 if v6_allowed else 1,
-            currentBothSidesTouched=False,
-        )
-        diagnostics = json.dumps(
-            {
-                "signal": 0.25,
-                "realtime_context": {
-                    "m01o_observer_gates": {"F1": gate}
-                },
-            },
-            sort_keys=True,
-        )
-        cursor = store.db.execute(
-            """INSERT INTO trades(
-                   strategy, topic_id, market_id, side, status,
-                   entry_price, target_price, exit_price,
-                   stake, shares, fees, fee_rate_bps, pnl,
-                   opened_at, closed_at, note, strategy_version,
-                   model_probability, model_edge, model_sigma,
-                   diagnostics_json
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                         ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                "R_MICROPRICE", market_id, market_id, "UP",
-                "SETTLED_WIN" if pnl > 0 else "SETTLED_LOSS",
-                0.40, None, None, 5.0, 12.5, 0.0, 200, pnl,
-                "2026-08-03T00:00:00+00:00",
-                "2026-08-03T00:05:00+00:00",
-                "AUTO_V6 reset fixture", "test",
-                None, None, None, diagnostics,
-            ),
-        )
-        store.db.execute(
-            """INSERT INTO market_settlements(
-                   market_id, topic_id, start_price, proxy_winner,
-                   official_winner, official_end_price, status,
-                   first_settled_at, official_settled_at,
-                   check_attempts, last_checked_at, h_processed
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                market_id, market_id, 100.0, "UP", "UP", 101.0,
-                "OFFICIAL",
-                "2026-08-03T00:05:00+00:00",
-                "2026-08-03T00:05:00+00:00",
-                1, "2026-08-03T00:05:00+00:00", 0,
-            ),
-        )
-        store.db.commit()
-        return int(cursor.lastrowid)
-
-    old_id = insert_source(market_id=100, pnl=-5.0, v6_allowed=False)
-    reset = store.reset_strategy_measurement(
-        "R_MICROPRICE_OBSERVER_AUTO_V6"
-    )
-    assert reset["cutoffTradeId"] >= old_id
-    new_id = insert_source(market_id=101, pnl=5.0, v6_allowed=True)
-    assert new_id > reset["cutoffTradeId"]
-
-    state = store._research_observer_auto_v6_state(
-        "R_MICROPRICE_OBSERVER_AUTO_V6"
-    )
-    assert state["historyCutoffTradeId"] == reset["cutoffTradeId"]
-    assert state["historyResetAt"] == reset["resetAt"]
-    assert state["postResetSamples"] == 1
-    assert state["fastWindow"]["samples"] == 1
-    assert state["fastWindow"]["allowedSamples"] == 1
-    assert state["fastWindow"]["blockedSamples"] == 0
 
 @pytest.mark.parametrize(
     "recent_statuses,direction_mode,expected_side,expected_reversed,expected_automatic",

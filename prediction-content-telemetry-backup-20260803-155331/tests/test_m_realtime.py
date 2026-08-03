@@ -1220,29 +1220,3 @@ def test_realtime_submit_refreshes_observer_before_queued_store_work():
     assert observer.updates[1]["spot_price"] is None
     assert observer.updates[1]["up_ask"] == pytest.approx(0.29)
     assert "down_ask" not in observer.updates[1]
-
-def test_direct_rest_event_exposes_per_outcome_content_ages():
-    from predict_bot.m_realtime import direct_rest_prediction_event
-
-    event = direct_rest_prediction_event(
-        market_id=42,
-        up_book={
-            "updateTimestampMs": 9_500,
-            "bids": [["0.49", "10"]],
-            "asks": [["0.50", "12"]],
-        },
-        down_book={
-            "updateTimestampMs": 7_000,
-            "bids": [["0.49", "11"]],
-            "asks": [["0.50", "13"]],
-        },
-        received_wall_ns=10_000_000_000,
-        received_monotonic_ns=20_000_000_000,
-        current_timestamp_ms=10_000,
-    )
-
-    assert event["up_book_content_age_ms"] == pytest.approx(500)
-    assert event["down_book_content_age_ms"] == pytest.approx(3_000)
-    assert event["content_version_age_ms"] == pytest.approx(3_000)
-    assert event["book_age_ms"] == pytest.approx(3_000)
-    assert event["feature_eligible"] is False

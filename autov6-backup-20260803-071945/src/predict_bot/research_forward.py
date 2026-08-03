@@ -505,11 +505,12 @@ def observer_v6_auto_decision(
     *,
     expected_market_id: int | None = None,
 ) -> dict[str, Any]:
-    """Choose whether V6 should be applied from prior official source results.
+    """Choose V6 or bypass from prior official source results only.
 
-    V6 is the safe default. Warm-up, cohort shortage, and mixed evidence no
-    longer bypass the current V6 decision. Bypass is allowed only when the
-    trades V6 would have blocked were profitable in both fast and slow windows.
+    Every history row is an earlier settled source trade with its frozen V6
+    counterfactual.  V6 is applied only when both the recent and slow windows
+    show a profitable allowed cohort and a losing blocked cohort.  Otherwise
+    the source signal is preserved.  This function is intentionally paper-only.
     """
 
     usable: list[dict[str, Any]] = []
@@ -530,18 +531,16 @@ def observer_v6_auto_decision(
         )
 
     def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
-        allowed_rows = [row for row in rows if row["v6_allowed"]]
-        blocked_rows = [row for row in rows if not row["v6_allowed"]]
+        allowed = [row for row in rows if row["v6_allowed"]]
+        blocked = [row for row in rows if not row["v6_allowed"]]
         return {
             "samples": len(rows),
-            "allowedSamples": len(allowed_rows),
-            "blockedSamples": len(blocked_rows),
-            "passRatePct": (
-                len(allowed_rows) / len(rows) * 100.0 if rows else None
-            ),
+            "allowedSamples": len(allowed),
+            "blockedSamples": len(blocked),
+            "passRatePct": len(allowed) / len(rows) * 100.0 if rows else None,
             "sourceUnitPnl": sum(row["unit_pnl"] for row in rows),
-            "allowedUnitPnl": sum(row["unit_pnl"] for row in allowed_rows),
-            "blockedUnitPnl": sum(row["unit_pnl"] for row in blocked_rows),
+            "allowedUnitPnl": sum(row["unit_pnl"] for row in allowed),
+            "blockedUnitPnl": sum(row["unit_pnl"] for row in blocked),
         }
 
     fast = summarize(usable[-OBSERVER_AUTO_V6_FAST_WINDOW:])
@@ -561,61 +560,36 @@ def observer_v6_auto_decision(
         and fast["blockedUnitPnl"] < 0
         and slow["blockedUnitPnl"] < 0
     )
-    bypass_proven_better = bool(
-        history_ready
-        and cohorts_ready
-        and fast["blockedUnitPnl"] > 0
-        and slow["blockedUnitPnl"] > 0
+    mode = "APPLY_V6" if v6_proven_better else "BYPASS_V6"
+    reason = (
+        "V6_IMPROVES_FAST_AND_SLOW_OFFICIAL_WINDOWS"
+        if v6_proven_better
+        else "OFFICIAL_HISTORY_WARMUP"
+        if not history_ready
+        else "INSUFFICIENT_ALLOW_BLOCK_COHORTS"
+        if not cohorts_ready
+        else "V6_NOT_PROVEN_BETTER"
     )
-
-    if not history_ready:
-        mode = "APPLY_V6_WARMUP"
-        mode_reason = "OFFICIAL_HISTORY_WARMUP_USE_V6"
-    elif not cohorts_ready:
-        mode = "APPLY_V6_COHORT_WARMUP"
-        mode_reason = "INSUFFICIENT_ALLOW_BLOCK_COHORTS_USE_V6"
-    elif v6_proven_better:
-        mode = "APPLY_V6_PROVEN"
-        mode_reason = "V6_IMPROVES_FAST_AND_SLOW_OFFICIAL_WINDOWS"
-    elif bypass_proven_better:
-        mode = "BYPASS_V6_PROVEN"
-        mode_reason = "BLOCKED_COHORT_PROFITABLE_FAST_AND_SLOW"
-    else:
-        mode = "APPLY_V6_UNCERTAIN"
-        mode_reason = "MIXED_HISTORY_USE_V6"
-
     current_v6 = futures_lead_observer_decision(
         "V6", current_gate, expected_market_id=expected_market_id
     )
-    bypass = mode == "BYPASS_V6_PROVEN"
-    allowed = bypass or current_v6["allowed"] is True
+    allowed = mode == "BYPASS_V6" or current_v6["allowed"] is True
     return {
         "allowed": allowed,
         "status": "ALLOW" if allowed else "BLOCK",
         "mode": mode,
-        "reason": (
-            mode_reason
-            if allowed
-            else str(current_v6.get("reason") or mode_reason)
-        ),
-        "modeReason": mode_reason,
+        "reason": reason if allowed else str(current_v6.get("reason") or reason),
         "paperOnly": True,
         "liveOrdersAffected": False,
         "officialHistoryOnly": True,
         "currentMarketExcluded": True,
-        "currentGateAvailable": isinstance(current_gate, dict),
-        "v6ProvenBetter": v6_proven_better,
-        "bypassProvenBetter": bypass_proven_better,
-        "fallbackPolicy": (
-            "apply V6 unless bypass is proven by profitable blocked cohorts "
-            "in both fast and slow official-history windows"
-        ),
         "fastWindow": fast,
         "slowWindow": slow,
         "minimumFastCohort": OBSERVER_AUTO_V6_MIN_FAST_COHORT,
         "minimumSlowCohort": OBSERVER_AUTO_V6_MIN_SLOW_COHORT,
         "currentV6Decision": current_v6,
     }
+
 
 def _finite(*values: Any) -> bool:
     try:
