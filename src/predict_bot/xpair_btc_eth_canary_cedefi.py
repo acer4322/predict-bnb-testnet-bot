@@ -33,7 +33,21 @@ def preflight_wallet(
     account_type: str,
     required_balance: Decimal,
     allow_existing_exposure: bool = False,
+    allow_existing_positions: bool | None = None,
+    allow_existing_orders: bool | None = None,
 ) -> tuple[str, str, Decimal]:
+    """Validate a Prediction wallet before quote or live execution.
+
+    ``allow_existing_exposure`` remains as a compatibility switch for older
+    callers. New live callers can allow already-filled positions while still
+    rejecting working orders, which prevents unrelated positions waiting for
+    settlement from unnecessarily blocking XPAIR.
+    """
+    if allow_existing_positions is None:
+        allow_existing_positions = allow_existing_exposure
+    if allow_existing_orders is None:
+        allow_existing_orders = allow_existing_exposure
+
     wallets = client.wallets().get("wallets") or []
     if len(wallets) != 1:
         raise RuntimeError(f"expected one Prediction wallet, got {len(wallets)}")
@@ -83,23 +97,21 @@ def preflight_wallet(
     active_position_count = int(portfolio.get("activePositionsCount") or 0)
     active_order_count = len(active_orders) if isinstance(active_orders, list) else 1
 
+    if active_order_count and not allow_existing_orders:
+        raise RuntimeError(
+            "existing active Prediction orders detected; stop the other live executor"
+        )
+    if active_position_count and not allow_existing_positions:
+        raise RuntimeError(
+            "existing active Prediction positions detected; wait for settlement"
+        )
+
     if active_order_count or active_position_count:
-        if allow_existing_exposure:
-            print(
-                "PREFLIGHT_WARNING existing Prediction exposure detected; "
-                "quote-only will not place orders: "
-                f"active_orders={active_order_count} "
-                f"active_positions={active_position_count}"
-            )
-        else:
-            if active_order_count:
-                raise RuntimeError(
-                    "existing active Prediction orders detected; "
-                    "stop the other live executor"
-                )
-            raise RuntimeError(
-                "existing active Prediction positions detected; wait for settlement"
-            )
+        print(
+            "PREFLIGHT_WARNING existing Prediction exposure allowed: "
+            f"active_orders={active_order_count} "
+            f"active_positions={active_position_count}"
+        )
     return wallet_address, wallet_id, available
 
 
