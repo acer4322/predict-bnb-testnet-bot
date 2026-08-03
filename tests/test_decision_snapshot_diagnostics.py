@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from predict_bot.decision_snapshot_diagnostics import (
     DECISION_SNAPSHOT_VERSION,
     build_blocked_decision_snapshot,
@@ -65,8 +67,8 @@ def test_build_blocked_decision_snapshot_compares_signal_and_current_ask():
     assert snapshot["decisionCaptureStatus"] == "AVAILABLE"
     assert snapshot["signalPrice"] == 0.191
     assert snapshot["decisionLatestAsk"] == 0.34
-    assert snapshot["decisionAskDelta"] == 0.14900000000000002
-    assert snapshot["decisionAskAbsDelta"] == 0.14900000000000002
+    assert snapshot["decisionAskDelta"] == pytest.approx(0.149)
+    assert snapshot["decisionAskAbsDelta"] == pytest.approx(0.149)
     assert snapshot["latestLocalBookAgeMs"] == 85.0
     assert snapshot["decisionMarketMatchesSignal"] is True
     assert snapshot["decisionCurrentMarketMatchesSignal"] is True
