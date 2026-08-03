@@ -587,6 +587,180 @@ class MicropriceVariantTracker:
             },
         }
 
+    def database_state(self) -> dict[str, Any]:
+        db = getattr(self.store, "db", None)
+        if db is None:
+            return {
+                "version": MICROPRICE_VARIANT_VERSION,
+                "paperOnly": True,
+                "liveOrdersAffected": False,
+                "pairedMarkets": 0,
+                "strategies": {},
+                "recentPairs": [],
+            }
+        try:
+            rows = db.execute(
+                """SELECT id, strategy, market_id, side, status, entry_price,
+                          stake, pnl, opened_at, closed_at
+                     FROM trades
+                    WHERE strategy IN (?, ?)
+                    ORDER BY id ASC""",
+                (
+                    MICROPRICE_CONFIRM_STRATEGY,
+                    MICROPRICE_REVERSION_STRATEGY,
+                ),
+            ).fetchall()
+        except Exception:
+            rows = []
+        normalized = [dict(row) for row in rows]
+        strategies: dict[str, dict[str, Any]] = {}
+        for strategy in (
+            MICROPRICE_CONFIRM_STRATEGY,
+            MICROPRICE_REVERSION_STRATEGY,
+        ):
+            selected = [
+                row for row in normalized
+                if str(row.get("strategy")) == strategy
+            ]
+            settled = [
+                row for row in selected
+                if str(row.get("status"))
+                in {"SETTLED_WIN", "SETTLED_LOSS"}
+            ]
+            wins = sum(
+                str(row.get("status")) == "SETTLED_WIN"
+                for row in settled
+            )
+            pnl = sum(float(row.get("pnl") or 0.0) for row in settled)
+            strategies[strategy] = {
+                "trades": len(selected),
+                "open": sum(
+                    str(row.get("status")) == "OPEN"
+                    for row in selected
+                ),
+                "settled": len(settled),
+                "wins": int(wins),
+                "losses": len(settled) - int(wins),
+                "winRate": (
+                    float(wins) / len(settled) if settled else None
+                ),
+                "realizedPnl": pnl,
+                "averageEntryPrice": (
+                    sum(float(row["entry_price"]) for row in selected)
+                    / len(selected)
+                    if selected
+                    else None
+                ),
+            }
+        by_market: dict[int, dict[str, dict[str, Any]]] = {}
+        for row in normalized:
+            by_market.setdefault(int(row["market_id"]), {})[
+                str(row["strategy"])
+            ] = row
+        pairs = [
+            {
+                "marketId": market_id,
+                "confirm": items[MICROPRICE_CONFIRM_STRATEGY],
+                "reversion": items[MICROPRICE_REVERSION_STRATEGY],
+            }
+            for market_id, items in sorted(by_market.items())
+            if MICROPRICE_CONFIRM_STRATEGY in items
+            and MICROPRICE_REVERSION_STRATEGY in items
+        ]
+        return {
+            "version": MICROPRICE_VARIANT_VERSION,
+            "paperOnly": True,
+            "liveOrdersAffected": False,
+            "pairingRule": "same confirmed event; both books must pass or neither opens",
+            "pairedMarkets": len(pairs),
+            "strategies": strategies,
+            "recentPairs": pairs[-20:][::-1],
+            "runtime": self.state(),
+        }
+
+
+def _wrap_store_state(store: Any, tracker: MicropriceVariantTracker) -> None:
+    if getattr(store, "_microprice_variants_state_wrapped", False):
+        return
+    original_state = getattr(store, "state", None)
+    if not callable(original_state):
+        return
+
+    @wraps(original_state)
+    def state_with_microprice_variants(
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        payload = original_state(*args, **kwargs)
+        if not isinstance(payload, dict):
+            return payload
+        experiment = tracker.database_state()
+        research = payload.get("researchForward")
+        if isinstance(research, dict):
+            research["micropricePairedExperiment"] = experiment
+            strategies = research.get("strategies")
+            if isinstance(strategies, dict):
+                source_enabled = bool(
+                    getattr(store, "config")().get(
+                        "strategy_r_microprice_enabled",
+                        True,
+                    )
+                )
+                for strategy, mode in (
+                    (
+                        MICROPRICE_CONFIRM_STRATEGY,
+                        "FOLLOW_CONFIRMED_IMBALANCE",
+                    ),
+                    (
+                        MICROPRICE_REVERSION_STRATEGY,
+                        "REVERSE_CONFIRMED_IMBALANCE",
+                    ),
+                ):
+                    stats = experiment["strategies"].get(strategy, {})
+                    strategies[strategy] = {
+                        "enabled": source_enabled,
+                        "stakeUsdt": MICROPRICE_STAKE_USDT,
+                        "selectedBacktestParameters": {
+                            **experiment["runtime"]["rules"],
+                            "variantMode": mode,
+                            "pairedOnly": True,
+                        },
+                        "chronologicalValidation": {
+                            "status": (
+                                "ANALYZABLE"
+                                if int(stats.get("settled") or 0) >= 30
+                                else "COLLECTING"
+                            ),
+                            "samples": int(stats.get("trades") or 0),
+                            "settled": int(stats.get("settled") or 0),
+                            "wins": int(stats.get("wins") or 0),
+                            "losses": int(stats.get("losses") or 0),
+                            "realizedPnl": float(
+                                stats.get("realizedPnl") or 0.0
+                            ),
+                            "minimum": 30,
+                            "pairedMarketOnly": True,
+                        },
+                        "paperOnly": True,
+                        "liveOrdersAffected": False,
+                    }
+        summaries = payload.get("summaries")
+        if isinstance(summaries, dict):
+            for strategy, stats in experiment["strategies"].items():
+                summaries[strategy] = {
+                    "trades": int(stats.get("trades") or 0),
+                    "open": int(stats.get("open") or 0),
+                    "wins": int(stats.get("wins") or 0),
+                    "losses": int(stats.get("losses") or 0),
+                    "realized_pnl": float(
+                        stats.get("realizedPnl") or 0.0
+                    ),
+                }
+        return payload
+
+    store.state = state_with_microprice_variants
+    store._microprice_variants_state_wrapped = True
+
 
 def _wrap_store(engine: Any, store: Any) -> None:
     if getattr(store, "_microprice_variants_wrapped", False):
@@ -597,6 +771,7 @@ def _wrap_store(engine: Any, store: Any) -> None:
         )
         if isinstance(tracker, MicropriceVariantTracker):
             tracker.engine = engine
+            _wrap_store_state(store, tracker)
         engine.microprice_variant_tracker = tracker
         return
     original = getattr(store, "maybe_enter_m_series", None)
@@ -623,6 +798,7 @@ def _wrap_store(engine: Any, store: Any) -> None:
     store.maybe_enter_m_series = maybe_enter_with_variants
     store._microprice_variants_wrapped = True
     store._microprice_variant_tracker = tracker
+    _wrap_store_state(store, tracker)
     engine.microprice_variant_tracker = tracker
 
 
