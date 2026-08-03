@@ -7,7 +7,6 @@ from predict_bot import live_trading as live
 from predict_bot.pair_arb_live_minimum import (
     PAIR_ARB_MIN_LEG_STAKE_USDT,
     _configured_pair_leg_stake,
-    install_pair_arb_minimum,
 )
 
 
@@ -50,7 +49,6 @@ def test_dynamic_pair_leg_stake_is_used_directly() -> None:
 
 
 def test_pair_configuration_remains_loadable_for_paper_and_legacy_tests() -> None:
-    install_pair_arb_minimum()
     rules = live.normalize_live_rules(
         {
             "strategies": ["PAIR_ARB_010"],
@@ -61,7 +59,6 @@ def test_pair_configuration_remains_loadable_for_paper_and_legacy_tests() -> Non
 
 
 def test_non_pair_global_minimum_is_unchanged() -> None:
-    install_pair_arb_minimum()
     assert live.LIVE_MIN_CONFIGURABLE_STAKE_USDT == Decimal("0.01")
     rules = live.normalize_live_rules(
         {
