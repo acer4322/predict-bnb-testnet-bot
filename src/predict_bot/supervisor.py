@@ -5,6 +5,10 @@ import subprocess
 import sys
 import time
 
+from .pair_arb_live_minimum import install_pair_arb_minimum
+
+
+install_pair_arb_minimum()
 
 API_RESTART_EXIT_CODE = 75
 SUPERVISOR_GIVE_UP_EXIT_CODE = 76
