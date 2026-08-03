@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 
-const LIVE_CONFIRM_VALUE = "I_ACCEPT_NON_ATOMIC_TWO_LEG_RISK";
-
 type Selection = "BTC_DOWN_ETH_UP" | "BTC_UP_ETH_DOWN" | "CHEAPEST_ELIGIBLE";
 
 type RuntimeLog = {
@@ -83,11 +81,19 @@ type MonitorDefaults = {
   quoteIntervalSeconds?: number;
 };
 
+type SafetyState = {
+  locked?: boolean;
+  lockKind?: string;
+  status?: string;
+  reason?: string | null;
+};
+
 type CanaryState = {
   strategy: string;
   nonAtomic: boolean;
   defaults: MonitorDefaults;
   runtime: RuntimeState;
+  safety?: SafetyState;
   recentRuns: CanaryRun[];
   updatedAt: string;
 };
@@ -128,14 +134,14 @@ function timeLabel(value: string | null | undefined) {
 
 function statusTone(status: string) {
   if (/AUTO_QUOTE_READY|FILLED_BOTH|MONITORING/.test(status)) return styles.good;
-  if (/ERROR|INCOMPLETE|ONE_SIDED|REJECTED/.test(status)) return styles.bad;
-  if (/ARMED|PLACE|SUBMITTED|WAITING_SAFE/.test(status)) return styles.warn;
+  if (/ERROR|INCOMPLETE|ONE_SIDED|REJECTED|INCIDENT/.test(status)) return styles.bad;
+  if (/ARMED|PLACE|SUBMITTED|WAITING_SAFE|TRACKING/.test(status)) return styles.warn;
   return styles.neutral;
 }
 
 const DEFAULT_FORM: FormState = {
   selection: "BTC_DOWN_ETH_UP",
-  pairBudgetUsdt: "2.00",
+  pairBudgetUsdt: "3.00",
   balanceBufferUsdt: "0.10",
   maxTotalCost: "0.98",
   maxLegReprice: "0.01",
@@ -148,7 +154,6 @@ export default function XPairCanaryPage() {
   const [state, setState] = useState<CanaryState | null>(null);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [formInitialized, setFormInitialized] = useState(false);
-  const [confirmation, setConfirmation] = useState("");
   const [requestState, setRequestState] = useState("等待常駐監控 API");
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -160,11 +165,13 @@ export default function XPairCanaryPage() {
       setState(payload);
       setApiError(null);
       setRequestState(
-        payload.runtime.armed
-          ? `已武裝：等待下一個符合條件的 quote`
-          : payload.runtime.running
-            ? `自動 Quote 監控中：${payload.runtime.phase}`
-            : `監控尚未啟動：${payload.runtime.phase}`,
+        payload.safety?.locked
+          ? `安全鎖：${payload.safety.status ?? payload.safety.lockKind ?? "LOCKED"}`
+          : payload.runtime.armed
+            ? "已武裝：等待下一個符合條件的 quote"
+            : payload.runtime.running
+              ? `自動 Quote 監控中：${payload.runtime.phase}`
+              : `監控尚未啟動：${payload.runtime.phase}`,
       );
       if (!formInitialized && payload.defaults) {
         setForm({
@@ -193,7 +200,7 @@ export default function XPairCanaryPage() {
 
   const requestPayload = useCallback(() => ({
     selection: form.selection,
-    pairBudgetUsdt: numberOr(form.pairBudgetUsdt, 2),
+    pairBudgetUsdt: numberOr(form.pairBudgetUsdt, 3),
     balanceBufferUsdt: numberOr(form.balanceBufferUsdt, 0.1),
     maxTotalCost: numberOr(form.maxTotalCost, 0.98),
     maxLegReprice: numberOr(form.maxLegReprice, 0.01),
@@ -221,10 +228,6 @@ export default function XPairCanaryPage() {
   };
 
   const arm = async () => {
-    if (confirmation !== LIVE_CONFIRM_VALUE) {
-      setRequestState("正式送單確認字串不完整");
-      return;
-    }
     const accepted = window.confirm(
       `這不會立刻送單，而是武裝下一個符合條件的 BTC／ETH 兩腿 quote。\n\n` +
       `總預算上限 ${form.pairBudgetUsdt} USDT；一旦兩腿報價通過，程式會自動嘗試送出一次，無法再等你確認。\n\n` +
@@ -239,15 +242,11 @@ export default function XPairCanaryPage() {
           "Content-Type": "application/json",
           "X-BTC-Lab-XPair-Live": "confirmed",
         },
-        body: JSON.stringify({
-          ...requestPayload(),
-          confirmation,
-        }),
+        body: JSON.stringify(requestPayload()),
       });
       const payload = await response.json() as CanaryState & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "武裝失敗");
       setState(payload);
-      setConfirmation("");
       setRequestState("已武裝；下一個符合條件的 quote 會自動嘗試一次正式送單");
     } catch (error) {
       setRequestState(error instanceof Error ? error.message : "武裝失敗");
@@ -276,30 +275,30 @@ export default function XPairCanaryPage() {
   const latestQuote = runtime?.latestQuote;
   const logs = runtime?.logs ?? [];
   const recent = state?.recentRuns ?? [];
+  const safetyLocked = Boolean(state?.safety?.locked);
   const requiredBalance = useMemo(() => (
-    numberOr(form.pairBudgetUsdt, 2) + numberOr(form.balanceBufferUsdt, 0.1)
+    numberOr(form.pairBudgetUsdt, 3) + numberOr(form.balanceBufferUsdt, 0.1)
   ), [form.balanceBufferUsdt, form.pairBudgetUsdt]);
-  const liveUnlocked = confirmation === LIVE_CONFIRM_VALUE;
 
   return <main className={styles.page}>
     <header className={styles.hero}>
       <div>
         <span className={styles.eyebrow}>BTC 5M LAB · ALWAYS-ON QUOTE CANARY</span>
         <h1>BTC／ETH 自動報價＋一次性實單武裝</h1>
-        <p>背景會持續讀取價格並在進場窗內自動取得 signed quote；只有武裝後，下一個合格 quote 才會嘗試一次正式送單。</p>
+        <p>背景會持續讀取價格並在進場窗內自動取得 signed quote；按下武裝按鈕並確認後，下一個合格 quote 才會嘗試一次正式送單。</p>
       </div>
       <div className={styles.heroActions}>
         <a href="/">返回主監控</a>
-        <span className={`${styles.statusPill} ${runtime?.armed ? styles.warn : apiError ? styles.bad : runtime?.running ? styles.good : styles.neutral}`}>
-          {apiError ? "API OFFLINE" : runtime?.armed ? "LIVE ARMED" : runtime?.running ? "QUOTE MONITORING" : runtime?.phase ?? "STARTING"}
+        <span className={`${styles.statusPill} ${safetyLocked ? styles.bad : runtime?.armed ? styles.warn : apiError ? styles.bad : runtime?.running ? styles.good : styles.neutral}`}>
+          {apiError ? "API OFFLINE" : safetyLocked ? "SAFETY LOCKED" : runtime?.armed ? "LIVE ARMED" : runtime?.running ? "QUOTE MONITORING" : runtime?.phase ?? "STARTING"}
         </span>
       </div>
     </header>
 
     <section className={styles.warningBox}>
       <strong>武裝不是立即下單</strong>
-      <p>按下武裝後，程式會等待下一個符合價格、深度、時間窗與 signed quote 成本限制的機會，再自動送出一次。報價不合格時會繼續等，不會放寬條件。</p>
-      <p>真正送單前仍會重新檢查活動訂單與持倉。若另一個實單策略仍在使用同一錢包，武裝會保留但不會送單，直到錢包安全或你取消武裝。</p>
+      <p>按下武裝後會先出現瀏覽器確認；確認後程式等待下一個符合價格、深度、時間窗與 signed quote 成本限制的機會，再自動送出一次。報價不合格時會繼續等，不會放寬條件。</p>
+      <p>真正送單前仍會重新檢查活動訂單、持倉與持久化事故鎖。不再需要輸入額外確認字串。</p>
     </section>
 
     <section className={styles.summaryGrid}>
@@ -324,7 +323,7 @@ export default function XPairCanaryPage() {
           </select>
         </label>
         <label>兩腿總預算（USDT）
-          <input type="number" min="0.02" max="3" step="0.01" value={form.pairBudgetUsdt} onChange={event => setForm(current => ({ ...current, pairBudgetUsdt: event.target.value }))} />
+          <input type="number" min="2" max="3" step="0.01" value={form.pairBudgetUsdt} onChange={event => setForm(current => ({ ...current, pairBudgetUsdt: event.target.value }))} />
         </label>
         <label>餘額緩衝（USDT）
           <input type="number" min="0" max="1" step="0.01" value={form.balanceBufferUsdt} onChange={event => setForm(current => ({ ...current, balanceBufferUsdt: event.target.value }))} />
@@ -359,17 +358,9 @@ export default function XPairCanaryPage() {
           <small>只取消送單；自動 quote 繼續運行</small>
         </button>
         <div className={styles.liveAction}>
-          <input
-            aria-label="正式送單確認字串"
-            placeholder={LIVE_CONFIRM_VALUE}
-            value={confirmation}
-            onChange={event => setConfirmation(event.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <button className={styles.liveButton} disabled={runtime?.armed || !liveUnlocked || !runtime?.running} onClick={() => void arm()}>
+          <button className={styles.liveButton} disabled={runtime?.armed || !runtime?.running || safetyLocked} onClick={() => void arm()}>
             武裝下一次符合條件正式單
-            <small>不立即送單 · 合格 quote 出現時自動嘗試一次</small>
+            <small>{safetyLocked ? "事故安全鎖生效中" : "按鈕確認 · 合格 quote 出現時自動嘗試一次"}</small>
           </button>
         </div>
       </div>
