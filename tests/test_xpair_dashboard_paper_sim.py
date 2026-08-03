@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from predict_bot.xpair_btc_eth_paper import MarketRef, XPairStore, utc_iso
 from predict_bot.xpair_dashboard_paper_sim import (
     paper_dashboard_payload,
@@ -70,7 +72,7 @@ def test_preview_converts_to_single_paper_trade() -> None:
     assert trial["btc_side"] == "DOWN"
     assert trial["eth_side"] == "UP"
     assert trial["filled_shares"] == 4.0
-    assert trial["total_cost"] == 3.8
+    assert trial["total_cost"] == pytest.approx(3.8)
 
 
 def test_summary_counts_one_win_two_wins_double_loss_and_roi(tmp_path: Path) -> None:
@@ -112,5 +114,5 @@ def test_summary_counts_one_win_two_wins_double_loss_and_roi(tmp_path: Path) -> 
     assert summary["oneWin"] == 1
     assert summary["twoWins"] == 0
     assert summary["doubleLosses"] == 0
-    assert summary["pnlUsdt"] == 0.2
-    assert round(summary["roi"], 8) == round(0.2 / 3.8, 8)
+    assert summary["pnlUsdt"] == pytest.approx(0.2)
+    assert summary["roi"] == pytest.approx(0.2 / 3.8)
