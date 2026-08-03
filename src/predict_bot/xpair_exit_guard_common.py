@@ -16,7 +16,7 @@ DEFAULT_MIN_ONE_WIN_HOLD_PNL_USDT = Decimal("0.01")
 MIN_SELL_QUOTE_CAPACITY = Decimal("0.95")
 MAX_SHARE_MISMATCH = Decimal("0.0025")
 MIN_QUOTE_EXPIRY_MS = 1_500
-MIN_ORDER_USDT = Decimal("1.00")
+MIN_ORDER_USDT = Decimal("1.50")
 RECOVERY_RECONCILE_SECONDS = 15.0
 RECOVERY_POSITION_SYNC_ATTEMPTS = 5
 RECOVERY_POSITION_SYNC_INTERVAL = 0.5
@@ -148,12 +148,13 @@ def _actual_or_estimated_fee(
     fee_bps: int,
     quote: dict[str, Any] | None,
 ) -> Decimal:
-    actual = _first_positive(
+    provider_fee = _first_positive(
         order,
-        ("feeAmount", "fee", "tradeFee", "commission"),
+        ("marketProviderFee", "feeAmount", "fee", "tradeFee", "commission"),
     )
-    if actual is not None:
-        return actual
+    network_fee = _first_positive(order, ("networkFee",))
+    if provider_fee is not None or network_fee is not None:
+        return (provider_fee or Decimal("0")) + (network_fee or Decimal("0"))
     average = _decimal((order or {}).get("averagePrice"))
     if average is None:
         average = _decimal((order or {}).get("avgPrice"))
