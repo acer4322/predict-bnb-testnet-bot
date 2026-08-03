@@ -21,9 +21,29 @@ type SafetyState = {
   resolvedAt?: string | null;
 };
 
+type ExitGuardState = {
+  runId?: number | null;
+  marketKey?: string | null;
+  trigger?: string | null;
+  status?: string | null;
+  reason?: string | null;
+  oneWinPnlUsdt?: number | null;
+  totalCostUsdt?: number | null;
+  minimumOneWinPayoutUsdt?: number | null;
+  recoverySymbol?: string | null;
+  recoveryOrderId?: string | null;
+  btcSellOrderId?: string | null;
+  ethSellOrderId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  resolvedAt?: string | null;
+};
+
 type ApiState = {
   runtime?: { running?: boolean; phase?: string; armed?: boolean };
   safety?: SafetyState;
+  exitGuard?: ExitGuardState | null;
+  policy?: { minimumOneWinHoldPnlUsdt?: number };
   error?: string;
 };
 
@@ -39,6 +59,10 @@ function timeLabel(value?: string | null) {
   return Number.isNaN(date.getTime())
     ? value
     : date.toLocaleString("zh-TW", { hour12: false });
+}
+
+function numberLabel(value?: number | null, digits = 6) {
+  return value == null || !Number.isFinite(value) ? "—" : value.toFixed(digits);
 }
 
 export default function XPairSafetyPage() {
@@ -101,20 +125,22 @@ export default function XPairSafetyPage() {
   };
 
   const safety = state?.safety;
+  const exit = state?.exitGuard;
   const tracking = safety?.lockKind === "TRACKING";
   const incident = safety?.lockKind === "INCIDENT";
+  const minimumHold = state?.policy?.minimumOneWinHoldPnlUsdt ?? 0.01;
 
   return <main className={styles.page}>
     <header className={styles.hero}>
       <div>
         <span className={styles.eyebrow}>BTC 5M LAB · DURABLE SAFETY LOCK</span>
         <h1>XPAIR 實單事故安全台</h1>
-        <p>檢查兩腿訂單同步、單腿成交與持久化事故鎖。重新啟動服務不會自動解除事故。</p>
+        <p>檢查兩腿訂單同步、成交後一勝一敗損益、補腿、撤退與持久化事故鎖。</p>
       </div>
       <div className={styles.heroActions}>
         <a href="/xpair-canary">返回 XPAIR</a>
         <span className={`${styles.statusPill} ${incident ? styles.bad : tracking ? styles.warn : styles.good}`}>
-          {incident ? "INCIDENT LOCKED" : tracking ? "ORDER TRACKING" : "CLEAR"}
+          {incident ? "INCIDENT LOCKED" : tracking ? "ORDER / EXIT TRACKING" : "CLEAR"}
         </span>
       </div>
     </header>
@@ -122,14 +148,31 @@ export default function XPairSafetyPage() {
     <section className={styles.warningBox}>
       <strong>{safety?.status ?? "等待狀態"}</strong>
       <p>{safety?.reason ?? message}</p>
-      <p>TRACKING 期間不能手動解除；只有升級為 INCIDENT 且你已人工核對 Binance 訂單與持倉後，才能輸入確認字串解除。</p>
+      <p>兩腿成交後仍會以實際成本與費用重新計算；一勝一敗最低 PnL 未達 {minimumHold.toFixed(2)} USDT 時，會嘗試 MARKET/FOK 賣出兩腿。雙輸風險仍然存在。</p>
     </section>
 
     <section className={styles.summaryGrid}>
       <article><span>安全鎖</span><strong>{safety?.locked ? "LOCKED" : "CLEAR"}</strong><small>{safety?.lockKind ?? "—"}</small></article>
-      <article><span>BTC 訂單</span><strong>{safety?.btcStatus ?? "—"}</strong><small>{safety?.btcOrderId ?? "沒有 order ID"}</small></article>
-      <article><span>ETH 訂單</span><strong>{safety?.ethStatus ?? "—"}</strong><small>{safety?.ethOrderId ?? "沒有 order ID"}</small></article>
-      <article><span>市場／Run</span><strong>{safety?.marketKey ?? "—"}</strong><small>Run #{safety?.runId ?? "—"}</small></article>
+      <article><span>BTC 原訂單</span><strong>{safety?.btcStatus ?? "—"}</strong><small>{safety?.btcOrderId ?? "沒有 order ID"}</small></article>
+      <article><span>ETH 原訂單</span><strong>{safety?.ethStatus ?? "—"}</strong><small>{safety?.ethOrderId ?? "沒有 order ID"}</small></article>
+      <article><span>市場／Run</span><strong>{safety?.marketKey ?? exit?.marketKey ?? "—"}</strong><small>Run #{safety?.runId ?? exit?.runId ?? "—"}</small></article>
+    </section>
+
+    <section className={styles.console}>
+      <div className={styles.sectionHead}>
+        <div><span className={styles.eyebrow}>POST-FILL PROFITABILITY & AUTO EXIT</span><h2>成交後保護</h2></div>
+        <span className={styles.muted}>{exit?.status ?? "尚無成交後事件"}</span>
+      </div>
+      <div className={styles.summaryGrid}>
+        <article><span>Exit Guard</span><strong>{exit?.status ?? "IDLE"}</strong><small>{exit?.trigger ?? "—"}</small></article>
+        <article><span>一勝一敗最低 PnL</span><strong>{numberLabel(exit?.oneWinPnlUsdt)} USDT</strong><small>保留門檻 {minimumHold.toFixed(2)}</small></article>
+        <article><span>最低 payout／總成本</span><strong>{numberLabel(exit?.minimumOneWinPayoutUsdt)}</strong><small>cost {numberLabel(exit?.totalCostUsdt)}</small></article>
+        <article><span>補腿</span><strong>{exit?.recoverySymbol ?? "—"}</strong><small>{exit?.recoveryOrderId ?? "沒有 recovery order"}</small></article>
+        <article><span>BTC SELL</span><strong>{exit?.btcSellOrderId ? "SUBMITTED" : "—"}</strong><small>{exit?.btcSellOrderId ?? "沒有 SELL order"}</small></article>
+        <article><span>ETH SELL</span><strong>{exit?.ethSellOrderId ? "SUBMITTED" : "—"}</strong><small>{exit?.ethSellOrderId ?? "沒有 SELL order"}</small></article>
+        <article><span>Exit 更新時間</span><strong>{timeLabel(exit?.updatedAt)}</strong><small>完成 {timeLabel(exit?.resolvedAt)}</small></article>
+      </div>
+      <p className={styles.muted}>{exit?.reason ?? "兩腿真正成交後才會建立這筆持久化紀錄。"}</p>
     </section>
 
     <section className={styles.console}>
