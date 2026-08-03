@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal, InvalidOperation
 from functools import wraps
-from typing import Any
+from typing import Any, Callable
 
 
-CONFIRMATION_ADD_SOURCE_STRATEGIES_V2 = (
-    "R_MICROPRICE",
-    "R_CALIBRATED_VALUE",
-    "R_FUTURES_LEAD",
-)
+CONFIRMATION_ADD_SOURCE_POLICY_VERSION = "ALL_LIVE_STRATEGIES_V3"
 
 
 def _list_value(value: Any) -> list[Any]:
@@ -26,83 +23,173 @@ def _list_value(value: Any) -> list[Any]:
     return []
 
 
-def _migrate_legacy_f1_confirmation_add(
+def _padded(raw: list[Any], length: int, fallback: Any) -> list[Any]:
+    default = raw[0] if raw else fallback
+    return (raw + [default] * length)[:length]
+
+
+def _decimal_stake(value: Any, *, label: str, live: Any) -> Decimal:
+    try:
+        stake = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise ValueError(f"{label} must be a finite decimal amount") from exc
+    if not stake.is_finite() or not (
+        live.LIVE_MIN_CONFIGURABLE_STAKE_USDT
+        <= stake
+        <= live.LIVE_MAX_CONFIGURABLE_STAKE_USDT
+    ):
+        raise ValueError(
+            f"{label} must be between "
+            f"{live.LIVE_MIN_CONFIGURABLE_STAKE_USDT} and "
+            f"{live.LIVE_MAX_CONFIGURABLE_STAKE_USDT}"
+        )
+    live._stake_amount_wei(stake)
+    return stake
+
+
+def _requested_execution_plan(
     values: dict[str, Any],
     current: dict[str, Any] | None,
-) -> dict[str, Any]:
-    """Downgrade obsolete F1 confirmation-add slots to a fixed initial order.
-
-    This is intentionally fail-safe for rules already persisted before the
-    source list changed. New R_FUTURES_LEAD slots remain eligible for the full
-    five-stage confirmation ladder.
-    """
+    *,
+    live: Any,
+) -> tuple[dict[str, Any], list[str], list[str], list[Decimal], list[Decimal], list[Decimal]]:
     candidate = {**(current or {}), **values}
     strategies = _list_value(candidate.get("strategies"))
     if not strategies and candidate.get("strategy"):
         strategies = [candidate["strategy"]]
-    strategies = [str(value or "").strip().upper() for value in strategies]
+    strategies = [
+        str(value or "").strip().upper()
+        for value in strategies
+        if str(value or "").strip()
+    ]
     if not strategies:
-        return candidate
+        strategies = [live.LIVE_DEFAULT_STRATEGY]
 
-    modes = _list_value(candidate.get("strategyExecutionModes"))
-    totals = _list_value(candidate.get("strategyStakesUsdt"))
-    initials = _list_value(candidate.get("strategyInitialStakesUsdt"))
-    adds = _list_value(candidate.get("strategyConfirmationAddStakesUsdt"))
+    raw_totals = _padded(
+        _list_value(candidate.get("strategyStakesUsdt")),
+        len(strategies),
+        candidate.get("maxStakeUsdt", float(live.LIVE_DEFAULT_MAX_STAKE_USDT)),
+    )
+    raw_modes = _padded(
+        _list_value(candidate.get("strategyExecutionModes")),
+        len(strategies),
+        live.LIVE_EXECUTION_MODE_FIXED,
+    )
+    raw_initials = _padded(
+        _list_value(candidate.get("strategyInitialStakesUsdt")),
+        len(strategies),
+        raw_totals[0],
+    )
+    raw_adds = _padded(
+        _list_value(candidate.get("strategyConfirmationAddStakesUsdt")),
+        len(strategies),
+        float(live.LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT),
+    )
 
-    def padded(raw: list[Any], fallback: Any) -> list[Any]:
-        default = raw[0] if raw else fallback
-        return (raw + [default] * len(strategies))[: len(strategies)]
+    modes = [
+        str(value or live.LIVE_EXECUTION_MODE_FIXED).strip().upper()
+        for value in raw_modes
+    ]
+    invalid_modes = sorted(set(modes) - set(live.LIVE_EXECUTION_MODES))
+    if invalid_modes:
+        raise ValueError(
+            "each strategy execution mode must be one of: "
+            + ", ".join(live.LIVE_EXECUTION_MODES)
+        )
 
-    modes = padded(modes, "FIXED")
-    totals = padded(totals, candidate.get("maxStakeUsdt", 1.0))
-    initials = padded(initials, totals[0] if totals else 1.0)
-    adds = padded(adds, 1.0)
+    initials: list[Decimal] = []
+    adds: list[Decimal] = []
+    totals: list[Decimal] = []
+    for index, mode in enumerate(modes):
+        initial_source = (
+            raw_initials[index]
+            if mode == live.LIVE_EXECUTION_MODE_CONFIRMATION_ADD
+            else raw_totals[index]
+        )
+        initial = _decimal_stake(
+            initial_source,
+            label="each initial live stake",
+            live=live,
+        )
+        add = _decimal_stake(
+            raw_adds[index],
+            label="each confirmation add stake",
+            live=live,
+        )
+        total = (
+            initial + add * live.LIVE_CONFIRMATION_ADD_TRANCHES
+            if mode == live.LIVE_EXECUTION_MODE_CONFIRMATION_ADD
+            else initial
+        )
+        if total > live.LIVE_MAX_CONFIGURABLE_STAKE_USDT:
+            raise ValueError(
+                "initial stake plus four confirmation adds may not exceed "
+                f"{live.LIVE_MAX_CONFIGURABLE_STAKE_USDT} USDT"
+            )
+        live._stake_amount_wei(total)
+        initials.append(initial)
+        adds.append(add)
+        totals.append(total)
 
-    changed = False
-    for index, strategy in enumerate(strategies):
-        if (
-            strategy == "M01O_F1"
-            and str(modes[index] or "").strip().upper() == "CONFIRMATION_ADD"
-        ):
-            modes[index] = "FIXED"
-            totals[index] = initials[index]
-            changed = True
-
-    if not changed:
-        return candidate
-
-    candidate["strategy"] = strategies[0]
-    candidate["strategies"] = strategies
-    candidate["strategyExecutionModes"] = modes
-    candidate["strategyStakesUsdt"] = totals
-    candidate["strategyInitialStakesUsdt"] = initials
-    candidate["strategyConfirmationAddStakesUsdt"] = adds
-    candidate["maxStakeUsdt"] = totals[0]
-    return candidate
+    return candidate, strategies, modes, initials, adds, totals
 
 
 def install_confirmation_add_sources_patch() -> None:
     from . import live_trading as live
     from . import research_forward as research
 
-    research.CONFIRMATION_ADD_SOURCE_STRATEGIES = (
-        CONFIRMATION_ADD_SOURCE_STRATEGIES_V2
-    )
-    live.CONFIRMATION_ADD_SOURCE_STRATEGIES = (
-        CONFIRMATION_ADD_SOURCE_STRATEGIES_V2
-    )
+    all_live_sources = tuple(live.LIVE_SUPPORTED_STRATEGIES)
+    research.CONFIRMATION_ADD_SOURCE_STRATEGIES = all_live_sources
+    live.CONFIRMATION_ADD_SOURCE_STRATEGIES = all_live_sources
 
-    original = live.normalize_live_rules
-    if getattr(original, "_confirmation_add_sources_v2", False):
+    original: Callable[..., dict[str, Any]] = live.normalize_live_rules
+    if getattr(original, "_confirmation_add_all_live_v3", False):
         return
 
     @wraps(original)
-    def normalize_with_confirmation_add_sources_v2(
+    def normalize_with_all_live_confirmation_add(
         values: dict[str, Any],
         current: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        migrated = _migrate_legacy_f1_confirmation_add(values, current)
-        return original(migrated, None)
+        (
+            candidate,
+            strategies,
+            modes,
+            initials,
+            adds,
+            totals,
+        ) = _requested_execution_plan(values, current, live=live)
 
-    normalize_with_confirmation_add_sources_v2._confirmation_add_sources_v2 = True  # type: ignore[attr-defined]
-    live.normalize_live_rules = normalize_with_confirmation_add_sources_v2
+        # The legacy normalizer contains the old source whitelist and explicit
+        # pair/reverse exclusions. Run its remaining validation with FIXED
+        # amounts, then restore the requested execution plans after all common
+        # strategy, observer, drawdown, cooldown and reliability checks pass.
+        sanitized = dict(candidate)
+        sanitized["strategy"] = strategies[0]
+        sanitized["strategies"] = strategies
+        sanitized["strategyExecutionModes"] = [
+            live.LIVE_EXECUTION_MODE_FIXED for _ in strategies
+        ]
+        sanitized["strategyStakesUsdt"] = [float(value) for value in initials]
+        sanitized["strategyInitialStakesUsdt"] = [
+            float(value) for value in initials
+        ]
+        sanitized["strategyConfirmationAddStakesUsdt"] = [
+            float(value) for value in adds
+        ]
+        sanitized["maxStakeUsdt"] = float(initials[0])
+
+        normalized = original(sanitized, None)
+        normalized["strategyExecutionModes"] = modes
+        normalized["strategyInitialStakesUsdt"] = [
+            float(value) for value in initials
+        ]
+        normalized["strategyConfirmationAddStakesUsdt"] = [
+            float(value) for value in adds
+        ]
+        normalized["strategyStakesUsdt"] = [float(value) for value in totals]
+        normalized["maxStakeUsdt"] = float(totals[0])
+        return normalized
+
+    normalize_with_all_live_confirmation_add._confirmation_add_all_live_v3 = True  # type: ignore[attr-defined]
+    live.normalize_live_rules = normalize_with_all_live_confirmation_add
