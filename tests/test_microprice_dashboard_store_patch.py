@@ -31,11 +31,13 @@ def _collector() -> SimpleNamespace:
     )
 
 
-def test_separate_dashboard_store_reports_variant_settlements(tmp_path) -> None:
+def test_separate_read_only_dashboard_store_reports_variant_settlements(
+    tmp_path,
+) -> None:
     db_path = tmp_path / "simulation.db"
     execution_store = Store(db_path)
-    # Production creates a second Store connection for /api/state statistics.
-    dashboard_store = Store(db_path)
+    # Production creates this before MRealtime and serves /api/state from it.
+    dashboard_store = Store.open_read_only(db_path)
 
     MSeriesRealtimeEngine(
         store=execution_store,
