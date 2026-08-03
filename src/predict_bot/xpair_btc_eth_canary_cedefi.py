@@ -32,6 +32,7 @@ def preflight_wallet(
     *,
     account_type: str,
     required_balance: Decimal,
+    allow_existing_exposure: bool = False,
 ) -> tuple[str, str, Decimal]:
     wallets = client.wallets().get("wallets") or []
     if len(wallets) != 1:
@@ -76,15 +77,29 @@ def preflight_wallet(
             f"enabled Prediction balance for {requested_type} "
             f"{available:.8f} is below required {required_balance:.8f} USDT"
         )
-    if client.active_orders(wallet_address, limit=100).get("orders") or []:
-        raise RuntimeError(
-            "existing active Prediction orders detected; stop the other live executor"
-        )
+
+    active_orders = client.active_orders(wallet_address, limit=100).get("orders") or []
     portfolio = client.portfolio(wallet_address, activeOnly=True)
-    if int(portfolio.get("activePositionsCount") or 0) > 0:
-        raise RuntimeError(
-            "existing active Prediction positions detected; wait for settlement"
-        )
+    active_position_count = int(portfolio.get("activePositionsCount") or 0)
+    active_order_count = len(active_orders) if isinstance(active_orders, list) else 1
+
+    if active_order_count or active_position_count:
+        if allow_existing_exposure:
+            print(
+                "PREFLIGHT_WARNING existing Prediction exposure detected; "
+                "quote-only will not place orders: "
+                f"active_orders={active_order_count} "
+                f"active_positions={active_position_count}"
+            )
+        else:
+            if active_order_count:
+                raise RuntimeError(
+                    "existing active Prediction orders detected; "
+                    "stop the other live executor"
+                )
+            raise RuntimeError(
+                "existing active Prediction positions detected; wait for settlement"
+            )
     return wallet_address, wallet_id, available
 
 
@@ -102,8 +117,24 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    canary.preflight_wallet = preflight_wallet
-    return canary.run(build_parser().parse_args(argv))
+    args = build_parser().parse_args(argv)
+    allow_existing_exposure = args.mode == "quote-only"
+
+    def mode_preflight(
+        client: canary.BinancePredictionTradingClient,
+        *,
+        account_type: str,
+        required_balance: Decimal,
+    ) -> tuple[str, str, Decimal]:
+        return preflight_wallet(
+            client,
+            account_type=account_type,
+            required_balance=required_balance,
+            allow_existing_exposure=allow_existing_exposure,
+        )
+
+    canary.preflight_wallet = mode_preflight
+    return canary.run(args)
 
 
 if __name__ == "__main__":
