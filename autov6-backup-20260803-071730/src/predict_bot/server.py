@@ -61,7 +61,6 @@ from .research_forward import (
     continuous_calibration_decision,
     execution_candidate as research_execution_candidate,
     filtered_futures_lead_signal,
-    futures_lead_diagnostics as research_futures_lead_diagnostics,
     futures_lead_observer_decision,
     observer_v6_auto_decision,
     regime_futures_lead_signal as research_regime_futures_lead_signal,
@@ -737,15 +736,6 @@ class Store:
         self._m_basis_sample_generation = 0
         self._m_existing_trade_cache: dict[int, set[str]] = {}
         self._research_samples = ResearchSampleBuffer()
-        self._research_runtime_lock = threading.RLock()
-        self._research_runtime_diagnostics: dict[str, Any] = {
-            "preview": None,
-            "lastEntryWindowEvaluation": None,
-            "reasonCounters": self._futures_lead_reason_counters(),
-            "currentMarketCounters": self._futures_lead_reason_counters(),
-            "currentMarketId": None,
-            "_lastCountedTimestampNs": None,
-        }
         self._m_signal_row_cache: dict[tuple[str, int], sqlite3.Row | None] = {}
         self._m01o_gate_decision_cache: dict[
             tuple[str, int], tuple[str, str, bool]
@@ -4997,87 +4987,6 @@ class Store:
             "groups": groups,
         }
 
-    @staticmethod
-    def _futures_lead_reason_counters() -> dict[str, int]:
-        return {
-            "NO_LAGGED_SAMPLE": 0,
-            "INVALID_ACTUAL_LAG": 0,
-            "CURRENT_SOURCE_STALE": 0,
-            "PREVIOUS_SOURCE_STALE": 0,
-            "INVALID_PRICE": 0,
-            "FUTURES_NO_MOVE": 0,
-            "LEAD_BELOW_MINIMUM": 0,
-            "SIGNAL_READY": 0,
-        }
-
-    def _record_futures_lead_runtime_diagnostics(
-        self,
-        diagnostics: dict[str, Any],
-        *,
-        market_id: int,
-        evaluated_at: str,
-        seconds_left: float,
-        entry_lower: float,
-        entry_upper: float,
-    ) -> None:
-        inside_entry_window = entry_lower <= seconds_left <= entry_upper
-        payload = {
-            **diagnostics,
-            "marketId": int(market_id),
-            "evaluatedAt": str(evaluated_at),
-            "secondsLeft": float(seconds_left),
-            "entryWindowLowerSecondsLeft": float(entry_lower),
-            "entryWindowUpperSecondsLeft": float(entry_upper),
-            "insideEntryWindow": inside_entry_window,
-        }
-        payload = json.loads(
-            json.dumps(payload, allow_nan=False, default=str)
-        )
-
-        with self._research_runtime_lock:
-            state = self._research_runtime_diagnostics
-            if state["currentMarketId"] != int(market_id):
-                state["currentMarketId"] = int(market_id)
-                state["currentMarketCounters"] = (
-                    self._futures_lead_reason_counters()
-                )
-                state["lastEntryWindowEvaluation"] = None
-                state["_lastCountedTimestampNs"] = None
-
-            state["preview"] = payload
-
-            if not inside_entry_window:
-                return
-
-            state["lastEntryWindowEvaluation"] = payload
-            timestamp_ns = payload.get("currentTimestampNs")
-            if timestamp_ns == state["_lastCountedTimestampNs"]:
-                return
-
-            reason = str(payload.get("decisionReason") or "")
-            if reason in state["reasonCounters"]:
-                state["reasonCounters"][reason] += 1
-                state["currentMarketCounters"][reason] += 1
-            state["_lastCountedTimestampNs"] = timestamp_ns
-
-    def research_runtime_diagnostics_state(self) -> dict[str, Any]:
-        with self._research_runtime_lock:
-            state = self._research_runtime_diagnostics
-            result = {
-                "preview": state["preview"],
-                "lastEntryWindowEvaluation": (
-                    state["lastEntryWindowEvaluation"]
-                ),
-                "reasonCounters": dict(state["reasonCounters"]),
-                "currentMarketCounters": dict(
-                    state["currentMarketCounters"]
-                ),
-                "currentMarketId": state["currentMarketId"],
-            }
-        return json.loads(
-            json.dumps(result, allow_nan=False, default=str)
-        )
-
     def _research_open_exposure(self) -> float:
         placeholders = ",".join("?" for _ in PRIMARY_RESEARCH_STRATEGIES)
         row = self.db.execute(
@@ -5171,38 +5080,18 @@ class Store:
             "causalNextMarketOnly": True,
         }
 
-    def _research_observer_auto_v6_reset_state(
-        self,
-        strategy: str,
-    ) -> dict[str, Any]:
-        with self.lock:
-            row = self.db.execute(
-                """SELECT cutoff_trade_id, reset_at
-                     FROM strategy_measurement_resets
-                    WHERE strategy=?
-                    ORDER BY id DESC
-                    LIMIT 1""",
-                (str(strategy).upper(),),
-            ).fetchone()
-        return {
-            "resetAt": str(row["reset_at"]) if row else None,
-            "cutoffTradeId": int(row["cutoff_trade_id"]) if row else 0,
-        }
-
     def _research_observer_auto_v6_history(
         self,
         source_strategy: str,
         *,
         before_market_id: int,
-        after_trade_id: int = 0,
     ) -> list[dict[str, Any]]:
-        """Return post-reset prior official source results with frozen V6 decisions."""
+        """Return prior official source results with frozen V6 decisions."""
         rows = self.db.execute(
-            """SELECT t.id AS source_trade_id, t.market_id, t.stake, t.pnl,
-                      t.diagnostics_json
+            """SELECT t.market_id, t.stake, t.pnl, t.diagnostics_json
                  FROM trades AS t
                  JOIN market_settlements AS s ON s.market_id=t.market_id
-                WHERE t.strategy=? AND t.market_id < ? AND t.id > ?
+                WHERE t.strategy=? AND t.market_id < ?
                   AND s.status='OFFICIAL' AND s.official_winner IS NOT NULL
                   AND t.status IN ('SETTLED_WIN', 'SETTLED_LOSS')
                   AND t.pnl IS NOT NULL AND t.stake > 0
@@ -5211,7 +5100,6 @@ class Store:
             (
                 source_strategy,
                 int(before_market_id),
-                max(0, int(after_trade_id)),
                 OBSERVER_AUTO_V6_SLOW_WINDOW * 5,
             ),
         ).fetchall()
@@ -5244,7 +5132,6 @@ class Store:
             )
             history.append(
                 {
-                    "source_trade_id": int(row["source_trade_id"]),
                     "market_id": market_id,
                     "unit_pnl": float(row["pnl"]) / float(row["stake"]),
                     "v6_allowed": bool(decision["allowed"]),
@@ -5258,24 +5145,14 @@ class Store:
         self, strategy: str
     ) -> dict[str, Any]:
         source_strategy = OBSERVER_AUTO_V6_STRATEGY_RULES[strategy]
-        reset = self._research_observer_auto_v6_reset_state(strategy)
         history = self._research_observer_auto_v6_history(
             source_strategy,
             before_market_id=2**63 - 1,
-            after_trade_id=int(reset["cutoffTradeId"]),
         )
         return {
             **observer_v6_auto_decision(history, None),
             "strategy": strategy,
             "sourceStrategy": source_strategy,
-            "historyResetAt": reset["resetAt"],
-            "historyCutoffTradeId": (
-                int(reset["cutoffTradeId"])
-                if reset["resetAt"] is not None
-                else None
-            ),
-            "postResetSamples": len(history),
-            "historyScope": "source trades opened after the latest reset marker",
         }
 
     @staticmethod
@@ -5510,31 +5387,6 @@ class Store:
                 market_id, current, event_key
             )
         seconds_left = float(current["seconds_left"])
-
-        if bool(cfg.get("strategy_r_futures_lead_enabled")):
-            lead_params = RESEARCH_PARAMETERS["R_FUTURES_LEAD"]
-            lead_horizon = float(lead_params["horizon"])
-            lead_entry_lower = lead_horizon - 3.0
-            lead_entry_upper = lead_horizon
-            lead_previous = self._research_samples.lagged(
-                market_id,
-                current,
-                float(lead_params["lag"]),
-            )
-            lead_diagnostics = research_futures_lead_diagnostics(
-                current,
-                lead_previous,
-                params=lead_params,
-            )
-            self._record_futures_lead_runtime_diagnostics(
-                lead_diagnostics,
-                market_id=market_id,
-                evaluated_at=str(snapshot.get("timestamp") or utc_iso()),
-                seconds_left=seconds_left,
-                entry_lower=lead_entry_lower,
-                entry_upper=lead_entry_upper,
-            )
-
         exposure = self._research_open_exposure()
         cap = float(cfg["strategy_research_shared_cap_usdt"])
         opened: list[dict[str, Any]] = []
@@ -5664,32 +5516,14 @@ class Store:
                         if isinstance(observer_gates, dict)
                         else None
                     )
-                    auto_reset = self._research_observer_auto_v6_reset_state(
-                        strategy
-                    )
                     auto_history = self._research_observer_auto_v6_history(
                         source_strategy,
                         before_market_id=market_id,
-                        after_trade_id=int(auto_reset["cutoffTradeId"]),
                     )
                     observer_auto_v6_decision = observer_v6_auto_decision(
                         auto_history,
                         observer_gate,
                         expected_market_id=market_id,
-                    )
-                    observer_auto_v6_decision.update(
-                        {
-                            "historyResetAt": auto_reset["resetAt"],
-                            "historyCutoffTradeId": (
-                                int(auto_reset["cutoffTradeId"])
-                                if auto_reset["resetAt"] is not None
-                                else None
-                            ),
-                            "postResetSamples": len(auto_history),
-                            "historyScope": (
-                                "source trades opened after the latest reset marker"
-                            ),
-                        }
                     )
                     if observer_auto_v6_decision["allowed"] is not True:
                         continue
@@ -10937,15 +10771,6 @@ def realtime_dashboard_state() -> dict[str, Any]:
 
     microstructure = MICROSTRUCTURE.state() if MICROSTRUCTURE else None
     m_realtime = M_REALTIME.state() if M_REALTIME else None
-    if m_realtime is not None:
-        m_realtime = {
-            **m_realtime,
-            "researchDiagnostics": {
-                "R_FUTURES_LEAD": (
-                    STORE.research_runtime_diagnostics_state()
-                ),
-            },
-        }
     min_observer_samples = int(
         (m_realtime or {}).get("m01oMinObserverSamples") or 6
     )
