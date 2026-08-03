@@ -29,6 +29,7 @@ from .xpair_exit_guard_common import (
 )
 
 PLACEMENT_INCOMPLETE_STATUS = "PLACEMENT_INCOMPLETE_MANUAL_RECONCILE"
+_V7_STATE_PAYLOAD = v7.state_payload
 
 
 def classify_explicit_incomplete_placement(
@@ -195,7 +196,7 @@ def placement_incident_exit_loop() -> None:
 
 
 def state_payload() -> dict[str, Any]:
-    payload = v7.state_payload()
+    payload = _V7_STATE_PAYLOAD()
     policy = payload.setdefault("policy", {})
     policy.update(
         {
@@ -215,7 +216,6 @@ def install_patches() -> None:
     v7.install_patches()
     base.state_payload = state_payload
     v4.state_payload = state_payload
-    v7.state_payload = state_payload
 
 
 def main() -> None:
