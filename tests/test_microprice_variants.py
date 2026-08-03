@@ -8,8 +8,13 @@ from predict_bot.m_realtime import (
 )
 from predict_bot.microprice_variants import (
     MICROPRICE_CONFIRM_STRATEGY,
+    MICROPRICE_MAX_BOOK_AGE_MS,
+    MICROPRICE_MAX_BOOK_SKEW_MS,
+    MICROPRICE_MIN_CONFIRMATIONS,
+    MICROPRICE_MIN_CONFIRMATION_MS,
     MICROPRICE_REVERSION_STRATEGY,
     MICROPRICE_VARIANT_VERSION,
+    MICROPRICE_WINDOW_MIN_SECONDS_LEFT,
     microprice_score,
 )
 
@@ -67,6 +72,7 @@ def _snapshot(
     up_midpoint_shift: float = 0.0,
     book_age_ms: float = 100.0,
     book_skew_ms: float = 20.0,
+    seconds_left: float | None = None,
 ):
     up_bid = 0.68 + up_midpoint_shift
     up_ask = 0.70 + up_midpoint_shift
@@ -77,7 +83,11 @@ def _snapshot(
         "timestamp_ns": 1_000_000_000 + sequence,
         "topic_id": 202,
         "market_id": 101,
-        "seconds_left": 180.0 - sequence * 0.2,
+        "seconds_left": (
+            180.0 - sequence * 0.2
+            if seconds_left is None
+            else seconds_left
+        ),
         "up_bid": up_bid,
         "up_ask": up_ask,
         "up_bid_size": 30.0,
@@ -116,6 +126,15 @@ def _engine_and_store():
     return engine, store
 
 
+def test_relaxed_v2_keeps_book_safety_limits() -> None:
+    assert MICROPRICE_VARIANT_VERSION == "MICROPRICE_VARIANTS_V2_RELAXED"
+    assert MICROPRICE_MIN_CONFIRMATIONS == 2
+    assert MICROPRICE_MIN_CONFIRMATION_MS == 150.0
+    assert MICROPRICE_WINDOW_MIN_SECONDS_LEFT == 170.0
+    assert MICROPRICE_MAX_BOOK_AGE_MS == 500.0
+    assert MICROPRICE_MAX_BOOK_SKEW_MS == 150.0
+
+
 def test_microprice_score_preserves_existing_direction_convention():
     snapshot = _snapshot(sequence=1, received_monotonic_ns=1)
     score = microprice_score(snapshot)
@@ -124,7 +143,7 @@ def test_microprice_score_preserves_existing_direction_convention():
     assert score < -0.20
 
 
-def test_paired_variants_wait_for_three_confirmations_and_midpoint_move():
+def test_paired_variants_open_after_two_confirmations_and_midpoint_move():
     engine, store = _engine_and_store()
     base_ns = 10_000_000_000
 
@@ -148,20 +167,6 @@ def test_paired_variants_wait_for_three_confirmations_and_midpoint_move():
     )
 
     assert first == []
-    assert second == []
-    assert store.opened == []
-
-    third = store.maybe_enter_m_series(
-        _snapshot(
-            sequence=3,
-            received_monotonic_ns=base_ns + 400_000_000,
-            down_midpoint_shift=0.003,
-            up_midpoint_shift=-0.003,
-        ),
-        200,
-        realtime_context=_context(3, base_ns + 400_000_000),
-    )
-
     assert len(store.opened) == 2
     by_strategy = {
         item["strategy"]: item
@@ -179,16 +184,44 @@ def test_paired_variants_wait_for_three_confirmations_and_midpoint_move():
         for item in store.opened
     )
     assert {
-        item["strategy"] for item in third
+        item["strategy"] for item in second
     } == {
         MICROPRICE_CONFIRM_STRATEGY,
         MICROPRICE_REVERSION_STRATEGY,
     }
-    assert all(item["paper_only"] is True for item in third)
+    assert all(item["paper_only"] is True for item in second)
 
     state = engine.state()["micropriceVariants"]
     assert state["confirmedPairs"] == 1
     assert state["lastDecision"]["status"] == "OPENED_PAIR"
+
+
+def test_relaxed_window_accepts_signal_at_170_seconds_left():
+    _, store = _engine_and_store()
+    base_ns = 15_000_000_000
+
+    store.maybe_enter_m_series(
+        _snapshot(
+            sequence=1,
+            received_monotonic_ns=base_ns,
+            seconds_left=170.2,
+        ),
+        200,
+        realtime_context=_context(1, base_ns),
+    )
+    store.maybe_enter_m_series(
+        _snapshot(
+            sequence=2,
+            received_monotonic_ns=base_ns + 200_000_000,
+            down_midpoint_shift=0.001,
+            up_midpoint_shift=-0.001,
+            seconds_left=170.0,
+        ),
+        200,
+        realtime_context=_context(2, base_ns + 200_000_000),
+    )
+
+    assert len(store.opened) == 2
 
 
 def test_variants_are_never_live_forwardable():
@@ -210,19 +243,10 @@ def test_stale_book_resets_confirmation_streak():
             sequence=2,
             received_monotonic_ns=base_ns + 200_000_000,
             down_midpoint_shift=0.001,
-        ),
-        200,
-        realtime_context=_context(2, base_ns + 200_000_000),
-    )
-    store.maybe_enter_m_series(
-        _snapshot(
-            sequence=3,
-            received_monotonic_ns=base_ns + 400_000_000,
-            down_midpoint_shift=0.003,
             book_age_ms=501.0,
         ),
         200,
-        realtime_context=_context(3, base_ns + 400_000_000),
+        realtime_context=_context(2, base_ns + 200_000_000),
     )
 
     assert store.opened == []
@@ -235,7 +259,7 @@ def test_pair_is_opened_only_once_per_market():
     _, store = _engine_and_store()
     base_ns = 30_000_000_000
 
-    for sequence, shift in ((1, 0.0), (2, 0.001), (3, 0.003)):
+    for sequence, shift in ((1, 0.0), (2, 0.001)):
         store.maybe_enter_m_series(
             _snapshot(
                 sequence=sequence,
@@ -254,12 +278,12 @@ def test_pair_is_opened_only_once_per_market():
 
     store.maybe_enter_m_series(
         _snapshot(
-            sequence=4,
+            sequence=3,
             received_monotonic_ns=base_ns + 800_000_000,
             down_midpoint_shift=0.005,
             up_midpoint_shift=-0.005,
         ),
         200,
-        realtime_context=_context(4, base_ns + 800_000_000),
+        realtime_context=_context(3, base_ns + 800_000_000),
     )
     assert len(store.opened) == 2
