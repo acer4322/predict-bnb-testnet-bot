@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+import FuturesLeadConfirmationAddControl from "./futures-lead-confirmation-add-control";
 import MicropriceVariantDashboard from "./microprice-variant-dashboard";
 import "./globals.css";
 
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </nav>
       {children}
       <MicropriceVariantDashboard />
+      <FuturesLeadConfirmationAddControl />
     </body>
   </html>;
 }
