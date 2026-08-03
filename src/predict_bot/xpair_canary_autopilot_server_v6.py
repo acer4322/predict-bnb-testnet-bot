@@ -15,7 +15,9 @@ from . import xpair_canary_autopilot_server_v5 as v5
 DEFAULT_MAX_PAIR_BUDGET_USDT = Decimal("10.00")
 ABSOLUTE_MAX_PAIR_BUDGET_USDT = Decimal("100.00")
 MIN_PAIR_BUDGET_USDT = Decimal("2.00")
-DEFAULT_SELECTION = "CHEAPEST_ELIGIBLE"
+DEFAULT_SELECTION = "BTC_DOWN_ETH_UP"
+LIVE_PRODUCTION_SELECTIONS = {"BTC_DOWN_ETH_UP"}
+EXPERIMENTAL_SELECTIONS = {"BTC_UP_ETH_DOWN", "CHEAPEST_ELIGIBLE"}
 ARMED_DECISION_STATUSES = {
     "ARMED_NO_ELIGIBLE_VARIANT",
     "ARMED_QUOTE_REJECTED",
@@ -38,6 +40,10 @@ def configured_max_pair_budget() -> Decimal:
         ABSOLUTE_MAX_PAIR_BUDGET_USDT,
         max(MIN_PAIR_BUDGET_USDT, value),
     )
+
+
+def experimental_directions_enabled() -> bool:
+    return os.environ.get("XPAIR_ALLOW_EXPERIMENTAL_DIRECTIONS", "").strip() == "1"
 
 
 MAX_PAIR_BUDGET_USDT = configured_max_pair_budget()
@@ -69,6 +75,22 @@ def validate_monitor_config(self: base.MonitorConfig) -> None:
         raise ValueError("quote interval must be between 0.25 and 10 seconds")
 
 
+def validate_live_selection(selection: str) -> None:
+    normalized = str(selection or "").strip().upper()
+    if normalized in LIVE_PRODUCTION_SELECTIONS:
+        return
+    if normalized in EXPERIMENTAL_SELECTIONS and experimental_directions_enabled():
+        return
+    if normalized in EXPERIMENTAL_SELECTIONS:
+        raise ValueError(
+            f"live selection {normalized} is blocked by the empirical direction gate; "
+            "BTC_UP_ETH_DOWN produced negative eligible-sample ROI, so live arming "
+            "defaults to BTC_DOWN_ETH_UP. Set XPAIR_ALLOW_EXPERIMENTAL_DIRECTIONS=1 "
+            "only for an intentional experimental live test"
+        )
+    raise ValueError("unsupported XPAIR live selection")
+
+
 def expose_armed_decision_messages(payload: dict[str, Any]) -> dict[str, Any]:
     """Make persisted armed non-entry reasons visible in the existing table."""
     for run in payload.get("recentRuns") or []:
@@ -94,11 +116,14 @@ def state_payload() -> dict[str, Any]:
     policy["armedDecisionLedger"] = True
     policy["armedDecisionReasonsVisibleInHistory"] = True
     policy["defaultSelection"] = DEFAULT_SELECTION
-    policy["automaticDirectionSelection"] = True
-    policy["automaticDirectionRule"] = (
-        "choose the eligible BTC/ETH opposite-side variant with the lowest "
-        "modeled cost per share"
+    policy["automaticDirectionSelection"] = False
+    policy["liveDirectionGate"] = True
+    policy["liveAllowedSelections"] = sorted(LIVE_PRODUCTION_SELECTIONS)
+    policy["experimentalSelections"] = sorted(EXPERIMENTAL_SELECTIONS)
+    policy["experimentalDirectionEnvironment"] = (
+        "XPAIR_ALLOW_EXPERIMENTAL_DIRECTIONS"
     )
+    policy["experimentalDirectionsEnabled"] = experimental_directions_enabled()
     return payload
 
 
@@ -108,7 +133,7 @@ def validate_button_arm_header(value: str | None) -> None:
 
 
 class Handler(v4.Handler):
-    server_version = "BTC5MLabXPairAutopilot/6.3"
+    server_version = "BTC5MLabXPairAutopilot/6.4"
 
     def do_POST(self) -> None:
         path = urlsplit(self.path).path
@@ -122,6 +147,9 @@ class Handler(v4.Handler):
             payload = self.read_json()
             validate_button_arm_header(
                 self.headers.get("X-BTC-Lab-XPair-Live")
+            )
+            validate_live_selection(
+                str(payload.get("selection") or base.STATE.config.selection)
             )
             base.STATE.arm(payload)
             self.respond(200, state_payload())
@@ -142,10 +170,10 @@ def install_patches() -> None:
     base.MonitorConfig.validate = validate_monitor_config
     base.state_payload = state_payload
     v4.state_payload = state_payload
-    # The original canary default was a fixed BTC_DOWN/ETH_UP direction. That
-    # discarded valid opposite-direction opportunities. Start new processes in
-    # automatic cheapest-eligible mode; users can still explicitly select a
-    # fixed direction from the dashboard after startup.
+    # The two opposite-direction variants are not empirically symmetric after
+    # the entry filters. Start every new process on the direction that retained
+    # positive eligible-sample ROI. Experimental directions remain available
+    # for background monitoring, but live arming needs an explicit env opt-in.
     with base.STATE.lock:
         base.STATE.config = replace(
             base.STATE.config,
@@ -172,11 +200,11 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        f"XPAIR autopilot v6.3 API listening on http://{base.API_HOST}:{base.API_PORT}; "
+        f"XPAIR autopilot v6.4 API listening on http://{base.API_HOST}:{base.API_PORT}; "
         f"pair budgets from {MIN_PAIR_BUDGET_USDT:.2f} to "
-        f"{MAX_PAIR_BUDGET_USDT:.2f} USDT are enabled, the cheapest eligible "
-        "direction is selected automatically, armed non-entry decisions are "
-        "persisted, and incident protection remains active"
+        f"{MAX_PAIR_BUDGET_USDT:.2f} USDT are enabled, live direction defaults "
+        "to BTC_DOWN_ETH_UP with an empirical direction gate, armed non-entry "
+        "decisions are persisted, and incident protection remains active"
     )
     try:
         server.serve_forever()
