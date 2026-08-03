@@ -3,6 +3,10 @@ from __future__ import annotations
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
+from predict_bot import xpair_canary_autopilot_server_v4 as v4
+from predict_bot import xpair_canary_autopilot_server_v7 as v7
 from predict_bot.xpair_canary_autopilot_server_v7 import (
     classify_pair_orders_with_exit_guard,
 )
@@ -10,6 +14,16 @@ from predict_bot.xpair_exit_guard_common import (
     ExitLedger,
     evaluate_one_win_profitability,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolate_durable_runtime_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(v7.EXIT, "latest", lambda: None)
+    monkeypatch.setattr(
+        v4.SAFETY,
+        "snapshot",
+        lambda: {"locked": False, "runId": None},
+    )
 
 
 def wei(value: str) -> str:
@@ -39,11 +53,12 @@ def context(*, btc_fee: int = 0, eth_fee: int = 0):
     }
 
 
-def order(status: str, shares: str, cash: str):
+def order(status: str, shares: str, cash: str, **extra: str):
     return {
         "status": status,
         "filledShareQty": shares,
         "filledUsdtAmount": cash,
+        **extra,
     }
 
 
@@ -59,6 +74,30 @@ def test_actual_one_win_profit_is_held() -> None:
     assert result["totalCost"] == Decimal("3.8")
     assert result["oneWinPnl"] == Decimal("0.2")
     assert result["hold"] is True
+
+
+def test_actual_provider_and_network_fees_reduce_hold_pnl() -> None:
+    result = evaluate_one_win_profitability(
+        orders={
+            "BTC": order(
+                "FILLED",
+                "4",
+                "1.6",
+                marketProviderFee="0.03",
+                networkFee="0.01",
+            ),
+            "ETH": order(
+                "FILLED",
+                "4",
+                "2.2",
+                marketProviderFee="0.03",
+                networkFee="0.01",
+            ),
+        },
+        context=context(),
+    )
+    assert result["totalCost"] == Decimal("3.88")
+    assert result["oneWinPnl"] == Decimal("0.12")
 
 
 def test_non_positive_one_win_profit_requires_unwind() -> None:
