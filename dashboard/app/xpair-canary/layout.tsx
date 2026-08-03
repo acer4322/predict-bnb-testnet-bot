@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import BookMonitorPanel from "./BookMonitorPanel";
+import PaperSimulationPanel from "./PaperSimulationPanel";
 
 export default function XPairLayout({ children }: { children: ReactNode }) {
   return <>
@@ -21,6 +22,7 @@ export default function XPairLayout({ children }: { children: ReactNode }) {
       <a href="/" style={{ marginLeft: "auto", color: "#8e9ba0" }}>主監控</a>
     </nav>
     <BookMonitorPanel />
+    <PaperSimulationPanel />
     {children}
   </>;
 }
