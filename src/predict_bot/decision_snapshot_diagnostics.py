@@ -105,7 +105,7 @@ def build_blocked_decision_snapshot(
     """Capture a read-only current Prediction book at an early block decision.
 
     This helper does not alter a gate decision, request a signed quote, or place an
-    order.  It only reuses the engine's existing fail-closed verified-book reader.
+    order. It only reuses the engine's existing fail-closed verified-book reader.
     """
     normalized_status = str(status or "").strip().upper()
     if normalized_status not in _DECISION_SNAPSHOT_STATUSES:
@@ -228,6 +228,78 @@ def build_blocked_decision_snapshot(
     return diagnostics
 
 
+def _normalized_snapshot(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Normalize both full V1 payloads and rows saved by the old sanitizer.
+
+    The original live payload sanitizer already retained signalPrice,
+    latestLocalAsk, latestLocalBookAgeMs, latestMarketId, and orientation, but
+    removed the V1 marker and aliases. Recover those already-recorded rows while
+    future rows retain the full decision snapshot envelope.
+    """
+    has_full_marker = (
+        payload.get("decisionSnapshotVersion") == DECISION_SNAPSHOT_VERSION
+    )
+    has_sanitized_evidence = bool(
+        "signalPrice" in payload
+        and any(
+            key in payload
+            for key in (
+                "latestLocalAsk",
+                "latestLocalBookAgeMs",
+                "latestMarketId",
+                "orientation",
+            )
+        )
+    )
+    if not has_full_marker and not has_sanitized_evidence:
+        return None
+
+    result = {
+        key: payload.get(key)
+        for key in _DECISION_SNAPSHOT_KEYS
+        if key in payload
+    }
+    signal_price = _finite_float(payload.get("signalPrice"))
+    signal_ask = _finite_float(payload.get("signalAsk"))
+    if signal_ask is None:
+        signal_ask = signal_price
+    latest_ask = _finite_float(payload.get("decisionLatestAsk"))
+    if latest_ask is None:
+        latest_ask = _finite_float(payload.get("latestLocalAsk"))
+    delta = (
+        latest_ask - signal_ask
+        if latest_ask is not None and signal_ask is not None
+        else None
+    )
+
+    result.setdefault("decisionSnapshotVersion", DECISION_SNAPSHOT_VERSION)
+    result.setdefault("decisionSnapshotStage", "PRE_LEDGER_EARLY_BLOCK")
+    result.setdefault(
+        "decisionCaptureStatus",
+        "AVAILABLE" if latest_ask is not None else "UNAVAILABLE",
+    )
+    result.setdefault(
+        "decisionPriceSource",
+        (
+            "CURRENT_VERIFIED_PREDICTION_BOOK"
+            if latest_ask is not None
+            else "UNAVAILABLE"
+        ),
+    )
+    result.setdefault("signalPrice", signal_price)
+    result.setdefault("signalAsk", signal_ask)
+    result.setdefault("decisionLatestAsk", latest_ask)
+    result.setdefault("decisionAskDelta", delta)
+    result.setdefault(
+        "decisionAskAbsDelta", abs(delta) if delta is not None else None
+    )
+    result.setdefault(
+        "eventToDecisionSnapshotMs",
+        _finite_float(payload.get("eventToLocalCheckMs")),
+    )
+    return result
+
+
 def decision_snapshot_from_payload(payload: Any) -> dict[str, Any] | None:
     if isinstance(payload, str):
         try:
@@ -236,19 +308,46 @@ def decision_snapshot_from_payload(payload: Any) -> dict[str, Any] | None:
             return None
     if not isinstance(payload, dict):
         return None
-    if payload.get("decisionSnapshotVersion") != DECISION_SNAPSHOT_VERSION:
-        return None
-    return {
-        key: payload.get(key)
-        for key in _DECISION_SNAPSHOT_KEYS
-        if key in payload
-    }
+    return _normalized_snapshot(payload)
 
 
 def install_decision_snapshot_diagnostics() -> None:
     """Install idempotent, read-only diagnostics on live blocked decisions."""
     engine_cls = _live.LiveM0WEngine
     ledger_cls = _live.LiveLedger
+
+    # Root cause fix: the existing sanitizer dropped the V1 marker and aliases.
+    # Preserve only the explicit snapshot allow-list while retaining every
+    # original safety/redaction rule for non-diagnostic payloads.
+    original_safe_payload = _live._safe_payload
+    if not getattr(
+        original_safe_payload, "_decision_snapshot_safe_payload", False
+    ):
+
+        @wraps(original_safe_payload)
+        def safe_payload_with_snapshot(value: dict[str, Any]) -> str:
+            sanitized_text = original_safe_payload(value)
+            if not isinstance(value, dict) or value.get(
+                "decisionSnapshotVersion"
+            ) != DECISION_SNAPSHOT_VERSION:
+                return sanitized_text
+            try:
+                sanitized = json.loads(sanitized_text)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                sanitized = {}
+            if not isinstance(sanitized, dict):
+                sanitized = {}
+            for key in _DECISION_SNAPSHOT_KEYS:
+                if key in value:
+                    sanitized[key] = value[key]
+            return json.dumps(
+                sanitized,
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+
+        safe_payload_with_snapshot._decision_snapshot_safe_payload = True  # type: ignore[attr-defined]
+        _live._safe_payload = safe_payload_with_snapshot
 
     original_record = engine_cls._record_blocked_signal
     if not getattr(original_record, "_decision_snapshot_diagnostics", False):
@@ -293,11 +392,14 @@ def install_decision_snapshot_diagnostics() -> None:
             self: Any, limit: int = 100
         ) -> list[dict[str, Any]]:
             items = original_recent_orders(self, limit)
-            ids = [
-                int(item["id"])
+            eligible_items = [
+                item
                 for item in items
                 if item.get("id") is not None
+                and str(item.get("status") or "").strip().upper()
+                in _DECISION_SNAPSHOT_STATUSES
             ]
+            ids = [int(item["id"]) for item in eligible_items]
             if not ids:
                 return items
             placeholders = ",".join("?" for _ in ids)
@@ -316,7 +418,7 @@ def install_decision_snapshot_diagnostics() -> None:
                 )
                 for row in rows
             }
-            for item in items:
+            for item in eligible_items:
                 snapshot = snapshots.get(int(item["id"]))
                 if snapshot is not None:
                     item["decision_snapshot"] = snapshot
