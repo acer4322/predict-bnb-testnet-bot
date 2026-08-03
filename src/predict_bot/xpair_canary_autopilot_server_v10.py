@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 from dataclasses import replace
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 from . import xpair_canary_autopilot_server as base
 from . import xpair_canary_autopilot_server_v2 as v2
@@ -13,7 +14,10 @@ from . import xpair_canary_autopilot_server_v8 as v8
 from . import xpair_canary_autopilot_server_v9 as v9
 from .core import BinancePredictionTradingClient
 from .xpair_btc_eth_canary_cedefi import preflight_wallet
-from .xpair_dashboard_paper_sim import paper_simulation_loop
+from .xpair_dashboard_paper_sim import (
+    paper_history_payload,
+    paper_simulation_loop,
+)
 
 EXECUTION_START_GUARD_SECONDS = 5.0
 EXECUTION_MIN_SECONDS_LEFT = 20.0
@@ -108,6 +112,10 @@ def state_payload() -> dict[str, Any]:
             "liveFixedSelection": LIVE_SELECTION,
             "paperSimulationTestsBothDirections": True,
             "paperDirectionsDoNotAffectLiveSelection": True,
+            "paperHistoryPersistent": True,
+            "paperHistoryAutoDelete": False,
+            "paperHistoryPagination": True,
+            "paperHistoryLegacyImport": True,
             "existingFilledPositionsAllowed": True,
             "existingWorkingOrdersBlocked": True,
             "availableBalanceStillRequired": True,
@@ -118,7 +126,28 @@ def state_payload() -> dict[str, Any]:
 
 
 class Handler(v9.Handler):
-    server_version = "BTC5MLabXPairAutopilot/10.2"
+    server_version = "BTC5MLabXPairAutopilot/10.3"
+
+    def do_GET(self) -> None:
+        parsed = urlsplit(self.path)
+        if parsed.path != "/api/xpair-canary/paper-history":
+            super().do_GET()
+            return
+        if not base.origin_is_allowed(self.headers.get("Origin")):
+            self.respond(403, {"error": "origin is not allowed"})
+            return
+        try:
+            query = parse_qs(parsed.query)
+            limit = int((query.get("limit") or ["50"])[0])
+            offset = int((query.get("offset") or ["0"])[0])
+            self.respond(
+                200,
+                paper_history_payload(limit=limit, offset=offset),
+            )
+        except (ValueError, ArithmeticError) as exc:
+            self.respond(400, {"error": str(exc)})
+        except Exception as exc:
+            self.respond(500, {"error": str(exc)[:500]})
 
 
 def install_patches() -> None:
@@ -174,13 +203,12 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        "XPAIR autopilot v10.2 API listening on "
-        f"http://{base.API_HOST}:{base.API_PORT}; live direction is fixed to "
-        f"{LIVE_SELECTION}, filled Prediction positions waiting for settlement are "
-        "allowed when available balance is sufficient, working orders remain blocked, "
-        "and armed live execution requests signed quotes on the first eligible "
-        f"book state from {EXECUTION_START_GUARD_SECONDS:.0f}s after market start "
-        f"until {EXECUTION_MIN_SECONDS_LEFT:.0f}s before settlement"
+        "XPAIR autopilot v10.3 API listening on "
+        f"http://{base.API_HOST}:{base.API_PORT}; paper trades use a persistent "
+        "SQLite ledger with legacy import and paginated history, live direction "
+        f"is fixed to {LIVE_SELECTION}, filled Prediction positions waiting for "
+        "settlement are allowed when available balance is sufficient, and working "
+        "orders remain blocked"
     )
     try:
         server.serve_forever()
