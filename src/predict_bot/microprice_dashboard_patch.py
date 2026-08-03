@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import wraps
+from types import SimpleNamespace
 from typing import Any
 
 from . import m_realtime as _realtime
@@ -12,11 +13,36 @@ from .microprice_variants import (
 )
 
 
+_ACTIVE_TRACKER: MicropriceVariantTracker | None = None
+
+
+def _database_state_for_store(
+    store: Any,
+    tracker: MicropriceVariantTracker,
+) -> dict[str, Any]:
+    """Read settlements from the Store instance serving this dashboard call.
+
+    Production intentionally uses a separate DASHBOARD_STORE connection for
+    /api/state.  The tracker belongs to the execution Store, so calling its
+    normal database_state() used to read the wrong Store instance and the
+    dashboard-only Store was never wrapped at all.  Reuse the tracker's runtime
+    state while querying through the caller's SQLite connection.
+    """
+    view = SimpleNamespace(
+        store=store,
+        state=tracker.state,
+    )
+    return MicropriceVariantTracker.database_state(view)  # type: ignore[arg-type]
+
+
 def _inject_experiment(
     payload: dict[str, Any],
     tracker: MicropriceVariantTracker,
+    *,
+    source_store: Any | None = None,
 ) -> dict[str, Any]:
-    experiment = tracker.database_state()
+    store = source_store if source_store is not None else tracker.store
+    experiment = _database_state_for_store(store, tracker)
     research = payload.get("researchForward")
     if isinstance(research, dict):
         research["micropricePairedExperiment"] = experiment
@@ -24,7 +50,7 @@ def _inject_experiment(
         if isinstance(strategies, dict):
             try:
                 source_enabled = bool(
-                    tracker.store.config().get(
+                    store.config().get(
                         "strategy_r_microprice_enabled",
                         True,
                     )
@@ -86,24 +112,37 @@ def _inject_experiment(
 
 
 def _wrap_dashboard(store: Any, tracker: MicropriceVariantTracker) -> None:
-    if getattr(store, "_microprice_dashboard_wrapped", False):
-        return
-    original = getattr(store, "dashboard", None)
+    """Wrap Store.dashboard at class scope so DASHBOARD_STORE is included."""
+    global _ACTIVE_TRACKER
+    _ACTIVE_TRACKER = tracker
+
+    store_class = type(store)
+    original = getattr(store_class, "dashboard", None)
     if not callable(original):
+        return
+    if getattr(original, "_microprice_dashboard_class_wrapped", False):
         return
 
     @wraps(original)
     def dashboard_with_microprice_variants(
+        self: Any,
         *args: Any,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        payload = original(*args, **kwargs)
+        payload = original(self, *args, **kwargs)
         if not isinstance(payload, dict):
             return payload
-        return _inject_experiment(payload, tracker)
+        active_tracker = _ACTIVE_TRACKER
+        if not isinstance(active_tracker, MicropriceVariantTracker):
+            return payload
+        return _inject_experiment(
+            payload,
+            active_tracker,
+            source_store=self,
+        )
 
-    store.dashboard = dashboard_with_microprice_variants
-    store._microprice_dashboard_wrapped = True
+    dashboard_with_microprice_variants._microprice_dashboard_class_wrapped = True  # type: ignore[attr-defined]
+    store_class.dashboard = dashboard_with_microprice_variants
 
 
 def install_microprice_dashboard_patch() -> None:
