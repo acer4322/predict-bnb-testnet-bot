@@ -18,6 +18,7 @@ EXECUTION_MIN_SECONDS_LEFT = 20.0
 FIVE_MINUTE_MARKET_SECONDS = 300.0
 EXECUTION_ENTRY_SECONDS_LEFT = FIVE_MINUTE_MARKET_SECONDS - EXECUTION_START_GUARD_SECONDS
 EXECUTION_WINDOW_SECONDS = EXECUTION_ENTRY_SECONDS_LEFT - EXECUTION_MIN_SECONDS_LEFT
+LIVE_SELECTION = "BTC_DOWN_ETH_UP"
 
 _ORIGINAL_FROM_PAYLOAD = base.MonitorConfig.from_payload.__func__
 _V9_STATE_PAYLOAD = v9.state_payload
@@ -25,8 +26,15 @@ _PATCHED = False
 
 
 def normalize_first_eligible_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    """Ignore legacy target-second controls and force the safe market lifetime."""
+    """Force the production live direction and the safe market lifetime.
+
+    The dashboard paper experiment evaluates both opposite variants independently.
+    That must never leak into the live executor configuration. Legacy browsers or
+    stale form state may still submit BTC_UP_ETH_DOWN/CHEAPEST_ELIGIBLE, so the
+    server normalizes every config and arm payload to the production direction.
+    """
     normalized = dict(payload)
+    normalized["selection"] = LIVE_SELECTION
     normalized["entrySecondsLeft"] = EXECUTION_ENTRY_SECONDS_LEFT
     normalized["entryWindowSeconds"] = EXECUTION_WINDOW_SECONDS
     return normalized
@@ -44,6 +52,7 @@ def first_eligible_from_payload(
     )
     return replace(
         candidate,
+        selection=LIVE_SELECTION,
         entry_seconds_left=EXECUTION_ENTRY_SECONDS_LEFT,
         entry_window_seconds=EXECUTION_WINDOW_SECONDS,
     )
@@ -56,6 +65,7 @@ def execution_allowed(seconds_left: float) -> bool:
 def state_payload() -> dict[str, Any]:
     payload = _V9_STATE_PAYLOAD()
     defaults = payload.setdefault("defaults", {})
+    defaults["selection"] = LIVE_SELECTION
     defaults["entrySecondsLeft"] = EXECUTION_ENTRY_SECONDS_LEFT
     defaults["entryWindowSeconds"] = EXECUTION_WINDOW_SECONDS
     policy = payload.setdefault("policy", {})
@@ -74,13 +84,17 @@ def state_payload() -> dict[str, Any]:
             "quoteCooldownSeconds": float(base.STATE.config.quote_interval_seconds),
             "stopQuotingMarketAfterLiveAttempt": True,
             "oneLiveAttemptPerArm": True,
+            "liveSelectionFixed": True,
+            "liveFixedSelection": LIVE_SELECTION,
+            "paperSimulationTestsBothDirections": True,
+            "paperDirectionsDoNotAffectLiveSelection": True,
         }
     )
     return payload
 
 
 class Handler(v9.Handler):
-    server_version = "BTC5MLabXPairAutopilot/10.0"
+    server_version = "BTC5MLabXPairAutopilot/10.1"
 
 
 def install_patches() -> None:
@@ -92,6 +106,7 @@ def install_patches() -> None:
     with base.STATE.lock:
         base.STATE.config = replace(
             base.STATE.config,
+            selection=LIVE_SELECTION,
             entry_seconds_left=EXECUTION_ENTRY_SECONDS_LEFT,
             entry_window_seconds=EXECUTION_WINDOW_SECONDS,
         )
@@ -134,12 +149,12 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        "XPAIR autopilot v10 API listening on "
-        f"http://{base.API_HOST}:{base.API_PORT}; armed live execution now requests "
-        "signed quotes on the first eligible selected-direction book state from "
-        f"{EXECUTION_START_GUARD_SECONDS:.0f}s after market start until "
-        f"{EXECUTION_MIN_SECONDS_LEFT:.0f}s before settlement; the legacy target "
-        "remaining-seconds controls are ignored"
+        "XPAIR autopilot v10.1 API listening on "
+        f"http://{base.API_HOST}:{base.API_PORT}; live direction is fixed to "
+        f"{LIVE_SELECTION}, dual-direction paper simulation remains independent, "
+        "and armed live execution requests signed quotes on the first eligible "
+        f"book state from {EXECUTION_START_GUARD_SECONDS:.0f}s after market start "
+        f"until {EXECUTION_MIN_SECONDS_LEFT:.0f}s before settlement"
     )
     try:
         server.serve_forever()
