@@ -8,6 +8,10 @@ const LEGACY_NATIVE_SOURCE_SET = [
   "M01O_F1",
 ] as const;
 
+const LIVE_STRATEGY_LABEL_OVERRIDES: Record<string, string> = {
+  R_MICROPRICE_CONFIRM: "研究實單 · Microprice 雙事件確認順勢",
+};
+
 function isLegacyConfirmationSourceSet(
   target: Set<unknown>,
   originalHas: (this: Set<unknown>, value: unknown) => boolean,
@@ -17,6 +21,16 @@ function isLegacyConfirmationSourceSet(
 }
 
 function synchronizeOptions() {
+  document.querySelectorAll<HTMLSelectElement>(
+    'select[aria-label^="實單策略 "]:not([aria-label$="資金模式"])',
+  ).forEach(strategySelect => {
+    Object.entries(LIVE_STRATEGY_LABEL_OVERRIDES).forEach(([strategy, label]) => {
+      const option = Array.from(strategySelect.options)
+        .find(item => item.value === strategy);
+      if (option && option.textContent !== label) option.textContent = label;
+    });
+  });
+
   document.querySelectorAll<HTMLSelectElement>(
     'select[aria-label$="資金模式"]',
   ).forEach(modeSelect => {
