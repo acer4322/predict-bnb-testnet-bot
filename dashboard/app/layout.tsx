@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import CalibratedValueConfirmationDashboard from "./calibrated-value-confirmation-dashboard";
+import CalibratedValueConfirmationFilterDashboard from "./calibrated-value-confirmation-filter-dashboard";
 import CalibratedValueConfirmationTabStateFix from "./calibrated-value-confirmation-tab-state-fix";
 import ConfirmationAddModeOptionGuard from "./confirmation-add-mode-option-guard";
 import MicropriceFeatureShadowDashboard from "./microprice-feature-shadow-dashboard";
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <MicropriceVariantDashboard />
       <MicropriceFeatureShadowDashboard />
       <CalibratedValueConfirmationDashboard />
+      <CalibratedValueConfirmationFilterDashboard />
       <CalibratedValueConfirmationTabStateFix />
       <MicropriceVariantV2Label />
       <ConfirmationAddModeOptionGuard />

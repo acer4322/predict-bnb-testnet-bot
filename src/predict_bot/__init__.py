@@ -1,5 +1,8 @@
 """Predict.fun BNB Testnet research bot."""
 
+from .calibrated_value_confirmation_filters import (
+    install_calibrated_value_confirmation_filters as _install_calibrated_value_confirmation_filters,
+)
 from .calibrated_value_confirmation_variants import (
     install_calibrated_value_confirmation_variants as _install_calibrated_value_confirmation_variants,
 )
@@ -42,9 +45,11 @@ _install_microprice_variants()
 _install_microprice_dashboard_patch()
 _install_microprice_feature_shadows()
 _install_calibrated_value_confirmation_variants()
+_install_calibrated_value_confirmation_filters()
 _install_microprice_confirm_live_patch()
 _install_confirmation_add_sources_patch()
 _install_pair_arb_initial_capacity_patch()
+del _install_calibrated_value_confirmation_filters
 del _install_calibrated_value_confirmation_variants
 del _install_confirmation_add_sources_patch
 del _install_decision_snapshot_diagnostics
