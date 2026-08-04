@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from predict_bot import live_trading, m_realtime, research_forward
 from predict_bot.microprice_confirm_live_patch import (
     MICROPRICE_CONFIRM_LIVE_STRATEGY,
@@ -33,9 +35,7 @@ def test_microprice_confirm_is_registered_for_live_execution() -> None:
     assert strategy in live_trading.LIVE_SUPPORTED_STRATEGIES
     assert strategy in m_realtime.LIVE_RESEARCH_STRATEGIES
     assert strategy in m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES
-    assert live_trading.LIVE_RESEARCH_REPRICE_GAPS[strategy] == live_trading.Decimal(
-        "0.05"
-    )
+    assert live_trading.LIVE_RESEARCH_REPRICE_GAPS[strategy] == Decimal("0.05")
 
 
 def test_microprice_confirm_can_use_confirmation_add() -> None:
