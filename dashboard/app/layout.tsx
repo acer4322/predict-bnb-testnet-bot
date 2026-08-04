@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import ConfirmationAddModeOptionGuard from "./confirmation-add-mode-option-guard";
+import MicropriceSignalLifecycleDashboard from "./microprice-signal-lifecycle-dashboard";
 import MicropriceVariantDashboard from "./microprice-variant-dashboard";
 import MicropriceVariantV2Label from "./microprice-variant-v2-label";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </nav>
       {children}
       <MicropriceVariantDashboard />
+      <MicropriceSignalLifecycleDashboard />
       <MicropriceVariantV2Label />
       <ConfirmationAddModeOptionGuard />
     </body>
