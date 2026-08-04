@@ -411,7 +411,7 @@ def _wrap_open_trade(store_class: type[Any]) -> None:
                     f"{SOURCE_STRATEGY} trade #{source_trade_id or '?'}; "
                     + (
                         "sell target 0.98 against observed full-depth bid; "
-                        if unfilled hold to official settlement; paper only"
+                        "if unfilled hold to official settlement; paper only"
                         if exit_target_enabled
                         else "entry >=0.98 so target disabled; hold to official "
                         "settlement; paper only"
