@@ -156,14 +156,25 @@ def incident_diagnostic_loop() -> None:
                 if diagnostic.get("automaticActionAllowed")
                 else "ERROR"
             )
+            reason = str(diagnostic.get("reason") or "")[:1000]
             base.STATE.log(
                 "INCIDENT_AUTOMATION "
                 f"state={diagnostic.get('state')} "
                 f"BTC={diagnostic.get('btcStatus')} "
                 f"ETH={diagnostic.get('ethStatus')} "
-                f"reason={str(diagnostic.get('reason') or '')[:500]}",
+                f"reason={reason[:500]}",
                 level,
             )
+            if diagnostic.get("incidentStatus") == PLACEMENT_INCOMPLETE_STATUS:
+                # Keep the durable safety page useful after a restart. This only
+                # updates diagnostic text and observed statuses; it never clears
+                # the lock or submits a compensating order.
+                v4.SAFETY.update_tracking(
+                    btc_status=str(diagnostic.get("btcStatus") or "UNKNOWN"),
+                    eth_status=str(diagnostic.get("ethStatus") or "UNKNOWN"),
+                    status=PLACEMENT_INCOMPLETE_STATUS,
+                    reason=reason,
+                )
         last_signature = signature
         time.sleep(_DIAGNOSTIC_INTERVAL_SECONDS)
 
@@ -179,6 +190,7 @@ def state_payload() -> dict[str, Any]:
             "resilientExitGuardWorker": True,
             "resilientPlacementIncidentWorker": True,
             "incidentAutomationDiagnostics": True,
+            "incidentDiagnosticReasonPersisted": True,
             "ambiguousPlacementRemainsHardLocked": True,
         }
     )
@@ -186,7 +198,7 @@ def state_payload() -> dict[str, Any]:
 
 
 class Handler(v10.Handler):
-    server_version = "BTC5MLabXPairAutopilot/11.0"
+    server_version = "BTC5MLabXPairAutopilot/11.1"
 
 
 def install_patches() -> None:
@@ -239,9 +251,9 @@ def main() -> None:
     ).start()
     server = base.ThreadingHTTPServer((base.API_HOST, base.API_PORT), Handler)
     print(
-        "XPAIR autopilot v11 API listening on "
+        "XPAIR autopilot v11.1 API listening on "
         f"http://{base.API_HOST}:{base.API_PORT}; exit and placement-incident workers "
-        "restart after transient failures, incident automation diagnostics are exposed, "
+        "restart after transient failures, detailed incident diagnostics are persisted, "
         "and ambiguous placements remain persistently hard-locked"
     )
     try:
