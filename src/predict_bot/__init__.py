@@ -21,6 +21,9 @@ from .microprice_variants import (
 from .microprice_dashboard_patch import (
     install_microprice_dashboard_patch as _install_microprice_dashboard_patch,
 )
+from .microprice_signal_lifecycle import (
+    install_microprice_signal_lifecycle as _install_microprice_signal_lifecycle,
+)
 from .pair_arb_initial_capacity_patch import (
     install_pair_arb_initial_capacity_patch as _install_pair_arb_initial_capacity_patch,
 )
@@ -31,6 +34,7 @@ _install_direct_outcome_guard()
 _install_microprice_variant_relaxation()
 _install_microprice_variants()
 _install_microprice_dashboard_patch()
+_install_microprice_signal_lifecycle()
 _install_confirmation_add_sources_patch()
 _install_pair_arb_initial_capacity_patch()
 del _install_confirmation_add_sources_patch
@@ -40,4 +44,5 @@ del _install_direct_outcome_guard
 del _install_microprice_variant_relaxation
 del _install_microprice_variants
 del _install_microprice_dashboard_patch
+del _install_microprice_signal_lifecycle
 del _install_pair_arb_initial_capacity_patch
