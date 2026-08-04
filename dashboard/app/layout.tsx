@@ -5,6 +5,7 @@ import CalibratedValueConfirmationDashboard from "./calibrated-value-confirmatio
 import CalibratedValueConfirmationFilterDashboard from "./calibrated-value-confirmation-filter-dashboard";
 import CalibratedValueConfirmationTabStateFix from "./calibrated-value-confirmation-tab-state-fix";
 import ConfirmationAddModeOptionGuard from "./confirmation-add-mode-option-guard";
+import MicropriceConfirmOptimizationDashboard from "./microprice-confirm-optimization-dashboard";
 import MicropriceFeatureShadowDashboard from "./microprice-feature-shadow-dashboard";
 import MicropriceVariantDashboard from "./microprice-variant-dashboard";
 import MicropriceVariantV2Label from "./microprice-variant-v2-label";
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {children}
       <MicropriceVariantDashboard />
       <MicropriceFeatureShadowDashboard />
+      <MicropriceConfirmOptimizationDashboard />
       <CalibratedValueConfirmationDashboard />
       <CalibratedValueConfirmationFilterDashboard />
       <CalibratedValueConfirmationTabStateFix />

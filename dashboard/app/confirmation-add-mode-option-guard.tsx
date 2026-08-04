@@ -10,6 +10,7 @@ const LEGACY_NATIVE_SOURCE_SET = [
 
 const LIVE_STRATEGY_LABEL_OVERRIDES: Record<string, string> = {
   R_MICROPRICE_CONFIRM: "研究實單 · Microprice 雙事件確認順勢",
+  R_MICROPRICE_CONFIRM_EXIT_098: "研究實單 · Microprice Confirm V2 · 0.98 提前退出",
 };
 
 function isLegacyConfirmationSourceSet(

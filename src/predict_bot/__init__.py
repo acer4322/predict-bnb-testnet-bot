@@ -18,8 +18,20 @@ from .decision_snapshot_state import (
 from .direct_outcome_guard import (
     install_direct_outcome_guard as _install_direct_outcome_guard,
 )
+from .microprice_confirm_exit_098_entry_guard_patch import (
+    install_microprice_confirm_exit_098_entry_guard_patch as _install_microprice_confirm_exit_098_entry_guard_patch,
+)
+from .microprice_confirm_exit_098_horizon_patch import (
+    install_microprice_confirm_exit_098_horizon_patch as _install_microprice_confirm_exit_098_horizon_patch,
+)
+from .microprice_confirm_exit_098_live_patch import (
+    install_microprice_confirm_exit_098_live_patch as _install_microprice_confirm_exit_098_live_patch,
+)
 from .microprice_confirm_live_patch import (
     install_microprice_confirm_live_patch as _install_microprice_confirm_live_patch,
+)
+from .microprice_confirm_optimization_shadows import (
+    install_microprice_confirm_optimization_shadows as _install_microprice_confirm_optimization_shadows,
 )
 from .microprice_feature_shadows import (
     install_microprice_feature_shadows as _install_microprice_feature_shadows,
@@ -44,9 +56,13 @@ _install_microprice_variant_relaxation()
 _install_microprice_variants()
 _install_microprice_dashboard_patch()
 _install_microprice_feature_shadows()
+_install_microprice_confirm_optimization_shadows()
 _install_calibrated_value_confirmation_variants()
 _install_calibrated_value_confirmation_filters()
 _install_microprice_confirm_live_patch()
+_install_microprice_confirm_exit_098_live_patch()
+_install_microprice_confirm_exit_098_entry_guard_patch()
+_install_microprice_confirm_exit_098_horizon_patch()
 _install_confirmation_add_sources_patch()
 _install_pair_arb_initial_capacity_patch()
 del _install_calibrated_value_confirmation_filters
@@ -55,7 +71,11 @@ del _install_confirmation_add_sources_patch
 del _install_decision_snapshot_diagnostics
 del _install_decision_snapshot_state
 del _install_direct_outcome_guard
+del _install_microprice_confirm_exit_098_entry_guard_patch
+del _install_microprice_confirm_exit_098_horizon_patch
+del _install_microprice_confirm_exit_098_live_patch
 del _install_microprice_confirm_live_patch
+del _install_microprice_confirm_optimization_shadows
 del _install_microprice_feature_shadows
 del _install_microprice_variant_relaxation
 del _install_microprice_variants
