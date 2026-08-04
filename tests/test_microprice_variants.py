@@ -7,13 +7,20 @@ from predict_bot.m_realtime import (
     MSeriesRealtimeEngine,
 )
 from predict_bot.microprice_variants import (
+    DIRECT_OUTCOME_DATA_SOURCE,
     MICROPRICE_CONFIRM_STRATEGY,
     MICROPRICE_MAX_BOOK_AGE_MS,
     MICROPRICE_MAX_BOOK_SKEW_MS,
     MICROPRICE_MIN_CONFIRMATIONS,
     MICROPRICE_MIN_CONFIRMATION_MS,
+    MICROPRICE_MIN_MIDPOINT_MOVE,
+    MICROPRICE_MIN_RETAINED_STRENGTH,
     MICROPRICE_REVERSION_STRATEGY,
+    MICROPRICE_SLIPPAGE_BPS,
+    MICROPRICE_STAKE_USDT,
+    MICROPRICE_THRESHOLD,
     MICROPRICE_VARIANT_VERSION,
+    MICROPRICE_WINDOW_MAX_SECONDS_LEFT,
     MICROPRICE_WINDOW_MIN_SECONDS_LEFT,
     microprice_score,
 )
@@ -126,13 +133,20 @@ def _engine_and_store():
     return engine, store
 
 
-def test_relaxed_v2_keeps_book_safety_limits() -> None:
+def test_relaxed_v2_uses_exact_pair_profile() -> None:
     assert MICROPRICE_VARIANT_VERSION == "MICROPRICE_VARIANTS_V2_RELAXED"
+    assert DIRECT_OUTCOME_DATA_SOURCE == "dual_token_rest"
+    assert MICROPRICE_THRESHOLD == 0.20
     assert MICROPRICE_MIN_CONFIRMATIONS == 2
     assert MICROPRICE_MIN_CONFIRMATION_MS == 150.0
-    assert MICROPRICE_WINDOW_MIN_SECONDS_LEFT == 170.0
     assert MICROPRICE_MAX_BOOK_AGE_MS == 500.0
     assert MICROPRICE_MAX_BOOK_SKEW_MS == 150.0
+    assert MICROPRICE_MIN_MIDPOINT_MOVE == 0.0005
+    assert MICROPRICE_MIN_RETAINED_STRENGTH == 0.65
+    assert MICROPRICE_WINDOW_MIN_SECONDS_LEFT == 170.0
+    assert MICROPRICE_WINDOW_MAX_SECONDS_LEFT == 181.0
+    assert MICROPRICE_STAKE_USDT == 5.0
+    assert MICROPRICE_SLIPPAGE_BPS == 50.0
 
 
 def test_microprice_score_preserves_existing_direction_convention():
@@ -224,8 +238,8 @@ def test_relaxed_window_accepts_signal_at_170_seconds_left():
     assert len(store.opened) == 2
 
 
-def test_variants_are_never_live_forwardable():
-    assert MICROPRICE_CONFIRM_STRATEGY not in LIVE_FORWARDABLE_PAPER_STRATEGIES
+def test_only_confirm_variant_is_live_forwardable():
+    assert MICROPRICE_CONFIRM_STRATEGY in LIVE_FORWARDABLE_PAPER_STRATEGIES
     assert MICROPRICE_REVERSION_STRATEGY not in LIVE_FORWARDABLE_PAPER_STRATEGIES
 
 
