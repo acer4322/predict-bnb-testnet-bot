@@ -240,7 +240,7 @@ class MicropriceSignalLifecycleTracker:
         shares, bid, fee_bps = float(trade["shares"]), b["bid"], int(trade["fee_rate_bps"])
         fees = float(trade["fees"] or 0) + taker_fee(shares, bid, fee_bps)
         pnl = shares * bid - float(trade["stake"]) - fees
-        trade_status = "SIGNAL_EXIT_REVERSED" if reason == "SIGNAL_REVERSED" else "SIGNAL_EXIT_EDGE_LOST"
+        trade_status = "STOP_LOSS_EXIT"
         start, filled = int(self.active["signal_started_wall_ns"]), int(self.active["filled_wall_ns"])
         with self.store.lock:
             self.store.db.execute("""UPDATE trades SET status=?,exit_price=?,fees=?,pnl=?,closed_at=?,note=note||? WHERE id=? AND status='OPEN'""",
