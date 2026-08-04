@@ -196,7 +196,7 @@ def test_filled_trade_exits_when_edge_disappears() -> None:
     assert episode["status"] == "EXITED"
     assert episode["end_reason"] == "EDGE_LOST"
     assert episode["position_duration_ms"] == pytest.approx(150.0)
-    assert trade["status"] == "SIGNAL_EXIT_EDGE_LOST"
+    assert trade["status"] == "STOP_LOSS_EXIT"
     assert trade["exit_price"] == pytest.approx(0.40)
     assert trade["pnl"] is not None
 
