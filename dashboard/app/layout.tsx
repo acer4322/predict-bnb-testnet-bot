@@ -23,14 +23,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         right: 12,
         zIndex: 1000,
         display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
         gap: 8,
         padding: 6,
+        maxWidth: "calc(100vw - 24px)",
         border: "1px solid rgba(126, 145, 178, .28)",
         borderRadius: 999,
         background: "rgba(8, 11, 18, .88)",
         backdropFilter: "blur(12px)",
       }}>
         <Link href="/" style={{ color: "#dce6ff", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>主監控</Link>
+        <Link href="/microprice-lifecycle" style={{ color: "#7ee3f5", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>Microprice 生命週期</Link>
         <Link href="/xpair-canary" style={{ color: "#ffbd87", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>XPAIR Canary</Link>
       </nav>
       {children}
