@@ -1,108 +1,40 @@
 from __future__ import annotations
 
-import json
 import sqlite3
-import threading
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from predict_bot.microprice_signal_lifecycle import (
-    MICROPRICE_LIFECYCLE_STRATEGY,
     MicropriceSignalLifecycleTracker,
+    install_microprice_signal_lifecycle_sidecar,
 )
 
 
-class FakeStore:
-    def __init__(self) -> None:
-        self.lock = threading.RLock()
-        self.db = sqlite3.connect(":memory:", check_same_thread=False)
-        self.db.row_factory = sqlite3.Row
-        self.db.execute(
-            """CREATE TABLE trades (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                strategy TEXT NOT NULL,
-                topic_id INTEGER NOT NULL,
-                market_id INTEGER NOT NULL,
-                side TEXT NOT NULL,
-                status TEXT NOT NULL,
-                entry_price REAL NOT NULL,
-                target_price REAL,
-                exit_price REAL,
-                stake REAL NOT NULL,
-                shares REAL NOT NULL,
-                fees REAL NOT NULL,
-                fee_rate_bps INTEGER NOT NULL,
-                pnl REAL,
-                opened_at TEXT NOT NULL,
-                closed_at TEXT,
-                note TEXT NOT NULL,
-                strategy_version TEXT,
-                diagnostics_json TEXT
-            )"""
-        )
-        self.db.commit()
-
-    def config(self) -> dict[str, bool]:
-        return {"strategy_r_microprice_enabled": True}
-
-    def open_trade(
-        self,
-        *,
-        strategy: str,
-        topic_id: int,
-        market_id: int,
-        side: str,
-        entry: float,
-        target: float | None,
-        stake: float,
-        fee_rate_bps: int,
-        note: str,
-        strategy_version: str | None = None,
-        diagnostics: dict | None = None,
-        **_: object,
-    ) -> None:
-        shares = stake / entry
-        fees = shares * min(entry, 1 - entry) * fee_rate_bps / 10_000
-        self.db.execute(
-            """INSERT INTO trades(
-                strategy, topic_id, market_id, side, status, entry_price,
-                target_price, stake, shares, fees, fee_rate_bps, opened_at,
-                note, strategy_version, diagnostics_json
-            ) VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?, '2026-08-04T00:00:00+00:00', ?, ?, ?)""",
-            (
-                strategy,
-                topic_id,
-                market_id,
-                side,
-                entry,
-                target,
-                stake,
-                shares,
-                fees,
-                fee_rate_bps,
-                note,
-                strategy_version,
-                json.dumps(diagnostics or {}),
-            ),
-        )
-        self.db.commit()
-
-
-def snapshot(*, mode: str = "up", seconds_left: float = 180.0) -> dict:
-    if mode == "up":
-        sizes = {
-            "up_bid_size": 1000.0,
-            "up_ask_size": 100.0,
-            "down_bid_size": 100.0,
-            "down_ask_size": 1000.0,
-        }
-    elif mode == "down":
+def snapshot(
+    timestamp_ns: int,
+    direction: str = "UP",
+    *,
+    market_id: int = 11,
+    seconds_left: float = 180.0,
+    up_ask: float = 0.40,
+    up_bid: float = 0.39,
+    up_bid_size: float | None = None,
+) -> dict:
+    if direction == "UP":
         sizes = {
             "up_bid_size": 100.0,
-            "up_ask_size": 1000.0,
-            "down_bid_size": 1000.0,
+            "up_ask_size": 20.0,
+            "down_bid_size": 20.0,
             "down_ask_size": 100.0,
+        }
+    elif direction == "DOWN":
+        sizes = {
+            "up_bid_size": 20.0,
+            "up_ask_size": 100.0,
+            "down_bid_size": 100.0,
+            "down_ask_size": 20.0,
         }
     else:
         sizes = {
@@ -111,107 +43,165 @@ def snapshot(*, mode: str = "up", seconds_left: float = 180.0) -> dict:
             "down_bid_size": 50.0,
             "down_ask_size": 50.0,
         }
+    if up_bid_size is not None:
+        sizes["up_bid_size"] = up_bid_size
     return {
-        "topic_id": 7,
-        "market_id": 77,
+        "timestamp": "2026-08-04T00:00:00+00:00",
+        "received_wall_ns": timestamp_ns,
+        "market_id": market_id,
+        "topic_id": 1,
         "seconds_left": seconds_left,
-        "up_bid": 0.40,
-        "up_ask": 0.41,
-        "down_bid": 0.58,
-        "down_ask": 0.59,
-        "book_age_ms": 20.0,
+        "up_ask": up_ask,
+        "up_bid": up_bid,
+        "down_ask": 0.60,
+        "down_bid": 0.59,
+        "book_age_ms": 10.0,
         "book_skew_ms": 0.0,
+        "up_book_timestamp_ms": timestamp_ns // 1_000_000,
+        "down_book_timestamp_ms": timestamp_ns // 1_000_000,
         **sizes,
     }
 
 
-def context(sequence: int, wall_ns: int) -> dict:
-    return {
-        "trigger_source": "prediction",
-        "execution_eligible": True,
-        "prediction_data_source": "dual_token_rest",
-        "received_wall_ns": wall_ns,
-        "signal_event_sequence": f"prediction:{sequence}",
-    }
+def advance_to_pending(
+    tracker: MicropriceSignalLifecycleTracker,
+    base_ns: int,
+) -> None:
+    tracker.process(snapshot(base_ns), 200)
+    tracker.process(snapshot(base_ns + 200_000_000), 200)
+    tracker.process(snapshot(base_ns + 400_000_000), 200)
+    assert tracker.active is not None
+    assert tracker.active["status"] == "PENDING"
 
 
-def tracker() -> tuple[MicropriceSignalLifecycleTracker, FakeStore]:
-    store = FakeStore()
-    engine = SimpleNamespace(
-        prediction_event={
-            "prediction_data_source": "dual_token_rest",
-            "direct_outcome_books": True,
-        }
-    )
-    return MicropriceSignalLifecycleTracker(engine, store), store
+def advance_to_open(
+    tracker: MicropriceSignalLifecycleTracker,
+    base_ns: int,
+) -> None:
+    advance_to_pending(tracker, base_ns)
+    tracker.process(snapshot(base_ns + 700_000_000), 200)
+    assert tracker.active is not None
+    assert tracker.active["status"] == "OPEN"
 
 
-def test_pending_order_is_cancelled_when_edge_disappears() -> None:
-    lifecycle, store = tracker()
-    base = 1_000_000_000
-    lifecycle.process(snapshot(), 200, context(1, base))
-    lifecycle.process(snapshot(), 200, context(2, base + 150_000_000))
-    lifecycle.process(snapshot(), 200, context(3, base + 350_000_000))
-    assert lifecycle.active is not None
-    assert lifecycle.active["status"] == "PENDING"
+def test_pending_order_is_cancelled_when_edge_disappears(tmp_path: Path) -> None:
+    tracker = MicropriceSignalLifecycleTracker(tmp_path / "simulation.db")
+    base_ns = 1_000_000_000
+    advance_to_pending(tracker, base_ns)
 
-    lifecycle.process(snapshot(mode="neutral"), 200, context(4, base + 450_000_000))
+    tracker.process(snapshot(base_ns + 500_000_000, "FLAT"), 200)
 
-    row = store.db.execute("SELECT * FROM microprice_signal_episodes").fetchone()
-    assert row["status"] == "CANCELLED"
-    assert row["end_reason"] == "EDGE_LOST"
-    assert row["signal_duration_ms"] == pytest.approx(450.0)
-    assert store.db.execute("SELECT COUNT(*) FROM trades").fetchone()[0] == 0
+    assert tracker.active is None
+    episode = tracker.state()["recentEpisodes"][0]
+    assert episode["status"] == "CANCELLED"
+    assert episode["endReason"] == "EDGE_LOST"
+    assert episode["signalDurationMs"] == pytest.approx(500.0)
 
 
-def test_pending_order_is_cancelled_on_reversal() -> None:
-    lifecycle, store = tracker()
-    base = 2_000_000_000
-    lifecycle.process(snapshot(), 200, context(1, base))
-    lifecycle.process(snapshot(), 200, context(2, base + 150_000_000))
-    lifecycle.process(snapshot(), 200, context(3, base + 350_000_000))
-    lifecycle.process(snapshot(mode="down"), 200, context(4, base + 450_000_000))
+def test_pending_order_is_cancelled_on_reversal(tmp_path: Path) -> None:
+    tracker = MicropriceSignalLifecycleTracker(tmp_path / "simulation.db")
+    base_ns = 2_000_000_000
+    advance_to_pending(tracker, base_ns)
 
-    row = store.db.execute(
-        "SELECT * FROM microprice_signal_episodes ORDER BY id ASC LIMIT 1"
-    ).fetchone()
-    assert row["status"] == "CANCELLED"
-    assert row["end_reason"] == "SIGNAL_REVERSED"
-    assert store.db.execute("SELECT COUNT(*) FROM trades").fetchone()[0] == 0
+    tracker.process(snapshot(base_ns + 500_000_000, "DOWN"), 200)
+
+    assert tracker.active is None
+    episode = tracker.state()["recentEpisodes"][0]
+    assert episode["status"] == "CANCELLED"
+    assert episode["endReason"] == "SIGNAL_REVERSED"
 
 
-def test_filled_trade_exits_when_edge_disappears() -> None:
-    lifecycle, store = tracker()
-    base = 3_000_000_000
-    lifecycle.process(snapshot(), 200, context(1, base))
-    lifecycle.process(snapshot(), 200, context(2, base + 150_000_000))
-    lifecycle.process(snapshot(), 200, context(3, base + 350_000_000))
-    opened = lifecycle.process(snapshot(), 200, context(4, base + 650_000_000))
-    assert [item["strategy"] for item in opened] == [MICROPRICE_LIFECYCLE_STRATEGY]
+def test_filled_position_exits_when_edge_disappears(tmp_path: Path) -> None:
+    tracker = MicropriceSignalLifecycleTracker(tmp_path / "simulation.db")
+    base_ns = 3_000_000_000
+    advance_to_open(tracker, base_ns)
 
-    lifecycle.process(snapshot(mode="neutral"), 200, context(5, base + 800_000_000))
+    tracker.process(snapshot(base_ns + 900_000_000, "FLAT"), 200)
 
-    episode = store.db.execute("SELECT * FROM microprice_signal_episodes").fetchone()
-    trade = store.db.execute("SELECT * FROM trades").fetchone()
+    state = tracker.state()
+    assert tracker.active is None
+    assert state["exitedEpisodes"] == 1
+    episode = state["recentEpisodes"][0]
     assert episode["status"] == "EXITED"
-    assert episode["end_reason"] == "EDGE_LOST"
-    assert episode["position_duration_ms"] == pytest.approx(150.0)
-    assert trade["status"] == "STOP_LOSS_EXIT"
-    assert trade["exit_price"] == pytest.approx(0.40)
-    assert trade["pnl"] is not None
+    assert episode["endReason"] == "EDGE_LOST"
+    assert episode["entryPrice"] == pytest.approx(0.40)
+    assert episode["exitPrice"] == pytest.approx(0.39)
+    assert episode["positionDurationMs"] == pytest.approx(200.0)
+    assert episode["pnl"] < 0
 
 
-def test_dashboard_state_exposes_lifecycle_durations() -> None:
-    lifecycle, store = tracker()
-    base = 4_000_000_000
-    lifecycle.process(snapshot(), 200, context(1, base))
-    lifecycle.process(snapshot(), 200, context(2, base + 150_000_000))
-    lifecycle.process(snapshot(), 200, context(3, base + 350_000_000))
-    lifecycle.process(snapshot(mode="neutral"), 200, context(4, base + 500_000_000))
+def test_exit_waits_for_visible_bid_depth_then_retries(tmp_path: Path) -> None:
+    tracker = MicropriceSignalLifecycleTracker(tmp_path / "simulation.db")
+    base_ns = 4_000_000_000
+    advance_to_open(tracker, base_ns)
 
-    state = lifecycle.database_state(store)
-    assert state["episodes"] == 1
-    assert state["cancelledEpisodes"] == 1
-    assert state["duration"]["averageMs"] == pytest.approx(500.0)
-    assert state["reasons"]["EDGE_LOST"]["count"] == 1
-    assert state["recentEpisodes"][0]["signalDurationMs"] == pytest.approx(500.0)
+    tracker.process(
+        snapshot(base_ns + 900_000_000, "FLAT", up_bid_size=1.0),
+        200,
+    )
+    assert tracker.active is not None
+    assert tracker.active["status"] == "EXIT_PENDING"
+
+    tracker.process(snapshot(base_ns + 1_100_000_000, "FLAT"), 200)
+    assert tracker.active is None
+    assert tracker.state()["recentEpisodes"][0]["status"] == "EXITED"
+
+
+def test_rollover_open_position_reconciles_official_settlement(tmp_path: Path) -> None:
+    path = tmp_path / "simulation.db"
+    tracker = MicropriceSignalLifecycleTracker(path)
+    base_ns = 5_000_000_000
+    advance_to_open(tracker, base_ns)
+
+    tracker.process(
+        snapshot(base_ns + 1_000_000_000, "UP", market_id=12),
+        200,
+    )
+    assert tracker.state()["settlementPendingEpisodes"] == 1
+
+    db = sqlite3.connect(path)
+    db.execute(
+        """CREATE TABLE market_settlements(
+            market_id INTEGER PRIMARY KEY,
+            official_winner TEXT,
+            status TEXT
+        )"""
+    )
+    db.execute("INSERT INTO market_settlements VALUES (11, 'UP', 'OFFICIAL')")
+    db.commit()
+    db.close()
+
+    state = tracker.state()
+    assert state["settlementPendingEpisodes"] == 0
+    assert state["settledWins"] == 1
+    assert state["realizedPnl"] > 0
+
+
+def test_sidecar_skips_critical_state_and_fails_open(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("PREDICT_SIM_DB", str(tmp_path / "sidecar.db"))
+
+    class Engine:
+        def record_confirmation_add_snapshot(self, snapshot: dict) -> dict:
+            return {"original": True}
+
+        def state(self, value=None, *, include_ledger: bool = True) -> dict:
+            return {"main": True, "includeLedger": include_ledger}
+
+    install_microprice_signal_lifecycle_sidecar(
+        SimpleNamespace(LiveM0WEngine=Engine)
+    )
+    engine = Engine()
+    assert engine.state(include_ledger=False) == {
+        "main": True,
+        "includeLedger": False,
+    }
+    assert engine.record_confirmation_add_snapshot(
+        {"market_id": "not-an-int"}
+    ) == {"original": True}
+    detailed = engine.state()
+    assert detailed["main"] is True
+    assert detailed["micropriceSignalLifecycle"]["status"] == "DEGRADED"
+    assert "ValueError" in detailed["micropriceSignalLifecycle"]["runtime"]["lastError"]
