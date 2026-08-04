@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 const REFRESH_MS = 15_000;
-const INITIAL_DELAY_MS = 900;
+const INITIAL_DELAY_MS = 2_500;
 
 type Listener = () => void;
 
@@ -74,9 +74,9 @@ function handleVisibility() {
 function start() {
   if (typeof window === "undefined") return;
   if (initialTimer == null && state.snapshot == null) {
-    // Let the main dashboard's realtime/statistics requests paint first.
-    // The add-on cards then share one delayed state request instead of racing
-    // four identical full-state requests during first render.
+    // Give the main dashboard's first realtime/statistics paint priority.
+    // Every add-on card shares this one delayed request instead of racing
+    // several identical full-state requests during page startup.
     initialTimer = window.setTimeout(() => {
       initialTimer = null;
       void load();
