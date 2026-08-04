@@ -27,6 +27,18 @@ def _is_pair_arb_010_requote(
 def install_pair_arb_initial_capacity_patch() -> None:
     from . import live_trading as live
 
+    # Install the isolated Microprice lifecycle sidecar inside a broad safety
+    # boundary. Import, schema, processing, and state failures never prevent
+    # the existing application or pair-arb patch from loading.
+    try:
+        from .microprice_signal_lifecycle import (
+            install_microprice_signal_lifecycle_sidecar,
+        )
+
+        install_microprice_signal_lifecycle_sidecar(live)
+    except Exception:
+        pass
+
     engine = live.LiveM0WEngine
     original_requote = engine._requote_qc_pair
     if getattr(original_requote, "_pair_arb_010_initial_capacity_v1", False):
