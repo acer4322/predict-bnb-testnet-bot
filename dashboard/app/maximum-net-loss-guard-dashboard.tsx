@@ -112,7 +112,7 @@ export default function MaximumNetLossGuardDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           maximumNetLossGuardEnabled: enabledDraft,
-          maximumNetLossUsdt,
+          maximumNetLossUsdt: maximumLossUsdt,
         }),
       });
       const body = await response.json() as {
@@ -214,7 +214,7 @@ export default function MaximumNetLossGuardDashboard() {
         </small>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(180px, .7fr) minmax(180px, 1fr)", gap: 12, alignItems: "end" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, alignItems: "end" }}>
         <label style={{ display: "grid", gap: 6 }}>
           <span>啟用最大虧損保護</span>
           <select
