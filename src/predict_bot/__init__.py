@@ -42,6 +42,9 @@ from .microprice_confirm_live_patch import (
 from .microprice_confirm_optimization_shadows import (
     install_microprice_confirm_optimization_shadows as _install_microprice_confirm_optimization_shadows,
 )
+from .microprice_confirm_stale_exhausted_guard import (
+    install_microprice_confirm_stale_exhausted_guard as _install_microprice_confirm_stale_exhausted_guard,
+)
 from .microprice_confirm_price_side_guard_live_patch import (
     install_microprice_confirm_price_side_guard_live_patch as _install_microprice_confirm_price_side_guard_live_patch,
 )
@@ -69,6 +72,7 @@ _install_microprice_variants()
 _install_microprice_dashboard_patch()
 _install_microprice_feature_shadows()
 _install_microprice_confirm_optimization_shadows()
+_install_microprice_confirm_stale_exhausted_guard()
 _install_calibrated_value_confirmation_variants()
 _install_calibrated_value_confirmation_filters()
 _install_microprice_confirm_live_patch()
@@ -95,6 +99,7 @@ del _install_microprice_confirm_exit_098_live_v3_patch
 del _install_microprice_confirm_exit_098_live_v4_patch
 del _install_microprice_confirm_live_patch
 del _install_microprice_confirm_optimization_shadows
+del _install_microprice_confirm_stale_exhausted_guard
 del _install_microprice_confirm_price_side_guard_live_patch
 del _install_microprice_feature_shadows
 del _install_microprice_variant_relaxation
