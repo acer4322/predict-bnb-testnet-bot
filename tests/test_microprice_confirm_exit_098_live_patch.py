@@ -5,14 +5,17 @@ import threading
 from decimal import Decimal
 from types import SimpleNamespace
 
+import pytest
+
 from predict_bot import microprice_confirm_exit_098_live_patch as exit_patch
+from predict_bot import microprice_confirm_exit_098_live_v3_patch as exit_v3
 from predict_bot.microprice_confirm_optimization_shadows import (
     EXIT_098_STRATEGY,
 )
 
 
 def _candidate_engine(status: str, *, exit_status: str | None = None):
-    db = sqlite3.connect(":memory:")
+    db = sqlite3.connect(":memory:", check_same_thread=False)
     db.row_factory = sqlite3.Row
     db.executescript(
         """
@@ -22,6 +25,7 @@ def _candidate_engine(status: str, *, exit_status: str | None = None):
             market_id INTEGER,
             side TEXT,
             status TEXT,
+            token_id TEXT,
             filled_share_qty REAL
         );
         CREATE TABLE live_strategy_settlements (
@@ -35,8 +39,9 @@ def _candidate_engine(status: str, *, exit_status: str | None = None):
     )
     db.execute(
         """INSERT INTO live_orders(
-               id, strategy, market_id, side, status, filled_share_qty
-           ) VALUES (1, ?, 101, 'UP', ?, 2.5)""",
+               id, strategy, market_id, side, status,
+               token_id, filled_share_qty
+           ) VALUES (1, ?, 101, 'UP', ?, 'up-token', 2.5)""",
         (EXIT_098_STRATEGY, status),
     )
     if exit_status is not None:
@@ -55,15 +60,31 @@ def test_exit_candidates_include_only_stable_position_quantities() -> None:
         engine = _candidate_engine(status)
         candidates = exit_patch._live_exit_candidates(engine, 101)
         assert [row["id"] for row in candidates] == [1]
+        assert candidates[0]["token_id"] == "up-token"
 
     for status in ("PARTIAL", "PARTIALLY_FILLED", "OPEN", "PENDING"):
         engine = _candidate_engine(status)
         assert exit_patch._live_exit_candidates(engine, 101) == []
 
 
-def test_exit_candidates_do_not_duplicate_active_protection_order() -> None:
+def test_exit_candidates_do_not_duplicate_active_exit() -> None:
     engine = _candidate_engine("FILLED", exit_status="SUBMITTED")
     assert exit_patch._live_exit_candidates(engine, 101) == []
+
+
+def test_best_bid_parser_accepts_object_array_and_nested_books() -> None:
+    assert exit_v3._best_bid_any(
+        {"bids": [{"price": "0.98", "size": "2"}]}
+    ) == Decimal("0.98")
+    assert exit_v3._best_bid_any(
+        {"bids": [["0.99", "3"], ["0.98", "4"]]}
+    ) == Decimal("0.99")
+    best, capacity = exit_v3._best_bid_and_capacity(
+        {"data": {"bids": [["0.99", "3"], ["0.98", "4"], ["0.97", "9"]]}},
+        minimum_price=Decimal("0.98"),
+    )
+    assert best == Decimal("0.99")
+    assert capacity == Decimal("7")
 
 
 class FakeLedger:
@@ -96,7 +117,9 @@ class FakeLedger:
 
 
 class FakeClient:
-    def __init__(self) -> None:
+    def __init__(self, bid: str = "0.98", quote_average: str = "0.98") -> None:
+        self.bid = bid
+        self.quote_average = quote_average
         self.quote_calls: list[dict] = []
         self.place_calls: list[dict] = []
 
@@ -107,9 +130,8 @@ class FakeClient:
         return {"position": {"shares": "2.5"}}
 
     def orderbook(self, _market_id: int, _token_id: str):
-        # The target has not traded yet.  V2 must still submit a resting GTC
-        # protection order instead of waiting and racing a later 0.98 touch.
-        return {"bids": [{"price": "0.60", "size": "100"}]}
+        # Binance levels may be arrays rather than objects.
+        return {"bids": [[self.bid, "100"]]}
 
     def get_quote(self, **kwargs):
         self.quote_calls.append(kwargs)
@@ -120,7 +142,7 @@ class FakeClient:
             "orderType": "LIMIT",
             "amountIn": kwargs["amount_in_wei"],
             "amountOut": "2450000000000000000",
-            "averagePrice": "0.98",
+            "averagePrice": self.quote_average,
             "expireAt": 2_000_000,
         }
 
@@ -130,9 +152,9 @@ class FakeClient:
 
 
 class FakeLiveEngine:
-    def __init__(self) -> None:
+    def __init__(self, *, bid: str = "0.98", quote_average: str = "0.98") -> None:
         self.ledger = FakeLedger()
-        self.client = FakeClient()
+        self.client = FakeClient(bid=bid, quote_average=quote_average)
         self.wallet_address = "0xabc"
         self.wallet_id = "wallet-1"
         self.account_type = "CeDeFi"
@@ -152,21 +174,35 @@ class FakeLiveEngine:
         return Decimal(str(record["shares"])) if record else None
 
     @staticmethod
-    def _best_bid(book):
-        bids = book.get("bids") or []
-        return Decimal(str(bids[0]["price"])) if bids else None
-
-    @staticmethod
-    def _quote_is_safe(*_args, **_kwargs):
+    def _quote_is_safe(quote, *, price_limit, **_kwargs):
+        average = Decimal(str(quote["averagePrice"]))
+        if average < price_limit:
+            return False, "quote average is below target"
         return True, ""
 
 
-def test_filled_entry_places_resting_gtc_exit_before_bid_reaches_target() -> None:
-    engine = FakeLiveEngine()
+def test_target_submit_requires_real_bid_at_or_above_098() -> None:
+    engine = FakeLiveEngine(bid="0.97")
+    with pytest.raises(ValueError, match="below the 0.98 target"):
+        exit_patch._submit_live_target_exit(engine, 1)
+    assert engine.ledger.begin_calls == []
+    assert engine.client.quote_calls == []
+
+
+def test_target_submit_rejects_quote_average_below_098() -> None:
+    engine = FakeLiveEngine(bid="0.98", quote_average="0.979")
+    with pytest.raises(ValueError, match="below target"):
+        exit_patch._submit_live_target_exit(engine, 1)
+    assert engine.client.place_calls == []
+    assert engine.ledger.updates[-1][1]["status"] == "REJECTED"
+
+
+def test_target_submit_places_limit_098_from_array_orderbook() -> None:
+    engine = FakeLiveEngine(bid="0.99", quote_average="0.985")
 
     exit_patch._submit_live_target_exit(engine, 1)
 
-    assert exit_patch.EXIT_098_LIVE_PATCH_VERSION.endswith("_V2")
+    assert exit_patch.EXIT_098_LIVE_PATCH_VERSION.endswith("_V3")
     assert engine.ledger.begin_calls[0]["order_type"] == "LIMIT"
     assert engine.ledger.begin_calls[0]["price_limit"] == Decimal("0.98")
     assert engine.ledger.begin_calls[0]["sell_shares"] == Decimal("2.5")
@@ -177,3 +213,31 @@ def test_filled_entry_places_resting_gtc_exit_before_bid_reaches_target() -> Non
     assert engine.ledger.updates[-1][1]["status"] == "SUBMITTED"
     assert engine.ledger.updates[-1][1]["order_id"] == "exit-order-1"
     assert engine.next_order_sync == 0.0
+
+
+def test_dedicated_monitor_schedules_only_after_target(monkeypatch) -> None:
+    db_engine = _candidate_engine("FILLED")
+    scheduled: list[tuple] = []
+
+    live_engine = SimpleNamespace(
+        ledger=db_engine.ledger,
+        client=FakeClient(bid="0.97"),
+        wallet_address="0xabc",
+        lock=threading.RLock(),
+        current_market=lambda: {"market_id": 101, "end_ms": 2_000_000},
+    )
+    monkeypatch.setattr(
+        exit_patch._EXIT_WORKER,
+        "submit",
+        lambda *args: scheduled.append(args),
+    )
+    exit_patch._EXIT_IN_FLIGHT.clear()
+    exit_patch._EXIT_RETRY_AFTER.clear()
+
+    assert exit_v3._monitor_once(live_engine) is True
+    assert scheduled == []
+
+    live_engine.client.bid = "0.98"
+    assert exit_v3._monitor_once(live_engine) is True
+    assert len(scheduled) == 1
+    assert scheduled[0][2] == 1
