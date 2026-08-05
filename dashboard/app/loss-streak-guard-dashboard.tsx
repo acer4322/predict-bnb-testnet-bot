@@ -73,6 +73,11 @@ type DashboardPayload = {
   } | null;
 };
 
+type RuleMount = {
+  index: number;
+  element: HTMLLabelElement;
+};
+
 function money(value: number | null | undefined) {
   return value == null || !Number.isFinite(value) ? "—" : `$${value.toFixed(2)}`;
 }
@@ -98,88 +103,46 @@ function stateDetail(state: GuardState | undefined) {
   return `目前連敗 ${state.consecutiveLosses ?? 0}/3${state.consecutiveLosses === 2 ? " · 下一筆半倉" : ""}`;
 }
 
-function LossStreakRulesEditor({
-  payload,
-  onRefresh,
+function InlineLossStreakControl({
+  strategy,
+  index,
+  enabled,
+  state,
+  saving,
+  error,
+  onChange,
 }: {
-  payload: LiveRulesPayload | null;
-  onRefresh: (value: LiveRulesPayload) => void;
+  strategy: string;
+  index: number;
+  enabled: boolean;
+  state?: GuardState;
+  saving: boolean;
+  error?: string;
+  onChange: (index: number, enabled: boolean) => void;
 }) {
-  const strategies = payload?.rules?.strategies ?? EMPTY_STRATEGIES;
-  const saved = payload?.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
-  const states = payload?.strategyLossStreakGuardStates ?? [];
-  const [draft, setDraft] = useState<boolean[]>(saved);
-  const [dirty, setDirty] = useState(false);
-  const [status, setStatus] = useState("規則已同步");
-
-  useEffect(() => {
-    if (dirty) return;
-    setDraft(strategies.map((_, index) => Boolean(saved[index])));
-  }, [dirty, strategies, saved]);
-
-  const save = async () => {
-    setStatus("儲存中…");
-    try {
-      const response = await fetch("/api/live-rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [RULE_FIELD]: draft }),
-      });
-      const body = await response.json() as {
-        liveM0W?: LiveRulesPayload;
-        error?: string;
-      } & LiveRulesPayload;
-      if (!response.ok) throw new Error(body.error ?? "後端拒絕連敗過濾設定");
-      const next = body.liveM0W ?? body;
-      onRefresh(next);
-      setDirty(false);
-      setStatus("連敗過濾已持久化");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "儲存失敗");
-    }
-  };
-
-  return <div data-loss-streak-rules style={{ marginTop: 16, padding: 16, border: "1px solid rgba(126, 145, 178, .28)", borderRadius: 16, background: "rgba(7, 12, 22, .54)" }}>
-    <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
-      <div>
-        <span className="eyebrow">PERSISTENT · LOSS STREAK GUARD V1</span>
-        <h4 style={{ margin: "4px 0" }}>逐策略連敗過濾器</h4>
-        <small>與回撤控制器相同，按實單策略槽位獨立啟用並寫入 live_settings。</small>
-      </div>
-      <span className={dirty ? "dirty" : "synced"}>{dirty ? "有未儲存變更" : status}</span>
-    </div>
-
-    <div className="live-rules-grid" style={{ marginTop: 14 }}>
-      {strategies.map((strategy, index) => {
-        const state = states[index];
-        return <label key={`${strategy}-${index}`}>
-          <span>策略 {index + 1} 連敗過濾器</span>
-          <select
-            aria-label={`策略 ${index + 1} 是否使用連敗過濾器`}
-            value={draft[index] ? "enabled" : "disabled"}
-            onChange={event => {
-              const enabled = event.target.value === "enabled";
-              setDraft(current => strategies.map((_, slot) => slot === index ? enabled : Boolean(current[slot])));
-              setDirty(true);
-              setStatus("有未儲存變更");
-            }}
-          >
-            <option value="disabled">不使用連敗過濾器</option>
-            <option value="enabled">三連敗 Shadow／正 PnL 恢復</option>
-          </select>
-          <small>{draft[index] ? `${modeText(state?.mode)} · ${stateDetail(state)}` : "停用時不阻擋；後端仍保留官方結算狀態供日後啟用。"}</small>
-          {state?.lastError && <small style={{ color: "#ffbd87" }}>{state.lastError}</small>}
-        </label>;
-      })}
-    </div>
-
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
-      <button type="button" disabled={!dirty || status === "儲存中…"} onClick={save}>
-        {status === "儲存中…" ? "儲存中…" : "確認並持久化連敗過濾"}
-      </button>
-      <small>兩連敗後下一筆初始單 50%；三連敗後不送單。Shadow 至少三筆且最近三筆 Paper PnL 合計 &gt; 0 才進入兩筆半倉 PROBATION；任何一敗重新進 Shadow。</small>
-    </div>
-  </div>;
+  return <>
+    <span>策略 {index + 1} 連敗過濾</span>
+    <select
+      aria-label={`策略 ${index + 1} ${strategy} 是否使用連敗過濾`}
+      value={enabled ? "enabled" : "disabled"}
+      disabled={saving}
+      onChange={event => onChange(index, event.target.value === "enabled")}
+    >
+      <option value="disabled">不使用連敗過濾</option>
+      <option value="enabled">啟用三連敗 Shadow 過濾</option>
+    </select>
+    <small>
+      {saving
+        ? "正在儲存…"
+        : error
+          ? `儲存失敗：${error}`
+          : enabled
+            ? `${modeText(state?.mode)} · ${stateDetail(state)}`
+            : "關閉；不影響這個策略的實單。"}
+    </small>
+    {enabled && <small>兩連敗後下一筆半倉；三連敗暫停。最近三筆 Paper PnL 合計轉正後，以兩筆半倉重新驗證。</small>}
+    {state?.lastError && <small style={{ color: "#ffbd87" }}>{state.lastError}</small>}
+  </>;
 }
 
 function TestStrategyCard({ payload }: { payload: DashboardPayload | null }) {
@@ -217,30 +180,52 @@ function TestStrategyCard({ payload }: { payload: DashboardPayload | null }) {
 }
 
 export default function LossStreakGuardDashboard() {
-  const [rulesTarget, setRulesTarget] = useState<HTMLElement | null>(null);
+  const [ruleMounts, setRuleMounts] = useState<RuleMount[]>([]);
   const [researchTarget, setResearchTarget] = useState<HTMLElement | null>(null);
   const [livePayload, setLivePayload] = useState<LiveRulesPayload | null>(null);
+  const [savingIndex, setSavingIndex] = useState<number | null>(null);
+  const [saveErrors, setSaveErrors] = useState<Record<number, string>>({});
   const { payload } = useSharedDashboardState<DashboardPayload>();
 
   useEffect(() => {
     let active = true;
     let loading = false;
+
     const locate = () => {
       const editor = document.querySelector<HTMLElement>(LIVE_RULES_TARGET);
-      if (editor) {
-        let mount = editor.querySelector<HTMLElement>("[data-loss-streak-rules-mount]");
-        if (!mount) {
-          mount = document.createElement("div");
-          mount.dataset.lossStreakRulesMount = "true";
-          editor.appendChild(mount);
-        }
-        setRulesTarget(current => current === mount ? current : mount);
+      if (!editor) {
+        setRuleMounts([]);
       } else {
-        setRulesTarget(null);
+        const baseLabels = Array.from(editor.querySelectorAll<HTMLLabelElement>("label:not([data-loss-streak-inline-mount])"));
+        const drawdownLabels = baseLabels.filter(label => /回撤控制器/.test(label.textContent ?? ""));
+        const cooldownLabels = baseLabels.filter(label => /兩連敗冷卻/.test(label.textContent ?? ""));
+        const anchors = drawdownLabels.length ? drawdownLabels : cooldownLabels;
+        const nextMounts = anchors.slice(0, 4).map((anchor, index) => {
+          let mount = editor.querySelector<HTMLLabelElement>(`label[data-loss-streak-inline-mount="${index}"]`);
+          if (!mount) {
+            mount = document.createElement("label");
+            mount.dataset.lossStreakInlineMount = String(index);
+            anchor.insertAdjacentElement("afterend", mount);
+          } else if (mount.previousElementSibling !== anchor) {
+            anchor.insertAdjacentElement("afterend", mount);
+          }
+          return { index, element: mount };
+        });
+        editor.querySelectorAll<HTMLLabelElement>("label[data-loss-streak-inline-mount]").forEach(mount => {
+          const index = Number(mount.dataset.lossStreakInlineMount);
+          if (!nextMounts.some(item => item.index === index)) mount.remove();
+        });
+        setRuleMounts(current => {
+          const unchanged = current.length === nextMounts.length
+            && current.every((item, index) => item.index === nextMounts[index].index && item.element === nextMounts[index].element);
+          return unchanged ? current : nextMounts;
+        });
       }
+
       const research = document.querySelector<HTMLElement>(RESEARCH_TARGET);
       setResearchTarget(current => current === research ? current : research);
     };
+
     const load = async () => {
       if (loading || document.visibilityState !== "visible") return;
       loading = true;
@@ -248,13 +233,14 @@ export default function LossStreakGuardDashboard() {
         const response = await fetch("/api/live-rules", { cache: "no-store" });
         if (!response.ok) throw new Error();
         const body = await response.json() as LiveRulesPayload;
-        if (active) setLivePayload(body);
+        if (active && savingIndex == null) setLivePayload(body);
       } catch {
         // Main dashboard owns the connection error display. Keep the last snapshot.
       } finally {
         loading = false;
       }
     };
+
     const tick = () => { locate(); void load(); };
     tick();
     const timer = window.setInterval(tick, 2_000);
@@ -263,14 +249,74 @@ export default function LossStreakGuardDashboard() {
       active = false;
       window.clearInterval(timer);
       document.removeEventListener("click", locate, true);
+      document.querySelectorAll("label[data-loss-streak-inline-mount]").forEach(mount => mount.remove());
     };
-  }, []);
+  }, [savingIndex]);
 
-  const rulesEditor = useMemo(() => <LossStreakRulesEditor payload={livePayload} onRefresh={setLivePayload} />, [livePayload]);
+  const changeRule = async (index: number, enabled: boolean) => {
+    const strategies = livePayload?.rules?.strategies ?? EMPTY_STRATEGIES;
+    const currentFlags = livePayload?.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
+    if (!strategies[index] || savingIndex != null) return;
+
+    const nextFlags = strategies.map((_, slot) => slot === index ? enabled : Boolean(currentFlags[slot]));
+    const previous = livePayload;
+    setLivePayload(current => current ? {
+      ...current,
+      rules: {
+        ...current.rules,
+        strategies,
+        strategyLossStreakGuardEnabled: nextFlags,
+      },
+    } : current);
+    setSavingIndex(index);
+    setSaveErrors(current => {
+      const next = { ...current };
+      delete next[index];
+      return next;
+    });
+
+    try {
+      const response = await fetch("/api/live-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [RULE_FIELD]: nextFlags }),
+      });
+      const body = await response.json() as {
+        liveM0W?: LiveRulesPayload;
+        error?: string;
+      } & LiveRulesPayload;
+      if (!response.ok) throw new Error(body.error ?? "後端拒絕連敗過濾設定");
+      setLivePayload(body.liveM0W ?? body);
+    } catch (error) {
+      setLivePayload(previous);
+      setSaveErrors(current => ({
+        ...current,
+        [index]: error instanceof Error ? error.message : "未知錯誤",
+      }));
+    } finally {
+      setSavingIndex(null);
+    }
+  };
+
+  const strategies = livePayload?.rules?.strategies ?? EMPTY_STRATEGIES;
+  const flags = livePayload?.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
+  const states = livePayload?.strategyLossStreakGuardStates ?? [];
   const testCard = useMemo(() => <TestStrategyCard payload={payload} />, [payload]);
 
   return <>
-    {rulesTarget ? createPortal(rulesEditor, rulesTarget) : null}
+    {ruleMounts.map(({ index, element }) => createPortal(
+      <InlineLossStreakControl
+        strategy={strategies[index] ?? `策略 ${index + 1}`}
+        index={index}
+        enabled={Boolean(flags[index])}
+        state={states[index]}
+        saving={savingIndex === index}
+        error={saveErrors[index]}
+        onChange={changeRule}
+      />,
+      element,
+      `loss-streak-rule-${index}`,
+    ))}
     {researchTarget ? createPortal(testCard, researchTarget) : null}
   </>;
 }
