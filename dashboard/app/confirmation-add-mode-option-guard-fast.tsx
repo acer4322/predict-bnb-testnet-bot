@@ -11,6 +11,7 @@ const LEGACY_NATIVE_SOURCE_SET = [
 
 const LIVE_STRATEGY_LABEL_OVERRIDES: Record<string, string> = {
   R_MICROPRICE_CONFIRM: "研究實單 · Microprice 雙事件確認順勢",
+  R_MICROPRICE_CONFIRM_PRICE_SIDE_GUARD: "研究實單 · Microprice Confirm V2 · 方向價格防護",
   R_MICROPRICE_CONFIRM_EXIT_098: "研究實單 · Microprice Confirm V2 · 0.98 提前退出",
 };
 
@@ -20,6 +21,22 @@ function isLegacyConfirmationSourceSet(
 ) {
   return target.size === LEGACY_NATIVE_SOURCE_SET.length
     && LEGACY_NATIVE_SOURCE_SET.every(value => originalHas.call(target, value));
+}
+
+function synchronizeResearchCard() {
+  const card = document.querySelector<HTMLElement>(
+    '[data-research-enhancement="R_MICROPRICE_CONFIRM_PRICE_SIDE_GUARD"]',
+  );
+  if (!card) return;
+  const badge = card.querySelector<HTMLElement>(".m-exit-id");
+  if (badge && badge.textContent !== "PAPER + LIVE SELECTABLE") {
+    badge.textContent = "PAPER + LIVE SELECTABLE";
+  }
+  Array.from(card.querySelectorAll<HTMLElement>("small")).forEach(item => {
+    if (item.textContent === "用來 forward 驗證方向 × 價格死區。") {
+      item.textContent = "保留獨立 paper 帳本；只有在實單設定明確選取時才轉送，並再次檢查實際簽名報價不得進入方向價格死區。";
+    }
+  });
 }
 
 function synchronizeOptions() {
@@ -53,6 +70,8 @@ function synchronizeOptions() {
     if (option.disabled !== desiredDisabled) option.disabled = desiredDisabled;
     if (option.textContent !== desiredText) option.textContent = desiredText;
   });
+
+  synchronizeResearchCard();
 }
 
 export default function ConfirmationAddModeOptionGuardFast() {
