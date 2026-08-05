@@ -36,6 +36,32 @@ jobs:
           PY
       - name: Apply patch
         run: python .github/scripts/apply_loss_streak_guard.py
+      - name: Verify generated research registration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/predict_bot/research_forward.py')
+          content = path.read_text(encoding='utf-8')
+          anchor = 'RESEARCH_STRATEGIES = (*PRIMARY_RESEARCH_STRATEGIES, *SHADOW_RESEARCH_STRATEGIES)\n'
+          block = '''\nLOSS_STREAK_GUARD_RULES = {\n    "R_MICROPRICE_LOSS_STREAK_GUARD": "R_MICROPRICE",\n}\nLOSS_STREAK_GUARD_STRATEGIES = tuple(LOSS_STREAK_GUARD_RULES)\n'''
+          if 'LOSS_STREAK_GUARD_RULES =' not in content:
+              if anchor not in content:
+                  raise SystemExit('research strategy anchor missing')
+              content = content.replace(anchor, anchor + block, 1)
+          if '"R_MICROPRICE_LOSS_STREAK_GUARD"' not in content:
+              shadow_anchor = 'SHADOW_RESEARCH_STRATEGIES = (\n'
+              content = content.replace(
+                  shadow_anchor,
+                  shadow_anchor + '    "R_MICROPRICE_LOSS_STREAK_GUARD",\n',
+                  1,
+              )
+          path.write_text(content, encoding='utf-8')
+          namespace = {}
+          exec(compile(content, str(path), 'exec'), namespace)
+          assert namespace['LOSS_STREAK_GUARD_RULES']['R_MICROPRICE_LOSS_STREAK_GUARD'] == 'R_MICROPRICE'
+          assert 'R_MICROPRICE_LOSS_STREAK_GUARD' in namespace['RESEARCH_STRATEGIES']
+          print('research guard registration verified')
+          PY
       - name: Install Python project
         run: python -m pip install -e . pytest
       - name: Run Python tests
