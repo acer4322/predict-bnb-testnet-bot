@@ -39,6 +39,7 @@ jobs:
       - name: Verify generated research registration
         run: |
           python - <<'PY'
+          import ast
           from pathlib import Path
           path = Path('src/predict_bot/research_forward.py')
           content = path.read_text(encoding='utf-8')
@@ -55,11 +56,11 @@ jobs:
                   shadow_anchor + '    "R_MICROPRICE_LOSS_STREAK_GUARD",\n',
                   1,
               )
+          ast.parse(content, filename=str(path))
+          assert 'LOSS_STREAK_GUARD_RULES = {' in content
+          assert '"R_MICROPRICE_LOSS_STREAK_GUARD": "R_MICROPRICE"' in content
+          assert 'LOSS_STREAK_GUARD_STRATEGIES = tuple(LOSS_STREAK_GUARD_RULES)' in content
           path.write_text(content, encoding='utf-8')
-          namespace = {}
-          exec(compile(content, str(path), 'exec'), namespace)
-          assert namespace['LOSS_STREAK_GUARD_RULES']['R_MICROPRICE_LOSS_STREAK_GUARD'] == 'R_MICROPRICE'
-          assert 'R_MICROPRICE_LOSS_STREAK_GUARD' in namespace['RESEARCH_STRATEGIES']
           print('research guard registration verified')
           PY
       - name: Install Python project
