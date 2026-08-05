@@ -18,6 +18,12 @@ from .decision_snapshot_state import (
 from .direct_outcome_guard import (
     install_direct_outcome_guard as _install_direct_outcome_guard,
 )
+from .loss_streak_guard_hotfix import (
+    install_loss_streak_guard_hotfix as _install_loss_streak_guard_hotfix,
+)
+from .loss_streak_guard_patch import (
+    install_loss_streak_guard_patch as _install_loss_streak_guard_patch,
+)
 from .microprice_confirm_exit_098_entry_guard_patch import (
     install_microprice_confirm_exit_098_entry_guard_patch as _install_microprice_confirm_exit_098_entry_guard_patch,
 )
@@ -45,11 +51,14 @@ from .microprice_confirm_loss_streak_guard import (
 from .microprice_confirm_optimization_shadows import (
     install_microprice_confirm_optimization_shadows as _install_microprice_confirm_optimization_shadows,
 )
+from .microprice_confirm_price_side_guard_live_patch import (
+    install_microprice_confirm_price_side_guard_live_patch as _install_microprice_confirm_price_side_guard_live_patch,
+)
 from .microprice_confirm_stale_exhausted_guard import (
     install_microprice_confirm_stale_exhausted_guard as _install_microprice_confirm_stale_exhausted_guard,
 )
-from .microprice_confirm_price_side_guard_live_patch import (
-    install_microprice_confirm_price_side_guard_live_patch as _install_microprice_confirm_price_side_guard_live_patch,
+from .microprice_dashboard_patch import (
+    install_microprice_dashboard_patch as _install_microprice_dashboard_patch,
 )
 from .microprice_feature_shadows import (
     install_microprice_feature_shadows as _install_microprice_feature_shadows,
@@ -59,12 +68,6 @@ from .microprice_variant_relaxation import (
 )
 from .microprice_variants import (
     install_microprice_variants as _install_microprice_variants,
-)
-from .microprice_dashboard_patch import (
-    install_microprice_dashboard_patch as _install_microprice_dashboard_patch,
-)
-from .loss_streak_guard_patch import (
-    install_loss_streak_guard_patch as _install_loss_streak_guard_patch,
 )
 from .pair_arb_initial_capacity_patch import (
     install_pair_arb_initial_capacity_patch as _install_pair_arb_initial_capacity_patch,
@@ -93,12 +96,15 @@ _install_microprice_confirm_price_side_guard_live_patch()
 _install_confirmation_add_sources_patch()
 _install_pair_arb_initial_capacity_patch()
 _install_loss_streak_guard_patch()
+_install_loss_streak_guard_hotfix()
 del _install_calibrated_value_confirmation_filters
 del _install_calibrated_value_confirmation_variants
 del _install_confirmation_add_sources_patch
 del _install_decision_snapshot_diagnostics
 del _install_decision_snapshot_state
 del _install_direct_outcome_guard
+del _install_loss_streak_guard_hotfix
+del _install_loss_streak_guard_patch
 del _install_microprice_confirm_exit_098_entry_guard_patch
 del _install_microprice_confirm_exit_098_horizon_patch
 del _install_microprice_confirm_exit_098_live_patch
@@ -108,11 +114,10 @@ del _install_microprice_confirm_exit_098_live_v4_patch
 del _install_microprice_confirm_live_patch
 del _install_microprice_confirm_loss_streak_guard
 del _install_microprice_confirm_optimization_shadows
-del _install_microprice_confirm_stale_exhausted_guard
 del _install_microprice_confirm_price_side_guard_live_patch
+del _install_microprice_confirm_stale_exhausted_guard
+del _install_microprice_dashboard_patch
 del _install_microprice_feature_shadows
 del _install_microprice_variant_relaxation
 del _install_microprice_variants
-del _install_microprice_dashboard_patch
 del _install_pair_arb_initial_capacity_patch
-del _install_loss_streak_guard_patch
