@@ -39,6 +39,9 @@ from .microprice_confirm_exit_098_live_v4_patch import (
 from .microprice_confirm_live_patch import (
     install_microprice_confirm_live_patch as _install_microprice_confirm_live_patch,
 )
+from .microprice_confirm_loss_streak_guard import (
+    install_microprice_confirm_loss_streak_guard as _install_microprice_confirm_loss_streak_guard,
+)
 from .microprice_confirm_optimization_shadows import (
     install_microprice_confirm_optimization_shadows as _install_microprice_confirm_optimization_shadows,
 )
@@ -60,6 +63,9 @@ from .microprice_variants import (
 from .microprice_dashboard_patch import (
     install_microprice_dashboard_patch as _install_microprice_dashboard_patch,
 )
+from .loss_streak_guard_patch import (
+    install_loss_streak_guard_patch as _install_loss_streak_guard_patch,
+)
 from .pair_arb_initial_capacity_patch import (
     install_pair_arb_initial_capacity_patch as _install_pair_arb_initial_capacity_patch,
 )
@@ -73,6 +79,7 @@ _install_microprice_dashboard_patch()
 _install_microprice_feature_shadows()
 _install_microprice_confirm_optimization_shadows()
 _install_microprice_confirm_stale_exhausted_guard()
+_install_microprice_confirm_loss_streak_guard()
 _install_calibrated_value_confirmation_variants()
 _install_calibrated_value_confirmation_filters()
 _install_microprice_confirm_live_patch()
@@ -85,6 +92,7 @@ _install_microprice_confirm_exit_098_horizon_patch()
 _install_microprice_confirm_price_side_guard_live_patch()
 _install_confirmation_add_sources_patch()
 _install_pair_arb_initial_capacity_patch()
+_install_loss_streak_guard_patch()
 del _install_calibrated_value_confirmation_filters
 del _install_calibrated_value_confirmation_variants
 del _install_confirmation_add_sources_patch
@@ -98,6 +106,7 @@ del _install_microprice_confirm_exit_098_live_v2_patch
 del _install_microprice_confirm_exit_098_live_v3_patch
 del _install_microprice_confirm_exit_098_live_v4_patch
 del _install_microprice_confirm_live_patch
+del _install_microprice_confirm_loss_streak_guard
 del _install_microprice_confirm_optimization_shadows
 del _install_microprice_confirm_stale_exhausted_guard
 del _install_microprice_confirm_price_side_guard_live_patch
@@ -106,3 +115,4 @@ del _install_microprice_variant_relaxation
 del _install_microprice_variants
 del _install_microprice_dashboard_patch
 del _install_pair_arb_initial_capacity_patch
+del _install_loss_streak_guard_patch
