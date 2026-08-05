@@ -264,6 +264,135 @@ def _install_cooldown_transaction_guard(live: Any) -> None:
     ledger_class.consume_loss_cooldown = consume_without_stale_transaction
 
 
+def _install_settlement_reconciliation(live: Any, guard: Any) -> None:
+    """Repair a settlement committed before the guard state update failed."""
+    ledger_class = live.LiveLedger
+    original_state_lookup = ledger_class.loss_streak_guard_state
+    if getattr(original_state_lookup, "_loss_streak_hotfix_v4", False):
+        return
+
+    @wraps(original_state_lookup)
+    def state_with_settlement_reconciliation(
+        self: Any,
+        strategy: str,
+    ) -> dict[str, Any]:
+        normalized = guard._strategy(strategy)
+        if not normalized or normalized.startswith("PAIR_ARB_"):
+            return original_state_lookup(self, strategy)
+
+        reconciling = getattr(_CACHE, "settlement_reconciliation", set())
+        if normalized in reconciling:
+            return original_state_lookup(self, normalized)
+        previous = set(reconciling)
+        reconciling = set(reconciling)
+        reconciling.add(normalized)
+        _CACHE.settlement_reconciliation = reconciling
+        try:
+            current = original_state_lookup(self, normalized)
+            last_processed_id = int(current.get("lastLiveOrderLocalId") or 0)
+            with self.lock:
+                rows = self.db.execute(
+                    """SELECT o.id, o.strategy, o.market_id,
+                              s.result, s.pnl_usdt
+                         FROM live_orders AS o
+                         JOIN live_strategy_settlements AS s
+                           ON s.order_local_id=o.id
+                         LEFT JOIN live_strategy_loss_streak_guard_results AS g
+                           ON g.order_local_id=o.id
+                        WHERE UPPER(o.strategy)=?
+                          AND o.id>?
+                          AND g.order_local_id IS NULL
+                          AND UPPER(s.result) IN ('WIN','LOSS')
+                        ORDER BY o.id ASC""",
+                    (normalized, last_processed_id),
+                ).fetchall()
+                if self.db.in_transaction:
+                    self.db.commit()
+
+            repaired = 0
+            for row in rows:
+                guard._record_live_result(
+                    self,
+                    order={
+                        "id": int(row["id"]),
+                        "strategy": str(row["strategy"]),
+                        "market_id": int(row["market_id"]),
+                    },
+                    settlement={
+                        "result": str(row["result"]).upper(),
+                        "pnl_usdt": float(row["pnl_usdt"]),
+                    },
+                    utc_iso=live.utc_iso,
+                )
+                repaired += 1
+
+            if repaired:
+                self.record_event(
+                    "WARN",
+                    "LOSS_STREAK_SETTLEMENT_RECONCILED",
+                    (
+                        f"{normalized} reconciled {repaired} official settlement(s) "
+                        "that were committed before the loss-streak state update"
+                    ),
+                )
+            return original_state_lookup(self, normalized)
+        except Exception as exc:
+            with self.lock:
+                if self.db.in_transaction:
+                    self.db.rollback()
+                self.db.execute(
+                    """UPDATE live_strategy_loss_streak_guard_state
+                          SET last_error=?, updated_at=?
+                        WHERE strategy=?""",
+                    (
+                        f"settlement reconciliation failed: {str(exc)[:180]}",
+                        live.utc_iso(),
+                        normalized,
+                    ),
+                )
+                self.db.commit()
+            return original_state_lookup(self, normalized)
+        finally:
+            _CACHE.settlement_reconciliation = previous
+
+    state_with_settlement_reconciliation._loss_streak_hotfix_v4 = True  # type: ignore[attr-defined]
+    ledger_class.loss_streak_guard_state = state_with_settlement_reconciliation
+
+    original_manual_settlement = ledger_class.record_manual_exit_settlement
+    if not getattr(original_manual_settlement, "_loss_streak_hotfix_v4", False):
+        @wraps(original_manual_settlement)
+        def manual_settlement_with_loss_streak_guard(
+            self: Any,
+            exit_id: int,
+        ) -> dict[str, Any] | None:
+            settlement = original_manual_settlement(self, exit_id)
+            if isinstance(settlement, dict):
+                try:
+                    guard._record_live_result(
+                        self,
+                        order={
+                            "id": int(settlement["order_local_id"]),
+                            "strategy": str(settlement.get("strategy") or ""),
+                            "market_id": int(settlement["market_id"]),
+                        },
+                        settlement=settlement,
+                        utc_iso=live.utc_iso,
+                    )
+                except Exception as exc:
+                    self.record_event(
+                        "ERROR",
+                        "LOSS_STREAK_MANUAL_SETTLEMENT_UPDATE_FAILED",
+                        str(exc)[:400],
+                        int(settlement.get("market_id") or 0) or None,
+                    )
+            return settlement
+
+        manual_settlement_with_loss_streak_guard._loss_streak_hotfix_v4 = True  # type: ignore[attr-defined]
+        ledger_class.record_manual_exit_settlement = (
+            manual_settlement_with_loss_streak_guard
+        )
+
+
 def _install_mutually_exclusive_loss_protection(live: Any, guard: Any) -> None:
     """A strategy slot may use cooldown or Shadow guard, never both."""
     original_normalize = live.normalize_live_rules
@@ -367,5 +496,6 @@ def install_loss_streak_guard_hotfix() -> None:
     _install_shadow_sync_transaction_fix(guard)
     _install_public_state_transaction_fix(guard)
     _install_cooldown_transaction_guard(live)
+    _install_settlement_reconciliation(live, guard)
     _install_mutually_exclusive_loss_protection(live, guard)
     _install_partial_live_rule_update(live, guard)
