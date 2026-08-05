@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 
 const SYNC_MS = 1_500;
+const LIVE_RULE_REFRESH_MS = 5_000;
+const CALIBRATED_CONFIRM_V2 = "R_CALIBRATED_VALUE_CONFIRM_V2";
 const LEGACY_NATIVE_SOURCE_SET = [
   "R_MICROPRICE",
   "R_CALIBRATED_VALUE",
@@ -13,8 +15,23 @@ const LIVE_STRATEGY_LABEL_OVERRIDES: Record<string, string> = {
   R_MICROPRICE_CONFIRM: "研究實單 · Microprice 雙事件確認順勢",
   R_MICROPRICE_CONFIRM_PRICE_SIDE_GUARD: "研究實單 · Microprice Confirm V2 · 方向價格防護",
   R_MICROPRICE_CONFIRM_EXIT_098: "研究實單 · Microprice Confirm V2 · 0.98 提前退出",
-  R_CALIBRATED_VALUE_CONFIRM_V2: "研究實單 · Calibrated Value 多事件確認順勢 V2",
+  [CALIBRATED_CONFIRM_V2]: "研究實單 · Calibrated Value 多事件確認順勢 V2",
 };
+
+const draftStrategySelections = new Map<number, string>();
+let savedLiveStrategies: string[] = [];
+
+function apiUrl(path: string) {
+  const hostname = window.location.hostname;
+  const host = hostname.includes(":") ? `[${hostname}]` : hostname;
+  return `${window.location.protocol}//${host}:8766${path}`;
+}
+
+function strategySlot(select: HTMLSelectElement) {
+  const match = (select.getAttribute("aria-label") ?? "")
+    .match(/^實單策略\s+(\d+)$/);
+  return match ? Number(match[1]) - 1 : null;
+}
 
 function isLegacyConfirmationSourceSet(
   target: Set<unknown>,
@@ -22,6 +39,22 @@ function isLegacyConfirmationSourceSet(
 ) {
   return target.size === LEGACY_NATIVE_SOURCE_SET.length
     && LEGACY_NATIVE_SOURCE_SET.every(value => originalHas.call(target, value));
+}
+
+async function refreshSavedLiveStrategies() {
+  if (document.visibilityState !== "visible") return;
+  try {
+    const response = await fetch(apiUrl("/api/live-rules"), { cache: "no-store" });
+    if (!response.ok) return;
+    const body = await response.json() as {
+      rules?: { strategies?: string[] };
+      liveM0W?: { rules?: { strategies?: string[] } };
+    };
+    const strategies = body.rules?.strategies ?? body.liveM0W?.rules?.strategies;
+    if (Array.isArray(strategies)) savedLiveStrategies = strategies.map(String);
+  } catch {
+    // The main dashboard owns connection errors; keep the last good snapshot.
+  }
 }
 
 function synchronizeResearchCards() {
@@ -41,7 +74,7 @@ function synchronizeResearchCards() {
   }
 
   const calibratedCard = document.querySelector<HTMLElement>(
-    '[data-calibrated-strategy="R_CALIBRATED_VALUE_CONFIRM_V2"]',
+    `[data-calibrated-strategy="${CALIBRATED_CONFIRM_V2}"]`,
   );
   if (!calibratedCard) return;
   const badge = calibratedCard.querySelector<HTMLElement>(".m-exit-id");
@@ -73,6 +106,13 @@ function synchronizeOptions() {
       }
       if (option.textContent !== label) option.textContent = label;
     });
+
+    const slot = strategySlot(strategySelect);
+    if (slot == null) return;
+    const desired = draftStrategySelections.get(slot) ?? savedLiveStrategies[slot];
+    if (desired === CALIBRATED_CONFIRM_V2 && strategySelect.value !== desired) {
+      strategySelect.value = desired;
+    }
   });
 
   document.querySelectorAll<HTMLSelectElement>(
@@ -122,20 +162,36 @@ export default function ConfirmationAddModeOptionGuardFast() {
     });
 
     const scheduleSync = () => window.requestAnimationFrame(synchronizeOptions);
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") scheduleSync();
+    const handleChange = (event: Event) => {
+      const target = event.target;
+      if (target instanceof HTMLSelectElement) {
+        const slot = strategySlot(target);
+        if (slot != null) draftStrategySelections.set(slot, target.value);
+      }
+      scheduleSync();
     };
-    document.addEventListener("change", scheduleSync, true);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshSavedLiveStrategies().then(scheduleSync);
+      }
+    };
+    document.addEventListener("change", handleChange, true);
     document.addEventListener("focusin", scheduleSync, true);
     document.addEventListener("visibilitychange", handleVisibility);
+    void refreshSavedLiveStrategies().then(scheduleSync);
     synchronizeOptions();
     const timer = window.setInterval(synchronizeOptions, SYNC_MS);
+    const rulesTimer = window.setInterval(() => {
+      void refreshSavedLiveStrategies().then(scheduleSync);
+    }, LIVE_RULE_REFRESH_MS);
 
     return () => {
       window.clearInterval(timer);
-      document.removeEventListener("change", scheduleSync, true);
+      window.clearInterval(rulesTimer);
+      document.removeEventListener("change", handleChange, true);
       document.removeEventListener("focusin", scheduleSync, true);
       document.removeEventListener("visibilitychange", handleVisibility);
+      draftStrategySelections.clear();
       if (Set.prototype.has === universalHas) {
         Object.defineProperty(Set.prototype, "has", {
           configurable: true,
