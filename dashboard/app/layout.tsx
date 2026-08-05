@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import CalibratedConfirmationLab from "./calibrated-confirmation-lab";
 import ConfirmationAddModeOptionGuardFast from "./confirmation-add-mode-option-guard-fast";
+import LossStreakGuardDashboard from "./loss-streak-guard-dashboard";
 import MicropriceStaleExhaustedGuardDashboard from "./microprice-stale-exhausted-guard-dashboard";
 import ResearchDashboardEnhancements from "./research-dashboard-enhancements";
 import "./globals.css";
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {children}
       <ResearchDashboardEnhancements />
       <MicropriceStaleExhaustedGuardDashboard />
+      <LossStreakGuardDashboard />
       <CalibratedConfirmationLab />
       <ConfirmationAddModeOptionGuardFast />
     </body>
