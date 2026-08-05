@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSharedDashboardState } from "./shared-dashboard-state";
 
@@ -94,7 +94,7 @@ function pct(value: number | null | undefined) {
 
 function modeText(mode: string | undefined) {
   if (mode === "SHADOW") return "SHADOW 暫停實單";
-  if (mode === "PROBATION") return "PROBATION 半倉觀察";
+  if (mode === "PROBATION") return "PROBATION 降額觀察";
   return "NORMAL 正常執行";
 }
 
@@ -104,9 +104,9 @@ function stateDetail(state: GuardState | undefined) {
     return `Paper ${state.shadowSampleCount ?? 0}/3 · 最近三筆 PnL ${money(state.latestShadowPnlSum)}`;
   }
   if (state.mode === "PROBATION") {
-    return `剩餘 ${state.probationRemaining ?? 0} 筆半倉勝利驗證`;
+    return `剩餘 ${state.probationRemaining ?? 0} 筆降額勝利驗證`;
   }
-  return `目前連敗 ${state.consecutiveLosses ?? 0}/3${state.consecutiveLosses === 2 ? " · 下一筆半倉" : ""}`;
+  return `目前連敗 ${state.consecutiveLosses ?? 0}/3${state.consecutiveLosses === 2 ? " · 下一筆降額" : ""}`;
 }
 
 function InlineLossStreakControl({
@@ -114,6 +114,7 @@ function InlineLossStreakControl({
   index,
   enabled,
   state,
+  dirty,
   saving,
   error,
   onChange,
@@ -122,6 +123,7 @@ function InlineLossStreakControl({
   index: number;
   enabled: boolean;
   state?: GuardState;
+  dirty: boolean;
   saving: boolean;
   error?: string;
   onChange: (index: number, enabled: boolean) => void;
@@ -139,14 +141,16 @@ function InlineLossStreakControl({
     </select>
     <small>
       {saving
-        ? "正在儲存…"
+        ? "正在套用連敗設定…"
         : error
           ? `儲存失敗：${error}`
-          : enabled
-            ? `${modeText(state?.mode)} · ${stateDetail(state)}`
-            : "關閉；不影響這個策略的實單。"}
+          : dirty
+            ? "尚未套用；請按下方「確認並套用新規則」"
+            : enabled
+              ? `${modeText(state?.mode)} · ${stateDetail(state)}`
+              : "關閉；不影響這個策略的實單。"}
     </small>
-    {enabled && <small>兩連敗後下一筆半倉；三連敗暫停。最近三筆 Paper PnL 合計轉正後，以兩筆半倉重新驗證。</small>}
+    {enabled && <small>兩連敗後下一筆使用 50% 本金，但最低維持 1 USDT；三連敗暫停。最近三筆 Paper PnL 合計轉正後，以兩筆降額單重新驗證。</small>}
     {state?.lastError && <small style={{ color: "#ffbd87" }}>{state.lastError}</small>}
   </>;
 }
@@ -188,10 +192,65 @@ function TestStrategyCard({ payload }: { payload: DashboardPayload | null }) {
 export default function LossStreakGuardDashboard() {
   const [ruleMounts, setRuleMounts] = useState<RuleMount[]>([]);
   const [researchTarget, setResearchTarget] = useState<HTMLElement | null>(null);
+  const [mainApplyButton, setMainApplyButton] = useState<HTMLButtonElement | null>(null);
   const [livePayload, setLivePayload] = useState<LiveRulesPayload | null>(null);
-  const [savingIndex, setSavingIndex] = useState<number | null>(null);
-  const [saveErrors, setSaveErrors] = useState<Record<number, string>>({});
+  const [draftFlags, setDraftFlags] = useState<boolean[]>(EMPTY_FLAGS);
+  const [customDirty, setCustomDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const draftFlagsRef = useRef<boolean[]>(EMPTY_FLAGS);
+  const customDirtyRef = useRef(false);
+  const savingRef = useRef(false);
+  const livePayloadRef = useRef<LiveRulesPayload | null>(null);
+  const mainSaveWatchRef = useRef<number | null>(null);
   const { payload } = useSharedDashboardState<DashboardPayload>();
+
+  useEffect(() => { draftFlagsRef.current = draftFlags; }, [draftFlags]);
+  useEffect(() => { customDirtyRef.current = customDirty; }, [customDirty]);
+  useEffect(() => { savingRef.current = saving; }, [saving]);
+  useEffect(() => { livePayloadRef.current = livePayload; }, [livePayload]);
+
+  const persistLossStreakDraft = async () => {
+    if (savingRef.current || !customDirtyRef.current) return true;
+    const currentPayload = livePayloadRef.current;
+    const strategies = currentPayload?.rules?.strategies ?? EMPTY_STRATEGIES;
+    const flags = strategies.map((_, index) => Boolean(draftFlagsRef.current[index]));
+    if (!strategies.length) {
+      setSaveError("尚未讀到實單策略列表");
+      return false;
+    }
+
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError("");
+    try {
+      const response = await fetch(apiUrl("/api/live-rules"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [RULE_FIELD]: flags }),
+      });
+      const body = await response.json() as {
+        liveM0W?: LiveRulesPayload;
+        error?: string;
+      } & LiveRulesPayload;
+      if (!response.ok) throw new Error(body.error ?? `後端拒絕連敗過濾設定（HTTP ${response.status}）`);
+      const next = body.liveM0W ?? body;
+      setLivePayload(next);
+      livePayloadRef.current = next;
+      const saved = next.rules?.strategyLossStreakGuardEnabled ?? flags;
+      setDraftFlags(saved);
+      draftFlagsRef.current = saved;
+      setCustomDirty(false);
+      customDirtyRef.current = false;
+      return true;
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "未知錯誤");
+      return false;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -201,6 +260,7 @@ export default function LossStreakGuardDashboard() {
       const editor = document.querySelector<HTMLElement>(LIVE_RULES_TARGET);
       if (!editor) {
         setRuleMounts([]);
+        setMainApplyButton(null);
       } else {
         const baseLabels = Array.from(editor.querySelectorAll<HTMLLabelElement>("label:not([data-loss-streak-inline-mount])"));
         const drawdownLabels = baseLabels.filter(label => /回撤控制器/.test(label.textContent ?? ""));
@@ -226,6 +286,8 @@ export default function LossStreakGuardDashboard() {
             && current.every((item, index) => item.index === nextMounts[index].index && item.element === nextMounts[index].element);
           return unchanged ? current : nextMounts;
         });
+        const apply = editor.querySelector<HTMLButtonElement>(".live-rules-actions button:not(.secondary)");
+        setMainApplyButton(current => current === apply ? current : apply);
       }
 
       const research = document.querySelector<HTMLElement>(RESEARCH_TARGET);
@@ -239,7 +301,13 @@ export default function LossStreakGuardDashboard() {
         const response = await fetch(apiUrl("/api/live-rules"), { cache: "no-store" });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const body = await response.json() as LiveRulesPayload;
-        if (active && savingIndex == null) setLivePayload(body);
+        if (active && !customDirtyRef.current && !savingRef.current) {
+          setLivePayload(body);
+          livePayloadRef.current = body;
+          const saved = body.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
+          setDraftFlags(saved);
+          draftFlagsRef.current = saved;
+        }
       } catch {
         // Main dashboard owns the connection error display. Keep the last snapshot.
       } finally {
@@ -257,54 +325,88 @@ export default function LossStreakGuardDashboard() {
       document.removeEventListener("click", locate, true);
       document.querySelectorAll("label[data-loss-streak-inline-mount]").forEach(mount => mount.remove());
     };
-  }, [savingIndex]);
+  }, []);
 
-  const changeRule = async (index: number, enabled: boolean) => {
+  useEffect(() => {
+    if (!mainApplyButton) return;
+    const editor = mainApplyButton.closest<HTMLElement>(LIVE_RULES_TARGET);
+
+    const keepEnabledForCustomDraft = () => {
+      if (customDirtyRef.current && mainApplyButton.disabled) {
+        mainApplyButton.disabled = false;
+      }
+    };
+
+    const waitForMainSave = () => {
+      if (mainSaveWatchRef.current != null) window.clearInterval(mainSaveWatchRef.current);
+      let sawSaving = false;
+      let ticks = 0;
+      mainSaveWatchRef.current = window.setInterval(async () => {
+        ticks += 1;
+        const buttonText = mainApplyButton.textContent ?? "";
+        const headerText = editor?.querySelector(".live-rules-head > span")?.textContent ?? "";
+        if (buttonText.includes("儲存中")) sawSaving = true;
+        if (sawSaving && headerText.includes("規則已儲存")) {
+          if (mainSaveWatchRef.current != null) window.clearInterval(mainSaveWatchRef.current);
+          mainSaveWatchRef.current = null;
+          await persistLossStreakDraft();
+          return;
+        }
+        if ((sawSaving && !buttonText.includes("儲存中") && editor?.querySelector(".live-rules-head .dirty")) || ticks >= 120) {
+          if (mainSaveWatchRef.current != null) window.clearInterval(mainSaveWatchRef.current);
+          mainSaveWatchRef.current = null;
+        }
+      }, 100);
+    };
+
+    const handleApply = async (event: MouseEvent) => {
+      if (!customDirtyRef.current || savingRef.current) return;
+      const mainRulesDirty = Boolean(editor?.querySelector(".live-rules-head .dirty"));
+      if (mainRulesDirty) {
+        waitForMainSave();
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      const strategies = livePayloadRef.current?.rules?.strategies ?? EMPTY_STRATEGIES;
+      const summary = strategies.map((strategy, index) => (
+        `${strategy}：${draftFlagsRef.current[index] ? "啟用" : "關閉"}`
+      )).join("、");
+      if (!window.confirm(`確定更新正式實單連敗過濾？\n\n${summary}\n\n新規則只影響之後的新訊號，不會修改既有訂單。`)) return;
+      await persistLossStreakDraft();
+    };
+
+    keepEnabledForCustomDraft();
+    const observer = new MutationObserver(keepEnabledForCustomDraft);
+    observer.observe(mainApplyButton, { attributes: true, attributeFilter: ["disabled"] });
+    mainApplyButton.addEventListener("click", handleApply, true);
+    return () => {
+      observer.disconnect();
+      mainApplyButton.removeEventListener("click", handleApply, true);
+      if (mainSaveWatchRef.current != null) {
+        window.clearInterval(mainSaveWatchRef.current);
+        mainSaveWatchRef.current = null;
+      }
+    };
+  }, [mainApplyButton, customDirty]);
+
+  const changeRule = (index: number, enabled: boolean) => {
     const strategies = livePayload?.rules?.strategies ?? EMPTY_STRATEGIES;
-    const currentFlags = livePayload?.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
-    if (!strategies[index] || savingIndex != null) return;
-    const nextFlags = strategies.map((_, slot) => slot === index ? enabled : Boolean(currentFlags[slot]));
-    const previous = livePayload;
-    setLivePayload(current => current ? {
-      ...current,
-      rules: {
-        ...current.rules,
-        strategies,
-        strategyLossStreakGuardEnabled: nextFlags,
-      },
-    } : current);
-    setSavingIndex(index);
-    setSaveErrors(current => {
-      const next = { ...current };
-      delete next[index];
-      return next;
-    });
-
-    try {
-      const response = await fetch(apiUrl("/api/live-rules"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [RULE_FIELD]: nextFlags }),
-      });
-      const body = await response.json() as {
-        liveM0W?: LiveRulesPayload;
-        error?: string;
-      } & LiveRulesPayload;
-      if (!response.ok) throw new Error(body.error ?? `後端拒絕連敗過濾設定（HTTP ${response.status}）`);
-      setLivePayload(body.liveM0W ?? body);
-    } catch (error) {
-      setLivePayload(previous);
-      setSaveErrors(current => ({
-        ...current,
-        [index]: error instanceof Error ? error.message : "未知錯誤",
-      }));
-    } finally {
-      setSavingIndex(null);
-    }
+    if (!strategies[index] || savingRef.current) return;
+    const next = strategies.map((_, slot) => (
+      slot === index ? enabled : Boolean(draftFlagsRef.current[slot])
+    ));
+    setDraftFlags(next);
+    draftFlagsRef.current = next;
+    setCustomDirty(true);
+    customDirtyRef.current = true;
+    setSaveError("");
+    if (mainApplyButton) mainApplyButton.disabled = false;
   };
 
   const strategies = livePayload?.rules?.strategies ?? EMPTY_STRATEGIES;
-  const flags = livePayload?.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
+  const flags = strategies.map((_, index) => Boolean(draftFlags[index]));
   const states = livePayload?.strategyLossStreakGuardStates ?? [];
   const testCard = useMemo(() => <TestStrategyCard payload={payload} />, [payload]);
 
@@ -315,8 +417,9 @@ export default function LossStreakGuardDashboard() {
         index={index}
         enabled={Boolean(flags[index])}
         state={states[index]}
-        saving={savingIndex === index}
-        error={saveErrors[index]}
+        dirty={customDirty}
+        saving={saving}
+        error={saveError}
         onChange={changeRule}
       />,
       element,
