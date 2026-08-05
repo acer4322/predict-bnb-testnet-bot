@@ -50,11 +50,15 @@ def _candidate_engine(status: str, *, exit_status: str | None = None):
     )
 
 
-def test_exit_candidates_include_filled_and_partial_positions() -> None:
-    for status in ("FILLED", "PARTIAL", "OPEN", "CANCELED", "EXPIRED"):
+def test_exit_candidates_include_only_stable_position_quantities() -> None:
+    for status in ("FILLED", "CANCELED", "EXPIRED", "REJECTED", "FAILED"):
         engine = _candidate_engine(status)
         candidates = exit_patch._live_exit_candidates(engine, 101)
         assert [row["id"] for row in candidates] == [1]
+
+    for status in ("PARTIAL", "PARTIALLY_FILLED", "OPEN", "PENDING"):
+        engine = _candidate_engine(status)
+        assert exit_patch._live_exit_candidates(engine, 101) == []
 
 
 def test_exit_candidates_do_not_duplicate_active_protection_order() -> None:
