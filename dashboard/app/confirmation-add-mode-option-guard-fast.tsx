@@ -13,6 +13,7 @@ const LIVE_STRATEGY_LABEL_OVERRIDES: Record<string, string> = {
   R_MICROPRICE_CONFIRM: "研究實單 · Microprice 雙事件確認順勢",
   R_MICROPRICE_CONFIRM_PRICE_SIDE_GUARD: "研究實單 · Microprice Confirm V2 · 方向價格防護",
   R_MICROPRICE_CONFIRM_EXIT_098: "研究實單 · Microprice Confirm V2 · 0.98 提前退出",
+  R_CALIBRATED_VALUE_CONFIRM_V2: "研究實單 · Calibrated Value 多事件確認順勢 V2",
 };
 
 function isLegacyConfirmationSourceSet(
@@ -23,18 +24,36 @@ function isLegacyConfirmationSourceSet(
     && LEGACY_NATIVE_SOURCE_SET.every(value => originalHas.call(target, value));
 }
 
-function synchronizeResearchCard() {
-  const card = document.querySelector<HTMLElement>(
+function synchronizeResearchCards() {
+  const micropriceCard = document.querySelector<HTMLElement>(
     '[data-research-enhancement="R_MICROPRICE_CONFIRM_PRICE_SIDE_GUARD"]',
   );
-  if (!card) return;
-  const badge = card.querySelector<HTMLElement>(".m-exit-id");
+  if (micropriceCard) {
+    const badge = micropriceCard.querySelector<HTMLElement>(".m-exit-id");
+    if (badge && badge.textContent !== "PAPER + LIVE SELECTABLE") {
+      badge.textContent = "PAPER + LIVE SELECTABLE";
+    }
+    Array.from(micropriceCard.querySelectorAll<HTMLElement>("small")).forEach(item => {
+      if (item.textContent === "用來 forward 驗證方向 × 價格死區。") {
+        item.textContent = "保留獨立 paper 帳本；只有在實單設定明確選取時才轉送，並再次檢查實際簽名報價不得進入方向價格死區。";
+      }
+    });
+  }
+
+  const calibratedCard = document.querySelector<HTMLElement>(
+    '[data-calibrated-strategy="R_CALIBRATED_VALUE_CONFIRM_V2"]',
+  );
+  if (!calibratedCard) return;
+  const badge = calibratedCard.querySelector<HTMLElement>(".m-exit-id");
   if (badge && badge.textContent !== "PAPER + LIVE SELECTABLE") {
     badge.textContent = "PAPER + LIVE SELECTABLE";
   }
-  Array.from(card.querySelectorAll<HTMLElement>("small")).forEach(item => {
-    if (item.textContent === "用來 forward 驗證方向 × 價格死區。") {
-      item.textContent = "保留獨立 paper 帳本；只有在實單設定明確選取時才轉送，並再次檢查實際簽名報價不得進入方向價格死區。";
+  Array.from(calibratedCard.querySelectorAll<HTMLElement>("small")).forEach(item => {
+    if (item.textContent?.includes("不回填、不轉送實單")) {
+      item.textContent = item.textContent.replace(
+        "不回填、不轉送實單",
+        "不回填；只有實單設定明確選取時才轉送正向 Confirm V2",
+      );
     }
   });
 }
@@ -46,8 +65,13 @@ function synchronizeOptions() {
     'select[aria-label^="實單策略 "]:not([aria-label$="資金模式"])',
   ).forEach(strategySelect => {
     Object.entries(LIVE_STRATEGY_LABEL_OVERRIDES).forEach(([strategy, label]) => {
-      const option = Array.from(strategySelect.options).find(item => item.value === strategy);
-      if (option && option.textContent !== label) option.textContent = label;
+      let option = Array.from(strategySelect.options).find(item => item.value === strategy);
+      if (!option) {
+        option = document.createElement("option");
+        option.value = strategy;
+        strategySelect.appendChild(option);
+      }
+      if (option.textContent !== label) option.textContent = label;
     });
   });
 
@@ -71,7 +95,7 @@ function synchronizeOptions() {
     if (option.textContent !== desiredText) option.textContent = desiredText;
   });
 
-  synchronizeResearchCard();
+  synchronizeResearchCards();
 }
 
 export default function ConfirmationAddModeOptionGuardFast() {
