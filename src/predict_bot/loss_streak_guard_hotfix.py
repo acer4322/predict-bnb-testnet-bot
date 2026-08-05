@@ -214,6 +214,105 @@ def _install_shadow_sync_transaction_fix(guard: Any) -> None:
     guard._sync_shadow = sync_shadow_without_nested_transaction
 
 
+def _install_public_state_transaction_fix(guard: Any) -> None:
+    """Do not leave a write transaction open after a dashboard state lookup."""
+    original_public_state = guard._public_state
+    if getattr(original_public_state, "_loss_streak_hotfix_v3", False):
+        return
+
+    @wraps(original_public_state)
+    def public_state_with_closed_transaction(
+        ledger: Any,
+        strategy: str,
+        utc_iso: Any,
+    ) -> dict[str, Any]:
+        try:
+            result = original_public_state(ledger, strategy, utc_iso)
+        except Exception:
+            with ledger.lock:
+                if ledger.db.in_transaction:
+                    ledger.db.rollback()
+            raise
+        with ledger.lock:
+            if ledger.db.in_transaction:
+                ledger.db.commit()
+        return result
+
+    public_state_with_closed_transaction._loss_streak_hotfix_v3 = True  # type: ignore[attr-defined]
+    guard._public_state = public_state_with_closed_transaction
+
+
+def _install_cooldown_transaction_guard(live: Any) -> None:
+    """Close only stale top-level transactions before the atomic cooldown consume."""
+    ledger_class = live.LiveLedger
+    original_consume = ledger_class.consume_loss_cooldown
+    if getattr(original_consume, "_loss_streak_hotfix_v3", False):
+        return
+
+    @wraps(original_consume)
+    def consume_without_stale_transaction(
+        self: Any,
+        strategy: str,
+        market_id: int,
+    ) -> tuple[bool, dict[str, Any]]:
+        with self.lock:
+            if self.db.in_transaction:
+                self.db.commit()
+        return original_consume(self, strategy, market_id)
+
+    consume_without_stale_transaction._loss_streak_hotfix_v3 = True  # type: ignore[attr-defined]
+    ledger_class.consume_loss_cooldown = consume_without_stale_transaction
+
+
+def _install_mutually_exclusive_loss_protection(live: Any, guard: Any) -> None:
+    """A strategy slot may use cooldown or Shadow guard, never both."""
+    original_normalize = live.normalize_live_rules
+    if getattr(original_normalize, "_loss_protection_exclusive_v1", False):
+        return
+
+    @wraps(original_normalize)
+    def normalize_with_exclusive_loss_protection(
+        values: dict[str, Any],
+        current: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        normalized = original_normalize(values, current)
+        strategies = list(normalized.get("strategies", []))
+        count = len(strategies)
+        cooldown = [
+            bool(value)
+            for value in (
+                list(normalized.get("strategyLossCooldownEnabled", []))
+                + [False] * count
+            )[:count]
+        ]
+        shadow = [
+            bool(value)
+            for value in (
+                list(normalized.get(guard.LOSS_STREAK_RULE_FIELD, []))
+                + [False] * count
+            )[:count]
+        ]
+        explicit_shadow = isinstance(values, dict) and guard.LOSS_STREAK_RULE_FIELD in values
+        explicit_cooldown = isinstance(values, dict) and "strategyLossCooldownEnabled" in values
+
+        for index in range(count):
+            if explicit_shadow and not explicit_cooldown and shadow[index]:
+                cooldown[index] = False
+            elif explicit_cooldown and not explicit_shadow and cooldown[index]:
+                shadow[index] = False
+            elif shadow[index] and cooldown[index]:
+                # Existing persisted conflicts are migrated to the more complete
+                # Shadow state machine instead of leaving two blockers active.
+                cooldown[index] = False
+
+        normalized["strategyLossCooldownEnabled"] = cooldown
+        normalized[guard.LOSS_STREAK_RULE_FIELD] = shadow
+        return normalized
+
+    normalize_with_exclusive_loss_protection._loss_protection_exclusive_v1 = True  # type: ignore[attr-defined]
+    live.normalize_live_rules = normalize_with_exclusive_loss_protection
+
+
 def _install_partial_live_rule_update(live: Any, guard: Any) -> None:
     engine_class = live.LiveM0WEngine
     original_update = engine_class.update_live_rules
@@ -248,7 +347,9 @@ def _install_partial_live_rule_update(live: Any, guard: Any) -> None:
             "LOSS_STREAK_GUARD_RULE_UPDATED",
             (
                 "loss-streak guard per strategy updated to "
-                f"{updated[guard.LOSS_STREAK_RULE_FIELD]}"
+                f"{updated[guard.LOSS_STREAK_RULE_FIELD]}; "
+                "two-loss cooldown normalized to "
+                f"{updated['strategyLossCooldownEnabled']}"
             ),
         )
         return self.state()
@@ -264,4 +365,7 @@ def install_loss_streak_guard_hotfix() -> None:
 
     _install_cached_shadow_floor_lookup(guard)
     _install_shadow_sync_transaction_fix(guard)
+    _install_public_state_transaction_fix(guard)
+    _install_cooldown_transaction_guard(live)
+    _install_mutually_exclusive_loss_protection(live, guard)
     _install_partial_live_rule_update(live, guard)
