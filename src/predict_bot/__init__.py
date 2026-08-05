@@ -30,6 +30,9 @@ from .microprice_confirm_exit_098_live_patch import (
 from .microprice_confirm_exit_098_live_v2_patch import (
     install_microprice_confirm_exit_098_live_v2_patch as _install_microprice_confirm_exit_098_live_v2_patch,
 )
+from .microprice_confirm_exit_098_live_v3_patch import (
+    install_microprice_confirm_exit_098_live_v3_patch as _install_microprice_confirm_exit_098_live_v3_patch,
+)
 from .microprice_confirm_live_patch import (
     install_microprice_confirm_live_patch as _install_microprice_confirm_live_patch,
 )
@@ -68,6 +71,7 @@ _install_calibrated_value_confirmation_filters()
 _install_microprice_confirm_live_patch()
 _install_microprice_confirm_exit_098_live_patch()
 _install_microprice_confirm_exit_098_live_v2_patch()
+_install_microprice_confirm_exit_098_live_v3_patch()
 _install_microprice_confirm_exit_098_entry_guard_patch()
 _install_microprice_confirm_exit_098_horizon_patch()
 _install_microprice_confirm_price_side_guard_live_patch()
@@ -83,6 +87,7 @@ del _install_microprice_confirm_exit_098_entry_guard_patch
 del _install_microprice_confirm_exit_098_horizon_patch
 del _install_microprice_confirm_exit_098_live_patch
 del _install_microprice_confirm_exit_098_live_v2_patch
+del _install_microprice_confirm_exit_098_live_v3_patch
 del _install_microprice_confirm_live_patch
 del _install_microprice_confirm_optimization_shadows
 del _install_microprice_confirm_price_side_guard_live_patch
