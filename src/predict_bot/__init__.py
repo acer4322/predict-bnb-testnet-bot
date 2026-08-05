@@ -1,5 +1,8 @@
 """Predict.fun BNB Testnet research bot."""
 
+from .calibrated_value_confirm_v2_live_patch import (
+    install_calibrated_value_confirm_v2_live_patch as _install_calibrated_value_confirm_v2_live_patch,
+)
 from .calibrated_value_confirmation_filters import (
     install_calibrated_value_confirmation_filters as _install_calibrated_value_confirmation_filters,
 )
@@ -97,10 +100,12 @@ _install_microprice_confirm_exit_098_entry_guard_patch()
 _install_microprice_confirm_exit_098_horizon_patch()
 _install_microprice_confirm_price_side_guard_live_patch()
 _install_confirmation_add_sources_patch()
+_install_calibrated_value_confirm_v2_live_patch()
 _install_pair_arb_initial_capacity_patch()
 _install_loss_streak_guard_patch()
 _install_loss_streak_guard_hotfix()
 _install_loss_streak_minimum_stake_patch()
+del _install_calibrated_value_confirm_v2_live_patch
 del _install_calibrated_value_confirmation_filters
 del _install_calibrated_value_confirmation_variants
 del _install_confirmation_add_sources_patch
