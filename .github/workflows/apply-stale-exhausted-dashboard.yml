@@ -1,15 +1,20 @@
 name: Apply stale exhausted dashboard patch
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/regime-guard
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
 
 permissions:
   contents: write
 
 jobs:
   apply-dashboard-patch:
+    if: github.head_ref == 'feature/regime-guard'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,21 +42,28 @@ jobs:
               text = path.read_text(encoding="utf-8")
               count = text.count(old)
               if count != 1:
-                  raise RuntimeError(f"{path}: expected one exact match, found {count}: {old[:120]!r}")
+                  raise RuntimeError(f"{path}: expected one exact match, found {count}: {old[:160]!r}")
               path.write_text(text.replace(old, new), encoding="utf-8")
 
           def replace_first(path: Path, old: str, new: str) -> None:
               text = path.read_text(encoding="utf-8")
               if old not in text:
-                  raise RuntimeError(f"{path}: missing first-match marker: {old[:120]!r}")
+                  raise RuntimeError(f"{path}: missing first-match marker: {old[:160]!r}")
               path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
           def insert_before_once(path: Path, marker: str, block: str) -> None:
               text = path.read_text(encoding="utf-8")
               count = text.count(marker)
               if count != 1:
-                  raise RuntimeError(f"{path}: expected one insertion marker, found {count}: {marker[:120]!r}")
+                  raise RuntimeError(f"{path}: expected one insertion marker, found {count}: {marker[:160]!r}")
               path.write_text(text.replace(marker, block + marker), encoding="utf-8")
+
+          def insert_after_once(path: Path, marker: str, block: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(marker)
+              if count != 1:
+                  raise RuntimeError(f"{path}: expected one insertion marker, found {count}: {marker[:160]!r}")
+              path.write_text(text.replace(marker, marker + block), encoding="utf-8")
 
           page = Path("dashboard/app/page.tsx")
           test = Path("dashboard/tests/rendered-html.test.mjs")
@@ -125,20 +137,16 @@ jobs:
           replace_once(page, "<strong>5 主策略＋12 Shadow</strong>", "<strong>5 主策略＋15 Shadow</strong>")
           replace_once(page, "新增兩組持續校準 V2 · 全部 paper only", "新增低價舊簿／訊號衰竭 Guard · 全部 paper only")
 
-          replace_once(
-              page,
-              '''        const continuousCalibration = data?.strategies?.[card.id]?.continuousCalibration;
-                  const directionControl = data?.strategies?.[card.id]?.directionControl;''',
-              '''        const continuousCalibration = data?.strategies?.[card.id]?.continuousCalibration;
-                  const staleExhaustedExperiment = card.sourceGated ? data?.micropriceConfirmStaleExhaustedGuard : undefined;
+          continuous_marker = "        const continuousCalibration = data?.strategies?.[card.id]?.continuousCalibration;\n"
+          continuous_block = '''        const staleExhaustedExperiment = card.sourceGated ? data?.micropriceConfirmStaleExhaustedGuard : undefined;
                   const staleExhaustedStats = staleExhaustedExperiment?.strategies?.[card.id];
                   const staleExhaustedRules = staleExhaustedStats?.parameters;
                   const staleExhaustedLast = staleExhaustedExperiment?.runtime?.lastDecision;
                   const staleExhaustedReasons = Object.entries(staleExhaustedExperiment?.blockReasons ?? {})
                     .map(([reason, count]) => `${reason} ${count}`)
                     .join(" · ");
-                  const directionControl = data?.strategies?.[card.id]?.directionControl;''',
-          )
+          '''
+          insert_after_once(page, continuous_marker, continuous_block)
 
           replace_once(
               page,
@@ -159,24 +167,18 @@ jobs:
 
           replace_first(
               page,
-              '''          <div className="fields"><NumberField label="每筆模擬本金" name={stakeKey} value={stake} step={1} suffix="USDT" onChange={onConfig} /></div>
-                  <p>{card.rule}</p>''',
-              '''          {!card.sourceGated && <div className="fields"><NumberField label="每筆模擬本金" name={stakeKey} value={stake} step={1} suffix="USDT" onChange={onConfig} /></div>}
-                  <p>{card.rule}</p>''',
+              '          <div className="fields"><NumberField label="每筆模擬本金" name={stakeKey} value={stake} step={1} suffix="USDT" onChange={onConfig} /></div>\n',
+              '          {!card.sourceGated && <div className="fields"><NumberField label="每筆模擬本金" name={stakeKey} value={stake} step={1} suffix="USDT" onChange={onConfig} /></div>}\n',
           )
 
-          replace_once(
-              test,
-              '''  assert.match(page, /R_MICROPRICE/);
-            assert.match(page, /R_MICROPRICE: "研究實單 · Microprice 深度失衡"/);''',
-              '''  assert.match(page, /R_MICROPRICE/);
-            assert.match(page, /R_MICROPRICE_CONFIRM_STALE_EXHAUSTED_GUARD/);
+          test_marker = "  assert.match(page, /R_MICROPRICE/);\n"
+          test_block = '''  assert.match(page, /R_MICROPRICE_CONFIRM_STALE_EXHAUSTED_GUARD/);
             assert.match(page, /Microprice Confirm · 低價衰竭防守/);
             assert.match(page, /micropriceConfirmStaleExhaustedGuard/);
             assert.match(page, /SOURCE-GATED/);
             assert.match(page, /有效簿年齡/);
-            assert.match(page, /R_MICROPRICE: "研究實單 · Microprice 深度失衡"/);''',
-          )
+          '''
+          insert_after_once(test, test_marker, test_block)
           replace_once(
               test,
               "  assert.match(page, /五組主策略＋十組獨立 Shadow/);",
