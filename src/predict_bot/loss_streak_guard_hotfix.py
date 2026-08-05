@@ -59,6 +59,161 @@ def _install_cached_shadow_floor_lookup(guard: Any) -> None:
     guard._record_live_result = record_with_precomputed_shadow_floor
 
 
+def _install_shadow_sync_transaction_fix(guard: Any) -> None:
+    original_sync = guard._sync_shadow
+    if getattr(original_sync, "_loss_streak_hotfix_v2", False):
+        return
+
+    @wraps(original_sync)
+    def sync_shadow_without_nested_transaction(
+        ledger: Any,
+        strategy: str,
+        utc_iso: Any,
+    ) -> dict[str, Any]:
+        normalized = guard._strategy(strategy)
+        guard._ensure_schema(ledger)
+
+        with ledger.lock:
+            row = guard._state_row_locked(ledger, normalized, utc_iso)
+            if str(row["mode"] or "") != guard.LOSS_STREAK_MODE_SHADOW:
+                ledger.db.commit()
+                return guard._public_state(ledger, normalized, utc_iso)
+            cycle = int(row["shadow_cycle"] or 0)
+            floor = row["shadow_source_trade_id_floor"]
+            ledger.db.commit()
+
+        if floor is None:
+            fresh_floor, floor_error = guard._simulation_source_max_id(normalized)
+            with ledger.lock:
+                ledger.db.execute(
+                    """UPDATE live_strategy_loss_streak_guard_state
+                          SET shadow_source_trade_id_floor=?,
+                              last_error=?, updated_at=?
+                        WHERE strategy=?""",
+                    (fresh_floor, floor_error, utc_iso(), normalized),
+                )
+                ledger.db.commit()
+            if fresh_floor is None:
+                return guard._public_state(ledger, normalized, utc_iso)
+            floor = fresh_floor
+
+        with ledger.lock:
+            processed_rows = ledger.db.execute(
+                """SELECT source_trade_id
+                     FROM live_strategy_loss_streak_shadow_samples
+                    WHERE strategy=? AND shadow_cycle=?""",
+                (normalized, cycle),
+            ).fetchall()
+            processed = {int(item["source_trade_id"]) for item in processed_rows}
+            ledger.db.commit()
+
+        rows, shadow_error = guard._simulation_shadow_rows(
+            normalized,
+            source_id_floor=int(floor),
+            already_processed=processed,
+        )
+
+        with ledger.lock:
+            try:
+                ledger.db.execute("BEGIN IMMEDIATE")
+                for item in rows:
+                    status = str(item.get("status") or "").upper()
+                    pnl = float(item.get("pnl") or 0.0)
+                    result = (
+                        "WIN"
+                        if status == "SETTLED_WIN" or pnl > 0
+                        else "LOSS"
+                    )
+                    ledger.db.execute(
+                        """INSERT OR IGNORE INTO
+                           live_strategy_loss_streak_shadow_samples(
+                               strategy, shadow_cycle, source_trade_id, market_id,
+                               result, pnl_usdt, closed_at, processed_at
+                           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            normalized,
+                            cycle,
+                            int(item["id"]),
+                            int(item["market_id"]),
+                            result,
+                            pnl,
+                            item.get("closed_at"),
+                            utc_iso(),
+                        ),
+                    )
+                    ledger.db.execute(
+                        """UPDATE live_strategy_loss_streak_guard_state
+                              SET last_shadow_source_trade_id=?,
+                                  last_shadow_market_id=?, updated_at=?
+                            WHERE strategy=?""",
+                        (
+                            int(item["id"]),
+                            int(item["market_id"]),
+                            utc_iso(),
+                            normalized,
+                        ),
+                    )
+
+                latest = ledger.db.execute(
+                    """SELECT pnl_usdt
+                         FROM live_strategy_loss_streak_shadow_samples
+                        WHERE strategy=? AND shadow_cycle=?
+                        ORDER BY source_trade_id DESC LIMIT ?""",
+                    (
+                        normalized,
+                        cycle,
+                        guard.LOSS_STREAK_RECOVERY_SAMPLES,
+                    ),
+                ).fetchall()
+                latest_values = [float(item["pnl_usdt"]) for item in latest]
+                latest_sum = sum(latest_values) if latest_values else None
+                count_row = ledger.db.execute(
+                    """SELECT COUNT(*) AS count
+                         FROM live_strategy_loss_streak_shadow_samples
+                        WHERE strategy=? AND shadow_cycle=?""",
+                    (normalized, cycle),
+                ).fetchone()
+                sample_count = int(count_row["count"] or 0)
+                recovered = (
+                    sample_count >= guard.LOSS_STREAK_RECOVERY_SAMPLES
+                    and len(latest_values) == guard.LOSS_STREAK_RECOVERY_SAMPLES
+                    and latest_sum is not None
+                    and latest_sum > 0
+                )
+                ledger.db.execute(
+                    """UPDATE live_strategy_loss_streak_guard_state
+                          SET mode=?, consecutive_losses=?,
+                              probation_remaining=?, latest_shadow_pnl_sum=?,
+                              last_error=?, updated_at=?
+                        WHERE strategy=?""",
+                    (
+                        (
+                            guard.LOSS_STREAK_MODE_PROBATION
+                            if recovered
+                            else guard.LOSS_STREAK_MODE_SHADOW
+                        ),
+                        0 if recovered else guard.LOSS_STREAK_SHADOW_AFTER,
+                        (
+                            guard.LOSS_STREAK_PROBATION_WINS
+                            if recovered
+                            else 0
+                        ),
+                        latest_sum,
+                        shadow_error,
+                        utc_iso(),
+                        normalized,
+                    ),
+                )
+                ledger.db.commit()
+            except Exception:
+                ledger.db.rollback()
+                raise
+        return guard._public_state(ledger, normalized, utc_iso)
+
+    sync_shadow_without_nested_transaction._loss_streak_hotfix_v2 = True  # type: ignore[attr-defined]
+    guard._sync_shadow = sync_shadow_without_nested_transaction
+
+
 def _install_partial_live_rule_update(live: Any, guard: Any) -> None:
     engine_class = live.LiveM0WEngine
     original_update = engine_class.update_live_rules
@@ -108,4 +263,5 @@ def install_loss_streak_guard_hotfix() -> None:
     from . import loss_streak_guard_patch as guard
 
     _install_cached_shadow_floor_lookup(guard)
+    _install_shadow_sync_transaction_fix(guard)
     _install_partial_live_rule_update(live, guard)
