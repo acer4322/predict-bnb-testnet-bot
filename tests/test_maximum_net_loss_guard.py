@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from predict_bot import live_trading
 
 
-def _timestamp_after(reset_at: str, seconds: int) -> str:
-    parsed = datetime.fromisoformat(str(reset_at).replace("Z", "+00:00"))
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return (parsed + timedelta(seconds=seconds)).isoformat()
+def _next_timestamp() -> str:
+    time.sleep(0.002)
+    return live_trading.utc_iso()
 
 
 def _insert_settlement(
@@ -19,8 +18,9 @@ def _insert_settlement(
     strategy: str,
     market_id: int,
     pnl_usdt: float,
-    updated_at: str,
+    updated_at: str | None = None,
 ) -> int:
+    timestamp = updated_at or _next_timestamp()
     order_id = ledger.record_signal(
         topic_id=1,
         market_id=market_id,
@@ -28,7 +28,7 @@ def _insert_settlement(
         token_id=f"token-{market_id}",
         signal_price=0.5,
         account_type="SPOT",
-        signal_at=updated_at,
+        signal_at=timestamp,
         strategy=strategy,
         max_stake_usdt=max(1.0, abs(pnl_usdt)),
         requested_amount_wei=str(int(max(1.0, abs(pnl_usdt)) * 10**18)),
@@ -52,8 +52,8 @@ def _insert_settlement(
                 payout,
                 pnl_usdt,
                 pnl_usdt / cost * 100.0,
-                updated_at,
-                updated_at,
+                timestamp,
+                timestamp,
             ),
         )
         ledger.db.commit()
@@ -74,22 +74,19 @@ def _engine(path: Path) -> live_trading.LiveM0WEngine:
 
 def test_wins_offset_losses_and_manual_reset(tmp_path: Path) -> None:
     ledger = live_trading.LiveLedger(tmp_path / "live.db")
-    configured = ledger.configure_maximum_net_loss_guard(True, 5.0)
-    reset_at = str(configured["resetAt"])
+    ledger.configure_maximum_net_loss_guard(True, 5.0)
 
     _insert_settlement(
         ledger,
         strategy="R_MICROPRICE",
         market_id=2001,
         pnl_usdt=-4.0,
-        updated_at=_timestamp_after(reset_at, 1),
     )
     _insert_settlement(
         ledger,
         strategy="R_CALIBRATED_VALUE",
         market_id=2002,
         pnl_usdt=2.0,
-        updated_at=_timestamp_after(reset_at, 2),
     )
     state = ledger.maximum_net_loss_guard_state()
     assert state["netPnlUsdt"] == -2.0
@@ -102,12 +99,12 @@ def test_wins_offset_losses_and_manual_reset(tmp_path: Path) -> None:
         strategy="R_MICROPRICE_CONFIRM:CONFIRM_ADD_1",
         market_id=2003,
         pnl_usdt=3.0,
-        updated_at=_timestamp_after(reset_at, 3),
     )
     recovered = ledger.maximum_net_loss_guard_state()
     assert recovered["netPnlUsdt"] == 1.0
     assert recovered["currentLossUsdt"] == 0.0
 
+    time.sleep(0.002)
     reset = ledger.reset_maximum_net_loss_guard()
     assert reset["netPnlUsdt"] == 0.0
     assert reset["currentLossUsdt"] == 0.0
@@ -119,16 +116,15 @@ def test_first_enable_starts_from_zero_instead_of_counting_history(
     tmp_path: Path,
 ) -> None:
     ledger = live_trading.LiveLedger(tmp_path / "live.db")
-    initial = ledger.maximum_net_loss_guard_state()
     _insert_settlement(
         ledger,
         strategy="R_MICROPRICE",
         market_id=2101,
         pnl_usdt=-8.0,
-        updated_at=_timestamp_after(str(initial["resetAt"]), 1),
     )
     assert ledger.maximum_net_loss_guard_state()["currentLossUsdt"] == 8.0
 
+    time.sleep(0.002)
     enabled = ledger.configure_maximum_net_loss_guard(True, 5.0)
     assert enabled["enabled"] is True
     assert enabled["netPnlUsdt"] == 0.0
@@ -157,14 +153,14 @@ def test_official_settlement_at_limit_immediately_pauses_runtime(
     tmp_path: Path,
 ) -> None:
     engine = _engine(tmp_path / "live.db")
-    configured = engine.ledger.configure_maximum_net_loss_guard(True, 2.5)
+    engine.ledger.configure_maximum_net_loss_guard(True, 2.5)
     engine.runtime_enabled = True
     engine.armed = True
     engine.status = "LIVE"
     engine.ledger.set_runtime_enabled(True)
 
-    reset_at = str(configured["resetAt"])
     market_id = 2201
+    signal_at = _next_timestamp()
     order_id = engine.ledger.record_signal(
         topic_id=1,
         market_id=market_id,
@@ -172,7 +168,7 @@ def test_official_settlement_at_limit_immediately_pauses_runtime(
         token_id="pair-token",
         signal_price=0.5,
         account_type="SPOT",
-        signal_at=_timestamp_after(reset_at, 1),
+        signal_at=signal_at,
         strategy="PAIR_ARB_010:UP",
         max_stake_usdt=3.0,
         requested_amount_wei=str(3 * 10**18),
@@ -192,9 +188,7 @@ def test_official_settlement_at_limit_immediately_pauses_runtime(
     position = {
         "positionStatus": "SETTLED",
         "isWinner": False,
-        "endDate": int(
-            datetime.now(timezone.utc).timestamp() * 1000
-        ),
+        "endDate": int(datetime.now(timezone.utc).timestamp() * 1000),
     }
 
     settlement = engine.ledger.record_strategy_settlement(order, position)
@@ -220,14 +214,12 @@ def test_manual_resume_acknowledgement_only_retrips_after_loss_worsens(
     tmp_path: Path,
 ) -> None:
     engine = _engine(tmp_path / "live.db")
-    configured = engine.ledger.configure_maximum_net_loss_guard(True, 5.0)
-    reset_at = str(configured["resetAt"])
+    engine.ledger.configure_maximum_net_loss_guard(True, 5.0)
     _insert_settlement(
         engine.ledger,
         strategy="R_MICROPRICE",
         market_id=2301,
         pnl_usdt=-6.0,
-        updated_at=_timestamp_after(reset_at, 1),
     )
     engine.runtime_enabled = True
     engine.armed = True
@@ -246,7 +238,6 @@ def test_manual_resume_acknowledgement_only_retrips_after_loss_worsens(
         strategy="R_MICROPRICE",
         market_id=2302,
         pnl_usdt=-1.0,
-        updated_at=_timestamp_after(reset_at, 2),
     )
     engine.runtime_enabled = True
     engine.armed = True
