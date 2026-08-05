@@ -1,0 +1,54 @@
+name: Loss streak diagnostics
+
+on:
+  push:
+    branches:
+      - feature/regime-guard
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install Python dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Import package
+        run: python -c "import predict_bot; print('IMPORT_OK')"
+
+      - name: Existing stale exhausted guard tests
+        run: python -m pytest tests/test_microprice_confirm_stale_exhausted_guard.py -q
+
+      - name: Loss streak guard tests
+        run: python -m pytest tests/test_loss_streak_guard.py -q
+
+      - name: Dashboard tests
+        working-directory: dashboard
+        run: npm test -- --runInBand
+
+      - name: Dashboard lint
+        working-directory: dashboard
+        run: npm run lint
+
+      - name: Diff check
+        run: git diff --check
