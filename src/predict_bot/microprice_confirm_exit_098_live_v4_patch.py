@@ -69,7 +69,7 @@ def _live_exit_candidates_v4(
 def _patch_ledger_strategy_view() -> None:
     from . import live_trading as live
 
-    ledger_class = live.LiveM0WLedger
+    ledger_class = live.LiveLedger
     original = ledger_class.order_for_manual_exit
     if getattr(original, "_microprice_exit_098_live_v4", False):
         return
