@@ -8,6 +8,8 @@ const TEST_STRATEGY = "R_MICROPRICE_CONFIRM_LOSS_STREAK_GUARD";
 const RULE_FIELD = "strategyLossStreakGuardEnabled";
 const RESEARCH_TARGET = ".research-forward-panel .research-strategy-grid";
 const LIVE_RULES_TARGET = ".live-rules-editor";
+const EMPTY_STRATEGIES: string[] = [];
+const EMPTY_FLAGS: boolean[] = [];
 
 type GuardState = {
   enabled?: boolean;
@@ -103,9 +105,8 @@ function LossStreakRulesEditor({
   payload: LiveRulesPayload | null;
   onRefresh: (value: LiveRulesPayload) => void;
 }) {
-  const strategies = payload?.rules?.strategies ?? [];
-  const saved = payload?.rules?.strategyLossStreakGuardEnabled
-    ?? strategies.map(() => false);
+  const strategies = payload?.rules?.strategies ?? EMPTY_STRATEGIES;
+  const saved = payload?.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
   const states = payload?.strategyLossStreakGuardStates ?? [];
   const [draft, setDraft] = useState<boolean[]>(saved);
   const [dirty, setDirty] = useState(false);
