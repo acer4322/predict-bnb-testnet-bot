@@ -25,6 +25,28 @@ def _create_simulation_db(path: Path) -> sqlite3.Connection:
     return connection
 
 
+def _create_live_order(
+    ledger: live_trading.LiveLedger,
+    *,
+    strategy: str,
+    market_id: int,
+) -> int:
+    order_id = ledger.record_signal(
+        topic_id=1,
+        market_id=market_id,
+        side="UP",
+        token_id=f"token-{market_id}",
+        signal_price=0.5,
+        account_type="SPOT",
+        signal_at=live_trading.utc_iso(),
+        strategy=strategy,
+        max_stake_usdt=1.0,
+        requested_amount_wei=str(10**18),
+    )
+    assert order_id is not None
+    return order_id
+
+
 def test_live_rule_normalization_and_persistence(tmp_path: Path) -> None:
     normalized = live_trading.normalize_live_rules(
         {
@@ -73,6 +95,105 @@ def test_guard_state_lookup_closes_sqlite_transaction(tmp_path: Path) -> None:
     assert blocked is False
     assert cooldown["consecutiveLosses"] == 0
     assert ledger.db.in_transaction is False
+
+
+def test_normal_win_immediately_resets_two_loss_streak(tmp_path: Path) -> None:
+    ledger = live_trading.LiveLedger(tmp_path / "live.db")
+    strategy = "R_MICROPRICE"
+
+    for index, result in enumerate(("LOSS", "LOSS", "WIN"), start=1):
+        market_id = 1100 + index
+        order_id = _create_live_order(
+            ledger,
+            strategy=strategy,
+            market_id=market_id,
+        )
+        state = live_guard._record_live_result(
+            ledger,
+            order={
+                "id": order_id,
+                "strategy": strategy,
+                "market_id": market_id,
+            },
+            settlement={
+                "result": result,
+                "pnl_usdt": 1.0 if result == "WIN" else -1.0,
+            },
+            utc_iso=live_trading.utc_iso,
+        )
+
+    assert state["mode"] == live_guard.LOSS_STREAK_MODE_NORMAL
+    assert state["consecutiveLosses"] == 0
+    assert state["lastLiveResult"] == "WIN"
+
+
+def test_state_lookup_reconciles_committed_win_missed_by_guard(
+    tmp_path: Path,
+) -> None:
+    ledger = live_trading.LiveLedger(tmp_path / "live.db")
+    strategy = "R_MICROPRICE"
+
+    for index in range(2):
+        market_id = 1201 + index
+        order_id = _create_live_order(
+            ledger,
+            strategy=strategy,
+            market_id=market_id,
+        )
+        live_guard._record_live_result(
+            ledger,
+            order={
+                "id": order_id,
+                "strategy": strategy,
+                "market_id": market_id,
+            },
+            settlement={"result": "LOSS", "pnl_usdt": -1.0},
+            utc_iso=live_trading.utc_iso,
+        )
+
+    before = ledger.loss_streak_guard_state(strategy)
+    assert before["consecutiveLosses"] == 2
+
+    win_market_id = 1203
+    win_order_id = _create_live_order(
+        ledger,
+        strategy=strategy,
+        market_id=win_market_id,
+    )
+    now = live_trading.utc_iso()
+    with ledger.lock:
+        ledger.db.execute(
+            """INSERT INTO live_strategy_settlements(
+                   order_local_id, market_id, position_status, result,
+                   cost_usdt, payout_usdt, pnl_usdt, roi_pct,
+                   settled_at, updated_at
+               ) VALUES (?, ?, 'SETTLED', 'WIN', 1.0, 2.0, 1.0, 100.0, ?, ?)""",
+            (win_order_id, win_market_id, now, now),
+        )
+        ledger.db.commit()
+
+    repaired = ledger.loss_streak_guard_state(strategy)
+    assert repaired["mode"] == live_guard.LOSS_STREAK_MODE_NORMAL
+    assert repaired["consecutiveLosses"] == 0
+    assert repaired["lastLiveResult"] == "WIN"
+    assert repaired["lastLiveOrderLocalId"] == win_order_id
+
+    with ledger.lock:
+        result_row = ledger.db.execute(
+            """SELECT result
+                 FROM live_strategy_loss_streak_guard_results
+                WHERE order_local_id=?""",
+            (win_order_id,),
+        ).fetchone()
+        event_row = ledger.db.execute(
+            """SELECT event_type
+                 FROM live_events
+                WHERE event_type='LOSS_STREAK_SETTLEMENT_RECONCILED'
+                ORDER BY id DESC LIMIT 1"""
+        ).fetchone()
+    assert result_row is not None
+    assert result_row["result"] == "WIN"
+    assert event_row is not None
 
 
 def test_live_guard_three_losses_shadow_and_positive_pnl_recovery(
