@@ -30,6 +30,9 @@ from .loss_streak_guard_patch import (
 from .loss_streak_minimum_stake_patch import (
     install_loss_streak_minimum_stake_patch as _install_loss_streak_minimum_stake_patch,
 )
+from .maximum_net_loss_guard_patch import (
+    install_maximum_net_loss_guard_patch as _install_maximum_net_loss_guard_patch,
+)
 from .microprice_confirm_exit_098_entry_guard_patch import (
     install_microprice_confirm_exit_098_entry_guard_patch as _install_microprice_confirm_exit_098_entry_guard_patch,
 )
@@ -105,6 +108,7 @@ _install_pair_arb_initial_capacity_patch()
 _install_loss_streak_guard_patch()
 _install_loss_streak_guard_hotfix()
 _install_loss_streak_minimum_stake_patch()
+_install_maximum_net_loss_guard_patch()
 del _install_calibrated_value_confirm_v2_live_patch
 del _install_calibrated_value_confirmation_filters
 del _install_calibrated_value_confirmation_variants
@@ -115,6 +119,7 @@ del _install_direct_outcome_guard
 del _install_loss_streak_guard_hotfix
 del _install_loss_streak_guard_patch
 del _install_loss_streak_minimum_stake_patch
+del _install_maximum_net_loss_guard_patch
 del _install_microprice_confirm_exit_098_entry_guard_patch
 del _install_microprice_confirm_exit_098_horizon_patch
 del _install_microprice_confirm_exit_098_live_patch
