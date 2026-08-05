@@ -4,14 +4,11 @@ import threading
 from functools import wraps
 from typing import Any
 
-from . import live_trading as live
-from . import loss_streak_guard_patch as guard
-
 
 _CACHE = threading.local()
 
 
-def _install_cached_shadow_floor_lookup() -> None:
+def _install_cached_shadow_floor_lookup(guard: Any) -> None:
     original_lookup = guard._simulation_source_max_id
     if getattr(original_lookup, "_loss_streak_hotfix_v1", False):
         return
@@ -62,7 +59,7 @@ def _install_cached_shadow_floor_lookup() -> None:
     guard._record_live_result = record_with_precomputed_shadow_floor
 
 
-def _install_partial_live_rule_update() -> None:
+def _install_partial_live_rule_update(live: Any, guard: Any) -> None:
     engine_class = live.LiveM0WEngine
     original_update = engine_class.update_live_rules
     if getattr(original_update, "_loss_streak_hotfix_v1", False):
@@ -107,5 +104,8 @@ def _install_partial_live_rule_update() -> None:
 
 def install_loss_streak_guard_hotfix() -> None:
     """Apply safety fixes after the base loss-streak patch is installed."""
-    _install_cached_shadow_floor_lookup()
-    _install_partial_live_rule_update()
+    from . import live_trading as live
+    from . import loss_streak_guard_patch as guard
+
+    _install_cached_shadow_floor_lookup(guard)
+    _install_partial_live_rule_update(live, guard)
