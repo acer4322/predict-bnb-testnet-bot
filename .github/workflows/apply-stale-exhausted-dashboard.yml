@@ -1,0 +1,215 @@
+name: Apply stale exhausted dashboard patch
+
+on:
+  push:
+    branches:
+      - feature/regime-guard
+
+permissions:
+  contents: write
+
+jobs:
+  apply-dashboard-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/regime-guard
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Patch dashboard strategy page
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"{path}: expected one exact match, found {count}: {old[:120]!r}")
+              path.write_text(text.replace(old, new), encoding="utf-8")
+
+          def replace_first(path: Path, old: str, new: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              if old not in text:
+                  raise RuntimeError(f"{path}: missing first-match marker: {old[:120]!r}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          def insert_before_once(path: Path, marker: str, block: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(marker)
+              if count != 1:
+                  raise RuntimeError(f"{path}: expected one insertion marker, found {count}: {marker[:120]!r}")
+              path.write_text(text.replace(marker, block + marker), encoding="utf-8")
+
+          page = Path("dashboard/app/page.tsx")
+          test = Path("dashboard/tests/rendered-html.test.mjs")
+          readme = Path("dashboard/README.md")
+
+          replace_once(
+              page,
+              '| "R_CALIBRATED_VALUE" | "R_CALIBRATED_VALUE_REVERSE" | "R_CALIBRATED_VALUE_CONTINUOUS_V2" | "R_CONSENSUS" | "R_CONFIRM_ADD_10";',
+              '| "R_CALIBRATED_VALUE" | "R_CALIBRATED_VALUE_REVERSE" | "R_CALIBRATED_VALUE_CONTINUOUS_V2" | "R_MICROPRICE_CONFIRM_STALE_EXHAUSTED_GUARD" | "R_CONSENSUS" | "R_CONFIRM_ADD_10";',
+          )
+
+          guard_types = '''type MicropriceStaleExhaustedGuardParameters = {
+            maximumGuardedEntryPriceInclusive?: number;
+            minimumEffectiveBookAgeMsInclusive?: number;
+            minimumSignalToOpenDelayMsInclusive?: number;
+            effectiveBookAgeFormula?: string;
+            missingLowEntryDiagnostics?: string;
+          };
+          type MicropriceStaleExhaustedGuardState = {
+            version?: string; paperOnly?: boolean; liveOrdersAffected?: boolean; forwardOnly?: boolean;
+            sourceStrategy?: string; sourceMarkets?: number; blocked?: number;
+            blockReasons?: Record<string, number>;
+            strategies?: Record<string, {
+              trades?: number; open?: number; settled?: number; wins?: number; losses?: number;
+              winRate?: number | null; realizedPnl?: number; averageEntryPrice?: number | null;
+              title?: string; mode?: string; rule?: string;
+              parameters?: MicropriceStaleExhaustedGuardParameters;
+            }>;
+            runtime?: {
+              sourceMarkets?: number; opened?: number; blocked?: number; missingDiagnostics?: number;
+              lastDecision?: {
+                marketId?: number; strategy?: string; status?: string; reason?: string | null;
+                side?: string; entry?: number; version?: string;
+                metrics?: {
+                  book_age_ms?: number | null; signal_to_open_ms?: number | null;
+                  effective_book_age_ms?: number | null; first_signal?: number | null;
+                  final_signal?: number | null; signal_decayed?: boolean | null;
+                };
+              } | null;
+            };
+          };
+          '''
+          insert_before_once(page, "type ResearchForwardState = {\n", guard_types)
+          replace_once(
+              page,
+              "  confirmationAdd?: PaperConfirmationAddResearch;\n  execution?: {",
+              "  confirmationAdd?: PaperConfirmationAddResearch;\n  micropriceConfirmStaleExhaustedGuard?: MicropriceStaleExhaustedGuardState;\n  execution?: {",
+          )
+          replace_once(
+              page,
+              "    R_CONSENSUS: { ...EMPTY_SUMMARY },\n    R_CONFIRM_ADD_10: { ...EMPTY_SUMMARY },",
+              "    R_MICROPRICE_CONFIRM_STALE_EXHAUSTED_GUARD: { ...EMPTY_SUMMARY },\n    R_CONSENSUS: { ...EMPTY_SUMMARY },\n    R_CONFIRM_ADD_10: { ...EMPTY_SUMMARY },",
+          )
+
+          replace_once(
+              page,
+              "const RESEARCH_STRATEGY_CARDS: Array<{ id: StrategyId; title: string; rule: string; tone: string; shadow?: boolean }> = [",
+              '''const RESEARCH_STRATEGY_CARDS: Array<{ id: StrategyId; title: string; rule: string; tone: string; shadow?: boolean; sourceGated?: boolean }> = [
+            { id: "R_MICROPRICE_CONFIRM_STALE_EXHAUSTED_GUARD", title: "Microprice Confirm · 低價衰竭防守", rule: "依附同市場已開啟的 R_MICROPRICE_CONFIRM：進場價 ≤0.55 且有效簿年齡（book age＋訊號到開單延遲）≥450ms 時，若確認期間訊號衰減或 signal→open 延遲 ≥60ms 就阻擋；缺少低價樣本必要診斷時 fail closed。只從功能啟用後累積，不回填舊交易。", tone: "coral", shadow: true, sourceGated: true },''',
+          )
+
+          replace_once(page, "FORWARD PAPER · FIVE PRIMARY + TEN SHADOWS", "FORWARD PAPER · FIVE PRIMARY + FIFTEEN SHADOWS")
+          replace_once(page, "<h3>五組主策略＋十二組獨立 Shadow</h3>", "<h3>五組主策略＋十五組獨立 Shadow</h3>")
+          replace_once(
+              page,
+              '<p>五組主策略共用 100 USDT 模擬曝險；十二組 Shadow 各自獨立做反事實對照。兩組持續校準 V2 只跟隨同市場已開出的來源 paper 單，且永遠不在 live executor 白名單。</p>',
+              '<p>五組主策略共用 100 USDT 模擬曝險；十五組 Shadow 各自獨立做反事實對照。新 Guard 只跟隨同市場已開出的 R_MICROPRICE_CONFIRM paper 單，兩組持續校準 V2 也只使用來源單與先前官方結算；全部永遠不在 live executor 白名單。</p>',
+          )
+          replace_once(page, "FIVE PRIMARY + TWELVE SHADOWS · PAPER", "FIVE PRIMARY + FIFTEEN SHADOWS · PAPER")
+          replace_once(page, 'strategyView === "research" ? "五組主策略＋十二組 Shadow"', 'strategyView === "research" ? "五組主策略＋十五組 Shadow"')
+          replace_once(page, "<strong>5 主策略＋12 Shadow</strong>", "<strong>5 主策略＋15 Shadow</strong>")
+          replace_once(page, "新增兩組持續校準 V2 · 全部 paper only", "新增低價舊簿／訊號衰竭 Guard · 全部 paper only")
+
+          replace_once(
+              page,
+              '''        const continuousCalibration = data?.strategies?.[card.id]?.continuousCalibration;
+                  const directionControl = data?.strategies?.[card.id]?.directionControl;''',
+              '''        const continuousCalibration = data?.strategies?.[card.id]?.continuousCalibration;
+                  const staleExhaustedExperiment = card.sourceGated ? data?.micropriceConfirmStaleExhaustedGuard : undefined;
+                  const staleExhaustedStats = staleExhaustedExperiment?.strategies?.[card.id];
+                  const staleExhaustedRules = staleExhaustedStats?.parameters;
+                  const staleExhaustedLast = staleExhaustedExperiment?.runtime?.lastDecision;
+                  const staleExhaustedReasons = Object.entries(staleExhaustedExperiment?.blockReasons ?? {})
+                    .map(([reason, count]) => `${reason} ${count}`)
+                    .join(" · ");
+                  const directionControl = data?.strategies?.[card.id]?.directionControl;''',
+          )
+
+          replace_once(
+              page,
+              '''          <div className="m-exit-card-head"><div><span className="eyebrow">{card.id} · {card.shadow ? "ISOLATED SHADOW" : "PAPER ONLY"}</span><h3>{card.title}</h3></div><button type="button" className={`toggle ${enabled ? "on" : ""}`} onClick={() => onConfig(enabledKey, !enabled)} aria-label={`${card.id}${enabled ? "停用" : "啟用"}`}><i /></button></div>''',
+              '''          <div className="m-exit-card-head"><div><span className="eyebrow">{card.id} · {card.shadow ? "ISOLATED SHADOW" : "PAPER ONLY"}</span><h3>{card.title}</h3></div><div className="m-exit-card-actions">{card.sourceGated ? <span className="m-exit-id">SOURCE-GATED</span> : <button type="button" className={`toggle ${enabled ? "on" : ""}`} onClick={() => onConfig(enabledKey, !enabled)} aria-label={`${card.id}${enabled ? "停用" : "啟用"}`}><i /></button>}</div></div>''',
+          )
+
+          guard_panel = '''          {card.sourceGated && <div className={`continuous-calibration-state ${enabled && staleExhaustedExperiment?.forwardOnly ? "ready" : "warmup"}`}>
+                    <span>FORWARD GUARD · {enabled ? "ACTIVE" : "SOURCE PAUSED"}</span>
+                    <strong>{staleExhaustedStats?.trades ?? 0} mirrored / {staleExhaustedExperiment?.blocked ?? 0} blocked</strong>
+                    <small>來源 {staleExhaustedExperiment?.sourceStrategy ?? "R_MICROPRICE_CONFIRM"} · 已觀察 {staleExhaustedExperiment?.sourceMarkets ?? 0} 市場 · 缺少診斷 {staleExhaustedExperiment?.runtime?.missingDiagnostics ?? 0}</small>
+                    <small>低價 ≤ {price(staleExhaustedRules?.maximumGuardedEntryPriceInclusive ?? .55)} · 有效簿年齡 ≥ {decimal(staleExhaustedRules?.minimumEffectiveBookAgeMsInclusive ?? 450, 0)} ms · 訊號衰減或 signal→open ≥ {decimal(staleExhaustedRules?.minimumSignalToOpenDelayMsInclusive ?? 60, 0)} ms</small>
+                    {staleExhaustedLast && <small>最近 #{staleExhaustedLast.marketId ?? "—"} · {staleExhaustedLast.status ?? "WAITING"} · {staleExhaustedLast.side ?? "—"} @ {price(staleExhaustedLast.entry)} · effective age {decimal(staleExhaustedLast.metrics?.effective_book_age_ms, 1)} ms · delay {decimal(staleExhaustedLast.metrics?.signal_to_open_ms, 1)} ms · signal {decimal(staleExhaustedLast.metrics?.first_signal, 3)} → {decimal(staleExhaustedLast.metrics?.final_signal, 3)}{staleExhaustedLast.reason ? ` · ${staleExhaustedLast.reason}` : ""}</small>}
+                    {staleExhaustedReasons && <small>阻擋原因：{staleExhaustedReasons}</small>}
+                  </div>}
+          '''
+          insert_before_once(page, '          {card.id === "R_FUTURES_LEAD_REGIME_REVERSE_3L" &&', guard_panel)
+
+          replace_first(
+              page,
+              '''          <div className="fields"><NumberField label="每筆模擬本金" name={stakeKey} value={stake} step={1} suffix="USDT" onChange={onConfig} /></div>
+                  <p>{card.rule}</p>''',
+              '''          {!card.sourceGated && <div className="fields"><NumberField label="每筆模擬本金" name={stakeKey} value={stake} step={1} suffix="USDT" onChange={onConfig} /></div>}
+                  <p>{card.rule}</p>''',
+          )
+
+          replace_once(
+              test,
+              '''  assert.match(page, /R_MICROPRICE/);
+            assert.match(page, /R_MICROPRICE: "研究實單 · Microprice 深度失衡"/);''',
+              '''  assert.match(page, /R_MICROPRICE/);
+            assert.match(page, /R_MICROPRICE_CONFIRM_STALE_EXHAUSTED_GUARD/);
+            assert.match(page, /Microprice Confirm · 低價衰竭防守/);
+            assert.match(page, /micropriceConfirmStaleExhaustedGuard/);
+            assert.match(page, /SOURCE-GATED/);
+            assert.match(page, /有效簿年齡/);
+            assert.match(page, /R_MICROPRICE: "研究實單 · Microprice 深度失衡"/);''',
+          )
+          replace_once(
+              test,
+              "  assert.match(page, /五組主策略＋十組獨立 Shadow/);",
+              "  assert.match(page, /五組主策略＋十五組獨立 Shadow/);",
+          )
+
+          research_heading = "## 五組研究策略 forward paper\n\n"
+          guard_docs = "`R_MICROPRICE_CONFIRM_STALE_EXHAUSTED_GUARD` 是來源閘門型 forward-only Shadow：只在 `R_MICROPRICE_CONFIRM` 同市場紙上單成立後評估；當進場價不高於 0.55、`book_age_ms + signal_to_open_ms` 至少 450ms，且訊號確認期間衰減或 signal-to-open 延遲至少 60ms 時阻擋。低價樣本缺少必要 diagnostics 時 fail closed；不回填歷史、不加入正式實單白名單，Dashboard 會獨立顯示 mirrored、blocked、缺失診斷與最近判定。\n\n"
+          replace_once(readme, research_heading, research_heading + guard_docs)
+          replace_once(readme, "「5 主策略＋10 Shadow」", "「5 主策略＋15 Shadow」")
+          replace_once(readme, "二十四組開關、每筆金額", "二十四組可調開關、來源閘門 Guard、每筆金額")
+          replace_once(readme, "十九組 shadow 的獨立曝險", "二十組 shadow 的獨立曝險")
+          PY
+
+      - name: Install Python test dependencies
+        run: python -m pip install -e '.[dev]'
+
+      - name: Install dashboard dependencies
+        run: npm ci --prefix dashboard
+
+      - name: Validate guard and dashboard
+        run: |
+          python -m pytest tests/test_microprice_confirm_stale_exhausted_guard.py -q
+          npm test --prefix dashboard
+          git diff --check
+
+      - name: Commit dashboard strategy
+        shell: bash
+        run: |
+          rm .github/workflows/apply-stale-exhausted-dashboard.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dashboard/app/page.tsx dashboard/tests/rendered-html.test.mjs dashboard/README.md .github/workflows/apply-stale-exhausted-dashboard.yml
+          git diff --cached --check
+          git commit -m "feat(dashboard): add stale exhausted guard strategy"
+          git push origin HEAD:feature/regime-guard
