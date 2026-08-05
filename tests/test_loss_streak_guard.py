@@ -28,7 +28,7 @@ def _create_simulation_db(path: Path) -> sqlite3.Connection:
 def test_live_rule_normalization_and_persistence(tmp_path: Path) -> None:
     normalized = live_trading.normalize_live_rules(
         {
-            "strategies": ["M0W", "M01W"],
+            "strategies": ["R_MICROPRICE", "R_FUTURES_LEAD"],
             "strategyStakesUsdt": [1.0, 1.0],
             live_guard.LOSS_STREAK_RULE_FIELD: [True, False],
         }
