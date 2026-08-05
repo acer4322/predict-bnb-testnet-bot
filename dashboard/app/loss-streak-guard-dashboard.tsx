@@ -17,6 +17,8 @@ const LIVE_RULES_TARGET = ".live-rules-editor";
 const EMPTY_STRATEGIES: string[] = [];
 const EMPTY_FLAGS: boolean[] = [];
 
+type LossProtectionMode = "OFF" | "COOLDOWN" | "SHADOW";
+
 type GuardState = {
   enabled?: boolean;
   mode?: string;
@@ -27,11 +29,22 @@ type GuardState = {
   lastError?: string | null;
 };
 
+type CooldownState = {
+  enabled?: boolean;
+  consecutiveLosses?: number;
+  cooldownPending?: boolean;
+  lastResult?: "WIN" | "LOSS" | null;
+  lastSettlementMarketId?: number | null;
+  lastSkippedMarketId?: number | null;
+};
+
 type LiveRulesPayload = {
   rules?: {
     strategies?: string[];
+    strategyLossCooldownEnabled?: boolean[];
     strategyLossStreakGuardEnabled?: boolean[];
   };
+  strategyLossCooldownStates?: CooldownState[];
   strategyLossStreakGuardStates?: GuardState[];
 };
 
@@ -109,11 +122,29 @@ function stateDetail(state: GuardState | undefined) {
   return `目前連敗 ${state.consecutiveLosses ?? 0}/3${state.consecutiveLosses === 2 ? " · 下一筆降額" : ""}`;
 }
 
-function InlineLossStreakControl({
+function protectionMode(cooldown: boolean, shadow: boolean): LossProtectionMode {
+  if (shadow) return "SHADOW";
+  if (cooldown) return "COOLDOWN";
+  return "OFF";
+}
+
+function setNativeSelectValue(select: HTMLSelectElement | undefined, value: string) {
+  if (!select || select.value === value) return;
+  const setter = Object.getOwnPropertyDescriptor(
+    window.HTMLSelectElement.prototype,
+    "value",
+  )?.set;
+  if (setter) setter.call(select, value);
+  else select.value = value;
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function InlineLossProtectionControl({
   strategy,
   index,
-  enabled,
-  state,
+  mode,
+  guardState,
+  cooldownState,
   dirty,
   saving,
   error,
@@ -121,37 +152,46 @@ function InlineLossStreakControl({
 }: {
   strategy: string;
   index: number;
-  enabled: boolean;
-  state?: GuardState;
+  mode: LossProtectionMode;
+  guardState?: GuardState;
+  cooldownState?: CooldownState;
   dirty: boolean;
   saving: boolean;
   error?: string;
-  onChange: (index: number, enabled: boolean) => void;
+  onChange: (index: number, mode: LossProtectionMode) => void;
 }) {
+  const cooldownDetail = cooldownState?.cooldownPending
+    ? `已達兩連敗，等待跳過下一市場；上一結算市場 #${cooldownState.lastSettlementMarketId ?? "—"}`
+    : `目前連敗 ${cooldownState?.consecutiveLosses ?? 0} · 上一結果 ${cooldownState?.lastResult ?? "—"}`;
+
   return <>
-    <span>策略 {index + 1} 連敗過濾</span>
+    <span>策略 {index + 1} 連敗保護模式</span>
     <select
-      aria-label={`策略 ${index + 1} ${strategy} 是否使用連敗過濾`}
-      value={enabled ? "enabled" : "disabled"}
+      aria-label={`策略 ${index + 1} ${strategy} 連敗保護模式`}
+      value={mode}
       disabled={saving}
-      onChange={event => onChange(index, event.target.value === "enabled")}
+      onChange={event => onChange(index, event.target.value as LossProtectionMode)}
     >
-      <option value="disabled">不使用連敗過濾</option>
-      <option value="enabled">啟用三連敗 Shadow 過濾</option>
+      <option value="OFF">不使用連敗保護</option>
+      <option value="COOLDOWN">兩連敗後跳過下一市場</option>
+      <option value="SHADOW">三連敗 Shadow／降額恢復</option>
     </select>
     <small>
       {saving
-        ? "正在套用連敗設定…"
+        ? "正在套用連敗保護設定…"
         : error
           ? `儲存失敗：${error}`
           : dirty
             ? "尚未套用；請按下方「確認並套用新規則」"
-            : enabled
-              ? `${modeText(state?.mode)} · ${stateDetail(state)}`
-              : "關閉；不影響這個策略的實單。"}
+            : mode === "COOLDOWN"
+              ? cooldownDetail
+              : mode === "SHADOW"
+                ? `${modeText(guardState?.mode)} · ${stateDetail(guardState)}`
+                : "關閉；不會因連敗額外阻擋這個策略。"}
     </small>
-    {enabled && <small>兩連敗後下一筆使用 50% 本金，但最低維持 1 USDT；三連敗暫停。最近三筆 Paper PnL 合計轉正後，以兩筆降額單重新驗證。</small>}
-    {state?.lastError && <small style={{ color: "#ffbd87" }}>{state.lastError}</small>}
+    {mode === "COOLDOWN" && <small>只計此策略官方結算；連續兩敗後跳過一個市場，再將冷卻狀態歸零。勝利會立即把連敗歸零。</small>}
+    {mode === "SHADOW" && <small>兩連敗後下一筆使用 50% 本金，但最低維持 1 USDT；三連敗暫停。最近三筆 Paper PnL 合計轉正後，以兩筆降額單重新驗證。</small>}
+    {guardState?.lastError && mode === "SHADOW" && <small style={{ color: "#ffbd87" }}>{guardState.lastError}</small>}
   </>;
 }
 
@@ -182,9 +222,9 @@ function TestStrategyCard({ payload }: { payload: DashboardPayload | null }) {
       <strong>連敗 {state?.consecutiveLosses ?? 0} · Shadow {state?.shadowSampleCount ?? 0} · 觀察剩餘 {state?.probationRemaining ?? 0}</strong>
       <small>最近三筆 Shadow PnL {money(state?.latestShadowPnlSum)}</small>
     </div>
-    <p>完整鏡像 R_MICROPRICE_CONFIRM。正常狀態按原本金建立獨立 Paper 單；兩連敗後下一筆改為半倉，第三敗後只觀察來源訊號、不建立測試單。</p>
-    <small>Shadow 至少累積三筆已結算來源單，且最近三筆 PnL 合計大於 0 才恢復；恢復後兩筆均為半倉，兩筆都勝才回 NORMAL，任一敗立即開啟新 Shadow cycle。</small>
-    <small>已觀察來源市場 {experiment?.sourceMarkets ?? 0} · 建立 {experiment?.runtime?.opened ?? 0} · 半倉 {experiment?.runtime?.halfStakeOpened ?? 0} · Shadow 阻擋 {experiment?.runtime?.shadowBlocked ?? 0} · 恢復 {experiment?.runtime?.recoveries ?? 0}</small>
+    <p>完整鏡像 R_MICROPRICE_CONFIRM。正常狀態按原本金建立獨立 Paper 單；兩連敗後下一筆降額，第三敗後只觀察來源訊號、不建立測試單。</p>
+    <small>Shadow 至少累積三筆已結算來源單，且最近三筆 PnL 合計大於 0 才恢復；恢復後兩筆均為降額單，兩筆都勝才回 NORMAL，任一敗立即開啟新 Shadow cycle。</small>
+    <small>已觀察來源市場 {experiment?.sourceMarkets ?? 0} · 建立 {experiment?.runtime?.opened ?? 0} · 降額 {experiment?.runtime?.halfStakeOpened ?? 0} · Shadow 阻擋 {experiment?.runtime?.shadowBlocked ?? 0} · 恢復 {experiment?.runtime?.recoveries ?? 0}</small>
     <small>平均進場價 {stats?.averageEntryPrice == null ? "—" : stats.averageEntryPrice.toFixed(3)} · 版本 {experiment?.version ?? "V1"}</small>
   </article>;
 }
@@ -194,54 +234,65 @@ export default function LossStreakGuardDashboard() {
   const [researchTarget, setResearchTarget] = useState<HTMLElement | null>(null);
   const [mainApplyButton, setMainApplyButton] = useState<HTMLButtonElement | null>(null);
   const [livePayload, setLivePayload] = useState<LiveRulesPayload | null>(null);
-  const [draftFlags, setDraftFlags] = useState<boolean[]>(EMPTY_FLAGS);
+  const [draftGuardFlags, setDraftGuardFlags] = useState<boolean[]>(EMPTY_FLAGS);
+  const [draftCooldownFlags, setDraftCooldownFlags] = useState<boolean[]>(EMPTY_FLAGS);
   const [customDirty, setCustomDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const draftFlagsRef = useRef<boolean[]>(EMPTY_FLAGS);
+  const guardFlagsRef = useRef<boolean[]>(EMPTY_FLAGS);
+  const cooldownFlagsRef = useRef<boolean[]>(EMPTY_FLAGS);
+  const cooldownSelectsRef = useRef<Array<HTMLSelectElement | undefined>>([]);
   const customDirtyRef = useRef(false);
   const savingRef = useRef(false);
   const livePayloadRef = useRef<LiveRulesPayload | null>(null);
   const mainSaveWatchRef = useRef<number | null>(null);
   const { payload } = useSharedDashboardState<DashboardPayload>();
 
-  useEffect(() => { draftFlagsRef.current = draftFlags; }, [draftFlags]);
+  useEffect(() => { guardFlagsRef.current = draftGuardFlags; }, [draftGuardFlags]);
+  useEffect(() => { cooldownFlagsRef.current = draftCooldownFlags; }, [draftCooldownFlags]);
   useEffect(() => { customDirtyRef.current = customDirty; }, [customDirty]);
   useEffect(() => { savingRef.current = saving; }, [saving]);
   useEffect(() => { livePayloadRef.current = livePayload; }, [livePayload]);
 
-  const persistLossStreakDraft = async () => {
+  const persistLossProtectionDraft = async () => {
     if (savingRef.current || !customDirtyRef.current) return true;
-    const currentPayload = livePayloadRef.current;
-    const strategies = currentPayload?.rules?.strategies ?? EMPTY_STRATEGIES;
-    const flags = strategies.map((_, index) => Boolean(draftFlagsRef.current[index]));
-    if (!strategies.length) {
-      setSaveError("尚未讀到實單策略列表");
-      return false;
-    }
-
     savingRef.current = true;
     setSaving(true);
     setSaveError("");
     try {
+      const latestResponse = await fetch(apiUrl("/api/live-rules"), { cache: "no-store" });
+      if (!latestResponse.ok) throw new Error(`無法重新讀取實單規則（HTTP ${latestResponse.status}）`);
+      const latest = await latestResponse.json() as LiveRulesPayload;
+      const strategies = latest.rules?.strategies ?? livePayloadRef.current?.rules?.strategies ?? EMPTY_STRATEGIES;
+      if (!strategies.length) throw new Error("尚未讀到實單策略列表");
+      const guardFlags = strategies.map((_, index) => Boolean(guardFlagsRef.current[index]));
+
       const response = await fetch(apiUrl("/api/live-rules"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [RULE_FIELD]: flags }),
+        body: JSON.stringify({ [RULE_FIELD]: guardFlags }),
       });
       const body = await response.json() as {
         liveM0W?: LiveRulesPayload;
         error?: string;
       } & LiveRulesPayload;
-      if (!response.ok) throw new Error(body.error ?? `後端拒絕連敗過濾設定（HTTP ${response.status}）`);
+      if (!response.ok) throw new Error(body.error ?? `後端拒絕連敗保護設定（HTTP ${response.status}）`);
       const next = body.liveM0W ?? body;
+      const savedGuard = next.rules?.strategyLossStreakGuardEnabled ?? guardFlags;
+      const savedCooldown = next.rules?.strategyLossCooldownEnabled
+        ?? latest.rules?.strategyLossCooldownEnabled
+        ?? strategies.map(() => false);
       setLivePayload(next);
       livePayloadRef.current = next;
-      const saved = next.rules?.strategyLossStreakGuardEnabled ?? flags;
-      setDraftFlags(saved);
-      draftFlagsRef.current = saved;
+      setDraftGuardFlags(savedGuard);
+      setDraftCooldownFlags(savedCooldown);
+      guardFlagsRef.current = savedGuard;
+      cooldownFlagsRef.current = savedCooldown;
       setCustomDirty(false);
       customDirtyRef.current = false;
+      const editor = document.querySelector<HTMLElement>(LIVE_RULES_TARGET);
+      const apply = editor?.querySelector<HTMLButtonElement>(".live-rules-actions button:not(.secondary)");
+      if (apply && !editor?.querySelector(".live-rules-head .dirty")) apply.disabled = true;
       return true;
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "未知錯誤");
@@ -261,10 +312,19 @@ export default function LossStreakGuardDashboard() {
       if (!editor) {
         setRuleMounts([]);
         setMainApplyButton(null);
+        cooldownSelectsRef.current = [];
       } else {
         const baseLabels = Array.from(editor.querySelectorAll<HTMLLabelElement>("label:not([data-loss-streak-inline-mount])"));
         const drawdownLabels = baseLabels.filter(label => /回撤控制器/.test(label.textContent ?? ""));
         const cooldownLabels = baseLabels.filter(label => /兩連敗冷卻/.test(label.textContent ?? ""));
+        cooldownSelectsRef.current = cooldownLabels.slice(0, 4).map(label => label.querySelector<HTMLSelectElement>("select") ?? undefined);
+        cooldownLabels.forEach(label => {
+          if (!label.hasAttribute("data-loss-protection-hidden-cooldown")) {
+            label.dataset.lossProtectionPreviousDisplay = label.style.display;
+            label.dataset.lossProtectionHiddenCooldown = "true";
+          }
+          label.style.display = "none";
+        });
         const anchors = drawdownLabels.length ? drawdownLabels : cooldownLabels;
         const nextMounts = anchors.slice(0, 4).map((anchor, index) => {
           let mount = editor.querySelector<HTMLLabelElement>(`label[data-loss-streak-inline-mount="${index}"]`);
@@ -302,11 +362,15 @@ export default function LossStreakGuardDashboard() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const body = await response.json() as LiveRulesPayload;
         if (active && !customDirtyRef.current && !savingRef.current) {
+          const strategies = body.rules?.strategies ?? EMPTY_STRATEGIES;
+          const guard = body.rules?.strategyLossStreakGuardEnabled ?? strategies.map(() => false);
+          const cooldown = body.rules?.strategyLossCooldownEnabled ?? strategies.map(() => false);
           setLivePayload(body);
           livePayloadRef.current = body;
-          const saved = body.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
-          setDraftFlags(saved);
-          draftFlagsRef.current = saved;
+          setDraftGuardFlags(guard);
+          setDraftCooldownFlags(cooldown);
+          guardFlagsRef.current = guard;
+          cooldownFlagsRef.current = cooldown;
         }
       } catch {
         // Main dashboard owns the connection error display. Keep the last snapshot.
@@ -324,6 +388,11 @@ export default function LossStreakGuardDashboard() {
       window.clearInterval(timer);
       document.removeEventListener("click", locate, true);
       document.querySelectorAll("label[data-loss-streak-inline-mount]").forEach(mount => mount.remove());
+      document.querySelectorAll<HTMLLabelElement>("label[data-loss-protection-hidden-cooldown]").forEach(label => {
+        label.style.display = label.dataset.lossProtectionPreviousDisplay ?? "";
+        delete label.dataset.lossProtectionPreviousDisplay;
+        delete label.dataset.lossProtectionHiddenCooldown;
+      });
     };
   }, []);
 
@@ -332,9 +401,7 @@ export default function LossStreakGuardDashboard() {
     const editor = mainApplyButton.closest<HTMLElement>(LIVE_RULES_TARGET);
 
     const keepEnabledForCustomDraft = () => {
-      if (customDirtyRef.current && mainApplyButton.disabled) {
-        mainApplyButton.disabled = false;
-      }
+      if (customDirtyRef.current && mainApplyButton.disabled) mainApplyButton.disabled = false;
     };
 
     const waitForMainSave = () => {
@@ -349,7 +416,7 @@ export default function LossStreakGuardDashboard() {
         if (sawSaving && headerText.includes("規則已儲存")) {
           if (mainSaveWatchRef.current != null) window.clearInterval(mainSaveWatchRef.current);
           mainSaveWatchRef.current = null;
-          await persistLossStreakDraft();
+          await persistLossProtectionDraft();
           return;
         }
         if ((sawSaving && !buttonText.includes("儲存中") && editor?.querySelector(".live-rules-head .dirty")) || ticks >= 120) {
@@ -370,11 +437,20 @@ export default function LossStreakGuardDashboard() {
       event.stopPropagation();
       event.stopImmediatePropagation();
       const strategies = livePayloadRef.current?.rules?.strategies ?? EMPTY_STRATEGIES;
-      const summary = strategies.map((strategy, index) => (
-        `${strategy}：${draftFlagsRef.current[index] ? "啟用" : "關閉"}`
-      )).join("、");
-      if (!window.confirm(`確定更新正式實單連敗過濾？\n\n${summary}\n\n新規則只影響之後的新訊號，不會修改既有訂單。`)) return;
-      await persistLossStreakDraft();
+      const summary = strategies.map((strategy, index) => {
+        const mode = protectionMode(
+          Boolean(cooldownFlagsRef.current[index]),
+          Boolean(guardFlagsRef.current[index]),
+        );
+        const label = mode === "COOLDOWN"
+          ? "兩連敗冷卻"
+          : mode === "SHADOW"
+            ? "三連敗 Shadow"
+            : "關閉";
+        return `${strategy}：${label}`;
+      }).join("、");
+      if (!window.confirm(`確定更新正式實單連敗保護？\n\n${summary}\n\n每個策略只能選擇一種模式；新規則只影響之後的新訊號。`)) return;
+      await persistLossProtectionDraft();
     };
 
     keepEnabledForCustomDraft();
@@ -391,14 +467,23 @@ export default function LossStreakGuardDashboard() {
     };
   }, [mainApplyButton, customDirty]);
 
-  const changeRule = (index: number, enabled: boolean) => {
+  const changeMode = (index: number, mode: LossProtectionMode) => {
     const strategies = livePayload?.rules?.strategies ?? EMPTY_STRATEGIES;
     if (!strategies[index] || savingRef.current) return;
-    const next = strategies.map((_, slot) => (
-      slot === index ? enabled : Boolean(draftFlagsRef.current[slot])
+    const nextGuard = strategies.map((_, slot) => (
+      slot === index ? mode === "SHADOW" : Boolean(guardFlagsRef.current[slot])
     ));
-    setDraftFlags(next);
-    draftFlagsRef.current = next;
+    const nextCooldown = strategies.map((_, slot) => (
+      slot === index ? mode === "COOLDOWN" : Boolean(cooldownFlagsRef.current[slot])
+    ));
+    setDraftGuardFlags(nextGuard);
+    setDraftCooldownFlags(nextCooldown);
+    guardFlagsRef.current = nextGuard;
+    cooldownFlagsRef.current = nextCooldown;
+    setNativeSelectValue(
+      cooldownSelectsRef.current[index],
+      mode === "COOLDOWN" ? "enabled" : "disabled",
+    );
     setCustomDirty(true);
     customDirtyRef.current = true;
     setSaveError("");
@@ -406,24 +491,28 @@ export default function LossStreakGuardDashboard() {
   };
 
   const strategies = livePayload?.rules?.strategies ?? EMPTY_STRATEGIES;
-  const flags = strategies.map((_, index) => Boolean(draftFlags[index]));
-  const states = livePayload?.strategyLossStreakGuardStates ?? [];
+  const guardStates = livePayload?.strategyLossStreakGuardStates ?? [];
+  const cooldownStates = livePayload?.strategyLossCooldownStates ?? [];
   const testCard = useMemo(() => <TestStrategyCard payload={payload} />, [payload]);
 
   return <>
     {ruleMounts.map(({ index, element }) => createPortal(
-      <InlineLossStreakControl
+      <InlineLossProtectionControl
         strategy={strategies[index] ?? `策略 ${index + 1}`}
         index={index}
-        enabled={Boolean(flags[index])}
-        state={states[index]}
+        mode={protectionMode(
+          Boolean(draftCooldownFlags[index]),
+          Boolean(draftGuardFlags[index]),
+        )}
+        guardState={guardStates[index]}
+        cooldownState={cooldownStates[index]}
         dirty={customDirty}
         saving={saving}
         error={saveError}
-        onChange={changeRule}
+        onChange={changeMode}
       />,
       element,
-      `loss-streak-rule-${index}`,
+      `loss-protection-rule-${index}`,
     ))}
     {researchTarget ? createPortal(testCard, researchTarget) : null}
   </>;
