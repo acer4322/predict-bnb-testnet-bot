@@ -43,6 +43,38 @@ def test_live_rule_normalization_and_persistence(tmp_path: Path) -> None:
     assert reloaded[live_guard.LOSS_STREAK_RULE_FIELD] == [True, False]
 
 
+def test_loss_protection_modes_are_mutually_exclusive() -> None:
+    shadow_selected = live_trading.normalize_live_rules(
+        {
+            "strategies": ["R_MICROPRICE", "R_FUTURES_LEAD"],
+            "strategyStakesUsdt": [1.0, 1.0],
+            "strategyLossCooldownEnabled": [True, False],
+            live_guard.LOSS_STREAK_RULE_FIELD: [True, False],
+        }
+    )
+    assert shadow_selected[live_guard.LOSS_STREAK_RULE_FIELD] == [True, False]
+    assert shadow_selected["strategyLossCooldownEnabled"] == [False, False]
+
+    cooldown_selected = live_trading.normalize_live_rules(
+        {"strategyLossCooldownEnabled": [True, False]},
+        shadow_selected,
+    )
+    assert cooldown_selected["strategyLossCooldownEnabled"] == [True, False]
+    assert cooldown_selected[live_guard.LOSS_STREAK_RULE_FIELD] == [False, False]
+
+
+def test_guard_state_lookup_closes_sqlite_transaction(tmp_path: Path) -> None:
+    ledger = live_trading.LiveLedger(tmp_path / "live.db")
+    state = ledger.loss_streak_guard_state("R_MICROPRICE")
+    assert state["mode"] == live_guard.LOSS_STREAK_MODE_NORMAL
+    assert ledger.db.in_transaction is False
+
+    blocked, cooldown = ledger.consume_loss_cooldown("R_MICROPRICE", 1001)
+    assert blocked is False
+    assert cooldown["consecutiveLosses"] == 0
+    assert ledger.db.in_transaction is False
+
+
 def test_live_guard_three_losses_shadow_and_positive_pnl_recovery(
     tmp_path: Path,
     monkeypatch,
