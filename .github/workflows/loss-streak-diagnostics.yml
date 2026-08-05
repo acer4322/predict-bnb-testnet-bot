@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feature/regime-guard
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
