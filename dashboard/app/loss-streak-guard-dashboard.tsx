@@ -4,6 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSharedDashboardState } from "./shared-dashboard-state";
 
+function apiUrl(path: string) {
+  const hostname = window.location.hostname;
+  const host = hostname.includes(":") ? `[${hostname}]` : hostname;
+  return `${window.location.protocol}//${host}:8766${path}`;
+}
+
 const TEST_STRATEGY = "R_MICROPRICE_CONFIRM_LOSS_STREAK_GUARD";
 const RULE_FIELD = "strategyLossStreakGuardEnabled";
 const RESEARCH_TARGET = ".research-forward-panel .research-strategy-grid";
@@ -230,8 +236,8 @@ export default function LossStreakGuardDashboard() {
       if (loading || document.visibilityState !== "visible") return;
       loading = true;
       try {
-        const response = await fetch("/api/live-rules", { cache: "no-store" });
-        if (!response.ok) throw new Error();
+        const response = await fetch(apiUrl("/api/live-rules"), { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const body = await response.json() as LiveRulesPayload;
         if (active && savingIndex == null) setLivePayload(body);
       } catch {
@@ -257,7 +263,6 @@ export default function LossStreakGuardDashboard() {
     const strategies = livePayload?.rules?.strategies ?? EMPTY_STRATEGIES;
     const currentFlags = livePayload?.rules?.strategyLossStreakGuardEnabled ?? EMPTY_FLAGS;
     if (!strategies[index] || savingIndex != null) return;
-
     const nextFlags = strategies.map((_, slot) => slot === index ? enabled : Boolean(currentFlags[slot]));
     const previous = livePayload;
     setLivePayload(current => current ? {
@@ -276,7 +281,7 @@ export default function LossStreakGuardDashboard() {
     });
 
     try {
-      const response = await fetch("/api/live-rules", {
+      const response = await fetch(apiUrl("/api/live-rules"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [RULE_FIELD]: nextFlags }),
@@ -285,7 +290,7 @@ export default function LossStreakGuardDashboard() {
         liveM0W?: LiveRulesPayload;
         error?: string;
       } & LiveRulesPayload;
-      if (!response.ok) throw new Error(body.error ?? "後端拒絕連敗過濾設定");
+      if (!response.ok) throw new Error(body.error ?? `後端拒絕連敗過濾設定（HTTP ${response.status}）`);
       setLivePayload(body.liveM0W ?? body);
     } catch (error) {
       setLivePayload(previous);
