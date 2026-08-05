@@ -16,25 +16,11 @@ from .microprice_confirm_optimization_shadows import (
 EXIT_098_LIVE_V2_VERSION = "MICROPRICE_CONFIRM_EXIT_098_LIVE_V2"
 SELLABLE_ENTRY_STATUSES = {
     "FILLED",
-    "PARTIAL",
-    "PARTIALLY_FILLED",
-    "OPEN",
-    "PENDING",
-    "SUBMITTED",
-    "PLACED_PENDING_SYNC",
-    "OPENING",
     "CANCELED",
     "CANCELLED",
     "EXPIRED",
-}
-ACTIVE_PARTIAL_ENTRY_STATUSES = {
-    "PARTIAL",
-    "PARTIALLY_FILLED",
-    "OPEN",
-    "PENDING",
-    "SUBMITTED",
-    "PLACED_PENDING_SYNC",
-    "OPENING",
+    "REJECTED",
+    "FAILED",
 }
 
 
@@ -61,10 +47,8 @@ def _live_exit_candidates_v2(
                        ON x.order_local_id=o.id
                     WHERE o.strategy=? AND o.market_id=?
                       AND UPPER(o.status) IN (
-                          'FILLED','PARTIAL','PARTIALLY_FILLED',
-                          'OPEN','PENDING','SUBMITTED',
-                          'PLACED_PENDING_SYNC','OPENING',
-                          'CANCELED','CANCELLED','EXPIRED'
+                          'FILLED','CANCELED','CANCELLED','EXPIRED',
+                          'REJECTED','FAILED'
                       )
                       AND COALESCE(o.filled_share_qty, 0)>0
                       AND s.order_local_id IS NULL
@@ -349,12 +333,10 @@ def _schedule_live_exit_v2(
         if shares is None or shares <= 0:
             continue
 
-        # An entry still accepting fills waits until the target is observed;
-        # otherwise later BUY fills could appear after the protection quantity
-        # was frozen.  FILLED and terminal partial entries are protected now.
-        if entry_status in ACTIVE_PARTIAL_ENTRY_STATUSES and (
-            bid is None or bid < EXIT_TARGET_PRICE
-        ):
+        # Only protect a stable position quantity.  Active partial entries
+        # may receive additional BUY fills after a sell is submitted; settling
+        # them early would leave those later shares unprotected.
+        if entry_status not in SELLABLE_ENTRY_STATUSES:
             continue
 
         local_id = int(order["id"])
