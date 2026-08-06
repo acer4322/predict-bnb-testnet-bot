@@ -4,9 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import ConfirmationAddModeOptionGuardFast from "./confirmation-add-mode-option-guard-fast";
 import LossStreakGuardDashboard from "./loss-streak-guard-dashboard";
 import MaximumNetLossGuardDashboard from "./maximum-net-loss-guard-dashboard";
-import MicropriceStaleExhaustedGuardDashboard from "./microprice-stale-exhausted-guard-dashboard";
 import NativeObserverLiveControls from "./native-observer-live-controls";
-import ResearchDashboardEnhancements from "./research-dashboard-enhancements";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
@@ -43,8 +41,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </nav>
       <NativeObserverLiveControls />
       {children}
-      <ResearchDashboardEnhancements />
-      <MicropriceStaleExhaustedGuardDashboard />
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
       <ConfirmationAddModeOptionGuardFast />

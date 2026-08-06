@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useSharedDashboardState } from "./shared-dashboard-state";
 
 function apiUrl(path: string) {
   const hostname = window.location.hostname;
@@ -12,7 +11,6 @@ function apiUrl(path: string) {
 
 const TEST_STRATEGY = "R_MICROPRICE_CONFIRM_LOSS_STREAK_GUARD";
 const RULE_FIELD = "strategyLossStreakGuardEnabled";
-const RESEARCH_TARGET = ".research-forward-panel .research-strategy-grid";
 const LIVE_RULES_TARGET = ".live-rules-editor";
 const EMPTY_STRATEGIES: string[] = [];
 const EMPTY_FLAGS: boolean[] = [];
@@ -231,7 +229,6 @@ function TestStrategyCard({ payload }: { payload: DashboardPayload | null }) {
 
 export default function LossStreakGuardDashboard() {
   const [ruleMounts, setRuleMounts] = useState<RuleMount[]>([]);
-  const [researchTarget, setResearchTarget] = useState<HTMLElement | null>(null);
   const [mainApplyButton, setMainApplyButton] = useState<HTMLButtonElement | null>(null);
   const [livePayload, setLivePayload] = useState<LiveRulesPayload | null>(null);
   const [draftGuardFlags, setDraftGuardFlags] = useState<boolean[]>(EMPTY_FLAGS);
@@ -246,7 +243,6 @@ export default function LossStreakGuardDashboard() {
   const savingRef = useRef(false);
   const livePayloadRef = useRef<LiveRulesPayload | null>(null);
   const mainSaveWatchRef = useRef<number | null>(null);
-  const { payload } = useSharedDashboardState<DashboardPayload>();
 
   useEffect(() => { guardFlagsRef.current = draftGuardFlags; }, [draftGuardFlags]);
   useEffect(() => { cooldownFlagsRef.current = draftCooldownFlags; }, [draftCooldownFlags]);
@@ -350,8 +346,6 @@ export default function LossStreakGuardDashboard() {
         setMainApplyButton(current => current === apply ? current : apply);
       }
 
-      const research = document.querySelector<HTMLElement>(RESEARCH_TARGET);
-      setResearchTarget(current => current === research ? current : research);
     };
 
     const load = async () => {
@@ -493,7 +487,6 @@ export default function LossStreakGuardDashboard() {
   const strategies = livePayload?.rules?.strategies ?? EMPTY_STRATEGIES;
   const guardStates = livePayload?.strategyLossStreakGuardStates ?? [];
   const cooldownStates = livePayload?.strategyLossCooldownStates ?? [];
-  const testCard = useMemo(() => <TestStrategyCard payload={payload} />, [payload]);
 
   return <>
     {ruleMounts.map(({ index, element }) => createPortal(
@@ -514,6 +507,5 @@ export default function LossStreakGuardDashboard() {
       element,
       `loss-protection-rule-${index}`,
     ))}
-    {researchTarget ? createPortal(testCard, researchTarget) : null}
   </>;
 }
