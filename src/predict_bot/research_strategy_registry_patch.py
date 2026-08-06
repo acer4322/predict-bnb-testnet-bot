@@ -46,6 +46,14 @@ def _finite_nonnegative(value: Any, default: float = 0.0) -> float:
     return number if math.isfinite(number) and number >= 0 else default
 
 
+def _primary_parameter_view() -> dict[str, dict[str, float]]:
+    return {
+        strategy: _research.RESEARCH_PARAMETERS[strategy]
+        for strategy in _research.PRIMARY_RESEARCH_STRATEGIES
+        if strategy in _research.RESEARCH_PARAMETERS
+    }
+
+
 def _sync_known_consumers() -> None:
     """Refresh modules that imported registry values before a runtime addition."""
     server = sys.modules.get("predict_bot.server")
@@ -57,9 +65,24 @@ def _sync_known_consumers() -> None:
         server.research_sampling_active = _research.sampling_active
         server.research_signal_for_strategy = _research.signal_for_strategy
 
+        default_config = getattr(server, "DEFAULT_CONFIG", None)
+        if isinstance(default_config, dict):
+            for strategy in _research.RESEARCH_STRATEGIES:
+                prefix = f"strategy_{strategy.lower()}"
+                default_config.setdefault(f"{prefix}_enabled", False)
+                default_config.setdefault(f"{prefix}_stake", 5.0)
+
+        supported = getattr(server, "SUPPORTED_STRATEGIES", None)
+        if isinstance(supported, tuple):
+            server.SUPPORTED_STRATEGIES = tuple(
+                dict.fromkeys((*supported, *_research.RESEARCH_STRATEGIES))
+            )
+
     realtime = sys.modules.get("predict_bot.m_realtime")
     if realtime is not None:
-        realtime.RESEARCH_PARAMETERS = _research.RESEARCH_PARAMETERS
+        # m_realtime uses this mapping only to extend its event-evaluation
+        # horizon. A Shadow must not keep the generic engine awake by itself.
+        realtime.RESEARCH_PARAMETERS = _primary_parameter_view()
 
 
 def _set_registry(
@@ -91,7 +114,8 @@ def _canonicalize_existing_registry() -> None:
     primary = tuple(
         strategy for strategy in DIRECT_SIGNAL_STRATEGIES if strategy in available
     )
-    shadow = tuple(strategy for strategy in existing if strategy not in set(primary))
+    primary_set = set(primary)
+    shadow = tuple(strategy for strategy in existing if strategy not in primary_set)
     _set_registry(primary, shadow)
 
 
