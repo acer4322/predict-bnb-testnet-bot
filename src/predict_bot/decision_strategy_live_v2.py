@@ -65,6 +65,8 @@ def _install_signal_provenance_guard(live: Any) -> None:
             return False, "decision controller version does not match the frozen policy"
         if _positive_int(signal.get("decision_evaluation_id")) is None:
             return False, "decision controller durable evaluation id is missing"
+        if _positive_int(signal.get("paper_trade_id")) is None:
+            return False, "decision controller durable Paper trade id is missing"
         if _positive_int(signal.get("selected_source_trade_id")) is None:
             return False, "decision controller selected source trade id is missing"
         if str(signal.get("selected_family") or "") not in FAMILY_SOURCES:
