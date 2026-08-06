@@ -13,6 +13,7 @@
     "build": "vinext build",
     "start": "vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs tests/native-observer-controls.test.mjs",
+    "prelint": "npm run integrate:decision-tab",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
