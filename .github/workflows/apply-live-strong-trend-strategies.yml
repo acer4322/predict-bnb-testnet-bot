@@ -1,0 +1,63 @@
+name: Apply live strong trend strategies
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/.live-strong-trend-strategies-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out target branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/regime-guard
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install Python dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Apply patch
+        run: python .github/scripts/add-live-strong-trend-strategies.py
+      - name: Run focused backend tests
+        run: python -m pytest -q tests/test_strong_trend_guard_shadows.py tests/test_live_trading.py tests/test_m_realtime.py
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Build dashboard
+        working-directory: dashboard
+        run: npm run build
+      - name: Verify labels and native dashboard
+        working-directory: dashboard
+        run: |
+          node --test tests/live-strong-trend-strategies.test.mjs
+          node --test tests/native-strong-trend-guard.test.mjs
+      - name: Commit target branch
+        run: |
+          rm -f .github/scripts/add-live-strong-trend-strategies.py
+          rm -f .github/.live-strong-trend-strategies-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "feat(live): add selected strong trend guard strategies"
+          git push origin HEAD:feature/regime-guard
+      - name: Remove one-shot runner from main
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          rm -f .github/workflows/apply-live-strong-trend-strategies.yml
+          git add -A
+          git diff --cached --quiet || git commit -m "chore: remove one-shot live strong trend runner"
+          git push origin HEAD:main
