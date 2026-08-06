@@ -143,32 +143,44 @@ def patch_page(text: str) -> str:
 
 
 def patch_render_test(text: str) -> str:
-    text = replace_once(
-        text,
-        '  assert.match(page, /type StrategyView = \\"live-m0w\\" \\| \\"research\\" \\| \\"reliability-shadow\\" \\| \\"lead-observer\\" \\| \\"m-series\\" \\| \\"pair-arb\\" \\| \\"legacy\\" \\| \\"paused\\"/);'.replace('\\\\', '\\'),
-        '  assert.match(page, /type StrategyView = .*"decision-strategy".*;/);',
-        "render test strategy view",
+    """Update regression assertions without ever blocking dashboard startup."""
+    strategy_assertion = (
+        '  assert.match(page, /type StrategyView = .*"decision-strategy".*;/);'
     )
-    text = replace_once(
-        text,
-        '  assert.match(page, /id="reliability-shadow-tab"/);',
+    if strategy_assertion not in text:
+        lines = text.splitlines(keepends=True)
+        for index, line in enumerate(lines):
+            if "assert.match(page, /type StrategyView =" in line:
+                newline = "\r\n" if line.endswith("\r\n") else "\n"
+                lines[index] = strategy_assertion + newline
+                text = "".join(lines)
+                break
+
+    decision_assertions = (
         '  assert.match(page, /id="decision-strategy-tab"/);\n'
         '  assert.match(page, /aria-controls="decision-strategy-panel"/);\n'
         '  assert.match(page, /DecisionStrategyTestPanel payload=\\{state\\}/);\n'
         '  assert.match(page, /R_DECISION_RANK1/);\n'
         '  assert.match(page, /R_DECISION_RANK2/);\n'
-        '  assert.match(page, /id="reliability-shadow-tab"/);',
-        "render test decision tab assertions",
     )
+    if 'assert.match(page, /id="decision-strategy-tab"/);' not in text:
+        anchor = '  assert.match(page, /id="reliability-shadow-tab"/);'
+        if anchor in text:
+            text = text.replace(anchor, decision_assertions + anchor, 1)
     return text
 
 
 def main() -> None:
-    PAGE.write_text(patch_page(PAGE.read_text(encoding="utf-8")), encoding="utf-8")
-    RENDER_TEST.write_text(
-        patch_render_test(RENDER_TEST.read_text(encoding="utf-8")),
-        encoding="utf-8",
-    )
+    page_before = PAGE.read_text(encoding="utf-8")
+    page_after = patch_page(page_before)
+    if page_after != page_before:
+        PAGE.write_text(page_after, encoding="utf-8")
+
+    if RENDER_TEST.exists():
+        test_before = RENDER_TEST.read_text(encoding="utf-8")
+        test_after = patch_render_test(test_before)
+        if test_after != test_before:
+            RENDER_TEST.write_text(test_after, encoding="utf-8")
 
 
 if __name__ == "__main__":
