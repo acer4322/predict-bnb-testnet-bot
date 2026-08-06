@@ -53,7 +53,7 @@ def patched_page(original: str) -> str:
     text = replace_once(
         text,
         '    const validViews: StrategyView[] = ["live-m0w", "research", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
-        '    const validViews: StrategyView[] = ["live-m0w", "research", "microprice-strategies", "calibrated-confirmation", "strong-trend-guard", "decision-strategy", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
+        '    const validViews: StrategyView[] = ["live-m0w", "research", "decision-strategy", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
         "session view allowlist",
     )
     text = replace_once(
