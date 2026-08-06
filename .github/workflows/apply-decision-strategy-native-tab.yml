@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - .github/.decision-strategy-native-tab-trigger
+  push:
+    branches:
+      - main
+    paths:
+      - .github/.decision-strategy-native-tab-trigger
 
 permissions:
   contents: write
@@ -98,6 +103,7 @@ jobs:
           git fetch origin main
           git checkout -B main origin/main
           rm -f .github/workflows/apply-decision-strategy-native-tab.yml
+          rm -f .github/.decision-strategy-native-tab-trigger
           git add -A
           git diff --cached --quiet || git commit -m "chore: remove one-shot decision strategy runner"
           git push origin HEAD:main
