@@ -50,6 +50,7 @@ python -c "import predict_bot; from predict_bot.decision_strategy_rules import S
 Write-Host "[5/8] Run focused backend and existing integration tests"
 python -m pytest `
     tests/test_decision_strategy_native_v2.py `
+    tests/test_decision_strategy_config_v2.py `
     tests/test_strong_trend_guard_shadows.py `
     tests/test_calibrated_value_confirmation_variants.py `
     tests/test_live_trading.py `
