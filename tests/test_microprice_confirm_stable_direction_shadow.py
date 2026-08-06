@@ -5,6 +5,7 @@ import sqlite3
 
 from predict_bot import live_trading, research_forward
 from predict_bot.microprice_confirm_stable_direction_shadow import (
+    HORIZON_SECONDS,
     MAX_RAW_TOP_ASK_EXCLUSIVE,
     MIN_MIDPOINT_DELTA,
     MIN_RAW_TOP_ASK,
@@ -100,3 +101,22 @@ def test_strategy_is_native_research_shadow_and_never_live_selectable() -> None:
     assert STRATEGY in research_forward.RESEARCH_STRATEGIES
     assert STRATEGY not in live_trading.LIVE_SUPPORTED_STRATEGIES
     assert STRATEGY not in live_trading.LIVE_RESEARCH_STRATEGIES
+
+
+def test_strategy_has_sampling_horizon_and_does_not_raise_key_error() -> None:
+    params = research_forward.RESEARCH_PARAMETERS[STRATEGY]
+    assert params["horizon"] == HORIZON_SECONDS
+    assert research_forward.sampling_active(HORIZON_SECONDS, {STRATEGY}) is True
+
+
+def test_generic_signal_path_never_evaluates_derived_stable_direction_shadow() -> None:
+    assert (
+        research_forward.signal_for_strategy(
+            STRATEGY,
+            {},
+            None,
+            fee_bps=200,
+            slippage_bps=50.0,
+        )
+        is None
+    )
