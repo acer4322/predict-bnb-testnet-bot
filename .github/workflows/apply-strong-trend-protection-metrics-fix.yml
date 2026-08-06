@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: dashboard/package-lock.json
       - name: Install Python dependencies
         run: python -m pip install -e '.[dev]'
-      - name: Make staged patch re-runnable
+      - name: Normalize staged patch and tests
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -47,6 +47,14 @@ jobs:
           text = text.replace(
               'if "test_blocked_protection_uses_all_realized_source_exit_statuses" in text:\n    raise RuntimeError("tests already patched")\ntests.write_text(text + append, encoding="utf-8")',
               'if "test_blocked_protection_uses_all_realized_source_exit_statuses" not in text:\n    tests.write_text(text + append, encoding="utf-8")',
+          )
+          text = text.replace(
+              '    evaluate_strong_trend,\n)',
+              '    evaluate_strong_trend,\n    _experiment_state,\n)',
+          )
+          text = text.replace(
+              'payload = store.dashboard()["researchForward"]["strongTrendGuardExperiment"]',
+              'payload = _experiment_state(store)',
           )
           path.write_text(text, encoding='utf-8')
           PY
