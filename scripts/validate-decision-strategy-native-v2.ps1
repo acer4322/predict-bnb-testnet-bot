@@ -64,7 +64,7 @@ try {
 
     Write-Host "[7/8] Run dashboard lint/tests/build"
     npm run lint
-    npm test -- --runInBand
+    npm test
     npm run build
 }
 finally {
