@@ -32,10 +32,15 @@ jobs:
         run: python -m pip install -e ".[dev]"
 
       - name: Import package
-        run: python -c "import predict_bot; from predict_bot import live_trading; assert 'R_DECISION_RANK1' in live_trading.LIVE_SUPPORTED_STRATEGIES; assert 'R_DECISION_RANK2' in live_trading.LIVE_SUPPORTED_STRATEGIES"
+        run: python -c "import predict_bot; from predict_bot import live_trading, m_realtime; assert 'R_DECISION_RANK1' in live_trading.LIVE_SUPPORTED_STRATEGIES; assert 'R_DECISION_RANK2' in live_trading.LIVE_SUPPORTED_STRATEGIES; assert 'R_DECISION_RANK1' in m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES; assert 'R_DECISION_RANK2' in m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES"
 
       - name: Decision strategy tests
-        run: python -m pytest tests/test_decision_strategy_shadows.py tests/test_live_trading.py -q
+        run: >-
+          python -m pytest
+          tests/test_decision_strategy_shadows.py
+          tests/test_decision_strategy_runtime.py
+          tests/test_live_trading.py
+          -q
 
       - name: Install dashboard dependencies
         working-directory: dashboard
