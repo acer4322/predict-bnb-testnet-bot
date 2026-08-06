@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from types import SimpleNamespace
 
-from predict_bot import live_trading
+from predict_bot import live_trading, m_realtime
 from predict_bot.decision_strategy_shadows import (
     DECISION_STRATEGIES,
     EXCLUDED_FAMILIES,
@@ -52,9 +52,10 @@ def _store() -> SimpleNamespace:
     return SimpleNamespace(db=db)
 
 
-def test_decision_strategies_are_live_selectable() -> None:
+def test_decision_strategies_are_live_selectable_and_forwardable() -> None:
     assert set(DECISION_STRATEGIES).issubset(live_trading.LIVE_RESEARCH_STRATEGIES)
     assert set(DECISION_STRATEGIES).issubset(live_trading.LIVE_SUPPORTED_STRATEGIES)
+    assert set(DECISION_STRATEGIES).issubset(m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES)
 
 
 def test_m01_microprice_and_ofi_are_not_decision_families() -> None:
