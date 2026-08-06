@@ -334,8 +334,10 @@ DEFAULT_CONFIG: dict[str, float | bool] = {
     # capital pool. Counterfactual variants are isolated paper shadows.
     "strategy_r_microprice_enabled": True,
     "strategy_r_microprice_stake": 5.0,
-    "strategy_r_microprice_confirm_stable_direction_enabled": True,
-    "strategy_r_microprice_confirm_stable_direction_stake": 5.0,
+    "strategy_r_microprice_confirm_stable_direction_base_enabled": True,
+    "strategy_r_microprice_confirm_stable_direction_base_stake": 5.0,
+    "strategy_r_microprice_confirm_stable_direction_strict_enabled": True,
+    "strategy_r_microprice_confirm_stable_direction_strict_stake": 5.0,
     "strategy_r_microprice_reverse_enabled": True,
     "strategy_r_microprice_reverse_stake": 5.0,
     "strategy_r_ofi_enabled": True,

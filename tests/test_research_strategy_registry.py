@@ -38,7 +38,8 @@ DERIVED_SHADOW_VARIANTS = {
     "R_FUTURES_LEAD_OBSERVER_F1",
     "R_OFI_OBSERVER_V3",
     "R_MICROPRICE_OBSERVER_V3",
-    "R_MICROPRICE_CONFIRM_STABLE_DIRECTION",
+    "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_BASE",
+    "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_STRICT",
 }
 
 
@@ -90,34 +91,33 @@ def test_derived_variants_are_shadow_only_and_never_generic() -> None:
 
 def test_every_generic_signal_strategy_has_a_finite_positive_horizon() -> None:
     for strategy in research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES:
-        horizon = float(research_forward.RESEARCH_PARAMETERS[strategy]["horizon"])
+        horizon = float(
+            research_forward.RESEARCH_PARAMETERS[strategy]["horizon"]
+        )
         assert math.isfinite(horizon)
         assert horizon > 0
 
 
 def test_sampling_ignores_derived_and_unknown_but_keeps_generic_shadows() -> None:
     assert research_forward.sampling_active(
-        180.0,
-        {"R_MICROPRICE_REVERSE"},
+        180.0, {"R_MICROPRICE_REVERSE"}
     ) is False
     assert research_forward.sampling_active(
-        180.0,
-        {"R_UNKNOWN_RESEARCH_STRATEGY"},
+        180.0, {"R_UNKNOWN_RESEARCH_STRATEGY"}
     ) is False
     assert research_forward.sampling_active(
-        180.0,
-        {"R_FUTURES_LEAD_DISTANCE"},
+        180.0, {"R_FUTURES_LEAD_DISTANCE"}
     ) is True
     assert research_forward.sampling_active(
-        180.0,
-        {"R_MICROPRICE_REVERSE", "R_MICROPRICE"},
+        180.0, {"R_MICROPRICE_REVERSE", "R_MICROPRICE"}
     ) is True
 
 
 def test_generic_signal_path_fails_closed_for_derived_and_unknown() -> None:
     for strategy in (
         "R_MICROPRICE_REVERSE",
-        "R_MICROPRICE_CONFIRM_STABLE_DIRECTION",
+        "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_BASE",
+        "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_STRICT",
         "R_UNKNOWN_RESEARCH_STRATEGY",
     ):
         assert research_forward.signal_for_strategy(
@@ -133,9 +133,11 @@ def test_runtime_consumers_receive_generic_horizons_and_all_supported_ids() -> N
     assert set(m_realtime.RESEARCH_PARAMETERS) == set(
         research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES
     )
-    assert "R_MICROPRICE_CONFIRM_STABLE_DIRECTION" not in (
-        m_realtime.RESEARCH_PARAMETERS
-    )
+    for strategy in (
+        "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_BASE",
+        "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_STRICT",
+    ):
+        assert strategy not in m_realtime.RESEARCH_PARAMETERS
+        assert strategy in server.SUPPORTED_STRATEGIES
     assert "R_FUTURES_LEAD_DISTANCE" in m_realtime.RESEARCH_PARAMETERS
-    assert "R_MICROPRICE_CONFIRM_STABLE_DIRECTION" in server.SUPPORTED_STRATEGIES
     assert server.RESEARCH_STRATEGIES == research_forward.RESEARCH_STRATEGIES

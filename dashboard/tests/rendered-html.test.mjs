@@ -163,6 +163,10 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.match(page, /R_CALIBRATED_VALUE: "研究實單 · 校準機率價值"/);
   assert.match(page, /<ResearchForwardPanel data=\{state\.researchForward\}/);
   assert.match(page, /R_MICROPRICE/);
+  assert.match(page, /R_MICROPRICE_CONFIRM_STABLE_DIRECTION_BASE/);
+  assert.match(page, /R_MICROPRICE_CONFIRM_STABLE_DIRECTION_STRICT/);
+  assert.match(page, /穩定方向 BASE · Ask 0\.60–0\.90/);
+  assert.match(page, /穩定方向 STRICT · ER／穿越確認/);
   assert.match(page, /R_MICROPRICE: "研究實單 · Microprice 深度失衡"/);
   assert.match(page, /R_OFI/);
   assert.match(page, /R_OFI_MIN040/);
