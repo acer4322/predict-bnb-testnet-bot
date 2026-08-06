@@ -10,6 +10,7 @@ const MAX_OBSERVER_SLOT = 2;
 const RULE_REFRESH_MS = 5_000;
 const CONTROL_SYNC_MS = 1_000;
 const REQUEST_TIMEOUT_MS = 4_000;
+const LIVE_RULE_SAVE_TIMEOUT_MS = 12_000;
 
 let savedStrategies: string[] = [];
 let savedObserverVersions: string[] = [];
@@ -123,6 +124,37 @@ function synchronizeControls() {
   }
 }
 
+function installLiveRulesSaveTimeout() {
+  const originalFetch = window.fetch.bind(window);
+  const patchedFetch: typeof window.fetch = (input, init) => {
+    const url = typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+    const method = String(init?.method ?? "GET").toUpperCase();
+    const isLiveRulesSave = method === "POST" && url.includes("/api/live-rules");
+    if (!isLiveRulesSave || init?.signal) {
+      return originalFetch(input, init);
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(
+      () => controller.abort(
+        new DOMException("實單規則儲存逾時", "TimeoutError"),
+      ),
+      LIVE_RULE_SAVE_TIMEOUT_MS,
+    );
+    return originalFetch(input, { ...init, signal: controller.signal })
+      .finally(() => window.clearTimeout(timeout));
+  };
+
+  window.fetch = patchedFetch;
+  return () => {
+    if (window.fetch === patchedFetch) window.fetch = originalFetch;
+  };
+}
+
 async function refreshSavedRules() {
   const controller = new AbortController();
   const timeout = window.setTimeout(
@@ -154,6 +186,7 @@ async function refreshSavedRules() {
 export default function StableConsensusLiveControls() {
   useEffect(() => {
     let scheduled = false;
+    const restoreFetch = installLiveRulesSaveTimeout();
     const schedule = () => {
       if (scheduled) return;
       scheduled = true;
@@ -181,6 +214,7 @@ export default function StableConsensusLiveControls() {
     document.addEventListener("focusin", schedule, true);
 
     return () => {
+      restoreFetch();
       window.clearInterval(syncTimer);
       window.clearInterval(ruleTimer);
       observer.disconnect();
