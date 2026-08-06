@@ -32,10 +32,12 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: dashboard/package-lock.json
+      - name: Install Python dependencies
+        run: python -m pip install -e '.[dev]'
       - name: Apply patch
         run: python .github/scripts/apply-native-strong-trend-guard.py
       - name: Run backend tests
-        run: pytest -q tests/test_strong_trend_guard_shadows.py tests/test_research_strategy_registry.py
+        run: python -m pytest -q tests/test_strong_trend_guard_shadows.py tests/test_research_strategy_registry.py
       - name: Install dashboard dependencies
         working-directory: dashboard
         run: npm ci
