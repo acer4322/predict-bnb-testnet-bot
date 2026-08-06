@@ -7,6 +7,9 @@ const STRATEGY_LABEL = "Microprice Confirm · 穩定共識 0.60–0.90";
 const OBSERVER_VERSION = "R_MICROPRICE_CONFIRM_STABLE_CONSENSUS_OBSERVER";
 const OBSERVER_LABEL = "穩定共識 · F1 + Ask 0.60–0.90";
 const MAX_OBSERVER_SLOT = 2;
+const RULE_REFRESH_MS = 5_000;
+const CONTROL_SYNC_MS = 1_000;
+const REQUEST_TIMEOUT_MS = 4_000;
 
 let savedStrategies: string[] = [];
 let savedObserverVersions: string[] = [];
@@ -18,7 +21,7 @@ function apiUrl(path: string) {
 }
 
 function setReactSelectValue(select: HTMLSelectElement, value: string) {
-  if (select.value === value) return;
+  if (select.value === value) return false;
   const setter = Object.getOwnPropertyDescriptor(
     HTMLSelectElement.prototype,
     "value",
@@ -26,6 +29,7 @@ function setReactSelectValue(select: HTMLSelectElement, value: string) {
   if (setter) setter.call(select, value);
   else select.value = value;
   select.dispatchEvent(new Event("change", { bubbles: true }));
+  return true;
 }
 
 function ensureOption(
@@ -33,13 +37,19 @@ function ensureOption(
   value: string,
   label: string,
 ) {
+  let changed = false;
   let option = Array.from(select.options).find(item => item.value === value);
   if (!option) {
     option = document.createElement("option");
     option.value = value;
     select.append(option);
+    changed = true;
   }
-  option.textContent = label;
+  if (option.textContent !== label) {
+    option.textContent = label;
+    changed = true;
+  }
+  return changed;
 }
 
 function strategySelect(slot: number) {
@@ -72,7 +82,8 @@ function synchronizeControls() {
     ensureOption(strategy, STRATEGY, STRATEGY_LABEL);
     if (
       savedStrategies[slot] === STRATEGY &&
-      strategy.value !== STRATEGY
+      strategy.value !== STRATEGY &&
+      document.activeElement !== strategy
     ) {
       setReactSelectValue(strategy, STRATEGY);
     }
@@ -87,29 +98,41 @@ function synchronizeControls() {
       continue;
     }
 
-    enabled.disabled = false;
-    version.disabled = false;
+    if (enabled.disabled) enabled.disabled = false;
+    if (version.disabled) version.disabled = false;
     ensureOption(version, OBSERVER_VERSION, OBSERVER_LABEL);
 
     if (
       savedObserverVersions[slot] === OBSERVER_VERSION &&
-      version.value !== OBSERVER_VERSION
+      version.value !== OBSERVER_VERSION &&
+      document.activeElement !== version
     ) {
       setReactSelectValue(version, OBSERVER_VERSION);
     }
 
     const help = version.closest("label")?.querySelector<HTMLElement>("small");
-    if (help && version.value === OBSERVER_VERSION) {
-      help.textContent =
-        "F1 歷史過渡防護 + 訊號側 Ask 0.60–0.90；缺資料 fail closed";
+    const stableHelp =
+      "F1 歷史過渡防護 + 訊號側 Ask 0.60–0.90；缺資料 fail closed";
+    if (
+      help &&
+      version.value === OBSERVER_VERSION &&
+      help.textContent !== stableHelp
+    ) {
+      help.textContent = stableHelp;
     }
   }
 }
 
 async function refreshSavedRules() {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
   try {
     const response = await fetch(apiUrl("/api/live-rules"), {
       cache: "no-store",
+      signal: controller.signal,
     });
     if (!response.ok) return;
     const body = await response.json();
@@ -122,7 +145,9 @@ async function refreshSavedRules() {
     }
     synchronizeControls();
   } catch {
-    // Main dashboard owns live connection errors.
+    // Main dashboard owns connection and save errors.
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
 
@@ -140,17 +165,17 @@ export default function StableConsensusLiveControls() {
 
     schedule();
     void refreshSavedRules();
-    const syncTimer = window.setInterval(schedule, 500);
+    const syncTimer = window.setInterval(schedule, CONTROL_SYNC_MS);
     const ruleTimer = window.setInterval(
       () => void refreshSavedRules(),
-      5_000,
+      RULE_REFRESH_MS,
     );
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, {
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ["disabled", "value"],
+      attributeFilter: ["disabled"],
     });
     document.addEventListener("change", schedule, true);
     document.addEventListener("focusin", schedule, true);
