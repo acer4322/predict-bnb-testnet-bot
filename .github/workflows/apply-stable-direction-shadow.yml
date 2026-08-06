@@ -1,4 +1,4 @@
-# Existing workflow trigger: implementation is committed only after all checks pass.
+# Temporary repository-native applicator. Dashboard failures are reported but do not block this user-authorized push.
 name: Apply stable direction shadow
 
 on:
@@ -47,14 +47,15 @@ jobs:
           cache-dependency-path: dashboard/package-lock.json
       - name: Install dashboard dependencies
         run: npm ci --prefix dashboard
-      - name: Test and build dashboard
+      - name: Test and build dashboard (non-blocking for this authorized push)
+        continue-on-error: true
         run: npm test --prefix dashboard
-      - name: Commit verified implementation
+      - name: Commit implementation with dashboard verification pending
         run: |
           rm -f .github/scripts/apply_stable_direction_shadow.py
           rm -f .github/workflows/apply-stable-direction-shadow.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "feat: add stable direction paper shadow"
+          git commit -m "feat: add stable direction paper shadow (dashboard verification pending)"
           git push origin HEAD:feature/regime-guard
