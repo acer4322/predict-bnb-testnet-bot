@@ -5,19 +5,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "dashboard" / "app" / "page.tsx"
+RENDER_TEST = ROOT / "dashboard" / "tests" / "rendered-html.test.mjs"
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
     if new in text:
         return text
     if old not in text:
-        raise RuntimeError(f"missing page.tsx integration anchor: {label}")
+        raise RuntimeError(f"missing integration anchor: {label}")
     return text.replace(old, new, 1)
 
 
-def main() -> None:
-    text = PAGE.read_text(encoding="utf-8")
-
+def patch_page(text: str) -> str:
     text = replace_once(
         text,
         'import StrongTrendGuardPanel from "./strong-trend-guard-panel";\n',
@@ -25,21 +24,18 @@ def main() -> None:
         'import DecisionStrategyTestPanel from "./decision-strategy-test-panel";\n',
         "decision panel import",
     )
-
     text = replace_once(
         text,
         '| "R_CONSENSUS" | "R_CONFIRM_ADD_10";',
         '| "R_CONSENSUS" | "R_CONFIRM_ADD_10" | "R_DECISION_RANK1" | "R_DECISION_RANK2";',
         "strategy id union",
     )
-
     text = replace_once(
         text,
         'type StrategyView = "live-m0w" | "research" | "microprice-strategies" | "calibrated-confirmation" | "strong-trend-guard" | "reliability-shadow" | "lead-observer" | "m-series" | "pair-arb" | "legacy" | "paused";',
         'type StrategyView = "live-m0w" | "research" | "microprice-strategies" | "calibrated-confirmation" | "strong-trend-guard" | "decision-strategy" | "reliability-shadow" | "lead-observer" | "m-series" | "pair-arb" | "legacy" | "paused";',
         "strategy view union",
     )
-
     text = replace_once(
         text,
         '  liveM0W?: LiveM0WState | null;\n};',
@@ -48,7 +44,6 @@ def main() -> None:
         '};',
         "state decision payload",
     )
-
     text = replace_once(
         text,
         '    R_CONSENSUS: { ...EMPTY_SUMMARY },\n    R_CONFIRM_ADD_10: { ...EMPTY_SUMMARY },',
@@ -58,14 +53,12 @@ def main() -> None:
         '    R_DECISION_RANK2: { ...EMPTY_SUMMARY },',
         "default decision summaries",
     )
-
     text = replace_once(
         text,
         '    const validViews: StrategyView[] = ["live-m0w", "research", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
         '    const validViews: StrategyView[] = ["live-m0w", "research", "microprice-strategies", "calibrated-confirmation", "strong-trend-guard", "decision-strategy", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
         "session strategy views",
     )
-
     text = replace_once(
         text,
         '          liveM0W: next.liveM0W\n',
@@ -73,7 +66,6 @@ def main() -> None:
         '          liveM0W: next.liveM0W\n',
         "statistics decision payload",
     )
-
     text = replace_once(
         text,
         '  R_OFI_EVENT_CUM: "研究實單 · 累積事件級 OFI",\n};',
@@ -83,14 +75,12 @@ def main() -> None:
         '};',
         "live strategy labels",
     )
-
     text = replace_once(
         text,
         '  const isNonConfigView = isLiveView || isReliabilityView || strategyView === "microprice-strategies" || strategyView === "calibrated-confirmation" || strategyView === "strong-trend-guard";',
         '  const isNonConfigView = isLiveView || isReliabilityView || strategyView === "microprice-strategies" || strategyView === "calibrated-confirmation" || strategyView === "strong-trend-guard" || strategyView === "decision-strategy";',
         "non-config decision view",
     )
-
     text = replace_once(
         text,
         '    if (strategyView === "strong-trend-guard") return trade.strategy.startsWith("R_STRONG_TREND_GUARD_");\n',
@@ -98,14 +88,12 @@ def main() -> None:
         '    if (strategyView === "decision-strategy") return ["R_DECISION_RANK1", "R_DECISION_RANK2"].includes(String(trade.strategy));\n',
         "decision trade filter",
     )
-
     text = replace_once(
         text,
         'strategyView === "strong-trend-guard" ? "STRONG OPPOSING TREND · EIGHT SHADOWS" : strategyView === "reliability-shadow"',
         'strategyView === "strong-trend-guard" ? "STRONG OPPOSING TREND · EIGHT SHADOWS" : strategyView === "decision-strategy" ? "DECISION CONTROLLERS · RANK 1 + RANK 2" : strategyView === "reliability-shadow"',
         "decision heading eyebrow",
     )
-
     text = replace_once(
         text,
         'strategyView === "strong-trend-guard" ? "逆強趨勢阻擋測試" : strategyView === "reliability-shadow"',
@@ -146,14 +134,41 @@ def main() -> None:
         '<DecisionStrategyTestPanel payload={state} onReset={resetStrategy} resetStates={resetStates} /> : '
         'strategyView === "reliability-shadow"'
     )
-    text = replace_once(
+    return replace_once(
         text,
         strong_trend_branch,
         decision_branch,
         "decision strategy tabpanel branch",
     )
 
-    PAGE.write_text(text, encoding="utf-8")
+
+def patch_render_test(text: str) -> str:
+    text = replace_once(
+        text,
+        '  assert.match(page, /type StrategyView = \\"live-m0w\\" \\| \\"research\\" \\| \\"reliability-shadow\\" \\| \\"lead-observer\\" \\| \\"m-series\\" \\| \\"pair-arb\\" \\| \\"legacy\\" \\| \\"paused\\"/);',
+        '  assert.match(page, /type StrategyView = .*\\"decision-strategy\\".*;/);',
+        "render test strategy view",
+    )
+    text = replace_once(
+        text,
+        '  assert.match(page, /id="reliability-shadow-tab"/);',
+        '  assert.match(page, /id="decision-strategy-tab"/);\n'
+        '  assert.match(page, /aria-controls="decision-strategy-panel"/);\n'
+        '  assert.match(page, /DecisionStrategyTestPanel payload=\\{state\\}/);\n'
+        '  assert.match(page, /R_DECISION_RANK1/);\n'
+        '  assert.match(page, /R_DECISION_RANK2/);\n'
+        '  assert.match(page, /id="reliability-shadow-tab"/);',
+        "render test decision tab assertions",
+    )
+    return text
+
+
+def main() -> None:
+    PAGE.write_text(patch_page(PAGE.read_text(encoding="utf-8")), encoding="utf-8")
+    RENDER_TEST.write_text(
+        patch_render_test(RENDER_TEST.read_text(encoding="utf-8")),
+        encoding="utf-8",
+    )
 
 
 if __name__ == "__main__":
