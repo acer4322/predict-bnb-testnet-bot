@@ -8,6 +8,7 @@ from predict_bot.strong_trend_guard_shadows import (
     SOURCE_TO_SHADOW,
     STRATEGIES,
     evaluate_strong_trend,
+    _experiment_state,
 )
 
 
@@ -109,3 +110,84 @@ def test_eight_strategies_are_derived_paper_shadows():
     for strategy in STRATEGIES:
         assert server.DEFAULT_CONFIG[f"strategy_{strategy.lower()}_enabled"] is True
         assert server.DEFAULT_CONFIG[f"strategy_{strategy.lower()}_stake"] == 5.0
+
+
+
+def test_blocked_protection_uses_all_realized_source_exit_statuses(tmp_path):
+    store = server.Store(tmp_path / "simulation.db")
+
+    insert_observations(store, 201, [99.99, 99.98, 99.96])
+    store.open_trade(
+        strategy="M01",
+        topic_id=1,
+        market_id=201,
+        side="UP",
+        entry=.20,
+        target=None,
+        stake=10.0,
+        fee_rate_bps=200,
+        note="blocked loss source",
+    )
+    first = store.db.execute(
+        "SELECT source_trade_id FROM strong_trend_guard_decisions WHERE market_id=201"
+    ).fetchone()
+    with store.lock:
+        store.db.execute(
+            "UPDATE trades SET status='STOP_LOSS_EXIT', pnl=-4.0 WHERE id=?",
+            (int(first["source_trade_id"]),),
+        )
+        store.db.commit()
+
+    insert_observations(store, 202, [99.99, 99.98, 99.96])
+    store.open_trade(
+        strategy="M01",
+        topic_id=1,
+        market_id=202,
+        side="UP",
+        entry=.20,
+        target=None,
+        stake=10.0,
+        fee_rate_bps=200,
+        note="blocked profit source",
+    )
+    second = store.db.execute(
+        "SELECT source_trade_id FROM strong_trend_guard_decisions WHERE market_id=202"
+    ).fetchone()
+    with store.lock:
+        store.db.execute(
+            "UPDATE trades SET status='TARGET_FILLED', pnl=6.0 WHERE id=?",
+            (int(second["source_trade_id"]),),
+        )
+        store.db.commit()
+
+    payload = _experiment_state(store)
+    stats = payload["strategies"]["R_STRONG_TREND_GUARD_M01"]
+    assert stats["blockedSettled"] == 2
+    assert stats["blockedPending"] == 0
+    assert stats["blockedWins"] == 1
+    assert stats["blockedLosses"] == 1
+    assert stats["avoidedLossUsdt"] == 2.0
+    assert stats["sacrificedProfitUsdt"] == 3.0
+    assert stats["netProtectionUsdt"] == -1.0
+
+
+def test_blocked_open_source_is_reported_pending(tmp_path):
+    store = server.Store(tmp_path / "simulation.db")
+    insert_observations(store, 203, [99.99, 99.98, 99.96])
+    store.open_trade(
+        strategy="M01",
+        topic_id=1,
+        market_id=203,
+        side="UP",
+        entry=.20,
+        target=None,
+        stake=10.0,
+        fee_rate_bps=200,
+        note="pending blocked source",
+    )
+    payload = _experiment_state(store)
+    stats = payload["strategies"]["R_STRONG_TREND_GUARD_M01"]
+    assert stats["blocked"] == 1
+    assert stats["blockedSettled"] == 0
+    assert stats["blockedPending"] == 1
+    assert stats["netProtectionUsdt"] == 0.0

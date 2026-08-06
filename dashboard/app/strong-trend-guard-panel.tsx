@@ -17,6 +17,8 @@ type StrategyStats = {
   realizedPnl?: number;
   roi?: number | null;
   blockedSettled?: number;
+  blockedPending?: number;
+  blockedFlat?: number;
   blockedWins?: number;
   blockedLosses?: number;
   blockedWinRate?: number | null;
@@ -128,7 +130,8 @@ export default function StrongTrendGuardPanel({ experiment }: { experiment?: Exp
             <div><span>犧牲獲利</span><strong className="negative">{money(stats.sacrificedProfitUsdt)}</strong></div>
             <div><span>淨保護</span><strong className={(stats.netProtectionUsdt ?? 0) >= 0 ? "positive" : "negative"}>{money(stats.netProtectionUsdt)}</strong></div>
           </div>
-          <p>已阻擋結算 {stats.blockedSettled ?? 0} · 原本勝率 {pct(stats.blockedWinRate)} · 勝 {stats.blockedWins ?? 0}／敗 {stats.blockedLosses ?? 0}</p>
+          <p>阻擋後已實現 {stats.blockedSettled ?? 0} · 等待結果 {stats.blockedPending ?? 0} · 原本勝率 {pct(stats.blockedWinRate)} · 勝 {stats.blockedWins ?? 0}／敗 {stats.blockedLosses ?? 0}／平 {stats.blockedFlat ?? 0}</p>
+          <small>避免虧損、犧牲獲利與淨保護只計已被 Guard 阻擋且來源交易已有實現 PnL 的反事實結果；允許交易只影響上方 Guard 後收益。</small>
           <small>Forward-only；資料缺失採 ALLOW_NOT_EVALUABLE，不把缺資料誤算成危險趨勢。</small>
         </article>;
       })}

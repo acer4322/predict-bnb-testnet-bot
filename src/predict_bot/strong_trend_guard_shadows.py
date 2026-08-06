@@ -388,6 +388,8 @@ def _experiment_state(store: Any) -> dict[str, Any]:
             "realizedPnl": 0.0,
             "roi": None,
             "blockedSettled": 0,
+            "blockedPending": 0,
+            "blockedFlat": 0,
             "blockedWins": 0,
             "blockedLosses": 0,
             "blockedWinRate": None,
@@ -454,16 +456,25 @@ def _experiment_state(store: Any) -> dict[str, Any]:
             stats["realizedPnl"] += float(row["shadow_pnl"] or 0.0)
 
         if decision == "BLOCK_STRONG_OPPOSING_TREND":
+            source_status = str(row["source_status"] or "").upper()
             normalized = _normalized_source_pnl(row)
-            source_status = str(row["source_status"] or "")
-            if source_status in {"SETTLED_WIN", "SETTLED_LOSS"} and normalized is not None:
+            # Paper trades remain OPEN until an exit/official settlement writes a
+            # realized PnL.  Do not restrict counterfactual accounting to only
+            # SETTLED_WIN/SETTLED_LOSS: target fills, stop exits and timeout exits
+            # are also finalized source outcomes and must affect protection PnL.
+            source_finalized = source_status not in {"", "OPEN"} and normalized is not None
+            if source_finalized:
                 stats["blockedSettled"] += 1
                 if normalized > 0:
                     stats["blockedWins"] += 1
                     stats["sacrificedProfitUsdt"] += normalized
-                else:
+                elif normalized < 0:
                     stats["blockedLosses"] += 1
                     stats["avoidedLossUsdt"] += -normalized
+                else:
+                    stats["blockedFlat"] += 1
+            else:
+                stats["blockedPending"] += 1
 
     for stats in empty.values():
         settled = int(stats["settled"])
@@ -488,6 +499,12 @@ def _experiment_state(store: Any) -> dict[str, Any]:
             "decision": row["decision"],
             "reason": row["reason"],
             "sourceStatus": row["source_status"],
+            "sourcePnl": row["source_pnl"],
+            "sourceStake": row["source_stake"],
+            "sourceOutcomeFinalized": (
+                str(row["source_status"] or "").upper() not in {"", "OPEN"}
+                and _finite(row["source_pnl"]) is not None
+            ),
             "shadowStatus": row["shadow_status"],
         })
     runtime = recent[0] if recent else None
