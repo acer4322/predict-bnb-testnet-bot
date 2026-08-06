@@ -10,7 +10,8 @@ from . import microprice_variants as _variants
 
 SOURCE_STRATEGY = "R_MICROPRICE_CONFIRM"
 STRATEGY = "R_MICROPRICE_CONFIRM_STABLE_DIRECTION"
-PATCH_VERSION = "MICROPRICE_CONFIRM_STABLE_DIRECTION_V1"
+PATCH_VERSION = "MICROPRICE_CONFIRM_STABLE_DIRECTION_V2"
+HORIZON_SECONDS = 180.0
 MIN_RAW_TOP_ASK = 0.60
 MAX_RAW_TOP_ASK_EXCLUSIVE = 0.90
 MIN_MIDPOINT_DELTA = 0.01
@@ -200,7 +201,7 @@ def open_stable_direction_shadow(
 def _patch_tracker_process() -> None:
     tracker_class = _variants.MicropriceVariantTracker
     original = tracker_class.process
-    if getattr(original, "_stable_direction_shadow_v1", False):
+    if getattr(original, "_stable_direction_shadow_v2", False):
         return
 
     @wraps(original)
@@ -218,7 +219,7 @@ def _patch_tracker_process() -> None:
                 result.append(shadow)
         return result
 
-    process_with_stable_direction._stable_direction_shadow_v1 = True  # type: ignore[attr-defined]
+    process_with_stable_direction._stable_direction_shadow_v2 = True  # type: ignore[attr-defined]
     tracker_class.process = process_with_stable_direction
 
 
@@ -236,6 +237,8 @@ def _register_research_strategy() -> None:
     research.RESEARCH_PARAMETERS = {
         **research.RESEARCH_PARAMETERS,
         STRATEGY: {
+            "horizon": HORIZON_SECONDS,
+            "max_ask": MAX_RAW_TOP_ASK_EXCLUSIVE,
             "min_raw_top_ask": MIN_RAW_TOP_ASK,
             "max_raw_top_ask_exclusive": MAX_RAW_TOP_ASK_EXCLUSIVE,
             "min_midpoint_delta": MIN_MIDPOINT_DELTA,
@@ -243,7 +246,30 @@ def _register_research_strategy() -> None:
     }
 
 
+def _patch_research_signal_path() -> None:
+    """Never let the generic research engine evaluate this derived Shadow."""
+    from . import research_forward as research
+
+    original = research.signal_for_strategy
+    if getattr(original, "_stable_direction_shadow_derived_only_v2", False):
+        return
+
+    @wraps(original)
+    def signal_for_strategy_without_stable_direction(
+        strategy: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[str, Any] | None:
+        if str(strategy or "").strip().upper() == STRATEGY:
+            return None
+        return original(strategy, *args, **kwargs)
+
+    signal_for_strategy_without_stable_direction._stable_direction_shadow_derived_only_v2 = True  # type: ignore[attr-defined]
+    research.signal_for_strategy = signal_for_strategy_without_stable_direction
+
+
 def install_microprice_confirm_stable_direction_shadow() -> None:
     """Register one native research-page Paper Shadow; never register live use."""
     _register_research_strategy()
+    _patch_research_signal_path()
     _patch_tracker_process()
