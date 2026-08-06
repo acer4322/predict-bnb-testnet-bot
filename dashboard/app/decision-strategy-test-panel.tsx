@@ -1,21 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+const STRATEGIES = [
+  ["R_DECISION_RANK1", "Rank 1 · Utility Weighted Majority", "效用加權共識", "cyan"],
+  ["R_DECISION_RANK2", "Rank 2 · Recent Context Champion", "同情境冠軍＋50% 家族上限", "purple"],
+] as const;
 
-const STRATEGIES = ["R_DECISION_RANK1", "R_DECISION_RANK2"] as const;
-type StrategyId = (typeof STRATEGIES)[number];
-
-type RecentTrade = {
-  id?: number;
-  market_id?: number;
-  side?: string;
-  status?: string;
-  entry_price?: number | null;
-  stake?: number | null;
-  pnl?: number | null;
-  opened_at?: string | null;
-  closed_at?: string | null;
-};
+type StrategyId = (typeof STRATEGIES)[number][0];
+type ResetState = { status: "loading" | "success" | "error"; message: string };
 
 type RecentDecision = {
   strategy?: string;
@@ -29,12 +20,10 @@ type RecentDecision = {
   effective_cost?: number | null;
   model_edge?: number | null;
   trend_status?: string | null;
-  evaluations?: number;
   updated_at?: string;
 };
 
 type CurrentPreview = {
-  strategy?: string;
   marketId?: number;
   status?: string;
   reason?: string;
@@ -54,43 +43,36 @@ type CurrentPreview = {
 };
 
 type StrategyStats = {
-  strategy: StrategyId;
-  displayName: string;
-  mode: string;
-  trades: number;
-  open: number;
-  settled: number;
-  wins: number;
-  losses: number;
-  winRate: number | null;
-  realizedPnl: number;
-  maxDrawdown: number;
-  averageEntryPrice: number | null;
-  liveSelectable: boolean;
-  paperOnly: boolean;
-  forwardOnly: boolean;
-  statusCounts: Record<string, number>;
-  currentPreview: CurrentPreview | null;
-  recentTrades: RecentTrade[];
-  recentDecisions: RecentDecision[];
+  strategy?: StrategyId;
+  displayName?: string;
+  mode?: string;
+  trades?: number;
+  open?: number;
+  settled?: number;
+  wins?: number;
+  losses?: number;
+  winRate?: number | null;
+  realizedPnl?: number;
+  maxDrawdown?: number;
+  averageEntryPrice?: number | null;
+  liveSelectable?: boolean;
+  statusCounts?: Record<string, number>;
+  currentPreview?: CurrentPreview | null;
+  recentDecisions?: RecentDecision[];
 };
 
-type DecisionPayload = {
-  version: string;
-  paperOnly: boolean;
-  forwardOnly: boolean;
-  nativeEventDriven: boolean;
-  liveSelectable: boolean;
+type DecisionExperiment = {
+  version?: string;
+  paperOnly?: boolean;
+  forwardOnly?: boolean;
+  nativeEventDriven?: boolean;
+  liveSelectable?: boolean;
   forwardStartedAt?: string | null;
-  includedFamilies: string[];
-  excludedFamilies: string[];
-  rules: {
-    historyLimit?: number;
-    historyHalfLife?: number;
-    minimumHistory?: number;
+  includedFamilies?: string[];
+  excludedFamilies?: string[];
+  rules?: {
     rank1MinimumFamilies?: number;
     rank1AgreementWeight?: number;
-    rank1FamilyCap?: number;
     rank2FamilyCap?: number;
     rank2CapWindow?: number;
     minimumNetEdge?: number;
@@ -110,31 +92,8 @@ type DecisionPayload = {
       missingDataPolicy?: string;
     };
   };
-  strategies: Record<StrategyId, StrategyStats>;
+  strategies?: Partial<Record<StrategyId, StrategyStats>>;
 };
-
-type ApiState = {
-  decisionStrategyTest?: DecisionPayload;
-};
-
-type ResetState = { status: "idle" | "loading" | "success" | "error"; message: string };
-
-const pageStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  padding: "92px 24px 80px",
-  color: "#edf3ff",
-  background: "radial-gradient(circle at 15% 10%, rgba(39, 95, 157, .22), transparent 36%), radial-gradient(circle at 90% 22%, rgba(94, 55, 151, .18), transparent 34%), #070a10",
-};
-
-const shellStyle: React.CSSProperties = { maxWidth: 1480, margin: "0 auto", display: "grid", gap: 18 };
-const panelStyle: React.CSSProperties = { border: "1px solid rgba(132, 157, 198, .24)", borderRadius: 22, background: "rgba(10, 15, 25, .88)", boxShadow: "0 22px 70px rgba(0, 0, 0, .32)" };
-const cardStyle: React.CSSProperties = { ...panelStyle, padding: 20, display: "grid", gap: 16, minWidth: 0 };
-const badgeStyle: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 9px", borderRadius: 999, border: "1px solid rgba(129, 160, 209, .28)", background: "rgba(20, 30, 48, .8)", fontSize: 12, fontWeight: 700 };
-
-function apiUrl(path: string) {
-  if (typeof window === "undefined") return `http://127.0.0.1:8766${path}`;
-  return `http://${window.location.hostname}:8766${path}`;
-}
 
 function decimal(value: number | null | undefined, digits = 2) {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "—";
@@ -157,187 +116,126 @@ function time(value: string | null | undefined) {
 
 function tone(status: string | null | undefined) {
   const key = String(status ?? "").toUpperCase();
-  if (key.includes("OPEN") || key.includes("PASS")) return "#7ef0b8";
-  if (key.includes("BLOCK") || key.includes("LOSS") || key.includes("ERROR")) return "#ff8f9e";
-  if (key.includes("WAIT") || key.includes("EDGE") || key.includes("CAP")) return "#ffd48a";
-  return "#a9c7ff";
+  if (key.includes("OPEN") || key.includes("PASS") || key.includes("ALLOW")) return "positive";
+  if (key.includes("BLOCK") || key.includes("LOSS") || key.includes("ERROR")) return "negative";
+  return "";
 }
 
-function Metric({ label, value, detail }: { label: string; value: string; detail?: string }) {
-  return <div style={{ padding: 13, borderRadius: 15, border: "1px solid rgba(126, 151, 190, .18)", background: "rgba(8, 13, 22, .72)" }}>
-    <div style={{ color: "#8fa4c5", fontSize: 12 }}>{label}</div>
-    <div style={{ marginTop: 5, fontSize: 23, fontWeight: 800, letterSpacing: "-.02em" }}>{value}</div>
-    {detail ? <div style={{ marginTop: 4, color: "#7487a7", fontSize: 11 }}>{detail}</div> : null}
-  </div>;
+function compact(values: string[] | undefined, fallback: string) {
+  return values?.length ? values.join(" · ") : fallback;
 }
 
-function DecisionCard({ stats, resetting, onReset }: { stats: StrategyStats; resetting: ResetState; onReset: (strategy: StrategyId) => void }) {
-  const preview = stats.currentPreview;
-  const pnlColor = stats.realizedPnl >= 0 ? "#7ef0b8" : "#ff8f9e";
-  return <article style={cardStyle}>
-    <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
-      <div>
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 9 }}>
-          <span style={{ ...badgeStyle, color: "#7ee3f5" }}>PAPER FORWARD</span>
-          <span style={{ ...badgeStyle, color: "#a5f2ba" }}>實單白名單可選</span>
-          <span style={{ ...badgeStyle, color: "#ffd48a" }}>原生事件驅動</span>
-        </div>
-        <h2 style={{ margin: 0, fontSize: 26 }}>{stats.displayName}</h2>
-        <div style={{ marginTop: 6, color: "#8fa4c5", fontFamily: "var(--font-mono)", fontSize: 12 }}>{stats.strategy} · {stats.mode}</div>
-      </div>
-      <button
-        type="button"
-        onClick={() => onReset(stats.strategy)}
-        disabled={resetting.status === "loading"}
-        style={{ border: "1px solid rgba(126, 151, 190, .3)", borderRadius: 12, background: "rgba(22, 31, 48, .9)", color: "#dbe7ff", padding: "9px 12px", cursor: resetting.status === "loading" ? "wait" : "pointer" }}
-      >
-        {resetting.status === "loading" ? "重設中…" : "重設測量起點"}
-      </button>
-    </header>
+export default function DecisionStrategyTestPanel({
+  payload,
+  onReset,
+  resetStates,
+}: {
+  payload: any;
+  onReset: (strategy: StrategyId) => void;
+  resetStates: Partial<Record<StrategyId, ResetState>>;
+}) {
+  const experiment = payload?.decisionStrategyTest as DecisionExperiment | undefined;
+  const rules = experiment?.rules;
+  const allRecent = STRATEGIES.flatMap(([strategy]) =>
+    (experiment?.strategies?.[strategy]?.recentDecisions ?? []).map(item => ({ ...item, strategy }))
+  ).sort((left, right) => String(right.updated_at ?? "").localeCompare(String(left.updated_at ?? ""))).slice(0, 30);
 
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))", gap: 10 }}>
-      <Metric label="已結算" value={`${stats.settled}`} detail={`總交易 ${stats.trades} · 未結算 ${stats.open}`} />
-      <Metric label="勝率" value={percent(stats.winRate)} detail={`${stats.wins} 勝 / ${stats.losses} 敗`} />
-      <div style={{ color: pnlColor }}><Metric label="已實現收益" value={money(stats.realizedPnl)} detail={`最大回撤 ${money(stats.maxDrawdown)}`} /></div>
-      <Metric label="平均進場價" value={decimal(stats.averageEntryPrice, 3)} detail="含策略當下執行滑點" />
-    </div>
+  return <div role="tabpanel" id="decision-strategy-panel" aria-labelledby="decision-strategy-tab" className="m-exit-experiment research-forward-panel decision-strategy-test-panel">
+    <style>{`
+      .decision-strategy-test-panel .decision-runtime{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin:14px 0}
+      .decision-strategy-test-panel .decision-runtime article{padding:12px;border:1px solid rgba(126,145,178,.24);border-radius:14px;background:rgba(13,18,29,.72)}
+      .decision-strategy-test-panel .decision-runtime span,.decision-strategy-test-panel .decision-runtime small{display:block;color:#91a0bb}
+      .decision-strategy-test-panel .decision-runtime strong{display:block;margin:4px 0}
+      .decision-strategy-test-panel .decision-preview{margin:12px 0;padding:12px;border-radius:12px;background:rgba(126,145,178,.08)}
+      .decision-strategy-test-panel .decision-preview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-top:10px}
+      .decision-strategy-test-panel .decision-preview-grid div{padding:8px;border-radius:9px;background:rgba(7,12,21,.65)}
+      .decision-strategy-test-panel .decision-status-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:7px;margin-top:10px}
+      .decision-strategy-test-panel .decision-status-list div{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(7,12,21,.65)}
+      .decision-strategy-test-panel .decision-reset{border:1px solid rgba(126,145,178,.3);border-radius:10px;background:rgba(22,31,48,.9);color:#dbe7ff;padding:7px 10px;cursor:pointer}
+      .decision-strategy-test-panel .decision-reset:disabled{cursor:wait;opacity:.65}
+    `}</style>
 
-    <section style={{ padding: 15, borderRadius: 16, border: `1px solid ${tone(preview?.status)}44`, background: "rgba(7, 12, 21, .78)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <strong style={{ color: tone(preview?.status) }}>當輪：{preview?.status ?? "等待第一個評估事件"}</strong>
-        <span style={{ color: "#7588a8", fontSize: 12 }}>{time(preview?.updatedAt)}</span>
+    <section className="strategy-family-intro m-exit-intro">
+      <div><span className="eyebrow">DECISION CONTROLLERS · NATIVE FORWARD PAPER</span><h3>決策策略測試 · Rank 1／Rank 2</h3></div>
+      <p>與「逆強趨勢阻擋」相同，這是主頁原生 React 頁籤；直接共用主監控的 API state，不建立獨立頁面、不使用 DOM 注入，也不額外輪詢。</p>
+    </section>
+
+    <section className="m-exit-rules" aria-label="決策策略共同規則">
+      <div className="m-exit-rules-head">
+        <div><span className="eyebrow">M01 / RAW MICROPRICE / OFI EXCLUDED</span><h3>共同資料與安全閘門</h3></div>
+        <span className="m-exit-api-state live">{experiment ? "FORWARD ACTIVE" : "WAITING API"}</span>
       </div>
-      <div style={{ marginTop: 7, color: "#b6c5dd", lineHeight: 1.55 }}>{preview?.reason ?? "尚未產生前向決策。"}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 8, marginTop: 12, fontSize: 12 }}>
-        <div>市場 <b>#{preview?.marketId ?? "—"}</b></div>
-        <div>方向 <b>{preview?.side ?? "—"}</b></div>
-        <div>選中家族 <b>{preview?.selectedFamily ?? "—"}</b></div>
-        <div>共識權重 <b>{percent(preview?.agreementWeight)}</b></div>
-        <div>後驗機率 <b>{percent(preview?.estimatedProbability)}</b></div>
-        <div>有效成本 <b>{decimal(preview?.effectiveCost, 4)}</b></div>
-        <div>淨 Edge <b>{percent(preview?.modelEdge, 2)}</b></div>
-        <div>趨勢閘門 <b>{preview?.trend?.status ?? "—"}</b></div>
+      <div className="decision-runtime">
+        <article><span>納入家族</span><strong>{compact(experiment?.includedFamilies, "FUTURES_LEAD · CALIBRATED_VALUE · CONSENSUS")}</strong><small>每家族只算一票</small></article>
+        <article><span>正式排除</span><strong>{compact(experiment?.excludedFamilies, "M01 · MICROPRICE · OFI")}</strong><small>不進歷史、權重或冠軍計算</small></article>
+        <article><span>成交品質</span><strong>簿齡 ≤ {decimal(rules?.maximumBookAgeMs, 0)}ms · spread ≤ {decimal(rules?.maximumSpread, 2)}</strong><small>skew ≤ {decimal(rules?.maximumBookSkewMs, 0)}ms · 滑點 {decimal(rules?.slippageBps, 0)}bps</small></article>
+        <article><span>逆強趨勢</span><strong>{decimal(rules?.trendGate?.minimumMoveBps, 1)} bps · ER {decimal(rules?.trendGate?.minimumPathEr, 2)}</strong><small>elapsed ≥ {decimal(rules?.trendGate?.minimumElapsedSeconds, 0)}s · 缺資料 {rules?.trendGate?.missingDataPolicy ?? "BLOCK"}</small></article>
+        <article><span>進場模式</span><strong>{rules?.entryMode ?? "NATIVE_EVENT_DRIVEN"}</strong><small>每市場最多一筆：{rules?.oneTradePerMarket === false ? "否" : "是"}</small></article>
+        <article><span>版本／起點</span><strong>{experiment?.version ?? "等待後端"}</strong><small>{time(experiment?.forwardStartedAt)}</small></article>
       </div>
     </section>
 
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, .8fr)", gap: 12 }}>
-      <section style={{ minWidth: 0 }}>
-        <h3 style={{ margin: "0 0 8px", fontSize: 15 }}>最近決策</h3>
-        <div style={{ overflowX: "auto", border: "1px solid rgba(126, 151, 190, .16)", borderRadius: 13 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 660, fontSize: 12 }}>
-            <thead><tr style={{ color: "#8297b9", textAlign: "left" }}><th style={{ padding: 9 }}>市場</th><th>狀態</th><th>方向</th><th>家族</th><th>機率 / 成本</th><th>Edge</th><th>原因</th></tr></thead>
-            <tbody>{stats.recentDecisions.slice(0, 8).map((row, index) => <tr key={`${row.market_id}-${index}`} style={{ borderTop: "1px solid rgba(126, 151, 190, .12)" }}>
-              <td style={{ padding: 9 }}>#{row.market_id ?? "—"}</td>
-              <td style={{ color: tone(row.status) }}>{row.status ?? "—"}</td>
-              <td>{row.side ?? "—"}</td>
-              <td>{row.selected_family ?? "—"}</td>
-              <td>{percent(row.estimated_probability)} / {decimal(row.effective_cost, 3)}</td>
-              <td>{percent(row.model_edge, 2)}</td>
-              <td style={{ color: "#9fb0ca", maxWidth: 260 }}>{row.reason ?? "—"}</td>
-            </tr>)}</tbody>
-          </table>
-          {stats.recentDecisions.length === 0 ? <div style={{ padding: 18, color: "#7385a4" }}>尚無決策紀錄。</div> : null}
-        </div>
-      </section>
-      <section>
-        <h3 style={{ margin: "0 0 8px", fontSize: 15 }}>阻擋／放行分布</h3>
-        <div style={{ display: "grid", gap: 7 }}>
-          {Object.entries(stats.statusCounts).sort((a, b) => b[1] - a[1]).map(([status, count]) => <div key={status} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 10px", borderRadius: 11, background: "rgba(7, 12, 21, .65)" }}>
-            <span style={{ color: tone(status) }}>{status}</span><b>{count}</b>
-          </div>)}
-          {Object.keys(stats.statusCounts).length === 0 ? <div style={{ color: "#7385a4" }}>尚無前向樣本。</div> : null}
-        </div>
-      </section>
-    </div>
-
-    {resetting.message ? <div style={{ color: resetting.status === "error" ? "#ff8f9e" : "#9fb6d8", fontSize: 12 }}>{resetting.message}</div> : null}
-  </article>;
-}
-
-export default function DecisionStrategyTestPanel() {
-  const [payload, setPayload] = useState<DecisionPayload | null>(null);
-  const [status, setStatus] = useState("連線中…");
-  const [resets, setResets] = useState<Record<StrategyId, ResetState>>({
-    R_DECISION_RANK1: { status: "idle", message: "" },
-    R_DECISION_RANK2: { status: "idle", message: "" },
-  });
-
-  const load = useCallback(async () => {
-    try {
-      const response = await fetch(apiUrl("/api/state"), { cache: "no-store" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json() as ApiState;
-      setPayload(data.decisionStrategyTest ?? null);
-      setStatus(data.decisionStrategyTest ? `已同步 · ${new Date().toLocaleTimeString("zh-TW", { hour12: false })}` : "後端尚未載入決策策略 patch");
-    } catch (error) {
-      setStatus(error instanceof Error ? `讀取失敗：${error.message}` : "讀取失敗");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-    const timer = window.setInterval(() => void load(), 2_000);
-    return () => window.clearInterval(timer);
-  }, [load]);
-
-  const resetStrategy = useCallback(async (strategy: StrategyId) => {
-    if (!window.confirm(`確定重設 ${strategy} 的測量起點？歷史交易不會被刪除。`)) return;
-    setResets(current => ({ ...current, [strategy]: { status: "loading", message: "正在設定新的測量起點…" } }));
-    try {
-      const response = await fetch(apiUrl("/api/strategy-reset"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ strategy }),
-      });
-      const result = await response.json().catch(() => ({})) as { error?: string; message?: string };
-      if (!response.ok) throw new Error(result.error ?? result.message ?? "伺服器拒絕重設");
-      setResets(current => ({ ...current, [strategy]: { status: "success", message: "已設定新起點。" } }));
-      await load();
-    } catch (error) {
-      setResets(current => ({ ...current, [strategy]: { status: "error", message: error instanceof Error ? error.message : "重設失敗" } }));
-    }
-  }, [load]);
-
-  const cards = useMemo(() => payload ? STRATEGIES.map(strategy => payload.strategies?.[strategy]).filter((item): item is StrategyStats => Boolean(item)) : [], [payload]);
-
-  return <main style={pageStyle}>
-    <div style={shellStyle}>
-      <header style={{ ...panelStyle, padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 10 }}>
-              <span style={{ ...badgeStyle, color: "#7ee3f5" }}>兩組獨立 PAPER</span>
-              <span style={{ ...badgeStyle, color: "#ffbe8c" }}>逆強趨勢阻擋</span>
-              <span style={{ ...badgeStyle, color: "#a5f2ba" }}>LIVE WHITELIST</span>
+    <div className="m-exit-summary-grid research-strategy-grid">
+      {STRATEGIES.map(([strategy, title, subtitle, cardTone]) => {
+        const stats = experiment?.strategies?.[strategy] ?? {};
+        const preview = stats.currentPreview;
+        const reset = resetStates[strategy];
+        const pnl = stats.realizedPnl ?? 0;
+        const statuses = Object.entries(stats.statusCounts ?? {}).sort((left, right) => right[1] - left[1]).slice(0, 8);
+        return <article className={`m-exit-card ${cardTone}`} key={strategy} data-decision-strategy={strategy}>
+          <div className="m-exit-card-head">
+            <div><span className="eyebrow">{strategy} · {subtitle}</span><h3>{stats.displayName ?? title}</h3></div>
+            <div className="m-exit-card-actions">
+              <span className="m-exit-id">PAPER FORWARD</span>
+              <button type="button" className="decision-reset" disabled={reset?.status === "loading"} onClick={() => onReset(strategy)}>{reset?.status === "loading" ? "重設中…" : "重設起點"}</button>
             </div>
-            <h1 style={{ margin: 0, fontSize: "clamp(30px, 4vw, 48px)", letterSpacing: "-.04em" }}>決策策略測試</h1>
-            <p style={{ margin: "10px 0 0", color: "#9fb0ca", lineHeight: 1.65, maxWidth: 900 }}>
-              Rank 1 與 Rank 2 使用專案原生 M-series 事件流、SQLite 前向帳本與真實當下雙 token 報價。Paper 永遠獨立記帳；只有在實單控制列明確選中策略且通過既有預檢時，候選訊號才可能進入實單引擎。
-            </p>
           </div>
-          <div style={{ textAlign: "right", color: "#8498b8", fontSize: 12 }}>
-            <div>{status}</div>
-            <div style={{ marginTop: 4 }}>Forward 起點：{time(payload?.forwardStartedAt)}</div>
+          <div className="m-exit-primary-stats">
+            <div><span>已實現收益</span><strong className={pnl >= 0 ? "positive" : "negative"}>{money(pnl)}</strong></div>
+            <div><span>勝率</span><strong>{percent(stats.winRate)}</strong></div>
+            <div><span>交易／未結算</span><strong>{stats.trades ?? 0} / {stats.open ?? 0}</strong></div>
           </div>
-        </div>
-      </header>
+          <div className={`continuous-calibration-state ${(stats.settled ?? 0) >= 30 ? "ready" : "warmup"}`}>
+            <span>{stats.mode ?? subtitle}</span>
+            <strong>已結算 {stats.settled ?? 0} · 勝 {stats.wins ?? 0} · 敗 {stats.losses ?? 0}</strong>
+            <small>平均進場價 {decimal(stats.averageEntryPrice, 3)} · 最大回撤 {money(stats.maxDrawdown)} · 實單白名單 {stats.liveSelectable === false ? "未開啟" : "可選"}</small>
+          </div>
 
-      <section style={{ ...panelStyle, padding: 18, display: "grid", gap: 12 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-          <div style={{ padding: 14, borderRadius: 15, background: "rgba(8, 13, 22, .7)" }}><b>納入家族</b><div style={{ marginTop: 7, color: "#a5f2ba" }}>{payload?.includedFamilies?.join(" · ") ?? "FUTURES_LEAD · CALIBRATED_VALUE · CONSENSUS"}</div></div>
-          <div style={{ padding: 14, borderRadius: 15, background: "rgba(8, 13, 22, .7)" }}><b>正式排除</b><div style={{ marginTop: 7, color: "#ff9cac" }}>{payload?.excludedFamilies?.join(" · ") ?? "M01 · MICROPRICE · OFI"}</div></div>
-          <div style={{ padding: 14, borderRadius: 15, background: "rgba(8, 13, 22, .7)" }}><b>共同安全閘門</b><div style={{ marginTop: 7, color: "#ffd48a" }}>淨 Edge ≥ {percent(payload?.rules.minimumNetEdge)} · 簿齡 ≤ {decimal(payload?.rules.maximumBookAgeMs, 0)}ms · 缺趨勢資料直接阻擋</div></div>
-        </div>
-        <div style={{ color: "#7f93b3", fontSize: 12, lineHeight: 1.6 }}>
-          逆強趨勢：市場經過至少 {decimal(payload?.rules.trendGate?.minimumElapsedSeconds, 0)} 秒、起始移動 ≥ {decimal(payload?.rules.trendGate?.minimumMoveBps, 1)} bps、Path ER ≥ {decimal(payload?.rules.trendGate?.minimumPathEr, 2)} 時，反向訊號阻擋。每市場最多一筆；不使用固定 60／45／30 秒延後進場。
-        </div>
-      </section>
+          <div className="decision-preview">
+            <strong className={tone(preview?.status)}>當輪：{preview?.status ?? "等待第一個決策事件"}</strong>
+            <p>{preview?.reason ?? "尚未產生前向決策。"}</p>
+            <div className="decision-preview-grid">
+              <div>市場 <strong>#{preview?.marketId ?? "—"}</strong></div>
+              <div>方向 <strong>{preview?.side ?? "—"}</strong></div>
+              <div>選中家族 <strong>{preview?.selectedFamily ?? "—"}</strong></div>
+              <div>共識權重 <strong>{percent(preview?.agreementWeight)}</strong></div>
+              <div>後驗機率 <strong>{percent(preview?.estimatedProbability)}</strong></div>
+              <div>有效成本 <strong>{decimal(preview?.effectiveCost, 4)}</strong></div>
+              <div>淨 Edge <strong>{percent(preview?.modelEdge, 2)}</strong></div>
+              <div>趨勢閘門 <strong>{preview?.trend?.status ?? "—"}</strong></div>
+            </div>
+          </div>
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 570px), 1fr))", gap: 16 }}>
-        {cards.map(stats => <DecisionCard key={stats.strategy} stats={stats} resetting={resets[stats.strategy]} onReset={resetStrategy} />)}
-      </section>
-
-      {!payload ? <section style={{ ...panelStyle, padding: 24, color: "#98aac7" }}>等待後端 `decisionStrategyTest` 狀態。若服務剛更新，請確認 API 已重新啟動。</section> : null}
+          <div className="decision-status-list">
+            {statuses.length ? statuses.map(([status, count]) => <div key={status}><span className={tone(status)}>{status}</span><strong>{count}</strong></div>) : <small>尚無阻擋／放行分布。</small>}
+          </div>
+          {reset?.message ? <small className={reset.status === "error" ? "negative" : ""}>{reset.message}</small> : null}
+        </article>;
+      })}
     </div>
-  </main>;
+
+    <section className="shadow-tag-live-orders">
+      <div><span className="eyebrow">RECENT NATIVE DECISIONS</span><h3>最近 30 筆 Rank 1／Rank 2 決策</h3></div>
+      <div className="table-scroll"><table><thead><tr><th>時間／市場</th><th>策略／狀態</th><th>方向／家族</th><th>機率／成本</th><th>Edge／趨勢</th><th>原因</th></tr></thead><tbody>
+        {allRecent.length === 0 ? <tr><td colSpan={6} className="empty">等待來源家族形成足夠歷史並產生新的前向決策。</td></tr> : allRecent.map((row, index) => <tr key={`${row.strategy}-${row.market_id}-${index}`}>
+          <td>{time(row.updated_at)}<small>#{row.market_id ?? "—"}</small></td>
+          <td>{row.strategy ?? "—"}<small className={tone(row.status)}>{row.status ?? "—"}</small></td>
+          <td>{row.side ?? "—"}<small>{row.selected_family ?? "—"}</small></td>
+          <td>{percent(row.estimated_probability)}<small>成本 {decimal(row.effective_cost, 4)}</small></td>
+          <td>{percent(row.model_edge, 2)}<small>{row.trend_status ?? "—"}</small></td>
+          <td>{row.reason ?? "—"}</td>
+        </tr>)}
+      </tbody></table></div>
+    </section>
+  </div>;
 }
