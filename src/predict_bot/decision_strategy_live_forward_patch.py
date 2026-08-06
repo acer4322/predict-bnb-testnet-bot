@@ -5,8 +5,8 @@ from . import m_realtime as _realtime
 from .decision_strategy_context_cache_patch import (
     install_decision_strategy_context_cache_patch,
 )
-from .decision_strategy_dashboard_isolation_patch import (
-    install_decision_strategy_dashboard_isolation_patch,
+from .decision_strategy_dashboard_detach_patch import (
+    install_decision_strategy_dashboard_detach_patch,
 )
 from .decision_strategy_frozen_rules_patch import (
     install_decision_strategy_frozen_rules_patch,
@@ -30,19 +30,17 @@ def _deduplicated(*values: str) -> tuple[str, ...]:
 
 
 def install_decision_strategy_live_forward_patch() -> None:
-    """Install frozen rules and synchronize import-time live registries.
+    """Install decision engines without touching the legacy dashboard query.
 
-    m_realtime imports the research whitelist by value. The decision engines
-    are registered later as derived, native event-driven strategies, so the
-    frozen controller methods, batched context cache, runtime corrections,
-    isolated dashboard summary, and both live modules must be updated before
-    an MSeriesRealtimeEngine instance is created.
+    The strategies remain native event-driven Paper candidates and live
+    whitelist options. Their optional statistics must not wrap ``Store.dashboard``
+    or add SQLite work to ``/api/state``.
     """
 
     install_decision_strategy_frozen_rules_patch()
     install_decision_strategy_context_cache_patch()
     install_decision_strategy_runtime_corrections_patch()
-    install_decision_strategy_dashboard_isolation_patch()
+    install_decision_strategy_dashboard_detach_patch()
 
     research = _deduplicated(
         *_live.LIVE_RESEARCH_STRATEGIES,
