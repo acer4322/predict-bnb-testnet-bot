@@ -145,8 +145,8 @@ def patch_page(text: str) -> str:
 def patch_render_test(text: str) -> str:
     text = replace_once(
         text,
-        '  assert.match(page, /type StrategyView = \\"live-m0w\\" \\| \\"research\\" \\| \\"reliability-shadow\\" \\| \\"lead-observer\\" \\| \\"m-series\\" \\| \\"pair-arb\\" \\| \\"legacy\\" \\| \\"paused\\"/);',
-        '  assert.match(page, /type StrategyView = .*\\"decision-strategy\\".*;/);',
+        '  assert.match(page, /type StrategyView = \\"live-m0w\\" \\| \\"research\\" \\| \\"reliability-shadow\\" \\| \\"lead-observer\\" \\| \\"m-series\\" \\| \\"pair-arb\\" \\| \\"legacy\\" \\| \\"paused\\"/);'.replace('\\\\', '\\'),
+        '  assert.match(page, /type StrategyView = .*"decision-strategy".*;/);',
         "render test strategy view",
     )
     text = replace_once(
