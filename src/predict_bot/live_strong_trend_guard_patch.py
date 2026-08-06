@@ -29,7 +29,7 @@ def live_guard_candidates_for_opened(
 ) -> list[dict[str, Any]]:
     """Create live-queue candidates only from durable allowed Guard decisions.
 
-    The corresponding Paper Shadow remains paper-only.  This bridge produces a
+    The corresponding Paper Shadow remains paper-only. This bridge produces a
     separate candidate which the existing realtime and live executors still
     subject to selected-strategy, freshness, depth, price, stake, drawdown,
     observer and one-attempt checks.
@@ -143,6 +143,17 @@ def _install_live_constants() -> None:
             strategy,
             Decimal("0.05"),
         )
+
+    # Some existing startup patches import m_realtime before this installer
+    # runs. Synchronize its locally-bound tuple and forwardability set so the
+    # Guard candidates are not silently dropped after being selected live.
+    from . import m_realtime
+
+    m_realtime.LIVE_RESEARCH_STRATEGIES = live_trading.LIVE_RESEARCH_STRATEGIES
+    m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES = (
+        set(m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES)
+        | set(LIVE_GUARD_STRATEGIES)
+    )
 
 
 def _install_store_bridge() -> None:
