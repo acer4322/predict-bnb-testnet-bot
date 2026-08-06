@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Any
 
 from . import m_realtime as _realtime
+from .decision_strategy_config_v2 import initialize_controller_config
 from .decision_strategy_rules import (
     SOURCE_STRATEGIES,
     STAKE_USDT,
@@ -34,6 +35,7 @@ def _wrap_store(engine: Any, store: Any) -> None:
     original = getattr(store, "maybe_enter_m_series", None)
     if not callable(original):
         return
+    initialize_controller_config(store)
     tracker = DecisionStrategyTracker(engine, store)
 
     @wraps(original)
