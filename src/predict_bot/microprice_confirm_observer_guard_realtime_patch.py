@@ -15,6 +15,10 @@ def _append_unique(values: Iterable[str], item: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys((*tuple(values), item)))
 
 
+def _merge_unique(values: Iterable[str], additions: Iterable[str]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys((*tuple(values), *tuple(additions))))
+
+
 def _observer_context(context: dict[str, Any] | None) -> dict[str, Any] | None:
     if not isinstance(context, dict):
         return None
@@ -33,9 +37,9 @@ def _observer_context(context: dict[str, Any] | None) -> dict[str, Any] | None:
 def _wrap_store_paper_context(store: Any) -> None:
     """Attach causal Observer gates to paper trades opened in this evaluation.
 
-    R_MICROPRICE_CONFIRM is created inside the paper Store path.  Before this
+    R_MICROPRICE_CONFIRM is created inside the paper Store path. Before this
     patch its diagnostics omitted the realtime Observer gate, so the Guard
-    could only classify the row as unavailable.  The context is thread-local,
+    could only classify the row as unavailable. The context is thread-local,
     market-bound, and exists only for the synchronous paper evaluation.
     """
 
@@ -152,16 +156,24 @@ def _patch_engine_paper_context(realtime: Any) -> None:
 def install_microprice_confirm_observer_guard_realtime_patch() -> None:
     """Expose the Guard generically and make Paper simulation count immediately.
 
-    The Observer version remains outside LIVE_SUPPORTED_STRATEGIES.  Any
-    strategy already supported by the existing live Observer pipeline may use
-    it.  R_MICROPRICE_CONFIRM paper trades now carry the causal F1 gate into
-    their diagnostics, so they are classified into pass or blocked
-    counterfactual groups without requiring a real order.
+    Every non-pair strategy already supported by live selection can use the
+    existing per-slot Observer controls. Pair arbitrage remains excluded
+    because it is a two-leg execution family rather than a directional signal.
+    Slot 4 remains execution-only in the existing live rules model.
     """
 
     from . import live_trading as live
     from . import m_realtime as realtime
 
+    generic_live_observer_strategies = tuple(
+        strategy
+        for strategy in live.LIVE_SUPPORTED_STRATEGIES
+        if not str(strategy).startswith("PAIR_ARB_")
+    )
+    live.LIVE_OBSERVER_STRATEGIES = _merge_unique(
+        live.LIVE_OBSERVER_STRATEGIES,
+        generic_live_observer_strategies,
+    )
     live.LIVE_OBSERVER_STRATEGIES = _append_unique(
         live.LIVE_OBSERVER_STRATEGIES,
         SOURCE_STRATEGY,
