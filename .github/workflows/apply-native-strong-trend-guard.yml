@@ -1,0 +1,51 @@
+name: Apply native strong trend guard
+
+on:
+  push:
+    branches:
+      - feature/regime-guard
+    paths:
+      - .github/.native-strong-trend-guard-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/regime-guard
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Apply patch
+        run: python .github/scripts/apply-native-strong-trend-guard.py
+      - name: Run backend tests
+        run: pytest -q tests/test_strong_trend_guard_shadows.py tests/test_research_strategy_registry.py
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Build dashboard
+        working-directory: dashboard
+        run: npm run build
+      - name: Verify native dashboard architecture
+        working-directory: dashboard
+        run: node --test tests/native-strong-trend-guard.test.mjs
+      - name: Remove one-shot files and commit
+        run: |
+          rm -f .github/scripts/apply-native-strong-trend-guard.py
+          rm -f .github/workflows/apply-native-strong-trend-guard.yml
+          rm -f .github/.native-strong-trend-guard-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(research): add native strong trend guard lab"
+          git push origin HEAD:feature/regime-guard
