@@ -43,7 +43,11 @@ jobs:
         run: python -m pytest tests/test_microprice_confirm_stale_exhausted_guard.py -q
 
       - name: Loss streak guard tests
-        run: python -m pytest tests/test_loss_streak_guard.py -q
+        run: >-
+          python -m pytest
+          tests/test_loss_streak_guard.py
+          tests/test_loss_streak_minimum_stake.py
+          -q
 
       - name: Dashboard tests
         working-directory: dashboard
