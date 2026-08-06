@@ -6,7 +6,10 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "integrate:decision-tab": "python ../scripts/integrate_decision_strategy_tab.py",
+    "predev": "npm run integrate:decision-tab",
     "dev": "vinext dev --hostname 0.0.0.0 --port 4310",
+    "prebuild": "npm run integrate:decision-tab",
     "build": "vinext build",
     "start": "vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs tests/native-observer-controls.test.mjs",
