@@ -69,7 +69,7 @@ jobs:
 
       - name: Dashboard tests
         working-directory: dashboard
-        run: npm test -- --runInBand
+        run: npm test
 
       - name: Dashboard production build
         working-directory: dashboard
