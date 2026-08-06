@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - .github/.native-strong-trend-main-trigger
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/.native-strong-trend-guard-trigger
 
 permissions:
   contents: write
