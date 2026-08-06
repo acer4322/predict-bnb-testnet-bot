@@ -8,6 +8,9 @@ on:
     branches:
       - feature/regime-guard
 
+permissions:
+  contents: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -27,6 +30,18 @@ jobs:
           node-version: "22.13.0"
           cache: npm
           cache-dependency-path: dashboard/package-lock.json
+
+      - name: Integrate native main-page tab
+        run: python scripts/integrate_decision_strategy_tab.py
+
+      - name: Verify native tab structure
+        run: >-
+          python -c "from pathlib import Path;
+          text=Path('dashboard/app/page.tsx').read_text(encoding='utf-8');
+          assert 'id=\"decision-strategy-tab\"' in text;
+          assert 'id=\"decision-strategy-panel\"' not in text;
+          assert 'DecisionStrategyTestPanel payload={state}' in text;
+          assert 'decision-strategy-test/page.tsx' not in '\n'.join(str(p) for p in Path('dashboard/app').rglob('*.tsx'))"
 
       - name: Install Python dependencies
         run: python -m pip install -e ".[dev]"
@@ -60,3 +75,16 @@ jobs:
 
       - name: Diff check
         run: git diff --check
+
+      - name: Commit native tab integration
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet -- dashboard/app/page.tsx; then
+            echo "Native decision tab already integrated."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dashboard/app/page.tsx
+          git commit -m "Integrate decision strategies as native main-page tab"
+          git push
