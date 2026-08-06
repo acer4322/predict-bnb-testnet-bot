@@ -99,14 +99,22 @@ def test_shadow_fails_closed_when_midpoint_delta_is_missing() -> None:
 def test_strategy_is_native_research_shadow_and_never_live_selectable() -> None:
     assert STRATEGY in research_forward.SHADOW_RESEARCH_STRATEGIES
     assert STRATEGY in research_forward.RESEARCH_STRATEGIES
+    assert STRATEGY not in research_forward.PRIMARY_RESEARCH_STRATEGIES
     assert STRATEGY not in live_trading.LIVE_SUPPORTED_STRATEGIES
     assert STRATEGY not in live_trading.LIVE_RESEARCH_STRATEGIES
 
 
-def test_strategy_has_sampling_horizon_and_does_not_raise_key_error() -> None:
+def test_shadow_metadata_keeps_horizon_but_does_not_activate_primary_sampling() -> None:
     params = research_forward.RESEARCH_PARAMETERS[STRATEGY]
     assert params["horizon"] == HORIZON_SECONDS
-    assert research_forward.sampling_active(HORIZON_SECONDS, {STRATEGY}) is True
+    assert research_forward.sampling_active(HORIZON_SECONDS, {STRATEGY}) is False
+    assert (
+        research_forward.sampling_active(
+            HORIZON_SECONDS,
+            {STRATEGY, "R_MICROPRICE"},
+        )
+        is True
+    )
 
 
 def test_generic_signal_path_never_evaluates_derived_stable_direction_shadow() -> None:
