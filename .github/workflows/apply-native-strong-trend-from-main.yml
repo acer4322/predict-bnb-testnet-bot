@@ -36,6 +36,18 @@ jobs:
         run: python -m pip install -e '.[dev]'
       - name: Apply patch
         run: python .github/scripts/apply-native-strong-trend-guard.py
+      - name: Normalize native panel copy
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('dashboard/app/calibrated-confirmation-lab.tsx')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              '不再使用 Portal、MutationObserver、DOM 插入或額外輪詢',
+              '不再使用額外 DOM 注入或額外輪詢',
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
       - name: Run backend tests
         run: python -m pytest -q tests/test_strong_trend_guard_shadows.py tests/test_research_strategy_registry.py
       - name: Install dashboard dependencies
