@@ -27,6 +27,9 @@ from .decision_snapshot_diagnostics import (
 from .decision_snapshot_state import (
     install_decision_snapshot_state as _install_decision_snapshot_state,
 )
+from .decision_strategy_native_v2 import (
+    install_decision_strategy_native_v2 as _install_decision_strategy_native_v2,
+)
 from .direct_outcome_guard import (
     install_direct_outcome_guard as _install_direct_outcome_guard,
 )
@@ -150,12 +153,14 @@ _install_maximum_net_loss_guard_patch()
 _install_live_rules_async_preflight_patch()
 _install_live_strong_trend_guard_patch()
 _install_regime_reverse_prediction_age_patch()
+_install_decision_strategy_native_v2()
 del _install_calibrated_value_confirm_v2_live_patch
 del _install_calibrated_value_confirmation_filters
 del _install_calibrated_value_confirmation_variants
 del _install_confirmation_add_sources_patch
 del _install_decision_snapshot_diagnostics
 del _install_decision_snapshot_state
+del _install_decision_strategy_native_v2
 del _install_direct_outcome_guard
 del _install_live_rules_async_preflight_patch
 del _install_live_strong_trend_guard_patch
