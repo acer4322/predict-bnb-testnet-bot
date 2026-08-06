@@ -11187,6 +11187,11 @@ class Handler(BaseHTTPRequestHandler):
         return
 
 
+from .strong_trend_guard_shadows import install_strong_trend_guard_shadows
+
+install_strong_trend_guard_shadows(globals())
+
+
 def main() -> None:
     global MICROSTRUCTURE, M_REALTIME, LIVE_M0W, MARKET_OBSERVER
     restart_event = threading.Event()
