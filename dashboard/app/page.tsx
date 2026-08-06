@@ -12,7 +12,7 @@ function apiUrl(path: string) {
 type NumericConfig = Record<string, number | boolean>;
 type StrategyId = "A" | "B" | "B2" | "C" | "D" | "E" | "F" | "E2" | "G" | "H" | "I" | "J" | "K" | "L" | "M"
   | "M0" | "M01" | "M01T180" | "M01T180D" | "M01TASYM" | "M01O" | "M01O_F1" | "M01O_LIVE" | "M01F" | "M01R" | "M0W" | "M01W" | "M1" | "M2" | "M3" | "M4" | "M5" | "M6" | "M7_1" | "M7_2" | "M7_3" | "M7_5"
-  | "R_MICROPRICE" | "R_MICROPRICE_REVERSE" | "R_OFI" | "R_OFI_MIN040" | "R_OFI_EVENT_CUM" | "R_OFI_EVENT_CUM_FILTERED" | "R_FUTURES_LEAD" | "R_FUTURES_LEAD_CONTINUOUS_V2" | "R_FUTURES_LEAD_REVERSE" | "R_FUTURES_LEAD_REGIME_REVERSE_3L" | "R_FUTURES_LEAD_EXIT30" | "R_FUTURES_LEAD_DISTANCE" | "R_FUTURES_LEAD_EXIT30_DISTANCE" | "R_FUTURES_LEAD_SIGNAL_100" | "R_FUTURES_LEAD_MIN_ENTRY_020" | "R_FUTURES_LEAD_OBSERVER_F1" | "R_FUTURES_LEAD_OBSERVER_V2" | "R_FUTURES_LEAD_OBSERVER_V3" | "R_FUTURES_LEAD_OBSERVER_V4" | "R_FUTURES_LEAD_OBSERVER_V6" | "R_OFI_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V6" | "R_CALIBRATED_VALUE_OBSERVER_V6" | "R_MICROPRICE_OBSERVER_AUTO_V6" | "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6" | "R_CALIBRATED_VALUE" | "R_CALIBRATED_VALUE_REVERSE" | "R_CALIBRATED_VALUE_CONTINUOUS_V2" | "R_CONSENSUS" | "R_CONFIRM_ADD_10";
+  | "R_MICROPRICE" | "R_MICROPRICE_CONFIRM_STABLE_DIRECTION" | "R_MICROPRICE_REVERSE" | "R_OFI" | "R_OFI_MIN040" | "R_OFI_EVENT_CUM" | "R_OFI_EVENT_CUM_FILTERED" | "R_FUTURES_LEAD" | "R_FUTURES_LEAD_CONTINUOUS_V2" | "R_FUTURES_LEAD_REVERSE" | "R_FUTURES_LEAD_REGIME_REVERSE_3L" | "R_FUTURES_LEAD_EXIT30" | "R_FUTURES_LEAD_DISTANCE" | "R_FUTURES_LEAD_EXIT30_DISTANCE" | "R_FUTURES_LEAD_SIGNAL_100" | "R_FUTURES_LEAD_MIN_ENTRY_020" | "R_FUTURES_LEAD_OBSERVER_F1" | "R_FUTURES_LEAD_OBSERVER_V2" | "R_FUTURES_LEAD_OBSERVER_V3" | "R_FUTURES_LEAD_OBSERVER_V4" | "R_FUTURES_LEAD_OBSERVER_V6" | "R_OFI_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V6" | "R_CALIBRATED_VALUE_OBSERVER_V6" | "R_MICROPRICE_OBSERVER_AUTO_V6" | "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6" | "R_CALIBRATED_VALUE" | "R_CALIBRATED_VALUE_REVERSE" | "R_CALIBRATED_VALUE_CONTINUOUS_V2" | "R_CONSENSUS" | "R_CONFIRM_ADD_10";
 type Observation = {
   timestamp: string; topic_id: number; market_id: number; title: string;
   start_price: number; spot_price: number; seconds_left: number;
@@ -733,7 +733,7 @@ const initial: State = {
     M5: { ...EMPTY_SUMMARY }, M6: { ...EMPTY_SUMMARY },
     M7_1: { ...EMPTY_SUMMARY }, M7_2: { ...EMPTY_SUMMARY },
     M7_3: { ...EMPTY_SUMMARY }, M7_5: { ...EMPTY_SUMMARY },
-    R_MICROPRICE: { ...EMPTY_SUMMARY }, R_OFI: { ...EMPTY_SUMMARY },
+    R_MICROPRICE: { ...EMPTY_SUMMARY }, R_MICROPRICE_CONFIRM_STABLE_DIRECTION: { ...EMPTY_SUMMARY }, R_OFI: { ...EMPTY_SUMMARY },
     R_OFI_MIN040: { ...EMPTY_SUMMARY }, R_OFI_EVENT_CUM: { ...EMPTY_SUMMARY }, R_OFI_EVENT_CUM_FILTERED: { ...EMPTY_SUMMARY },
     R_FUTURES_LEAD: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_CONTINUOUS_V2: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_REVERSE: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_REGIME_REVERSE_3L: { ...EMPTY_SUMMARY },
     R_FUTURES_LEAD_EXIT30: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_DISTANCE: { ...EMPTY_SUMMARY }, R_FUTURES_LEAD_EXIT30_DISTANCE: { ...EMPTY_SUMMARY },
@@ -1527,6 +1527,7 @@ const RESEARCH_STRATEGY_CARDS: Array<{ id: StrategyId; title: string; rule: stri
   { id: "R_FUTURES_LEAD_SIGNAL_100", title: "Lead 強訊號測試版", rule: "依附同市場已開啟的 R_FUTURES_LEAD，只保留絕對 lead 強度 ≥ 1.00 bps；獨立 Shadow，不占主要研究資金池。", tone: "blue", shadow: true },
   { id: "R_FUTURES_LEAD_MIN_ENTRY_020", title: "Lead 排除低價測試版", rule: "依附同市場已開啟的 R_FUTURES_LEAD，只保留模擬成交價 > 0.20；用來隔離近期低價長尾樣本的失效風險。", tone: "amber", shadow: true },
   { id: "R_MICROPRICE", title: "Microprice 深度失衡", rule: "剩餘 180 秒，以 UP／DOWN 第一檔數量失衡差決定方向。", tone: "cyan" },
+  { id: "R_MICROPRICE_CONFIRM_STABLE_DIRECTION", title: "Microprice Confirm · 穩定方向共識", rule: "依賴式 Shadow：只有 R_MICROPRICE_CONFIRM 已完成同方向多事件確認後才評估；訊號側 raw Ask 必須為 0.60–<0.90，且確認期間 selected-side midpoint delta ≥0.01。完全不使用 F1、震盪分或 Observer；paper only，不可轉送實單。", tone: "green", shadow: true },
   { id: "R_OFI", title: "Order Flow Imbalance", rule: "剩餘 60 秒，比較 10 秒訂單流變化；目前回測的首選候選。", tone: "mint" },
   { id: "R_FUTURES_LEAD", title: "永續領先現貨", rule: "剩餘 180 秒，永續 3 秒報酬幅度領先現貨至少 0.25 bps 才進場。", tone: "blue" },
   { id: "R_CALIBRATED_VALUE", title: "校準機率價值", rule: "剩餘 60 秒，以凍結校準係數估計勝率，扣除成交價與費用後仍有淨優勢才進場。", tone: "purple" },

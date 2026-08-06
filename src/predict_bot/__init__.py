@@ -78,6 +78,9 @@ from .microprice_confirm_stable_consensus_dashboard_patch import (
 from .microprice_confirm_stable_consensus_guard import (
     install_microprice_confirm_stable_consensus_guard as _install_microprice_confirm_stable_consensus_guard,
 )
+from .microprice_confirm_stable_direction_shadow import (
+    install_microprice_confirm_stable_direction_shadow as _install_microprice_confirm_stable_direction_shadow,
+)
 from .microprice_confirm_stale_exhausted_guard import (
     install_microprice_confirm_stale_exhausted_guard as _install_microprice_confirm_stale_exhausted_guard,
 )
@@ -120,6 +123,7 @@ _install_microprice_confirm_price_side_guard_live_patch()
 _install_microprice_confirm_observer_guard_patch()
 _install_microprice_confirm_observer_guard_realtime_patch()
 _install_microprice_confirm_stable_consensus_guard()
+_install_microprice_confirm_stable_direction_shadow()
 _install_microprice_confirm_stable_consensus_dashboard_patch()
 _install_confirmation_add_sources_patch()
 _install_calibrated_value_confirm_v2_live_patch()
@@ -155,6 +159,7 @@ del _install_microprice_confirm_optimization_shadows
 del _install_microprice_confirm_price_side_guard_live_patch
 del _install_microprice_confirm_stable_consensus_dashboard_patch
 del _install_microprice_confirm_stable_consensus_guard
+del _install_microprice_confirm_stable_direction_shadow
 del _install_microprice_confirm_stale_exhausted_guard
 del _install_microprice_dashboard_patch
 del _install_microprice_feature_shadows
