@@ -1,1 +1,2 @@
 Trigger the stable-direction paper Shadow validation workflow.
+Attempt 2 uses focused strategy regressions plus the complete Dashboard suite.
