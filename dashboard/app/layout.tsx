@@ -6,6 +6,7 @@ import ConfirmationAddModeOptionGuardFast from "./confirmation-add-mode-option-g
 import LossStreakGuardDashboard from "./loss-streak-guard-dashboard";
 import MaximumNetLossGuardDashboard from "./maximum-net-loss-guard-dashboard";
 import MicropriceStaleExhaustedGuardDashboard from "./microprice-stale-exhausted-guard-dashboard";
+import NativeObserverLiveControls from "./native-observer-live-controls";
 import ResearchDashboardEnhancements from "./research-dashboard-enhancements";
 import "./globals.css";
 
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Link href="/microprice-lifecycle-comparison" style={{ color: "#a5f2ba", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>Microprice A/B</Link>
         <Link href="/xpair-canary" style={{ color: "#ffbd87", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>XPAIR Canary</Link>
       </nav>
+      <NativeObserverLiveControls />
       {children}
       <ResearchDashboardEnhancements />
       <MicropriceStaleExhaustedGuardDashboard />
