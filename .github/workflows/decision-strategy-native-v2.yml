@@ -31,126 +31,15 @@ jobs:
           cache: npm
           cache-dependency-path: dashboard/package-lock.json
 
-      - name: Apply one-time native React source patch
-        shell: python
+      - name: Apply guarded one-time native React source patch
+        run: python scripts/apply_decision_strategy_native_tab.py
+
+      - name: Verify native page source and untouched data loader
         run: |
-          from pathlib import Path
-
-          page_path = Path("dashboard/app/page.tsx")
-          text = page_path.read_text(encoding="utf-8")
-
-          def replace_once(old: str, new: str, label: str) -> None:
-              global text
-              if new in text:
-                  return
-              if old not in text:
-                  raise RuntimeError(f"missing native page anchor: {label}")
-              text = text.replace(old, new, 1)
-
-          replace_once(
-              'import StrongTrendGuardPanel from "./strong-trend-guard-panel";\n',
-              'import StrongTrendGuardPanel from "./strong-trend-guard-panel";\n'
-              'import DecisionStrategyPanel from "./decision-strategy-panel";\n',
-              "component import",
-          )
-          replace_once(
-              '| "R_CONSENSUS" | "R_CONFIRM_ADD_10";',
-              '| "R_CONSENSUS" | "R_CONFIRM_ADD_10" | "R_DECISION_RANK1" | "R_DECISION_RANK2";',
-              "strategy id union",
-          )
-          replace_once(
-              'type StrategyView = "live-m0w" | "research" | "microprice-strategies" | "calibrated-confirmation" | "strong-trend-guard" | "reliability-shadow" | "lead-observer" | "m-series" | "pair-arb" | "legacy" | "paused";',
-              'type StrategyView = "live-m0w" | "research" | "microprice-strategies" | "calibrated-confirmation" | "strong-trend-guard" | "decision-strategy" | "reliability-shadow" | "lead-observer" | "m-series" | "pair-arb" | "legacy" | "paused";',
-              "strategy view union",
-          )
-          replace_once(
-              '    R_CONSENSUS: { ...EMPTY_SUMMARY },\n    R_CONFIRM_ADD_10: { ...EMPTY_SUMMARY },',
-              '    R_CONSENSUS: { ...EMPTY_SUMMARY },\n'
-              '    R_CONFIRM_ADD_10: { ...EMPTY_SUMMARY },\n'
-              '    R_DECISION_RANK1: { ...EMPTY_SUMMARY },\n'
-              '    R_DECISION_RANK2: { ...EMPTY_SUMMARY },',
-              "default summaries",
-          )
-          replace_once(
-              '    const validViews: StrategyView[] = ["live-m0w", "research", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
-              '    const validViews: StrategyView[] = ["live-m0w", "research", "microprice-strategies", "calibrated-confirmation", "strong-trend-guard", "decision-strategy", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
-              "session view allowlist",
-          )
-          replace_once(
-              '  R_OFI_EVENT_CUM: "研究實單 · 累積事件級 OFI",\n};',
-              '  R_OFI_EVENT_CUM: "研究實單 · 累積事件級 OFI",\n'
-              '  R_DECISION_RANK1: "決策策略 · Rank 1 效用加權共識",\n'
-              '  R_DECISION_RANK2: "決策策略 · Rank 2 同情境冠軍",\n'
-              '};',
-              "live strategy labels",
-          )
-          replace_once(
-              '  const isNonConfigView = isLiveView || isReliabilityView || strategyView === "microprice-strategies" || strategyView === "calibrated-confirmation" || strategyView === "strong-trend-guard";',
-              '  const isNonConfigView = isLiveView || isReliabilityView || strategyView === "microprice-strategies" || strategyView === "calibrated-confirmation" || strategyView === "strong-trend-guard" || strategyView === "decision-strategy";',
-              "non-config view",
-          )
-          replace_once(
-              '    if (strategyView === "strong-trend-guard") return trade.strategy.startsWith("R_STRONG_TREND_GUARD_");\n',
-              '    if (strategyView === "strong-trend-guard") return trade.strategy.startsWith("R_STRONG_TREND_GUARD_");\n'
-              '    if (strategyView === "decision-strategy") return ["R_DECISION_RANK1", "R_DECISION_RANK2"].includes(String(trade.strategy));\n',
-              "trade filter",
-          )
-          replace_once(
-              'strategyView === "strong-trend-guard" ? "STRONG OPPOSING TREND · EIGHT SHADOWS" : strategyView === "reliability-shadow"',
-              'strategyView === "strong-trend-guard" ? "STRONG OPPOSING TREND · EIGHT SHADOWS" : strategyView === "decision-strategy" ? "DECISION CONTROLLERS · RANK 1 + RANK 2" : strategyView === "reliability-shadow"',
-              "heading eyebrow",
-          )
-          replace_once(
-              'strategyView === "strong-trend-guard" ? "逆強趨勢阻擋測試" : strategyView === "reliability-shadow"',
-              'strategyView === "strong-trend-guard" ? "逆強趨勢阻擋測試" : strategyView === "decision-strategy" ? "決策策略測試" : strategyView === "reliability-shadow"',
-              "heading title",
-          )
-
-          strong_tab = (
-              '          <button type="button" role="tab" id="strong-trend-guard-tab" '
-              'aria-controls="strong-trend-guard-panel" aria-selected={strategyView === "strong-trend-guard"} '
-              'className={strategyView === "strong-trend-guard" ? "active shadow-tag" : "shadow-tag"} '
-              'onClick={() => setStrategyView("strong-trend-guard")}><strong>逆強趨勢阻擋</strong>'
-              '<span>8 組來源策略 · Forward Paper A/B</span></button>'
-          )
-          decision_tab = (
-              '          <button type="button" role="tab" id="decision-strategy-tab" '
-              'aria-controls="decision-strategy-panel" aria-selected={strategyView === "decision-strategy"} '
-              'className={strategyView === "decision-strategy" ? "active shadow-tag" : "shadow-tag"} '
-              'onClick={() => setStrategyView("decision-strategy")}><strong>決策策略</strong>'
-              '<span>Rank 1＋Rank 2 · 原生 Forward Paper</span></button>'
-          )
-          replace_once(
-              strong_tab,
-              f"{strong_tab}\n{decision_tab}",
-              "native tab button",
-          )
-
-          strong_branch = (
-              'strategyView === "strong-trend-guard" ? '
-              '<StrongTrendGuardPanel experiment={(state.researchForward as any)?.strongTrendGuardExperiment} /> : '
-              'strategyView === "reliability-shadow"'
-          )
-          decision_branch = (
-              'strategyView === "strong-trend-guard" ? '
-              '<StrongTrendGuardPanel experiment={(state.researchForward as any)?.strongTrendGuardExperiment} /> : '
-              'strategyView === "decision-strategy" ? '
-              '<DecisionStrategyPanel experiment={(state.researchForward as any)?.decisionStrategyExperiment} /> : '
-              'strategyView === "reliability-shadow"'
-          )
-          replace_once(
-              strong_branch,
-              decision_branch,
-              "native tabpanel branch",
-          )
-
-          page_path.write_text(text, encoding="utf-8")
-
-      - name: Verify page data loading was not changed
-        run: |
+          python scripts/apply_decision_strategy_native_tab.py --check
           git diff -- dashboard/app/page.tsx
-          ! git diff -- dashboard/app/page.tsx | grep -E '^[-+].*(loadStatistics|/api/state|setStatisticsDown|fetchDashboardJson)' || {
-            echo "The native tab patch touched the statistics loading path."
+          ! git diff -- dashboard/app/page.tsx | grep -E '^[-+].*(loadStatistics|/api/state|setStatisticsDown|fetchDashboardJson|STATISTICS_REFRESH_MS|REALTIME_REFRESH_MS)' || {
+            echo "The native tab patch touched the existing data-loading path."
             exit 1
           }
 
