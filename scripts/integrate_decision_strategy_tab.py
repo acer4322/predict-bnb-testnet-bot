@@ -3,7 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 
-PAGE = Path("dashboard/app/page.tsx")
+ROOT = Path(__file__).resolve().parents[1]
+PAGE = ROOT / "dashboard" / "app" / "page.tsx"
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -41,12 +42,75 @@ def main() -> None:
 
     text = replace_once(
         text,
+        '  liveM0W?: LiveM0WState | null;\n};',
+        '  liveM0W?: LiveM0WState | null;\n'
+        '  decisionStrategyTest?: any;\n'
+        '};',
+        "state decision payload",
+    )
+
+    text = replace_once(
+        text,
         '    R_CONSENSUS: { ...EMPTY_SUMMARY },\n    R_CONFIRM_ADD_10: { ...EMPTY_SUMMARY },',
         '    R_CONSENSUS: { ...EMPTY_SUMMARY },\n'
         '    R_CONFIRM_ADD_10: { ...EMPTY_SUMMARY },\n'
         '    R_DECISION_RANK1: { ...EMPTY_SUMMARY },\n'
         '    R_DECISION_RANK2: { ...EMPTY_SUMMARY },',
         "default decision summaries",
+    )
+
+    text = replace_once(
+        text,
+        '    const validViews: StrategyView[] = ["live-m0w", "research", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
+        '    const validViews: StrategyView[] = ["live-m0w", "research", "microprice-strategies", "calibrated-confirmation", "strong-trend-guard", "decision-strategy", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];',
+        "session strategy views",
+    )
+
+    text = replace_once(
+        text,
+        '          liveM0W: next.liveM0W\n',
+        '          decisionStrategyTest: next.decisionStrategyTest,\n'
+        '          liveM0W: next.liveM0W\n',
+        "statistics decision payload",
+    )
+
+    text = replace_once(
+        text,
+        '  R_OFI_EVENT_CUM: "研究實單 · 累積事件級 OFI",\n};',
+        '  R_OFI_EVENT_CUM: "研究實單 · 累積事件級 OFI",\n'
+        '  R_DECISION_RANK1: "決策策略 · Rank 1 效用加權共識",\n'
+        '  R_DECISION_RANK2: "決策策略 · Rank 2 同情境冠軍",\n'
+        '};',
+        "live strategy labels",
+    )
+
+    text = replace_once(
+        text,
+        '  const isNonConfigView = isLiveView || isReliabilityView || strategyView === "microprice-strategies" || strategyView === "calibrated-confirmation" || strategyView === "strong-trend-guard";',
+        '  const isNonConfigView = isLiveView || isReliabilityView || strategyView === "microprice-strategies" || strategyView === "calibrated-confirmation" || strategyView === "strong-trend-guard" || strategyView === "decision-strategy";',
+        "non-config decision view",
+    )
+
+    text = replace_once(
+        text,
+        '    if (strategyView === "strong-trend-guard") return trade.strategy.startsWith("R_STRONG_TREND_GUARD_");\n',
+        '    if (strategyView === "strong-trend-guard") return trade.strategy.startsWith("R_STRONG_TREND_GUARD_");\n'
+        '    if (strategyView === "decision-strategy") return ["R_DECISION_RANK1", "R_DECISION_RANK2"].includes(String(trade.strategy));\n',
+        "decision trade filter",
+    )
+
+    text = replace_once(
+        text,
+        'strategyView === "strong-trend-guard" ? "STRONG OPPOSING TREND · EIGHT SHADOWS" : strategyView === "reliability-shadow"',
+        'strategyView === "strong-trend-guard" ? "STRONG OPPOSING TREND · EIGHT SHADOWS" : strategyView === "decision-strategy" ? "DECISION CONTROLLERS · RANK 1 + RANK 2" : strategyView === "reliability-shadow"',
+        "decision heading eyebrow",
+    )
+
+    text = replace_once(
+        text,
+        'strategyView === "strong-trend-guard" ? "逆強趨勢阻擋測試" : strategyView === "reliability-shadow"',
+        'strategyView === "strong-trend-guard" ? "逆強趨勢阻擋測試" : strategyView === "decision-strategy" ? "決策策略測試" : strategyView === "reliability-shadow"',
+        "decision heading title",
     )
 
     strong_trend_tab = (
