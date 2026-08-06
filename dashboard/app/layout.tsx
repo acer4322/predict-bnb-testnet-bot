@@ -35,7 +35,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         backdropFilter: "blur(12px)",
       }}>
         <Link href="/" style={{ color: "#dce6ff", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>主監控</Link>
-        <Link href="/decision-strategy-test" style={{ color: "#ffd48a", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>決策策略測試</Link>
         <Link href="/microprice-lifecycle" style={{ color: "#7ee3f5", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>Microprice 生命週期</Link>
         <Link href="/microprice-lifecycle-comparison" style={{ color: "#a5f2ba", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>Microprice A/B</Link>
         <Link href="/xpair-canary" style={{ color: "#ffbd87", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>XPAIR Canary</Link>
