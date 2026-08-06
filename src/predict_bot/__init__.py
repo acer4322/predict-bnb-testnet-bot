@@ -1,5 +1,14 @@
 """Predict.fun BNB Testnet research bot."""
 
+from .research_strategy_registry_patch import (
+    install_research_strategy_registry_patch as _install_research_strategy_registry_patch,
+)
+
+# Install the canonical PRIMARY/SHADOW split before importing modules such as
+# server or m_realtime that bind research functions and registry values locally.
+_install_research_strategy_registry_patch()
+del _install_research_strategy_registry_patch
+
 from .calibrated_value_confirm_v2_live_patch import (
     install_calibrated_value_confirm_v2_live_patch as _install_calibrated_value_confirm_v2_live_patch,
 )
