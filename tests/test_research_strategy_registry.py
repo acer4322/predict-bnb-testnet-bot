@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from predict_bot import research_forward
+from predict_bot import m_realtime, research_forward, server
 from predict_bot.research_strategy_registry_patch import (
     DIRECT_SIGNAL_STRATEGIES,
     validate_research_strategy_registry,
@@ -99,3 +99,14 @@ def test_generic_signal_path_fails_closed_for_shadow_and_unknown() -> None:
             fee_bps=200,
             slippage_bps=50.0,
         ) is None
+
+
+def test_runtime_consumers_receive_primary_only_horizons_and_all_supported_ids() -> None:
+    assert set(m_realtime.RESEARCH_PARAMETERS) == set(
+        research_forward.PRIMARY_RESEARCH_STRATEGIES
+    )
+    assert "R_MICROPRICE_CONFIRM_STABLE_DIRECTION" not in (
+        m_realtime.RESEARCH_PARAMETERS
+    )
+    assert "R_MICROPRICE_CONFIRM_STABLE_DIRECTION" in server.SUPPORTED_STRATEGIES
+    assert server.RESEARCH_STRATEGIES == research_forward.RESEARCH_STRATEGIES
