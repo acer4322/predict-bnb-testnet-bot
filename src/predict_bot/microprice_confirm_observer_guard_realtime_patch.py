@@ -164,6 +164,9 @@ def install_microprice_confirm_observer_guard_realtime_patch() -> None:
 
     from . import live_trading as live
     from . import m_realtime as realtime
+    from .microprice_confirm_stable_consensus_guard import (
+        install_microprice_confirm_stable_consensus_guard,
+    )
 
     generic_live_observer_strategies = tuple(
         strategy
@@ -180,3 +183,4 @@ def install_microprice_confirm_observer_guard_realtime_patch() -> None:
     )
     realtime.LIVE_OBSERVER_STRATEGIES = tuple(live.LIVE_OBSERVER_STRATEGIES)
     _patch_engine_paper_context(realtime)
+    install_microprice_confirm_stable_consensus_guard()
