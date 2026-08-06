@@ -5,9 +5,7 @@ import CalibratedConfirmationLab from "./calibrated-confirmation-lab";
 import ConfirmationAddModeOptionGuardFast from "./confirmation-add-mode-option-guard-fast";
 import LossStreakGuardDashboard from "./loss-streak-guard-dashboard";
 import MaximumNetLossGuardDashboard from "./maximum-net-loss-guard-dashboard";
-import MicropriceConfirmObserverGenericDashboard from "./microprice-confirm-observer-generic-dashboard";
 import MicropriceStaleExhaustedGuardDashboard from "./microprice-stale-exhausted-guard-dashboard";
-import ObserverPaperAccountingStatus from "./observer-paper-accounting-status";
 import ResearchDashboardEnhancements from "./research-dashboard-enhancements";
 import StableConsensusObserverSimulation from "./stable-consensus-observer-simulation";
 import "./globals.css";
@@ -48,8 +46,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <ResearchDashboardEnhancements />
       <MicropriceStaleExhaustedGuardDashboard />
       <StableConsensusObserverSimulation />
-      <MicropriceConfirmObserverGenericDashboard />
-      <ObserverPaperAccountingStatus />
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
       <CalibratedConfirmationLab />
