@@ -1,0 +1,57 @@
+name: Decision strategy test
+
+on:
+  push:
+    branches:
+      - feature/decision-strategy-test
+  pull_request:
+    branches:
+      - feature/regime-guard
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.0"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install Python dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Import package
+        run: python -c "import predict_bot; from predict_bot import live_trading; assert 'R_DECISION_RANK1' in live_trading.LIVE_SUPPORTED_STRATEGIES; assert 'R_DECISION_RANK2' in live_trading.LIVE_SUPPORTED_STRATEGIES"
+
+      - name: Decision strategy tests
+        run: python -m pytest tests/test_decision_strategy_shadows.py tests/test_live_trading.py -q
+
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Dashboard type check
+        working-directory: dashboard
+        run: npm run lint
+
+      - name: Dashboard tests
+        working-directory: dashboard
+        run: npm test -- --runInBand
+
+      - name: Dashboard production build
+        working-directory: dashboard
+        run: npm run build
+
+      - name: Diff check
+        run: git diff --check
