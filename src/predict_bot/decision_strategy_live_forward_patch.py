@@ -5,6 +5,9 @@ from . import m_realtime as _realtime
 from .decision_strategy_context_cache_patch import (
     install_decision_strategy_context_cache_patch,
 )
+from .decision_strategy_dashboard_isolation_patch import (
+    install_decision_strategy_dashboard_isolation_patch,
+)
 from .decision_strategy_frozen_rules_patch import (
     install_decision_strategy_frozen_rules_patch,
 )
@@ -32,13 +35,14 @@ def install_decision_strategy_live_forward_patch() -> None:
     m_realtime imports the research whitelist by value. The decision engines
     are registered later as derived, native event-driven strategies, so the
     frozen controller methods, batched context cache, runtime corrections,
-    and both live modules must be updated before an MSeriesRealtimeEngine
-    instance is created.
+    isolated dashboard summary, and both live modules must be updated before
+    an MSeriesRealtimeEngine instance is created.
     """
 
     install_decision_strategy_frozen_rules_patch()
     install_decision_strategy_context_cache_patch()
     install_decision_strategy_runtime_corrections_patch()
+    install_decision_strategy_dashboard_isolation_patch()
 
     research = _deduplicated(
         *_live.LIVE_RESEARCH_STRATEGIES,
