@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - feature/regime-guard
+  pull_request:
+    branches:
+      - feature/regime-guard
 
 permissions:
   contents: write
