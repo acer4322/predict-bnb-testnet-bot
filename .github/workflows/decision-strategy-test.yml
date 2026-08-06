@@ -54,6 +54,7 @@ jobs:
           python -m pytest
           tests/test_decision_strategy_shadows.py
           tests/test_decision_strategy_runtime.py
+          tests/test_decision_strategy_isolation.py
           tests/test_live_trading.py
           -q
 
