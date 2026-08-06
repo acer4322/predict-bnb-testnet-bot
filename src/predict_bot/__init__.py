@@ -33,6 +33,9 @@ from .direct_outcome_guard import (
 from .live_rules_async_preflight_patch import (
     install_live_rules_async_preflight_patch as _install_live_rules_async_preflight_patch,
 )
+from .live_strong_trend_guard_patch import (
+    install_live_strong_trend_guard_patch as _install_live_strong_trend_guard_patch,
+)
 from .loss_streak_guard_hotfix import (
     install_loss_streak_guard_hotfix as _install_loss_streak_guard_hotfix,
 )
@@ -145,6 +148,7 @@ _install_loss_streak_guard_hotfix()
 _install_loss_streak_minimum_stake_patch()
 _install_maximum_net_loss_guard_patch()
 _install_live_rules_async_preflight_patch()
+_install_live_strong_trend_guard_patch()
 _install_regime_reverse_prediction_age_patch()
 del _install_calibrated_value_confirm_v2_live_patch
 del _install_calibrated_value_confirmation_filters
@@ -154,6 +158,7 @@ del _install_decision_snapshot_diagnostics
 del _install_decision_snapshot_state
 del _install_direct_outcome_guard
 del _install_live_rules_async_preflight_patch
+del _install_live_strong_trend_guard_patch
 del _install_loss_streak_guard_hotfix
 del _install_loss_streak_guard_patch
 del _install_loss_streak_minimum_stake_patch
