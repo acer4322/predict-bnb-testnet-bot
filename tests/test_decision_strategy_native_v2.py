@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from predict_bot import server
+from predict_bot import live_trading, m_realtime, server
 from predict_bot.decision_strategy_native_v2 import _wrap_store
 from predict_bot.decision_strategy_rules import (
     EXCLUDED_FAMILIES,
@@ -26,6 +26,7 @@ from predict_bot.decision_strategy_rules import (
 from predict_bot.decision_strategy_store import (
     DecisionStrategyTracker,
     experiment_state,
+    wrap_dashboard,
 )
 from predict_bot.research_forward import (
     GENERIC_SIGNAL_RESEARCH_STRATEGIES,
@@ -95,7 +96,7 @@ def _context() -> dict[str, object]:
     }
 
 
-def _insert_observations(store, market_id: int) -> None:
+def _insert_observations(store: server.Store, market_id: int) -> None:
     started = datetime(2026, 8, 7, tzinfo=timezone.utc)
     with store.lock:
         for index, price in enumerate((100.0, 100.02, 100.05)):
@@ -117,11 +118,56 @@ def _insert_observations(store, market_id: int) -> None:
         store.db.commit()
 
 
+def _source_candidate(market_id: int, strategy: str = "R_FUTURES_LEAD") -> dict[str, object]:
+    return {
+        "strategy": strategy,
+        "market_id": market_id,
+        "topic_id": 9101,
+        "side": "UP",
+        "entry_price": 0.40,
+    }
+
+
+def _collector() -> SimpleNamespace:
+    return SimpleNamespace(
+        status="LIVE",
+        error=None,
+        updated_at=None,
+        interval=1.0,
+        prediction=None,
+    )
+
+
+def _valid_live_signal(strategy: str) -> dict[str, object]:
+    return {
+        "strategy": strategy,
+        "entry_price": 0.402,
+        "raw_top_ask": 0.40,
+        "estimated_probability": 0.70,
+        "agreement_weight": 0.80,
+        "model_edge": 0.10,
+        "decision_strategy_controller": True,
+        "decision_strategy_version": VERSION,
+        "decision_evaluation_id": 12,
+        "paper_trade_id": 34,
+        "selected_family": "FUTURES_LEAD",
+        "selected_source_trade_id": 56,
+        "market_data_integrity_ok": True,
+        "trend_status": "PASS",
+    }
+
+
 def test_strategies_are_derived_shadows_and_exclusions_are_exact() -> None:
     assert set(STRATEGIES) <= set(RESEARCH_STRATEGIES)
     assert not (set(STRATEGIES) & set(GENERIC_SIGNAL_RESEARCH_STRATEGIES))
     assert set(FAMILY_SOURCES.values()) == set(SOURCE_STRATEGIES)
     assert set(EXCLUDED_FAMILIES) == {"M01", "MICROPRICE", "OFI"}
+
+
+def test_live_whitelist_and_forwardable_sets_are_complete() -> None:
+    assert set(STRATEGIES) <= set(live_trading.LIVE_RESEARCH_STRATEGIES)
+    assert set(STRATEGIES) <= set(live_trading.LIVE_SUPPORTED_STRATEGIES)
+    assert set(STRATEGIES) <= set(m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES)
 
 
 def test_context_and_beta_weighting_match_frozen_contract() -> None:
@@ -182,35 +228,36 @@ def test_rank1_requires_two_positive_supporters_and_67_percent() -> None:
     assert float(decision["agreementWeight"]) >= 0.67
 
 
-def test_rank2_chooses_the_side_with_two_supporters_not_one_large_vote() -> None:
+def test_rank2_chooses_two_supporter_side_not_one_large_vote() -> None:
     ready = _stats(RANK2_MIN_CONTEXT_HISTORY, 0.5, 0.78)
-    families = {
-        "FUTURES_LEAD": _family(
-            1,
-            "R_FUTURES_LEAD",
-            "DOWN",
-            0.40,
-            rank1=ready,
-            rank2=ready,
-        ),
-        "CALIBRATED_VALUE": _family(
-            2,
-            "R_CALIBRATED_VALUE",
-            "UP",
-            0.40,
-            rank1=ready,
-            rank2=_stats(RANK2_MIN_CONTEXT_HISTORY, 0.4, 0.70),
-        ),
-        "CONSENSUS": _family(
-            3,
-            "R_CONSENSUS",
-            "UP",
-            0.41,
-            rank1=ready,
-            rank2=_stats(RANK2_MIN_CONTEXT_HISTORY, 0.4, 0.69),
-        ),
-    }
-    decision = rank2_decision(families)
+    decision = rank2_decision(
+        {
+            "FUTURES_LEAD": _family(
+                1,
+                "R_FUTURES_LEAD",
+                "DOWN",
+                0.40,
+                rank1=ready,
+                rank2=ready,
+            ),
+            "CALIBRATED_VALUE": _family(
+                2,
+                "R_CALIBRATED_VALUE",
+                "UP",
+                0.40,
+                rank1=ready,
+                rank2=_stats(RANK2_MIN_CONTEXT_HISTORY, 0.4, 0.70),
+            ),
+            "CONSENSUS": _family(
+                3,
+                "R_CONSENSUS",
+                "UP",
+                0.41,
+                rank1=ready,
+                rank2=_stats(RANK2_MIN_CONTEXT_HISTORY, 0.4, 0.69),
+            ),
+        }
+    )
     assert decision["status"] == "CANDIDATE"
     assert decision["side"] == "UP"
     assert set(decision["supporters"]) == {
@@ -222,7 +269,31 @@ def test_rank2_chooses_the_side_with_two_supporters_not_one_large_vote() -> None
     assert capped["A"] / sum(capped.values()) == pytest.approx(0.50)
 
 
-def test_source_event_creates_durable_context_and_abstention_only(tmp_path) -> None:
+def test_non_source_event_never_runs_controller(tmp_path, monkeypatch) -> None:
+    store = server.Store(tmp_path / "simulation.db")
+    store.maybe_enter_m_series = lambda *args, **kwargs: [
+        {"strategy": "M01", "market_id": 9000}
+    ]
+    engine = SimpleNamespace()
+    _wrap_store(engine, store)
+    tracker = store._decision_strategy_native_v2_tracker
+    calls = {"count": 0}
+
+    def counted(*args, **kwargs):
+        calls["count"] += 1
+        return []
+
+    monkeypatch.setattr(tracker, "process", counted)
+    opened = store.maybe_enter_m_series(
+        _snapshot(9000),
+        200,
+        realtime_context=_context(),
+    )
+    assert opened == [{"strategy": "M01", "market_id": 9000}]
+    assert calls["count"] == 0
+
+
+def test_source_event_creates_context_and_idempotent_abstentions(tmp_path) -> None:
     store = server.Store(tmp_path / "simulation.db")
     tracker = DecisionStrategyTracker(SimpleNamespace(), store)
     market_id = 9001
@@ -238,27 +309,18 @@ def test_source_event_creates_durable_context_and_abstention_only(tmp_path) -> N
         fee_rate_bps=200,
         note="source",
     )
-    opened = tracker.process(
-        [
-            {
-                "strategy": "R_FUTURES_LEAD",
-                "market_id": market_id,
-                "topic_id": 9101,
-                "side": "UP",
-            }
-        ],
-        _snapshot(market_id),
-        200,
-        _context(),
-    )
-    assert opened == []
-    context_count = store.db.execute(
+    candidate = _source_candidate(market_id)
+    first = tracker.process([candidate], _snapshot(market_id), 200, _context())
+    second = tracker.process([candidate], _snapshot(market_id), 200, _context())
+    assert first == []
+    assert second == []
+    assert store.db.execute(
         "SELECT COUNT(*) FROM decision_strategy_source_contexts"
-    ).fetchone()[0]
-    assert context_count == 1
+    ).fetchone()[0] == 1
     evaluations = store.db.execute(
         "SELECT controller, status FROM decision_strategy_evaluations ORDER BY controller"
     ).fetchall()
+    assert len(evaluations) == 2
     assert {str(row["controller"]) for row in evaluations} == set(STRATEGIES)
     assert all(str(row["status"]).startswith("WAITING") for row in evaluations)
     assert store.db.execute(
@@ -271,13 +333,7 @@ def test_wrapper_preserves_base_candidates_when_controller_raises(
     tmp_path, monkeypatch
 ) -> None:
     store = server.Store(tmp_path / "simulation.db")
-    base = {
-        "strategy": "R_FUTURES_LEAD",
-        "topic_id": 9101,
-        "market_id": 9002,
-        "side": "UP",
-        "entry_price": 0.40,
-    }
+    base = _source_candidate(9002)
     store.maybe_enter_m_series = lambda *args, **kwargs: [dict(base)]
     engine = SimpleNamespace()
     _wrap_store(engine, store)
@@ -294,26 +350,65 @@ def test_wrapper_preserves_base_candidates_when_controller_raises(
     ) == [base]
 
 
-def test_read_only_dashboard_keeps_base_payload_and_adds_small_experiment(
+def test_dashboard_wrapper_preserves_connection_and_existing_summary_keys(
     tmp_path,
 ) -> None:
     path = tmp_path / "simulation.db"
     execution_store = server.Store(path)
     DecisionStrategyTracker(SimpleNamespace(), execution_store)
     dashboard_store = server.Store.open_read_only(path)
-    collector = SimpleNamespace(
-        status="LIVE",
-        error=None,
-        updated_at=None,
-        interval=1.0,
-        prediction=None,
+
+    wrap_dashboard(server.Store)
+    wrapped = server.Store.dashboard
+    original = getattr(wrapped, "__wrapped__", None)
+    assert callable(original)
+
+    base_payload = original(
+        dashboard_store,
+        _collector(),
+        include_experiments=False,
     )
-    payload = dashboard_store.dashboard(collector, include_experiments=False)
-    assert payload["connection"]["status"] == "LIVE"
-    assert isinstance(payload["summaries"], dict)
-    assert "researchForward" in payload
-    experiment = payload["researchForward"]["decisionStrategyExperiment"]
+    wrapped_payload = wrapped(
+        dashboard_store,
+        _collector(),
+        include_experiments=False,
+    )
+    assert wrapped_payload["connection"] == base_payload["connection"]
+    assert set(wrapped_payload["summaries"]) == set(base_payload["summaries"])
+    assert set(wrapped_payload) == set(base_payload)
+    experiment = wrapped_payload["researchForward"][
+        "decisionStrategyExperiment"
+    ]
     assert experiment["version"] == VERSION
     assert experiment["status"] == "COLLECTING"
     assert experiment["rank2Warmup"].startswith("same-context history")
     assert experiment_state(dashboard_store)["version"] == VERSION
+
+
+def test_live_provenance_guard_rejects_incomplete_signal() -> None:
+    signal = _valid_live_signal(RANK1_STRATEGY)
+    signal.pop("paper_trade_id")
+    allowed, reason = live_trading.LiveM0WEngine._research_signal_price_is_allowed(
+        signal,
+        RANK1_STRATEGY,
+    )
+    assert allowed is False
+    assert "Paper trade id" in reason
+
+
+def test_live_provenance_guard_accepts_complete_rank1_and_checks_rank2_edge() -> None:
+    rank1 = _valid_live_signal(RANK1_STRATEGY)
+    allowed, reason = live_trading.LiveM0WEngine._research_signal_price_is_allowed(
+        rank1,
+        RANK1_STRATEGY,
+    )
+    assert (allowed, reason) == (True, "")
+
+    rank2 = _valid_live_signal(RANK2_STRATEGY)
+    rank2["model_edge"] = 0.02
+    allowed, reason = live_trading.LiveM0WEngine._research_signal_price_is_allowed(
+        rank2,
+        RANK2_STRATEGY,
+    )
+    assert allowed is False
+    assert "3 percentage points" in reason
