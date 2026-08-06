@@ -60,6 +60,9 @@ from .microprice_confirm_loss_streak_guard import (
 from .microprice_confirm_observer_guard_patch import (
     install_microprice_confirm_observer_guard_patch as _install_microprice_confirm_observer_guard_patch,
 )
+from .microprice_confirm_observer_guard_realtime_patch import (
+    install_microprice_confirm_observer_guard_realtime_patch as _install_microprice_confirm_observer_guard_realtime_patch,
+)
 from .microprice_confirm_optimization_shadows import (
     install_microprice_confirm_optimization_shadows as _install_microprice_confirm_optimization_shadows,
 )
@@ -106,6 +109,7 @@ _install_microprice_confirm_exit_098_entry_guard_patch()
 _install_microprice_confirm_exit_098_horizon_patch()
 _install_microprice_confirm_price_side_guard_live_patch()
 _install_microprice_confirm_observer_guard_patch()
+_install_microprice_confirm_observer_guard_realtime_patch()
 _install_confirmation_add_sources_patch()
 _install_calibrated_value_confirm_v2_live_patch()
 _install_pair_arb_initial_capacity_patch()
@@ -133,6 +137,7 @@ del _install_microprice_confirm_exit_098_live_v4_patch
 del _install_microprice_confirm_live_patch
 del _install_microprice_confirm_loss_streak_guard
 del _install_microprice_confirm_observer_guard_patch
+del _install_microprice_confirm_observer_guard_realtime_patch
 del _install_microprice_confirm_optimization_shadows
 del _install_microprice_confirm_price_side_guard_live_patch
 del _install_microprice_confirm_stale_exhausted_guard
