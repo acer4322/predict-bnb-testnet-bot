@@ -16,6 +16,15 @@ def test_guard_version_is_allowed_for_other_observer_supported_strategy() -> Non
     assert rules["strategyObserverVersions"] == [OBSERVER_VERSION]
 
 
+def test_every_non_pair_live_strategy_is_observer_compatible() -> None:
+    expected = {
+        strategy
+        for strategy in live_trading.LIVE_SUPPORTED_STRATEGIES
+        if not strategy.startswith("PAIR_ARB_")
+    }
+    assert expected <= set(live_trading.LIVE_OBSERVER_STRATEGIES)
+
+
 def test_guard_remains_an_observer_version_not_a_live_strategy() -> None:
     assert OBSERVER_VERSION in live_trading.FUTURES_LEAD_OBSERVER_VERSIONS
     assert OBSERVER_VERSION not in live_trading.LIVE_SUPPORTED_STRATEGIES
