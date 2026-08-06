@@ -7,7 +7,6 @@ import LossStreakGuardDashboard from "./loss-streak-guard-dashboard";
 import MaximumNetLossGuardDashboard from "./maximum-net-loss-guard-dashboard";
 import MicropriceStaleExhaustedGuardDashboard from "./microprice-stale-exhausted-guard-dashboard";
 import ResearchDashboardEnhancements from "./research-dashboard-enhancements";
-import StableConsensusObserverSimulation from "./stable-consensus-observer-simulation";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
@@ -45,7 +44,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {children}
       <ResearchDashboardEnhancements />
       <MicropriceStaleExhaustedGuardDashboard />
-      <StableConsensusObserverSimulation />
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
       <CalibratedConfirmationLab />
