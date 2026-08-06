@@ -5,6 +5,9 @@ from functools import wraps
 from typing import Any
 
 
+LOSS_STREAK_MINIMUM_LIVE_STAKE_USDT = Decimal("1.00")
+
+
 def loss_streak_reduced_stake(
     initial_stake: Decimal,
     minimum_stake: Decimal,
@@ -18,13 +21,19 @@ def loss_streak_reduced_stake(
     )
 
 
+def _minimum_live_stake(live: Any) -> Decimal:
+    """Return the effective live-order floor for loss-streak reduction."""
+    configurable_minimum = Decimal(str(live.LIVE_MIN_CONFIGURABLE_STAKE_USDT))
+    return max(configurable_minimum, LOSS_STREAK_MINIMUM_LIVE_STAKE_USDT)
+
+
 def install_loss_streak_minimum_stake_patch() -> None:
-    """Keep reduced-risk live orders at or above the exchange minimum."""
+    """Keep reduced-risk live orders at or above the 1 USDT execution floor."""
     from . import live_trading as live
     from . import loss_streak_guard_patch as guard
 
     current_plan = live.live_strategy_execution_plan
-    if not getattr(current_plan, "_loss_streak_minimum_stake_v1", False):
+    if not getattr(current_plan, "_loss_streak_minimum_stake_v2", False):
         original_plan = getattr(current_plan, "__wrapped__", current_plan)
 
         @wraps(original_plan)
@@ -40,19 +49,19 @@ def install_loss_streak_minimum_stake_patch() -> None:
                 and context.get("multiplier") == guard.LOSS_STREAK_HALF_MULTIPLIER
             ):
                 initial = Decimal(str(plan["initialStakeUsdt"]))
-                minimum = Decimal(str(live.LIVE_MIN_CONFIGURABLE_STAKE_USDT))
+                minimum = _minimum_live_stake(live)
                 reduced = loss_streak_reduced_stake(initial, minimum)
                 plan["initialStakeUsdt"] = reduced
                 if plan.get("mode") == live.LIVE_EXECUTION_MODE_FIXED:
                     plan["totalCapUsdt"] = reduced
             return plan
 
-        plan_with_minimum_reduced_stake._loss_streak_minimum_stake_v1 = True  # type: ignore[attr-defined]
+        plan_with_minimum_reduced_stake._loss_streak_minimum_stake_v2 = True  # type: ignore[attr-defined]
         live.live_strategy_execution_plan = plan_with_minimum_reduced_stake
 
     engine_class = live.LiveM0WEngine
     current_process = engine_class._process_single_signal
-    if getattr(current_process, "_loss_streak_minimum_stake_v1", False):
+    if getattr(current_process, "_loss_streak_minimum_stake_v2", False):
         return
     original_process = getattr(current_process, "__wrapped__", current_process)
 
@@ -118,7 +127,23 @@ def install_loss_streak_minimum_stake_patch() -> None:
         if not is_add and reduced_risk:
             base_plan = original_plan(rules, strategy)
             initial = Decimal(str(base_plan["initialStakeUsdt"]))
-            minimum = Decimal(str(live.LIVE_MIN_CONFIGURABLE_STAKE_USDT))
+            minimum = _minimum_live_stake(live)
+            if initial < minimum:
+                self._record_blocked_signal(
+                    signal,
+                    "BLOCKED_LOSS_STREAK_MINIMUM_STAKE",
+                    (
+                        f"{strategy} configured initial stake {initial} USDT is below "
+                        f"the loss-streak live minimum {minimum} USDT; no order sent"
+                    ),
+                    diagnostics={
+                        "lossStreakGuardVersion": guard.LOSS_STREAK_GUARD_VERSION,
+                        "lossStreakMode": state["mode"],
+                        "configuredInitialStakeUsdt": float(initial),
+                        "minimumLiveStakeUsdt": float(minimum),
+                    },
+                )
+                return None
             reduced = loss_streak_reduced_stake(initial, minimum)
             guard._EXECUTION_CONTEXT.value = {
                 "strategy": strategy,
@@ -140,5 +165,5 @@ def install_loss_streak_minimum_stake_patch() -> None:
                 guard._EXECUTION_CONTEXT.value = None
         return original_process(self, signal, *args, **kwargs)
 
-    process_with_minimum_reduced_stake._loss_streak_minimum_stake_v1 = True  # type: ignore[attr-defined]
+    process_with_minimum_reduced_stake._loss_streak_minimum_stake_v2 = True  # type: ignore[attr-defined]
     engine_class._process_single_signal = process_with_minimum_reduced_stake
