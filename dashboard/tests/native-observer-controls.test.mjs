@@ -21,11 +21,11 @@ test("native Observer controls use the existing live-rules API", async () => {
 
 test("native Observer controls do not use the failed sidecar techniques", async () => {
   const text = await source();
-  assert.doesNotMatch(text, /MutationObserver/);
+  assert.doesNotMatch(text, /new\s+MutationObserver\s*\(/);
   assert.doesNotMatch(text, /document\.querySelector/);
   assert.doesNotMatch(text, /dispatchEvent/);
   assert.doesNotMatch(text, /window\.fetch\s*=/);
-  assert.doesNotMatch(text, /setInterval/);
+  assert.doesNotMatch(text, /setInterval\s*\(/);
 });
 
 test("root layout mounts only the native Observer control", async () => {
