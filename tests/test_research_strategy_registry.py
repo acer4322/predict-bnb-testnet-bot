@@ -4,12 +4,20 @@ import math
 
 from predict_bot import m_realtime, research_forward, server
 from predict_bot.research_strategy_registry_patch import (
-    DIRECT_SIGNAL_STRATEGIES,
+    GENERIC_SIGNAL_STRATEGIES,
     validate_research_strategy_registry,
 )
 
 
-DIRECT_VARIANTS = {
+PRIMARY_BASES = {
+    "R_MICROPRICE",
+    "R_OFI",
+    "R_FUTURES_LEAD",
+    "R_CALIBRATED_VALUE",
+    "R_CONSENSUS",
+}
+
+GENERIC_SHADOW_VARIANTS = {
     "R_OFI_MIN040",
     "R_OFI_EVENT_CUM",
     "R_OFI_EVENT_CUM_FILTERED",
@@ -18,7 +26,7 @@ DIRECT_VARIANTS = {
     "R_FUTURES_LEAD_EXIT30_DISTANCE",
 }
 
-DERIVED_VARIANTS = {
+DERIVED_SHADOW_VARIANTS = {
     "R_CALIBRATED_VALUE_CONTINUOUS_V2",
     "R_MICROPRICE_REVERSE",
     "R_CALIBRATED_VALUE_REVERSE",
@@ -37,41 +45,57 @@ DERIVED_VARIANTS = {
 def test_registry_is_disjoint_complete_and_valid() -> None:
     primary = research_forward.PRIMARY_RESEARCH_STRATEGIES
     shadow = research_forward.SHADOW_RESEARCH_STRATEGIES
+    generic = research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES
+    derived = research_forward.DERIVED_RESEARCH_STRATEGIES
 
     assert set(primary).isdisjoint(shadow)
     assert research_forward.RESEARCH_STRATEGIES == (*primary, *shadow)
     assert len(research_forward.RESEARCH_STRATEGIES) == len(
         set(research_forward.RESEARCH_STRATEGIES)
     )
+    assert set(generic).isdisjoint(derived)
+    assert set(generic) | set(derived) == set(
+        research_forward.RESEARCH_STRATEGIES
+    )
     assert validate_research_strategy_registry() == ()
 
 
-def test_all_direct_signal_variants_are_primary() -> None:
-    assert set(DIRECT_SIGNAL_STRATEGIES).issubset(
-        research_forward.PRIMARY_RESEARCH_STRATEGIES
-    )
-    assert DIRECT_VARIANTS.issubset(
-        research_forward.PRIMARY_RESEARCH_STRATEGIES
-    )
+def test_primary_registry_remains_the_shared_capital_base_set() -> None:
+    assert set(research_forward.PRIMARY_RESEARCH_STRATEGIES) == PRIMARY_BASES
 
 
-def test_derived_variants_are_shadow_only() -> None:
-    assert DERIVED_VARIANTS.issubset(
+def test_independent_signal_experiments_remain_isolated_shadows() -> None:
+    assert set(GENERIC_SIGNAL_STRATEGIES).issubset(
+        research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES
+    )
+    assert GENERIC_SHADOW_VARIANTS.issubset(
         research_forward.SHADOW_RESEARCH_STRATEGIES
     )
-    assert DERIVED_VARIANTS.isdisjoint(
-        research_forward.PRIMARY_RESEARCH_STRATEGIES
+    assert GENERIC_SHADOW_VARIANTS.issubset(
+        research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES
     )
 
 
-def test_every_primary_strategy_has_a_finite_positive_horizon() -> None:
-    for strategy in research_forward.PRIMARY_RESEARCH_STRATEGIES:
+def test_derived_variants_are_shadow_only_and_never_generic() -> None:
+    assert DERIVED_SHADOW_VARIANTS.issubset(
+        research_forward.SHADOW_RESEARCH_STRATEGIES
+    )
+    assert DERIVED_SHADOW_VARIANTS.issubset(
+        research_forward.DERIVED_RESEARCH_STRATEGIES
+    )
+    assert DERIVED_SHADOW_VARIANTS.isdisjoint(
+        research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES
+    )
+
+
+def test_every_generic_signal_strategy_has_a_finite_positive_horizon() -> None:
+    for strategy in research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES:
         horizon = float(research_forward.RESEARCH_PARAMETERS[strategy]["horizon"])
         assert math.isfinite(horizon)
         assert horizon > 0
 
 
-def test_sampling_ignores_shadow_and_unknown_strategies_without_raising() -> None:
+def test_sampling_ignores_derived_and_unknown_but_keeps_generic_shadows() -> None:
     assert research_forward.sampling_active(
         180.0,
         {"R_MICROPRICE_REVERSE"},
@@ -82,11 +106,15 @@ def test_sampling_ignores_shadow_and_unknown_strategies_without_raising() -> Non
     ) is False
     assert research_forward.sampling_active(
         180.0,
+        {"R_FUTURES_LEAD_DISTANCE"},
+    ) is True
+    assert research_forward.sampling_active(
+        180.0,
         {"R_MICROPRICE_REVERSE", "R_MICROPRICE"},
     ) is True
 
 
-def test_generic_signal_path_fails_closed_for_shadow_and_unknown() -> None:
+def test_generic_signal_path_fails_closed_for_derived_and_unknown() -> None:
     for strategy in (
         "R_MICROPRICE_REVERSE",
         "R_MICROPRICE_CONFIRM_STABLE_DIRECTION",
@@ -101,12 +129,13 @@ def test_generic_signal_path_fails_closed_for_shadow_and_unknown() -> None:
         ) is None
 
 
-def test_runtime_consumers_receive_primary_only_horizons_and_all_supported_ids() -> None:
+def test_runtime_consumers_receive_generic_horizons_and_all_supported_ids() -> None:
     assert set(m_realtime.RESEARCH_PARAMETERS) == set(
-        research_forward.PRIMARY_RESEARCH_STRATEGIES
+        research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES
     )
     assert "R_MICROPRICE_CONFIRM_STABLE_DIRECTION" not in (
         m_realtime.RESEARCH_PARAMETERS
     )
+    assert "R_FUTURES_LEAD_DISTANCE" in m_realtime.RESEARCH_PARAMETERS
     assert "R_MICROPRICE_CONFIRM_STABLE_DIRECTION" in server.SUPPORTED_STRATEGIES
     assert server.RESEARCH_STRATEGIES == research_forward.RESEARCH_STRATEGIES
