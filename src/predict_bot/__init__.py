@@ -21,6 +21,9 @@ from .decision_snapshot_state import (
 from .direct_outcome_guard import (
     install_direct_outcome_guard as _install_direct_outcome_guard,
 )
+from .live_rules_async_preflight_patch import (
+    install_live_rules_async_preflight_patch as _install_live_rules_async_preflight_patch,
+)
 from .loss_streak_guard_hotfix import (
     install_loss_streak_guard_hotfix as _install_loss_streak_guard_hotfix,
 )
@@ -125,6 +128,7 @@ _install_loss_streak_guard_patch()
 _install_loss_streak_guard_hotfix()
 _install_loss_streak_minimum_stake_patch()
 _install_maximum_net_loss_guard_patch()
+_install_live_rules_async_preflight_patch()
 del _install_calibrated_value_confirm_v2_live_patch
 del _install_calibrated_value_confirmation_filters
 del _install_calibrated_value_confirmation_variants
@@ -132,6 +136,7 @@ del _install_confirmation_add_sources_patch
 del _install_decision_snapshot_diagnostics
 del _install_decision_snapshot_state
 del _install_direct_outcome_guard
+del _install_live_rules_async_preflight_patch
 del _install_loss_streak_guard_hotfix
 del _install_loss_streak_guard_patch
 del _install_loss_streak_minimum_stake_patch
