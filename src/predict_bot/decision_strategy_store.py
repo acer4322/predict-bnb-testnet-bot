@@ -52,10 +52,11 @@ def _json(value: Any) -> str:
 
 def table_exists(store: Any, table: str) -> bool:
     try:
-        return store.db.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-            (table,),
-        ).fetchone() is not None
+        with store.lock:
+            return store.db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                (table,),
+            ).fetchone() is not None
     except Exception:
         return False
 
@@ -159,11 +160,7 @@ def install_config(store: Any) -> None:
             cache.setdefault(f"strategy_{strategy.lower()}_stake", STAKE_USDT)
 
 
-def latest_trade(
-    store: Any,
-    strategy: str,
-    market_id: int,
-) -> dict[str, Any] | None:
+def latest_trade(store: Any, strategy: str, market_id: int) -> dict[str, Any] | None:
     with store.lock:
         row = store.db.execute(
             """SELECT id, strategy, topic_id, market_id, side, entry_price,
@@ -176,10 +173,7 @@ def latest_trade(
     return dict(row) if row is not None else None
 
 
-def causal_path(
-    store: Any,
-    snapshot: dict[str, Any],
-) -> dict[str, Any] | None:
+def causal_path(store: Any, snapshot: dict[str, Any]) -> dict[str, Any] | None:
     market_id = int(snapshot["market_id"])
     timestamp = str(snapshot.get("timestamp") or "")
     start_price = finite(snapshot.get("start_price"))
@@ -293,12 +287,7 @@ def record_source_context(
     return context
 
 
-def _history_rows(
-    store: Any,
-    strategy: str,
-    as_of: str,
-    limit: int,
-) -> list[Any]:
+def _history_rows(store: Any, strategy: str, as_of: str, limit: int) -> list[Any]:
     with store.lock:
         rows = store.db.execute(
             """SELECT t.id, t.stake, t.pnl, t.closed_at
@@ -388,11 +377,7 @@ def family_state(
     return result
 
 
-def trend_gate(
-    store: Any,
-    snapshot: dict[str, Any],
-    side: str,
-) -> dict[str, Any]:
+def trend_gate(store: Any, snapshot: dict[str, Any], side: str) -> dict[str, Any]:
     path = causal_path(store, snapshot)
     if path is None:
         return {
@@ -493,11 +478,7 @@ def execution_candidate(
     }, ""
 
 
-def _evaluation_exists(
-    store: Any,
-    controller: str,
-    trigger_trade_id: int,
-) -> bool:
+def _evaluation_exists(store: Any, controller: str, trigger_trade_id: int) -> bool:
     with store.lock:
         return store.db.execute(
             """SELECT 1 FROM decision_strategy_evaluations
@@ -516,6 +497,8 @@ def record_evaluation(
     decision: dict[str, Any],
     trend: dict[str, Any] | None,
     execution: dict[str, Any] | None,
+    effective_cost: float | None,
+    model_edge: float | None,
     paper_trade_id: int | None,
     diagnostics: dict[str, Any],
     created_at: str,
@@ -544,15 +527,8 @@ def record_evaluation(
                 execution.get("rawTopAsk") if execution else None,
                 execution.get("entryPrice") if execution else None,
                 decision.get("estimatedProbability"),
-                (
-                    effective_break_even(
-                        float(execution["entryPrice"]),
-                        float(trigger.get("fee_rate_bps") or 200.0),
-                    )
-                    if execution
-                    else None
-                ),
-                diagnostics.get("finalModelEdge"),
+                effective_cost,
+                model_edge,
                 decision.get("agreementWeight"),
                 trend.get("status") if trend else None,
                 paper_trade_id,
@@ -631,6 +607,8 @@ class DecisionStrategyTracker:
                     decision={},
                     trend=None,
                     execution=None,
+                    effective_cost=None,
+                    model_edge=None,
                     paper_trade_id=None,
                     diagnostics={"version": VERSION},
                     created_at=as_of,
@@ -646,6 +624,8 @@ class DecisionStrategyTracker:
                     decision={},
                     trend=None,
                     execution=None,
+                    effective_cost=None,
+                    model_edge=None,
                     paper_trade_id=None,
                     diagnostics={"version": VERSION},
                     created_at=as_of,
@@ -662,6 +642,8 @@ class DecisionStrategyTracker:
                     decision=decision,
                     trend=None,
                     execution=None,
+                    effective_cost=None,
+                    model_edge=None,
                     paper_trade_id=None,
                     diagnostics={
                         "version": VERSION,
@@ -683,6 +665,8 @@ class DecisionStrategyTracker:
                     decision=decision,
                     trend=trend,
                     execution=None,
+                    effective_cost=None,
+                    model_edge=None,
                     paper_trade_id=None,
                     diagnostics={
                         "version": VERSION,
@@ -693,9 +677,7 @@ class DecisionStrategyTracker:
                     created_at=as_of,
                 )
                 continue
-            execution, execution_reason = execution_candidate(
-                snapshot, context, side
-            )
+            execution, execution_reason = execution_candidate(snapshot, context, side)
             if execution is None:
                 record_evaluation(
                     self.store,
@@ -706,6 +688,8 @@ class DecisionStrategyTracker:
                     decision=decision,
                     trend=trend,
                     execution=None,
+                    effective_cost=None,
+                    model_edge=None,
                     paper_trade_id=None,
                     diagnostics={
                         "version": VERSION,
@@ -716,19 +700,21 @@ class DecisionStrategyTracker:
                     created_at=as_of,
                 )
                 continue
-            effective_cost = effective_break_even(
+            controller_cost = effective_break_even(
                 float(execution["entryPrice"]), float(fee_bps)
             )
-            final_edge = float(decision["estimatedProbability"]) - effective_cost
+            final_edge = float(decision["estimatedProbability"]) - controller_cost
+            diagnostics = {
+                "version": VERSION,
+                "familyState": families,
+                "decision": decision,
+                "trend": trend,
+                "execution": execution,
+                "controllerFeeBps": int(fee_bps),
+                "effectiveCost": controller_cost,
+                "finalModelEdge": final_edge,
+            }
             if controller == RANK2_STRATEGY and final_edge + 1e-12 < RANK2_EDGE_MARGIN:
-                diagnostics = {
-                    "version": VERSION,
-                    "familyState": families,
-                    "decision": decision,
-                    "trend": trend,
-                    "execution": execution,
-                    "finalModelEdge": final_edge,
-                }
                 record_evaluation(
                     self.store,
                     controller=controller,
@@ -738,31 +724,29 @@ class DecisionStrategyTracker:
                     decision=decision,
                     trend=trend,
                     execution=execution,
+                    effective_cost=controller_cost,
+                    model_edge=final_edge,
                     paper_trade_id=None,
                     diagnostics=diagnostics,
                     created_at=as_of,
                 )
                 continue
-            diagnostics = {
-                "paper_only": True,
-                "live_orders_affected": False,
-                "forward_only": True,
-                "derived_shadow": True,
-                "decision_strategy_controller": True,
-                "version": VERSION,
-                "controller": controller,
-                "includedFamilies": list(FAMILY_SOURCES),
-                "excludedFamilies": list(EXCLUDED_FAMILIES),
-                "triggerSourceTradeId": int(trigger["id"]),
-                "triggerSourceStrategy": str(trigger["strategy"]),
-                "familyState": families,
-                "decision": decision,
-                "trend": trend,
-                "execution": execution,
-                "finalModelEdge": final_edge,
-                "rules": rules_payload(),
-                "realtimeContext": json.loads(_json(context)),
-            }
+            diagnostics.update(
+                {
+                    "paper_only": True,
+                    "live_orders_affected": False,
+                    "forward_only": True,
+                    "derived_shadow": True,
+                    "decision_strategy_controller": True,
+                    "controller": controller,
+                    "includedFamilies": list(FAMILY_SOURCES),
+                    "excludedFamilies": list(EXCLUDED_FAMILIES),
+                    "triggerSourceTradeId": int(trigger["id"]),
+                    "triggerSourceStrategy": str(trigger["strategy"]),
+                    "rules": rules_payload(),
+                    "realtimeContext": json.loads(_json(context)),
+                }
+            )
             self.store.open_trade(
                 strategy=controller,
                 topic_id=int(snapshot["topic_id"]),
@@ -793,6 +777,8 @@ class DecisionStrategyTracker:
                 decision=decision,
                 trend=trend,
                 execution=execution,
+                effective_cost=controller_cost,
+                model_edge=final_edge,
                 paper_trade_id=paper_trade_id,
                 diagnostics=diagnostics,
                 created_at=as_of,
@@ -816,13 +802,11 @@ class DecisionStrategyTracker:
                     "decision_strategy_controller": True,
                     "decision_strategy_version": VERSION,
                     "decision_evaluation_id": evaluation_id,
+                    "paper_trade_id": paper_trade_id,
                     "selected_family": decision["selectedFamily"],
-                    "selected_source_trade_id": decision[
-                        "selectedSourceTradeId"
-                    ],
-                    "estimated_probability": decision[
-                        "estimatedProbability"
-                    ],
+                    "selected_source_trade_id": decision["selectedSourceTradeId"],
+                    "estimated_probability": decision["estimatedProbability"],
+                    "effective_cost": controller_cost,
                     "agreement_weight": decision["agreementWeight"],
                     "model_edge": final_edge,
                     "trend_status": trend["status"],
@@ -832,24 +816,35 @@ class DecisionStrategyTracker:
 
 
 def strategy_stats(store: Any, strategy: str) -> dict[str, Any]:
-    reset = store.db.execute(
-        """SELECT cutoff_trade_id, reset_at
-             FROM strategy_measurement_resets
-            WHERE strategy=? ORDER BY id DESC LIMIT 1""",
-        (strategy,),
-    ).fetchone()
-    cutoff = int(reset["cutoff_trade_id"]) if reset is not None else 0
-    rows = [
-        dict(row)
-        for row in store.db.execute(
-            """SELECT id, market_id, side, status, entry_price, stake, pnl,
-                      opened_at, closed_at
-                 FROM trades
-                WHERE strategy=? AND id>?
-                ORDER BY id ASC LIMIT ?""",
-            (strategy, cutoff, DASHBOARD_TRADE_LIMIT),
-        ).fetchall()
-    ]
+    with store.lock:
+        reset = store.db.execute(
+            """SELECT cutoff_trade_id, reset_at
+                 FROM strategy_measurement_resets
+                WHERE strategy=? ORDER BY id DESC LIMIT 1""",
+            (strategy,),
+        ).fetchone()
+        cutoff = int(reset["cutoff_trade_id"]) if reset is not None else 0
+        rows = [
+            dict(row)
+            for row in store.db.execute(
+                """SELECT id, market_id, side, status, entry_price, stake, pnl,
+                          opened_at, closed_at
+                     FROM trades
+                    WHERE strategy=? AND id>?
+                    ORDER BY id ASC LIMIT ?""",
+                (strategy, cutoff, DASHBOARD_TRADE_LIMIT),
+            ).fetchall()
+        ]
+        reset_at = str(reset["reset_at"]) if reset is not None else None
+        evaluation_rows = [
+            dict(row)
+            for row in store.db.execute(
+                """SELECT status FROM decision_strategy_evaluations
+                    WHERE controller=? AND (? IS NULL OR created_at>=?)
+                    ORDER BY id DESC LIMIT ?""",
+                (strategy, reset_at, reset_at, DASHBOARD_TRADE_LIMIT),
+            ).fetchall()
+        ]
     settled = [row for row in rows if row.get("pnl") is not None]
     wins = sum(float(row["pnl"]) > 0 for row in settled)
     cumulative = 0.0
@@ -859,16 +854,6 @@ def strategy_stats(store: Any, strategy: str) -> dict[str, Any]:
         cumulative += float(row["pnl"])
         peak = max(peak, cumulative)
         max_drawdown = max(max_drawdown, peak - cumulative)
-    reset_at = str(reset["reset_at"]) if reset is not None else None
-    evaluation_rows = [
-        dict(row)
-        for row in store.db.execute(
-            """SELECT status FROM decision_strategy_evaluations
-                WHERE controller=? AND (? IS NULL OR created_at>=?)
-                ORDER BY id DESC LIMIT ?""",
-            (strategy, reset_at, reset_at, DASHBOARD_TRADE_LIMIT),
-        ).fetchall()
-    ]
     status_counts: dict[str, int] = {}
     for row in evaluation_rows:
         key = str(row["status"])
@@ -912,23 +897,30 @@ def experiment_state(store: Any) -> dict[str, Any]:
             "strategies": {},
             "recentDecisions": [],
         }
-    strategies = {
-        strategy: strategy_stats(store, strategy) for strategy in STRATEGIES
-    }
-    recent_rows = [
-        dict(row)
-        for row in store.db.execute(
-            """SELECT id, controller, market_id, trigger_source_strategy,
-                      status, reason, side, selected_family,
-                      selected_source_trade_id, raw_top_ask, entry_price,
-                      estimated_probability, effective_cost, model_edge,
-                      agreement_weight, trend_status, paper_trade_id,
-                      created_at
-                 FROM decision_strategy_evaluations
-                ORDER BY id DESC LIMIT ?""",
-            (DASHBOARD_RECENT_LIMIT,),
-        ).fetchall()
-    ]
+    strategies = {strategy: strategy_stats(store, strategy) for strategy in STRATEGIES}
+    with store.lock:
+        recent_rows = [
+            dict(row)
+            for row in store.db.execute(
+                """SELECT id, controller, market_id, trigger_source_strategy,
+                          status, reason, side, selected_family,
+                          selected_source_trade_id, raw_top_ask, entry_price,
+                          estimated_probability, effective_cost, model_edge,
+                          agreement_weight, trend_status, paper_trade_id,
+                          created_at
+                     FROM decision_strategy_evaluations
+                    ORDER BY id DESC LIMIT ?""",
+                (DASHBOARD_RECENT_LIMIT,),
+            ).fetchall()
+        ]
+        context_counts = {
+            str(row["source_strategy"]): int(row["samples"])
+            for row in store.db.execute(
+                """SELECT source_strategy, COUNT(*) AS samples
+                     FROM decision_strategy_source_contexts
+                    GROUP BY source_strategy"""
+            ).fetchall()
+        }
     current: dict[str, dict[str, Any] | None] = {}
     for strategy in STRATEGIES:
         row = next(
@@ -937,14 +929,6 @@ def experiment_state(store: Any) -> dict[str, Any]:
         )
         current[strategy] = row
         strategies[strategy]["currentPreview"] = row
-    context_counts = {
-        str(row["source_strategy"]): int(row["samples"])
-        for row in store.db.execute(
-            """SELECT source_strategy, COUNT(*) AS samples
-                 FROM decision_strategy_source_contexts
-                GROUP BY source_strategy"""
-        ).fetchall()
-    }
     return {
         "version": VERSION,
         "status": "COLLECTING",
@@ -969,9 +953,7 @@ def experiment_state(store: Any) -> dict[str, Any]:
 
 def wrap_dashboard(store_class: type[Any]) -> None:
     original = getattr(store_class, "dashboard", None)
-    if not callable(original) or getattr(
-        original, "_decision_strategy_native_v2", False
-    ):
+    if not callable(original) or getattr(original, "_decision_strategy_native_v2", False):
         return
 
     @wraps(original)
