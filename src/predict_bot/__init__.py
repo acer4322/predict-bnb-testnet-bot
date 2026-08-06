@@ -108,6 +108,9 @@ from .microprice_variants import (
 from .pair_arb_initial_capacity_patch import (
     install_pair_arb_initial_capacity_patch as _install_pair_arb_initial_capacity_patch,
 )
+from .regime_reverse_prediction_age_patch import (
+    install_regime_reverse_prediction_age_patch as _install_regime_reverse_prediction_age_patch,
+)
 
 _install_decision_snapshot_diagnostics()
 _install_decision_snapshot_state()
@@ -142,6 +145,7 @@ _install_loss_streak_guard_hotfix()
 _install_loss_streak_minimum_stake_patch()
 _install_maximum_net_loss_guard_patch()
 _install_live_rules_async_preflight_patch()
+_install_regime_reverse_prediction_age_patch()
 del _install_calibrated_value_confirm_v2_live_patch
 del _install_calibrated_value_confirmation_filters
 del _install_calibrated_value_confirmation_variants
@@ -175,3 +179,4 @@ del _install_microprice_feature_shadows
 del _install_microprice_variant_relaxation
 del _install_microprice_variants
 del _install_pair_arb_initial_capacity_patch
+del _install_regime_reverse_prediction_age_patch
