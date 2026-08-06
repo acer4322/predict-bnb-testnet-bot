@@ -1,0 +1,41 @@
+name: Decision strategy native v2
+
+on:
+  push:
+    branches:
+      - feature/decision-strategy-native-v2
+  pull_request:
+    branches:
+      - feature/regime-guard
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Import package
+        run: >-
+          python -c "import predict_bot; from predict_bot.decision_strategy_rules import STRATEGIES; from predict_bot.research_forward import RESEARCH_STRATEGIES, GENERIC_SIGNAL_RESEARCH_STRATEGIES; assert set(STRATEGIES) <= set(RESEARCH_STRATEGIES); assert not (set(STRATEGIES) & set(GENERIC_SIGNAL_RESEARCH_STRATEGIES))"
+
+      - name: Decision and regression tests
+        run: >-
+          python -m pytest
+          tests/test_decision_strategy_native_v2.py
+          tests/test_strong_trend_guard_shadows.py
+          tests/test_calibrated_value_confirmation_variants.py
+          tests/test_live_trading.py
+          -q
+
+      - name: Diff check
+        run: git diff --check
