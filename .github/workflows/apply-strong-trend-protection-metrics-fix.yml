@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - .github/.strong-trend-protection-metrics-trigger
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/.strong-trend-protection-metrics-pr-trigger
 
 permissions:
   contents: write
@@ -29,6 +34,22 @@ jobs:
           cache-dependency-path: dashboard/package-lock.json
       - name: Install Python dependencies
         run: python -m pip install -e '.[dev]'
+      - name: Make staged patch re-runnable
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/fix-strong-trend-protection-metrics.py')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              '    if old not in text:\n        raise RuntimeError(f"anchor not found in {path}: {old[:180]!r}")\n    path.write_text(text.replace(old, new, 1), encoding="utf-8")',
+              '    if old not in text:\n        if new in text:\n            return\n        raise RuntimeError(f"anchor not found in {path}: {old[:180]!r}")\n    path.write_text(text.replace(old, new, 1), encoding="utf-8")',
+          )
+          text = text.replace(
+              'if "test_blocked_protection_uses_all_realized_source_exit_statuses" in text:\n    raise RuntimeError("tests already patched")\ntests.write_text(text + append, encoding="utf-8")',
+              'if "test_blocked_protection_uses_all_realized_source_exit_statuses" not in text:\n    tests.write_text(text + append, encoding="utf-8")',
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
       - name: Apply metrics fix
         run: python .github/scripts/fix-strong-trend-protection-metrics.py
       - name: Run strong trend tests
@@ -47,10 +68,11 @@ jobs:
       - name: Commit target branch
         run: |
           rm -f .github/scripts/fix-strong-trend-protection-metrics.py
+          rm -f .github/.strong-trend-protection-metrics-pr-trigger
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "fix(research): count realized blocked guard outcomes"
+          git diff --cached --quiet || git commit -m "fix(research): count realized blocked guard outcomes"
           git push origin HEAD:feature/regime-guard
       - name: Remove one-shot runner from main
         run: |
@@ -59,5 +81,5 @@ jobs:
           rm -f .github/workflows/apply-strong-trend-protection-metrics-fix.yml
           rm -f .github/.strong-trend-protection-metrics-trigger
           git add -A
-          git commit -m "chore: remove one-shot strong trend metrics runner"
+          git diff --cached --quiet || git commit -m "chore: remove one-shot strong trend metrics runner"
           git push origin HEAD:main
