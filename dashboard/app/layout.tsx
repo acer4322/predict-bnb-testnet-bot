@@ -11,6 +11,7 @@ import MicropriceStaleExhaustedGuardDashboard from "./microprice-stale-exhausted
 import ObserverPaperAccountingStatus from "./observer-paper-accounting-status";
 import ResearchDashboardEnhancements from "./research-dashboard-enhancements";
 import StableConsensusLiveControls from "./stable-consensus-live-controls";
+import StableConsensusObserverSimulation from "./stable-consensus-observer-simulation";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <MicropriceStaleExhaustedGuardDashboard />
       <GenericObserverSlotUnlock />
       <StableConsensusLiveControls />
+      <StableConsensusObserverSimulation />
       <MicropriceConfirmObserverGenericDashboard />
       <ObserverPaperAccountingStatus />
       <LossStreakGuardDashboard />
