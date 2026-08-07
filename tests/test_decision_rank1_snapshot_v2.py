@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from predict_bot import live_trading, m_realtime, research_forward, server
+from predict_bot import decision_rank1_p50_80_shadow as p50
 from predict_bot.decision_rank1_snapshot_v2 import (
     RANK1_LOGIC_VERSION,
     RANK1_V1_BASELINE_STRATEGY,
@@ -173,3 +176,138 @@ def test_rank1_snapshot_table_is_empty_before_forward_signals(tmp_path) -> None:
     store = server.Store(tmp_path / "simulation.db")
     install_rank1_snapshot_v2(store)
     assert latest_signal_snapshot(store, "R_CONSENSUS", 12345) is None
+
+
+class _P50Store:
+    def __init__(self) -> None:
+        self.opened: list[dict[str, object]] = []
+
+    def config(self) -> dict[str, object]:
+        return {f"strategy_{p50.RANK1_P50_80_STRATEGY.lower()}_enabled": True}
+
+    def has_trade(self, strategy: str, market_id: int) -> bool:
+        return False
+
+    def open_trade(self, **kwargs: object) -> None:
+        self.opened.append(dict(kwargs))
+
+
+class _P50DecisionStore:
+    def __init__(self, entry: float) -> None:
+        self.entry = entry
+        self.evaluations: list[dict[str, object]] = []
+        self._paper_id = 100
+
+    def latest_trade(
+        self, store: _P50Store, strategy: str, market_id: int
+    ) -> dict[str, object] | None:
+        if strategy == p50.RANK1_P50_80_STRATEGY:
+            return {"id": self._paper_id, "market_id": market_id}
+        return {
+            "id": 7,
+            "strategy": strategy,
+            "market_id": market_id,
+            "topic_id": 9,
+            "side": "UP",
+            "opened_at": "2026-08-08T00:00:00+00:00",
+        }
+
+    def _evaluation_exists(self, store: _P50Store, controller: str, trigger: int) -> bool:
+        return False
+
+    def family_state(self, store: _P50Store, market_id: int, as_of: str) -> dict[str, object]:
+        return {}
+
+    def trend_gate(self, store: _P50Store, snapshot: dict[str, object], side: str) -> dict[str, object]:
+        return {"passed": True, "status": "PASS"}
+
+    def execution_candidate(
+        self,
+        snapshot: dict[str, object],
+        context: dict[str, object],
+        side: str,
+    ) -> tuple[dict[str, float], str]:
+        return (
+            {
+                "entryPrice": self.entry,
+                "rawTopAsk": self.entry / 1.005,
+                "bookAgeMs": 100.0,
+            },
+            "",
+        )
+
+    def record_evaluation(self, store: _P50Store, **kwargs: object) -> int:
+        self.evaluations.append(dict(kwargs))
+        return len(self.evaluations)
+
+
+def _run_p50_boundary(monkeypatch, entry: float) -> tuple[_P50Store, _P50DecisionStore]:
+    store = _P50Store()
+    decision_store = _P50DecisionStore(entry)
+    tracker = SimpleNamespace(store=store)
+    monkeypatch.setattr(
+        p50,
+        "rank1_snapshot_decision",
+        lambda families: {
+            "status": "CANDIDATE",
+            "reason": "test candidate",
+            "side": "UP",
+            "selectedFamily": "CONSENSUS",
+            "selectedSourceTradeId": None,
+            "selectedSourceSignalId": 10,
+            "estimatedProbability": 0.75,
+            "agreementWeight": 0.80,
+        },
+    )
+    p50._evaluate(
+        decision_store,
+        tracker,
+        [{"strategy": "R_CONSENSUS"}],
+        {
+            "market_id": 123,
+            "topic_id": 9,
+            "timestamp": "2026-08-08T00:00:00+00:00",
+            "seconds_left": 120.0,
+        },
+        200,
+        {},
+    )
+    return store, decision_store
+
+
+def test_p50_80_entry_boundaries(monkeypatch) -> None:
+    below, below_ds = _run_p50_boundary(monkeypatch, 0.499999)
+    assert below.opened == []
+    assert below_ds.evaluations[-1]["status"] == "BLOCK_ENTRY_RANGE"
+
+    minimum, minimum_ds = _run_p50_boundary(monkeypatch, 0.50)
+    assert len(minimum.opened) == 1
+    assert minimum_ds.evaluations[-1]["status"] == "OPENED"
+
+    inside, inside_ds = _run_p50_boundary(monkeypatch, 0.799999)
+    assert len(inside.opened) == 1
+    assert inside_ds.evaluations[-1]["status"] == "OPENED"
+
+    maximum, maximum_ds = _run_p50_boundary(monkeypatch, 0.80)
+    assert maximum.opened == []
+    assert maximum_ds.evaluations[-1]["status"] == "BLOCK_ENTRY_RANGE"
+
+
+def test_p50_80_shadow_is_paper_only_and_not_live_forwardable(tmp_path) -> None:
+    store = server.Store(tmp_path / "simulation.db")
+    p50.install_rank1_p50_80_shadow(store)
+    assert p50.RANK1_P50_80_STRATEGY in research_forward.RESEARCH_STRATEGIES
+    assert (
+        p50.RANK1_P50_80_STRATEGY
+        not in research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES
+    )
+    assert p50.RANK1_P50_80_STRATEGY not in live_trading.LIVE_SUPPORTED_STRATEGIES
+    assert p50.RANK1_P50_80_STRATEGY not in live_trading.LIVE_RESEARCH_STRATEGIES
+    assert (
+        p50.RANK1_P50_80_STRATEGY
+        not in m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES
+    )
+
+    experiment = server.decision_strategy_store.experiment_state(store) if hasattr(server, "decision_strategy_store") else None
+    if experiment is not None:
+        assert experiment["rank1V2"]["p50_80Strategy"] == p50.RANK1_P50_80_STRATEGY
