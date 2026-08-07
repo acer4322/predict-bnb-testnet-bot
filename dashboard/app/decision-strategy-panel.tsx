@@ -1,6 +1,9 @@
 "use client";
 
-type DecisionStrategyId = "R_DECISION_RANK1" | "R_DECISION_RANK2";
+type LiveDecisionStrategyId = "R_DECISION_RANK1" | "R_DECISION_RANK2";
+type DecisionStrategyId =
+  | LiveDecisionStrategyId
+  | "R_DECISION_RANK1_V1_SHADOW";
 
 type DecisionPreview = {
   id?: number;
@@ -53,6 +56,18 @@ type DecisionExperiment = {
   excludedFamilies?: string[];
   contextSamples?: Record<string, number>;
   rank2Warmup?: string;
+  rank1V2?: {
+    logicVersion?: string;
+    liveStrategy?: string;
+    voterSource?: string;
+    minimumSameSideSignals?: number;
+    minimumDirectionShare?: number;
+    zeroWeightConfirmersAllowed?: boolean;
+    positiveWeightRequired?: boolean;
+    snapshotCounts?: Record<string, number>;
+    baselineStrategy?: string;
+    baseline?: DecisionStrategyStats;
+  };
   rules?: {
     entryMode?: string;
     stakeUsdt?: number;
@@ -75,27 +90,39 @@ type DecisionExperiment = {
       missingDataPolicy?: string;
     };
   };
-  strategies?: Partial<Record<DecisionStrategyId, DecisionStrategyStats>>;
+  strategies?: Partial<Record<LiveDecisionStrategyId, DecisionStrategyStats>>;
   recentDecisions?: DecisionPreview[];
 };
+
+const RANK1_V1_BASELINE = "R_DECISION_RANK1_V1_SHADOW" as const;
 
 const CONTROLLERS: Array<{
   id: DecisionStrategyId;
   title: string;
   subtitle: string;
   tone: "cyan" | "purple";
+  liveSelectable: boolean;
 }> = [
   {
     id: "R_DECISION_RANK1",
-    title: "Rank 1 · 效用加權多數決",
-    subtitle: "最近 60 筆 · 半衰期 20 · 67% 共識",
+    title: "Rank 1 V2 · Signal Snapshot 共識",
+    subtitle: "pre-execution signal · 最近 60 筆 · 67% 歷史權重",
     tone: "cyan",
+    liveSelectable: true,
+  },
+  {
+    id: RANK1_V1_BASELINE,
+    title: "Rank 1 V1 · 原版實單重疊基準",
+    subtitle: "actual-trade overlap · 原版規則 A/B 對照",
+    tone: "cyan",
+    liveSelectable: false,
   },
   {
     id: "R_DECISION_RANK2",
     title: "Rank 2 · 近期情境冠軍",
     subtitle: "同情境最近 30 筆 · 50% 家族上限",
     tone: "purple",
+    liveSelectable: true,
   },
 ];
 
@@ -155,6 +182,8 @@ export default function DecisionStrategyPanel({
   const rules = experiment?.rules;
   const recent = experiment?.recentDecisions ?? [];
   const contextSamples = experiment?.contextSamples ?? {};
+  const rank1V2 = experiment?.rank1V2;
+  const snapshotCounts = rank1V2?.snapshotCounts ?? {};
 
   return (
     <div
@@ -175,16 +204,19 @@ export default function DecisionStrategyPanel({
         .decision-strategy-panel .decision-status-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:7px;margin-top:10px}
         .decision-strategy-panel .decision-status-list div{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(7,12,21,.65)}
         .decision-strategy-panel .decision-error{margin:10px 0;padding:10px 12px;border:1px solid rgba(255,99,99,.35);border-radius:10px;color:#ffb2b2;background:rgba(116,24,24,.18)}
+        .decision-strategy-panel .decision-baseline-card{border-style:dashed}
+        .decision-strategy-panel .decision-baseline-card .m-exit-id{opacity:.82}
       `}</style>
 
       <section className="strategy-family-intro m-exit-intro">
         <div>
           <span className="eyebrow">DECISION CONTROLLERS · NATIVE FORWARD PAPER</span>
-          <h3>決策策略測試 · Rank 1／Rank 2</h3>
+          <h3>決策策略測試 · Rank 1 V2／V1 Baseline／Rank 2</h3>
         </div>
         <p>
-          只由 Futures Lead、Calibrated Value、Consensus 的新來源 Paper
-          事件觸發；M01、原始 Microprice、OFI 不進歷史、投票或選擇。
+          Rank 1 V2 使用 Futures Lead、Calibrated Value、Consensus 的同市場
+          pre-execution signal snapshot；原版 Rank 1 保留為 Paper-only V1 baseline。
+          M01、原始 Microprice、OFI 仍不進歷史、投票或選擇。
         </p>
       </section>
 
@@ -214,6 +246,27 @@ export default function DecisionStrategyPanel({
             <span>正式排除</span>
             <strong>{list(experiment?.excludedFamilies, "M01 · MICROPRICE · OFI")}</strong>
             <small>不進歷史、權重或 Champion</small>
+          </article>
+          <article>
+            <span>Rank 1 V2 Signal Snapshot</span>
+            <strong>
+              FL {snapshotCounts.R_FUTURES_LEAD ?? 0} · CV {snapshotCounts.R_CALIBRATED_VALUE ?? 0} · C {snapshotCounts.R_CONSENSUS ?? 0}
+            </strong>
+            <small>
+              同方向至少 {rank1V2?.minimumSameSideSignals ?? 2} 家；零權重可確認但不增加權重
+            </small>
+          </article>
+          <article>
+            <span>Rank 1 V2 邏輯</span>
+            <strong>{rank1V2?.logicVersion ?? "RANK1_SIGNAL_SNAPSHOT_V2"}</strong>
+            <small>
+              至少一個正歷史權重 · 共識 ≥ {percent(rank1V2?.minimumDirectionShare ?? 0.67)}
+            </small>
+          </article>
+          <article>
+            <span>V1 對照策略</span>
+            <strong>{rank1V2?.baselineStrategy ?? RANK1_V1_BASELINE}</strong>
+            <small>保留原版 actual-trade overlap · PAPER ONLY</small>
           </article>
           <article>
             <span>原生進場</span>
@@ -252,21 +305,33 @@ export default function DecisionStrategyPanel({
       </section>
 
       <div className="m-exit-summary-grid research-strategy-grid">
-        {CONTROLLERS.map(({ id, title, subtitle, tone }) => {
-          const stats = experiment?.strategies?.[id] ?? {};
-          const preview = stats.currentPreview;
+        {CONTROLLERS.map(({ id, title, subtitle, tone, liveSelectable }) => {
+          const stats =
+            id === RANK1_V1_BASELINE
+              ? rank1V2?.baseline ?? {}
+              : experiment?.strategies?.[id as LiveDecisionStrategyId] ?? {};
+          const preview =
+            stats.currentPreview ??
+            recent.find((row) => row.controller === id) ??
+            null;
           const pnl = stats.realizedPnl ?? 0;
           const statuses = Object.entries(stats.statusCounts ?? {})
             .sort((left, right) => right[1] - left[1])
             .slice(0, 8);
           return (
-            <article className={`m-exit-card ${tone}`} key={id} data-decision-strategy={id}>
+            <article
+              className={`m-exit-card ${tone} ${liveSelectable ? "" : "decision-baseline-card"}`}
+              key={id}
+              data-decision-strategy={id}
+            >
               <div className="m-exit-card-head">
                 <div>
                   <span className="eyebrow">{id} · {subtitle}</span>
                   <h3>{title}</h3>
                 </div>
-                <span className="m-exit-id">PAPER + LIVE SELECTABLE</span>
+                <span className="m-exit-id">
+                  {liveSelectable ? "PAPER + LIVE SELECTABLE" : "PAPER ONLY · V1 BASELINE"}
+                </span>
               </div>
               <div className="m-exit-primary-stats">
                 <div>
@@ -329,7 +394,7 @@ export default function DecisionStrategyPanel({
       <section className="shadow-tag-live-orders">
         <div>
           <span className="eyebrow">RECENT DURABLE DECISIONS</span>
-          <h3>最近 {recent.length} 筆 Rank 1／Rank 2 決策</h3>
+          <h3>最近 {recent.length} 筆 Rank 1 V2／V1 Baseline／Rank 2 決策</h3>
         </div>
         <div className="table-scroll">
           <table>
