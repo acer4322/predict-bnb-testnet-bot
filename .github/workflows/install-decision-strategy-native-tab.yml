@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feature/decision-strategy-native-tab
+  pull_request:
+    branches:
+      - feature/regime-guard
 
 permissions:
   contents: write
@@ -44,6 +47,7 @@ jobs:
           npm run build
 
       - name: Commit native page source
+        if: github.event_name == 'push'
         run: |
           if git diff --quiet -- dashboard/app/page.tsx; then
             echo "Native decision strategy tab already committed."
