@@ -9,12 +9,12 @@ text = PATH.read_text(encoding="utf-8")
 
 patterns = (
     (
-        r'(?m)^(\s*)assert state\["hourlyGuard"\]\["minWinRatePct"\].*$',
+        r'(?m)^(\s*)assert\s+.*hourlyGuard.*minWinRatePct.*$',
         r'\1assert state["strategyLifecycle"]["advisoryOnly"] is True',
         "hourly min-win assertion",
     ),
     (
-        r'(?m)^(\s*)assert state\["hourlyGuard"\]\["maxWinThenLossRatePct"\].*$',
+        r'(?m)^(\s*)assert\s+.*hourlyGuard.*maxWinThenLossRatePct.*$',
         r'\1assert state["strategyLifecycle"]["automaticBlocking"] is False',
         "hourly win-loss assertion",
     ),
