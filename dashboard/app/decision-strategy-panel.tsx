@@ -3,6 +3,7 @@
 type LiveDecisionStrategyId = "R_DECISION_RANK1" | "R_DECISION_RANK2";
 type DecisionStrategyId =
   | LiveDecisionStrategyId
+  | "R_DECISION_RANK1_P50_80"
   | "R_DECISION_RANK1_V1_SHADOW";
 
 type DecisionPreview = {
@@ -67,6 +68,13 @@ type DecisionExperiment = {
     snapshotCounts?: Record<string, number>;
     baselineStrategy?: string;
     baseline?: DecisionStrategyStats;
+    p50_80Strategy?: string;
+    p50_80EntryRange?: {
+      minimumInclusive?: number;
+      maximumExclusive?: number;
+      appliedTo?: string;
+    };
+    p50_80?: DecisionStrategyStats;
   };
   rules?: {
     entryMode?: string;
@@ -94,6 +102,7 @@ type DecisionExperiment = {
   recentDecisions?: DecisionPreview[];
 };
 
+const RANK1_P50_80 = "R_DECISION_RANK1_P50_80" as const;
 const RANK1_V1_BASELINE = "R_DECISION_RANK1_V1_SHADOW" as const;
 
 const CONTROLLERS: Array<{
@@ -101,28 +110,40 @@ const CONTROLLERS: Array<{
   title: string;
   subtitle: string;
   tone: "cyan" | "purple";
-  liveSelectable: boolean;
+  badge: string;
+  shadow: boolean;
 }> = [
   {
     id: "R_DECISION_RANK1",
     title: "Rank 1 V2 · Signal Snapshot 共識",
     subtitle: "pre-execution signal · 最近 60 筆 · 67% 歷史權重",
     tone: "cyan",
-    liveSelectable: true,
+    badge: "PAPER + LIVE SELECTABLE",
+    shadow: false,
+  },
+  {
+    id: RANK1_P50_80,
+    title: "Rank 1 V2 · P50_80 Forward Shadow",
+    subtitle: "同一 V2 決策 · slippage-adjusted entry 0.50–<0.80",
+    tone: "cyan",
+    badge: "PAPER ONLY · FORWARD VALIDATION",
+    shadow: true,
   },
   {
     id: RANK1_V1_BASELINE,
     title: "Rank 1 V1 · 原版實單重疊基準",
     subtitle: "actual-trade overlap · 原版規則 A/B 對照",
     tone: "cyan",
-    liveSelectable: false,
+    badge: "PAPER ONLY · V1 BASELINE",
+    shadow: true,
   },
   {
     id: "R_DECISION_RANK2",
     title: "Rank 2 · 近期情境冠軍",
     subtitle: "同情境最近 30 筆 · 50% 家族上限",
     tone: "purple",
-    liveSelectable: true,
+    badge: "PAPER + LIVE SELECTABLE",
+    shadow: false,
   },
 ];
 
@@ -184,6 +205,13 @@ export default function DecisionStrategyPanel({
   const contextSamples = experiment?.contextSamples ?? {};
   const rank1V2 = experiment?.rank1V2;
   const snapshotCounts = rank1V2?.snapshotCounts ?? {};
+  const p50Range = rank1V2?.p50_80EntryRange;
+
+  const statsFor = (id: DecisionStrategyId): DecisionStrategyStats => {
+    if (id === RANK1_P50_80) return rank1V2?.p50_80 ?? {};
+    if (id === RANK1_V1_BASELINE) return rank1V2?.baseline ?? {};
+    return experiment?.strategies?.[id as LiveDecisionStrategyId] ?? {};
+  };
 
   return (
     <div
@@ -211,12 +239,13 @@ export default function DecisionStrategyPanel({
       <section className="strategy-family-intro m-exit-intro">
         <div>
           <span className="eyebrow">DECISION CONTROLLERS · NATIVE FORWARD PAPER</span>
-          <h3>決策策略測試 · Rank 1 V2／V1 Baseline／Rank 2</h3>
+          <h3>決策策略測試 · Rank 1 V2／P50_80／V1 Baseline／Rank 2</h3>
         </div>
         <p>
           Rank 1 V2 使用 Futures Lead、Calibrated Value、Consensus 的同市場
-          pre-execution signal snapshot；原版 Rank 1 保留為 Paper-only V1 baseline。
-          M01、原始 Microprice、OFI 仍不進歷史、投票或選擇。
+          pre-execution signal snapshot；P50_80 只增加 0.50–&lt;0.80 的 Paper entry
+          filter，原版 Rank 1 則保留為 V1 baseline。M01、原始 Microprice、OFI
+          仍不進歷史、投票或選擇。
         </p>
       </section>
 
@@ -255,6 +284,13 @@ export default function DecisionStrategyPanel({
             <small>
               同方向至少 {rank1V2?.minimumSameSideSignals ?? 2} 家；零權重可確認但不增加權重
             </small>
+          </article>
+          <article>
+            <span>P50_80 前向驗證</span>
+            <strong>
+              {number(p50Range?.minimumInclusive ?? 0.50, 2)} ≤ entry &lt; {number(p50Range?.maximumExclusive ?? 0.80, 2)}
+            </strong>
+            <small>只限制 slippage-adjusted entry · PAPER ONLY</small>
           </article>
           <article>
             <span>Rank 1 V2 邏輯</span>
@@ -305,11 +341,8 @@ export default function DecisionStrategyPanel({
       </section>
 
       <div className="m-exit-summary-grid research-strategy-grid">
-        {CONTROLLERS.map(({ id, title, subtitle, tone, liveSelectable }) => {
-          const stats =
-            id === RANK1_V1_BASELINE
-              ? rank1V2?.baseline ?? {}
-              : experiment?.strategies?.[id as LiveDecisionStrategyId] ?? {};
+        {CONTROLLERS.map(({ id, title, subtitle, tone, badge, shadow }) => {
+          const stats = statsFor(id);
           const preview =
             stats.currentPreview ??
             recent.find((row) => row.controller === id) ??
@@ -320,7 +353,7 @@ export default function DecisionStrategyPanel({
             .slice(0, 8);
           return (
             <article
-              className={`m-exit-card ${tone} ${liveSelectable ? "" : "decision-baseline-card"}`}
+              className={`m-exit-card ${tone} ${shadow ? "decision-baseline-card" : ""}`}
               key={id}
               data-decision-strategy={id}
             >
@@ -329,9 +362,7 @@ export default function DecisionStrategyPanel({
                   <span className="eyebrow">{id} · {subtitle}</span>
                   <h3>{title}</h3>
                 </div>
-                <span className="m-exit-id">
-                  {liveSelectable ? "PAPER + LIVE SELECTABLE" : "PAPER ONLY · V1 BASELINE"}
-                </span>
+                <span className="m-exit-id">{badge}</span>
               </div>
               <div className="m-exit-primary-stats">
                 <div>
@@ -394,7 +425,7 @@ export default function DecisionStrategyPanel({
       <section className="shadow-tag-live-orders">
         <div>
           <span className="eyebrow">RECENT DURABLE DECISIONS</span>
-          <h3>最近 {recent.length} 筆 Rank 1 V2／V1 Baseline／Rank 2 決策</h3>
+          <h3>最近 {recent.length} 筆 Rank 1 V2／P50_80／V1 Baseline／Rank 2 決策</h3>
         </div>
         <div className="table-scroll">
           <table>
