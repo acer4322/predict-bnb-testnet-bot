@@ -32,7 +32,9 @@ jobs:
           cache-dependency-path: dashboard/package-lock.json
 
       - name: Apply guarded native patch
-        run: python scripts/apply_strategy_lifecycle_guard_v3.py
+        run: |
+          python scripts/apply_strategy_lifecycle_guard_v3.py
+          python scripts/fix_strategy_lifecycle_test_gate.py
 
       - name: Verify patch scope
         run: |
@@ -85,6 +87,7 @@ jobs:
         run: |
           rm .github/workflows/strategy-lifecycle-guard-v2.yml
           rm scripts/apply_strategy_lifecycle_guard_v3.py
+          rm scripts/fix_strategy_lifecycle_test_gate.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
