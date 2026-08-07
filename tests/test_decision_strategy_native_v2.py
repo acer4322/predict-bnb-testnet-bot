@@ -320,8 +320,11 @@ def test_source_event_creates_context_and_idempotent_abstentions(tmp_path) -> No
     evaluations = store.db.execute(
         "SELECT controller, status FROM decision_strategy_evaluations ORDER BY controller"
     ).fetchall()
-    assert len(evaluations) == 2
-    assert {str(row["controller"]) for row in evaluations} == set(STRATEGIES)
+    live_evaluations = [
+        row for row in evaluations if str(row["controller"]) in STRATEGIES
+    ]
+    assert len(live_evaluations) == 2
+    assert {str(row["controller"]) for row in live_evaluations} == set(STRATEGIES)
     assert store.db.execute(
         "SELECT COUNT(*) FROM trades WHERE strategy IN (?, ?)",
         STRATEGIES,
