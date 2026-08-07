@@ -54,6 +54,9 @@ from .loss_streak_minimum_stake_patch import (
 from .maximum_net_loss_guard_patch import (
     install_maximum_net_loss_guard_patch as _install_maximum_net_loss_guard_patch,
 )
+from .microprice_c3_mid_confirm import (
+    install_microprice_c3_mid_confirm as _install_microprice_c3_mid_confirm,
+)
 from .microprice_confirm_exit_098_entry_guard_patch import (
     install_microprice_confirm_exit_098_entry_guard_patch as _install_microprice_confirm_exit_098_entry_guard_patch,
 )
@@ -128,6 +131,7 @@ _install_microprice_variant_relaxation()
 _install_microprice_variants()
 _install_microprice_dashboard_patch()
 _install_microprice_feature_shadows()
+_install_microprice_c3_mid_confirm()
 _install_microprice_confirm_optimization_shadows()
 _install_microprice_confirm_stale_exhausted_guard()
 _install_microprice_confirm_loss_streak_guard()
@@ -173,6 +177,7 @@ del _install_loss_streak_guard_hotfix
 del _install_loss_streak_guard_patch
 del _install_loss_streak_minimum_stake_patch
 del _install_maximum_net_loss_guard_patch
+del _install_microprice_c3_mid_confirm
 del _install_microprice_confirm_exit_098_entry_guard_patch
 del _install_microprice_confirm_exit_098_horizon_patch
 del _install_microprice_confirm_exit_098_live_patch
