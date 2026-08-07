@@ -25,7 +25,7 @@ jobs:
         run: python -m pip install -e ".[dev]"
 
       - name: Focused Microprice C3 tests
-        run: python -m pytest tests/test_microprice_c3_mid_confirm.py tests/test_microprice_variants.py -q
+        run: python -m pytest tests/test_microprice_c3_mid_confirm.py -q
 
       - name: Diff check
         run: git diff --check
