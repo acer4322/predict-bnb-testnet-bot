@@ -1,0 +1,89 @@
+name: Strategy Lifecycle Guard
+
+on:
+  push:
+    branches:
+      - feature/strategy-lifecycle-guard
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.0"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Apply guarded native source patch
+        run: python scripts/apply_strategy_lifecycle_guard_v2.py
+
+      - name: Verify source patch and hot-path removal
+        run: |
+          python scripts/apply_strategy_lifecycle_guard_v2.py --check
+          ! git diff -- src/predict_bot/live_trading.py | grep -E '^[-+].*(_quote_is_safe|_latest_prediction_book_check|_drawdown_control_is_safe|_strategy_observer_gate_is_safe)' || {
+            echo "Lifecycle patch touched unrelated live execution safety gates."
+            exit 1
+          }
+          ! git diff -- dashboard/app/page.tsx | grep -E '^[-+].*(loadStatistics|/api/state|setStatisticsDown|fetchDashboardJson|STATISTICS_REFRESH_MS|REALTIME_REFRESH_MS)' || {
+            echo "Lifecycle panel patch touched the existing dashboard data loader."
+            exit 1
+          }
+
+      - name: Install Python dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lifecycle unit tests
+        run: python -m pytest tests/test_strategy_lifecycle_guard.py -q
+
+      - name: Focused live integration tests
+        run: >-
+          python -m pytest tests/test_live_trading.py -q
+          -k "obsolete_hourly_guard or strategy_lifecycle_state or live_allowlist"
+
+      - name: Compile modified Python
+        run: >-
+          python -m py_compile
+          src/predict_bot/strategy_lifecycle_guard.py
+          src/predict_bot/live_trading.py
+          tests/test_strategy_lifecycle_guard.py
+          tests/test_live_trading.py
+
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Lint Lifecycle component
+        working-directory: dashboard
+        run: npx eslint app/strategy-lifecycle-guard.tsx
+
+      - name: Dashboard production build
+        working-directory: dashboard
+        run: npm run build
+
+      - name: Diff check
+        run: git diff --check
+
+      - name: Commit native replacement and remove temporary patch tooling
+        run: |
+          rm .github/workflows/strategy-lifecycle-guard.yml
+          rm scripts/apply_strategy_lifecycle_guard.py
+          rm scripts/apply_strategy_lifecycle_guard_v2.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Replace M0 hourly guard with Strategy Lifecycle Guard"
+          git push
