@@ -125,6 +125,9 @@ def install_decision_strategy_live_v2() -> None:
     """Expose Rank 1/2 to the existing live executor without bypassing it."""
     from . import live_trading as live
     from . import m_realtime as realtime
+    from .strategy_lifecycle_paper_fallback import (
+        install_strategy_lifecycle_paper_fallback,
+    )
 
     live.LIVE_RESEARCH_STRATEGIES = _append_unique(
         live.LIVE_RESEARCH_STRATEGIES,
@@ -150,3 +153,6 @@ def install_decision_strategy_live_v2() -> None:
     ) | set(STRATEGIES)
 
     _install_signal_provenance_guard(live)
+    # Install after every live-whitelist patch above so the Lifecycle reader
+    # sees the final runtime whitelist, including Rank 1/2.
+    install_strategy_lifecycle_paper_fallback(live)
