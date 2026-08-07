@@ -49,7 +49,7 @@ def _live_row(strategy: str, market_id: int, pnl: float) -> dict[str, object]:
     }
 
 
-def test_paper_summary_reads_settled_directional_and_locked_pair_rows(tmp_path: Path):
+def test_paper_summary_reads_realized_directional_exit_and_locked_pair_rows(tmp_path: Path):
     path = tmp_path / "simulation.db"
     db = _paper_db(path)
     db.executemany(
@@ -72,6 +72,11 @@ def test_paper_summary_reads_settled_directional_and_locked_pair_rows(tmp_path: 
         ],
     )
     db.execute(
+        """INSERT INTO trades(strategy, market_id, status, stake, pnl, opened_at, closed_at)
+           VALUES ('R_MICROPRICE_CONFIRM_EXIT_098', 40, 'TARGET_FILLED', 5, 2.5,
+                   '2026-08-08T00:40:00+00:00', '2026-08-08T00:41:00+00:00')"""
+    )
+    db.execute(
         """INSERT INTO strategy_pair_arb_trades(
                strategy, market_id, opened_at, shares, total_cost, locked_pnl
            ) VALUES ('PAIR_ARB_010', 50, '2026-08-08T01:00:00+00:00', 2, 1.8, 0.2)"""
@@ -81,19 +86,27 @@ def test_paper_summary_reads_settled_directional_and_locked_pair_rows(tmp_path: 
 
     summary = build_paper_strategy_lifecycle_summary(
         path,
-        ["R_MICROPRICE", "PAIR_ARB_010"],
+        [
+            "R_MICROPRICE",
+            "R_MICROPRICE_CONFIRM_EXIT_098",
+            "PAIR_ARB_010",
+        ],
     )
     rows = {row["strategy"]: row for row in summary["strategies"]}
 
     assert summary["status"] == "READY"
     assert rows["R_MICROPRICE"]["settledMarkets"] == 3
     assert rows["R_MICROPRICE"]["drawdown"]["lifetimePnlUsdt"] == 3.0
+    assert rows["R_MICROPRICE_CONFIRM_EXIT_098"]["settledMarkets"] == 1
+    assert rows["R_MICROPRICE_CONFIRM_EXIT_098"]["drawdown"]["lifetimePnlUsdt"] == 2.5
     assert rows["PAIR_ARB_010"]["settledMarkets"] == 1
     assert rows["PAIR_ARB_010"]["drawdown"]["lifetimePnlUsdt"] == 0.2
     assert summary["collectorEnabledByStrategy"] == {
         "R_MICROPRICE": True,
+        "R_MICROPRICE_CONFIRM_EXIT_098": None,
         "PAIR_ARB_010": True,
     }
+    assert summary["paperTradeSampleBasis"] == "realized terminal paper trades with pnl"
 
 
 def test_lifecycle_uses_paper_only_when_live_has_zero_settled_samples(tmp_path: Path):
@@ -151,6 +164,7 @@ def test_any_live_settlement_switches_primary_basis_to_live_without_mixing():
         {
             "status": "READY",
             "collectorEnabledByStrategy": {"R_MICROPRICE": True},
+            "paperTradeSampleBasis": "realized terminal paper trades with pnl",
             "pairSampleBasis": "locked paper pair result at simulated fill",
         }
     )
