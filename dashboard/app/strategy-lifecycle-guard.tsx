@@ -143,7 +143,9 @@ function sourceDetail(row: StrategyLifecycleRow) {
     ? "Paper 收集中"
     : row.paperCollectorEnabled === false
       ? "Paper 已停用"
-      : "Paper 狀態未知";
+      : paperSamples > 0
+        ? "Paper 已有樣本"
+        : "Paper 狀態未知";
   return `Live n=${liveSamples} · Paper n=${paperSamples} · ${collector}`;
 }
 
@@ -175,7 +177,7 @@ export default function StrategyLifecycleGuardPanel({ data }: { data?: StrategyL
 
     <p>
       每個策略優先使用自己的真實已結算 Live 樣本；只有 Live n=0 時才以同策略 Paper 模擬結果作為 Lifecycle 判級。
-      Live 與 Paper 的 PnL、勝率、DD 永遠不相加。一般方向策略只讀官方已結算 Paper；PAIR 使用自己的模擬雙腿鎖定 PnL ledger。
+      Live 與 Paper 的 PnL、勝率、DD 永遠不相加。一般策略讀取已實現 PnL 的 terminal Paper 交易，因此官方到期結算與策略自己的模擬提前出場都會納入；PAIR 使用自己的模擬雙腿鎖定 PnL ledger。
     </p>
 
     {data?.paperStatus === "UNAVAILABLE" ? <p className="negative">Paper fallback 暫時不可用：{data.paperError ?? "simulation.db 尚未就緒"}</p> : null}
