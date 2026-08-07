@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feature/strategy-lifecycle-guard-v2
+  pull_request:
+    branches:
+      - feature/regime-guard
 
 permissions:
   contents: write
@@ -78,6 +81,7 @@ jobs:
         run: git diff --check
 
       - name: Commit validated native sources
+        if: github.event_name == 'push'
         run: |
           rm .github/workflows/strategy-lifecycle-guard-v2.yml
           rm scripts/apply_strategy_lifecycle_guard_v3.py
