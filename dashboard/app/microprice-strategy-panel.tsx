@@ -66,13 +66,14 @@ type Payload = {
     strategies?: Record<string, ResearchStrategy>;
     micropricePairedExperiment?: Experiment;
     micropriceFeatureShadows?: Experiment;
+    micropriceC3MidConfirm?: Experiment;
     micropriceConfirmOptimizationShadows?: Experiment & { priceSideGuardBlocked?: number };
     micropriceConfirmStaleExhaustedGuard?: Experiment;
     micropriceConfirmLossStreakGuard?: Experiment;
   } | null;
 };
 
-type Family = "paired" | "feature" | "optimization" | "stale" | "loss";
+type Family = "paired" | "feature" | "c3mid" | "optimization" | "stale" | "loss";
 type Tone = "cyan" | "coral" | "mint" | "amber";
 
 type CardDefinition = {
@@ -89,6 +90,7 @@ type CardDefinition = {
 
 export const MICROPRICE_STRATEGY_IDS = [
   "R_MICROPRICE_CONFIRM",
+  "R_MICROPRICE_C3_MID_CONFIRM",
   "R_MICROPRICE_REVERSION",
   "R_MICROPRICE_NO_020_025",
   "R_MICROPRICE_UP_ONLY",
@@ -112,6 +114,17 @@ const CARDS: CardDefinition[] = [
     note: "固定 paired cohort；只有順勢版在正式實單設定明確選取時才可能轉送，研究帳本本身保持獨立。",
     tone: "cyan",
     badge: "PAPER SHADOW · LIVE 可選",
+  },
+  {
+    id: "R_MICROPRICE_C3_MID_CONFIRM",
+    family: "c3mid",
+    title: "Microprice C3 · 3 秒中點確認",
+    kicker: "FORWARD VALIDATION · FROZEN V1",
+    mode: "3S RETAINED + MIDPOINT CONFIRM",
+    rule: "原 R_MICROPRICE 真正開單時鎖定方向與 midpoint；3 秒後只檢查第一個可用事件，要求方向仍相同、|score| ≥0.20、訊號強度保留 ≥60%，且選定側 midpoint 僅適度上升 0.005 ≤ Δmid <0.020 才建立獨立 Paper 單。",
+    note: "參數由 1,770 筆歷史因果驗證後凍結；不等待更便宜價格、不允許換向、不加入 live executor 白名單。",
+    tone: "mint",
+    badge: "PAPER ONLY · FORWARD VALIDATION",
   },
   {
     id: "R_MICROPRICE_REVERSION",
@@ -249,6 +262,7 @@ function experimentFor(payload: Payload | null | undefined, family: Family): Exp
   const research = payload?.researchForward;
   if (family === "paired") return research?.micropricePairedExperiment;
   if (family === "feature") return research?.micropriceFeatureShadows;
+  if (family === "c3mid") return research?.micropriceC3MidConfirm;
   if (family === "optimization") return research?.micropriceConfirmOptimizationShadows;
   if (family === "stale") return research?.micropriceConfirmStaleExhaustedGuard;
   return research?.micropriceConfirmLossStreakGuard;
@@ -335,8 +349,8 @@ export default function MicropriceStrategyPanel({ payload }: { payload?: Payload
       .microprice-strategy-panel .microprice-overview strong{display:block;margin:4px 0}
     `}</style>
     <section className="strategy-family-intro m-exit-intro">
-      <div><span className="eyebrow">MICROPRICE · ELEVEN NATIVE FORWARD STRATEGIES</span><h3>Microprice 策略區 · 11 組前向與對照</h3></div>
-      <p>九組 Microprice 擴充、舊簿／衰退防護與連敗狀態機集中在唯一原生頁籤。卡片直接由 React render tree 管理，不再透過全域 DOM selector、Portal 或定時定位插入其他頁面。</p>
+      <div><span className="eyebrow">MICROPRICE · TWELVE NATIVE FORWARD STRATEGIES</span><h3>Microprice 策略區 · 12 組前向與對照</h3></div>
+      <p>十二組 Microprice 前向、對照與防護集中在唯一原生頁籤；C3 中點確認使用凍結參數獨立累積新的 Paper forward cohort。</p>
     </section>
     <div className="microprice-overview">
       <article><span>策略卡</span><strong>{MICROPRICE_STRATEGY_IDS.length}</strong><small>單一原生容器</small></article>
