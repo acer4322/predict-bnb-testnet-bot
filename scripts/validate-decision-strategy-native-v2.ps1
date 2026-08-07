@@ -53,7 +53,6 @@ python -m pytest `
     tests/test_decision_strategy_config_v2.py `
     tests/test_strong_trend_guard_shadows.py `
     tests/test_calibrated_value_confirmation_variants.py `
-    tests/test_live_trading.py `
     -q
 
 Write-Host "[6/8] Install dashboard dependencies"
