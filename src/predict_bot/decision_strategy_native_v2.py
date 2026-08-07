@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Any
 
 from . import m_realtime as _realtime
+from .decision_rank1_p50_80_shadow import install_rank1_p50_80_shadow
 from .decision_rank1_snapshot_v2 import install_rank1_snapshot_v2
 from .decision_strategy_config_v2 import initialize_controller_config
 from .decision_strategy_rules import (
@@ -26,6 +27,7 @@ _ACTIVE_TRACKER: DecisionStrategyTracker | None = None
 def _wrap_store(engine: Any, store: Any) -> None:
     global _ACTIVE_TRACKER
     install_rank1_snapshot_v2(store)
+    install_rank1_p50_80_shadow(store)
     existing = getattr(store, "_decision_strategy_native_v2_tracker", None)
     if isinstance(existing, DecisionStrategyTracker):
         existing.engine = engine
