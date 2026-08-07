@@ -1,0 +1,87 @@
+name: Repair strategy lifecycle guard
+
+on:
+  push:
+    branches:
+      - feature/strategy-lifecycle-guard
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout lifecycle branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore untouched live regression suite
+        run: |
+          git fetch origin feature/regime-guard
+          git checkout origin/feature/regime-guard -- tests/test_live_trading.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.0"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install Python dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lifecycle focused tests
+        run: python -m pytest tests/test_strategy_lifecycle_guard.py -q
+
+      - name: Existing live regression tests
+        run: python -m pytest tests/test_live_trading.py -q
+
+      - name: Verify old hourly guard is out of hot path
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('src/predict_bot/live_trading.py').read_text(encoding='utf-8')
+          start = text.index('    def _process_single_signal(')
+          end = text.index('    @staticmethod\n    def _signal_monotonic_seconds', start)
+          hot_path = text[start:end]
+          assert 'SKIPPED_M0_HOURLY_GUARD' not in hot_path
+          assert '_evaluate_cached_hourly_guard' not in hot_path
+          assert 'strategyLifecycle' in text
+          print('hot-path hourly guard removed; lifecycle payload present')
+          PY
+
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Lint changed dashboard sources
+        working-directory: dashboard
+        run: npx eslint app/page.tsx app/strategy-lifecycle-guard.tsx
+
+      - name: Dashboard production build
+        working-directory: dashboard
+        run: npm run build
+
+      - name: Diff check
+        run: git diff --check
+
+      - name: Remove temporary repair workflow and commit
+        run: |
+          git rm .github/workflows/repair-strategy-lifecycle-guard.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/test_live_trading.py
+          if git diff --cached --quiet; then
+            echo "Nothing to repair."
+            exit 0
+          fi
+          git commit -m "Repair lifecycle guard regression scope"
+          git push origin HEAD:feature/strategy-lifecycle-guard
