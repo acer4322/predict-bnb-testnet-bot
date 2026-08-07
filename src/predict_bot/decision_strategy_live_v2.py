@@ -15,6 +15,7 @@ from .decision_strategy_rules import (
 
 
 LIVE_POLICY_VERSION = "DECISION_STRATEGY_LIVE_V2"
+RANK1_LOGIC_VERSION = "RANK1_SIGNAL_SNAPSHOT_V2"
 REPRICE_GAP = Decimal("0.05")
 MIN_ENTRY = Decimal("0.01")
 MAX_ENTRY_DECIMAL = Decimal(str(MAX_ENTRY))
@@ -67,7 +68,14 @@ def _install_signal_provenance_guard(live: Any) -> None:
             return False, "decision controller durable evaluation id is missing"
         if _positive_int(signal.get("paper_trade_id")) is None:
             return False, "decision controller durable Paper trade id is missing"
-        if _positive_int(signal.get("selected_source_trade_id")) is None:
+        if normalized == RANK1_STRATEGY:
+            if str(signal.get("rank1_logic_version") or "") != RANK1_LOGIC_VERSION:
+                return False, "Rank 1 signal-snapshot logic version is missing"
+            if _positive_int(signal.get("trigger_source_trade_id")) is None:
+                return False, "Rank 1 durable trigger source trade id is missing"
+            if _positive_int(signal.get("selected_source_signal_id")) is None:
+                return False, "Rank 1 durable source signal snapshot id is missing"
+        elif _positive_int(signal.get("selected_source_trade_id")) is None:
             return False, "decision controller selected source trade id is missing"
         if str(signal.get("selected_family") or "") not in FAMILY_SOURCES:
             return False, "decision controller selected family is not permitted"
