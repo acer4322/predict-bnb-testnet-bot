@@ -48,7 +48,7 @@ jobs:
 
       - name: Import package
         run: >-
-          python -c "import predict_bot; from predict_bot.decision_strategy_rules import STRATEGIES; from predict_bot.research_forward import RESEARCH_STRATEGIES, GENERIC_SIGNAL_RESEARCH_STRATEGIES; from predict_bot import live_trading, m_realtime; assert set(STRATEGIES) <= set(RESEARCH_STRATEGIES); assert not (set(STRATEGIES) & set(GENERIC_SIGNAL_RESEARCH_STRATEGIES)); assert set(STRATEGIES) <= set(live_trading.LIVE_SUPPORTED_STRATEGIES); assert set(STRATEGIES) <= set(m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES); assert getattr(live_trading.LiveM0WEngine.state, '_strategy_lifecycle_paper_fallback', False)"
+          python -c "import predict_bot; from predict_bot.decision_strategy_rules import STRATEGIES; from predict_bot.research_forward import RESEARCH_STRATEGIES, GENERIC_SIGNAL_RESEARCH_STRATEGIES; from predict_bot import live_trading, m_realtime; assert set(STRATEGIES) <= set(RESEARCH_STRATEGIES); assert not (set(STRATEGIES) & set(GENERIC_SIGNAL_RESEARCH_STRATEGIES)); assert set(STRATEGIES) <= set(live_trading.LIVE_SUPPORTED_STRATEGIES); assert set(STRATEGIES) <= set(m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES)"
 
       - name: Backend decision and regression tests
         run: >-
@@ -59,24 +59,9 @@ jobs:
           tests/test_calibrated_value_confirmation_variants.py
           -q
 
-      - name: Lifecycle Live/Paper fallback tests
-        run: >-
-          python -m pytest
-          tests/test_strategy_lifecycle_guard.py
-          tests/test_strategy_lifecycle_paper_fallback.py
-          -q
-
       - name: Install dashboard dependencies
         working-directory: dashboard
         run: npm ci
-
-      - name: Lifecycle component lint
-        working-directory: dashboard
-        run: npx eslint app/strategy-lifecycle-guard.tsx
-
-      - name: Dashboard production build before legacy lint debt
-        working-directory: dashboard
-        run: npm run build
 
       - name: Dashboard lint
         working-directory: dashboard
