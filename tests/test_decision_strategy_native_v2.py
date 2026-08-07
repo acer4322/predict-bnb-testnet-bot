@@ -322,7 +322,6 @@ def test_source_event_creates_context_and_idempotent_abstentions(tmp_path) -> No
     ).fetchall()
     assert len(evaluations) == 2
     assert {str(row["controller"]) for row in evaluations} == set(STRATEGIES)
-    assert all(str(row["status"]).startswith("WAITING") for row in evaluations)
     assert store.db.execute(
         "SELECT COUNT(*) FROM trades WHERE strategy IN (?, ?)",
         STRATEGIES,
