@@ -59,9 +59,24 @@ jobs:
           tests/test_calibrated_value_confirmation_variants.py
           -q
 
+      - name: Lifecycle Live/Paper fallback tests
+        run: >-
+          python -m pytest
+          tests/test_strategy_lifecycle_guard.py
+          tests/test_strategy_lifecycle_paper_fallback.py
+          -q
+
       - name: Install dashboard dependencies
         working-directory: dashboard
         run: npm ci
+
+      - name: Lifecycle component lint
+        working-directory: dashboard
+        run: npx eslint app/strategy-lifecycle-guard.tsx
+
+      - name: Dashboard production build before legacy lint debt
+        working-directory: dashboard
+        run: npm run build
 
       - name: Dashboard lint
         working-directory: dashboard
