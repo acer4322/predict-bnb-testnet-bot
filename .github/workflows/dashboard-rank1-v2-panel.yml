@@ -1,0 +1,29 @@
+name: Dashboard Rank1 V2 panel
+
+on:
+  push:
+    branches:
+      - feature/dashboard-rank1-v2-panel
+  pull_request:
+    branches:
+      - feature/regime-guard
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.13.0"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Production build
+        working-directory: dashboard
+        run: npm run build
+      - name: Diff check
+        run: git diff --check
