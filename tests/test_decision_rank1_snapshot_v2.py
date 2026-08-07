@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
-from predict_bot import live_trading, m_realtime, server
+from predict_bot import live_trading, m_realtime, research_forward, server
 from predict_bot.decision_rank1_snapshot_v2 import (
     RANK1_LOGIC_VERSION,
     RANK1_V1_BASELINE_STRATEGY,
@@ -14,10 +12,6 @@ from predict_bot.decision_strategy_rules import (
     RANK1_MIN_HISTORY,
     RANK1_STRATEGY,
     RANK2_STRATEGY,
-)
-from predict_bot.research_forward import (
-    GENERIC_SIGNAL_RESEARCH_STRATEGIES,
-    RESEARCH_STRATEGIES,
 )
 
 
@@ -136,11 +130,17 @@ def test_rank1_v2_does_not_count_opposite_zero_weight_signal_as_confirmation() -
 def test_v1_baseline_is_paper_only_and_never_added_to_live_sets(tmp_path) -> None:
     store = server.Store(tmp_path / "simulation.db")
     install_rank1_snapshot_v2(store)
-    assert RANK1_V1_BASELINE_STRATEGY in RESEARCH_STRATEGIES
-    assert RANK1_V1_BASELINE_STRATEGY not in GENERIC_SIGNAL_RESEARCH_STRATEGIES
+    assert RANK1_V1_BASELINE_STRATEGY in research_forward.RESEARCH_STRATEGIES
+    assert (
+        RANK1_V1_BASELINE_STRATEGY
+        not in research_forward.GENERIC_SIGNAL_RESEARCH_STRATEGIES
+    )
     assert RANK1_V1_BASELINE_STRATEGY not in live_trading.LIVE_SUPPORTED_STRATEGIES
     assert RANK1_V1_BASELINE_STRATEGY not in live_trading.LIVE_RESEARCH_STRATEGIES
-    assert RANK1_V1_BASELINE_STRATEGY not in m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES
+    assert (
+        RANK1_V1_BASELINE_STRATEGY
+        not in m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES
+    )
     assert RANK1_STRATEGY in live_trading.LIVE_SUPPORTED_STRATEGIES
     assert RANK2_STRATEGY in live_trading.LIVE_SUPPORTED_STRATEGIES
 
