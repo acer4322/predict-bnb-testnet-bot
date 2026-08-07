@@ -48,6 +48,7 @@ def _blank_paper_summary(
             "paperOnly": True,
             "liveOrdersAffected": False,
             "collectorEnabledByStrategy": {strategy: None for strategy in supported},
+            "paperTradeSampleBasis": "realized terminal paper trades with pnl",
             "pairSampleBasis": "locked paper pair result at simulated fill",
             "error": error,
         }
@@ -60,9 +61,11 @@ def build_paper_strategy_lifecycle_summary(
     supported_strategies: Sequence[str],
     active_strategies: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Read settled Paper evidence without changing the Paper ledger.
+    """Read realized Paper evidence without changing the Paper ledger.
 
-    Directional strategies use only normal officially-settled Paper trades.
+    Normal strategies use terminal Paper trades with a realized PnL.  This
+    includes both official SETTLED_WIN/SETTLED_LOSS outcomes and strategies
+    with a causal simulated exit such as TARGET_FILLED or TIMEOUT_EXIT.
     Pair-arbitrage strategies use their dedicated simulated locked-PnL ledger,
     because their result is determined by the two-leg fill rather than a later
     UP/DOWN outcome.
@@ -84,6 +87,7 @@ def build_paper_strategy_lifecycle_summary(
     collector_enabled: dict[str, bool | None] = {
         strategy: None for strategy in supported
     }
+    db: sqlite3.Connection | None = None
     try:
         db = sqlite3.connect(
             uri,
@@ -109,7 +113,7 @@ def build_paper_strategy_lifecycle_summary(
                            COALESCE(closed_at, opened_at) AS settled_at
                       FROM trades
                      WHERE strategy IN ({placeholders})
-                       AND status IN ('SETTLED_WIN','SETTLED_LOSS')
+                       AND UPPER(status) <> 'OPEN'
                        AND pnl IS NOT NULL
                      ORDER BY COALESCE(closed_at, opened_at) ASC, id ASC""",
                 supported,
@@ -158,10 +162,11 @@ def build_paper_strategy_lifecycle_summary(
             error=str(exc)[:240],
         )
     finally:
-        try:
-            db.close()
-        except (UnboundLocalError, sqlite3.Error):
-            pass
+        if db is not None:
+            try:
+                db.close()
+            except sqlite3.Error:
+                pass
 
     summary = build_strategy_lifecycle_summary(rows, supported, active)
     summary.update(
@@ -171,6 +176,7 @@ def build_paper_strategy_lifecycle_summary(
             "paperOnly": True,
             "liveOrdersAffected": False,
             "collectorEnabledByStrategy": collector_enabled,
+            "paperTradeSampleBasis": "realized terminal paper trades with pnl",
             "pairSampleBasis": "locked paper pair result at simulated fill",
             "error": None,
         }
@@ -286,8 +292,9 @@ def merge_live_and_paper_lifecycle(
         "paperError": paper.get("error"),
         "sampleBasis": (
             "per strategy: use settled LIVE evidence when any exists; otherwise "
-            "use same-strategy PAPER evidence; LIVE and PAPER PnL are never added"
+            "use same-strategy realized PAPER evidence; LIVE and PAPER PnL are never added"
         ),
+        "paperTradeSampleBasis": paper.get("paperTradeSampleBasis"),
         "paperPairSampleBasis": paper.get("pairSampleBasis"),
         "supportedStrategies": len(rows),
         "activeStrategies": [row["strategy"] for row in rows if row["active"]],
