@@ -20,6 +20,7 @@ from .core import (
     taker_fee,
 )
 from .drawdown_control import MarketRegimeDrawdownController
+from .strategy_lifecycle_guard import build_strategy_lifecycle_summary
 from .research_forward import (
     CONFIRMATION_ADD_FEE_BPS,
     CONFIRMATION_ADD_SOURCE_STRATEGIES,
@@ -3635,6 +3636,30 @@ class LiveLedger:
             "redeemedValue": float(row["redeemed_value"]),
         }
 
+    def strategy_lifecycle_summary(
+        self,
+        supported_strategies: tuple[str, ...] | list[str],
+        active_strategies: tuple[str, ...] | list[str] = (),
+    ) -> dict[str, Any]:
+        """Return advisory lifecycle evidence for every live whitelist strategy."""
+        with self.lock:
+            rows = [
+                dict(row)
+                for row in self.db.execute(
+                    """SELECT o.strategy, o.market_id, s.cost_usdt,
+                              s.pnl_usdt, s.settled_at
+                         FROM live_orders AS o
+                         JOIN live_strategy_settlements AS s
+                           ON s.order_local_id=o.id
+                        ORDER BY s.settled_at ASC, o.id ASC"""
+                ).fetchall()
+            ]
+        return build_strategy_lifecycle_summary(
+            rows,
+            tuple(str(value) for value in supported_strategies),
+            tuple(str(value) for value in active_strategies),
+        )
+
     def summary(self) -> dict[str, Any]:
         with self.lock:
             row = self.db.execute(
@@ -3904,11 +3929,7 @@ class LiveM0WEngine:
                 f"實單規則已更新：策略 {','.join(previous['strategies'])}→"
                 f"{','.join(updated['strategies'])}；"
                 f"各策略上限 {previous['strategyStakesUsdt']}→"
-                f"{updated['strategyStakesUsdt']} USDT；M0 每小時最低勝率 "
-                f"{previous['minHourlyWinRatePct']:.8g}%→"
-                f"{updated['minHourlyWinRatePct']:.8g}%；一勝一敗率上限 "
-                f"{previous['maxHourlyWinThenLossRatePct']:.8g}%→"
-                f"{updated['maxHourlyWinThenLossRatePct']:.8g}%；"
+                f"{updated['strategyStakesUsdt']} USDT；"
                 f"各策略 Observer {updated['strategyObserverEnabled']} / "
                 f"{updated['strategyObserverVersions']}"
                 f"; drawdown control "
@@ -6803,24 +6824,6 @@ class LiveM0WEngine:
                 signal, "BLOCKED_DATA_INTEGRITY", "行情事件完整性失敗，未送出訂單"
             )
             return
-        hourly_guard = (
-            {"blocked": False}
-            if selected_strategy.startswith("PAIR_ARB_") or is_confirmation_add
-            else self._evaluate_cached_hourly_guard(
-                at=str(signal.get("signal_timestamp") or utc_iso())
-            )
-        )
-        if hourly_guard.get("blocked") is True:
-            reasons = hourly_guard.get("reasons") or ["時段條件未通過"]
-            message = (
-                f"M0 台北時段閘門 {hourly_guard.get('label') or ''} 暫停新單："
-                + "；".join(str(reason) for reason in reasons)
-            )
-            self._record_blocked_signal(
-                signal, "SKIPPED_M0_HOURLY_GUARD", message
-            )
-            return
-
         reference = self.current_market()
         if not reference or int(reference.get("market_id") or -1) != market_id:
             self._record_blocked_signal(
@@ -8969,11 +8972,6 @@ class LiveM0WEngine:
 
     def _run(self) -> None:
         self._preflight()
-        if self.m0_hourly_performance is not None:
-            self._evaluate_hourly_guard()
-            self.next_hourly_guard_refresh = (
-                time.monotonic() + LIVE_HOURLY_GUARD_REFRESH_SECONDS
-            )
         self.preflight_ready.set()
         while not self.stop_event.is_set():
             try:
@@ -9033,11 +9031,6 @@ class LiveM0WEngine:
             if now >= self.next_settlement_sync:
                 self.next_settlement_sync = now + LIVE_SETTLEMENT_SYNC_SECONDS
                 self._sync_strategy_settlements()
-            if now >= self.next_hourly_guard_refresh:
-                self.next_hourly_guard_refresh = (
-                    now + LIVE_HOURLY_GUARD_REFRESH_SECONDS
-                )
-                self._evaluate_hourly_guard()
             if now >= self.next_account_refresh:
                 self.next_account_refresh = now + LIVE_ACCOUNT_REFRESH_SECONDS
                 self._refresh_account()
@@ -9055,13 +9048,9 @@ class LiveM0WEngine:
         *,
         include_ledger: bool = True,
     ) -> dict[str, Any]:
-        if m0_hourly_performance is not None:
-            self._evaluate_hourly_guard(performance=m0_hourly_performance)
-        elif self.m0_hourly_performance is not None:
-            with self.lock:
-                guard_waiting = self.hourly_guard_state.get("status") == "WAITING"
-            if guard_waiting:
-                self._evaluate_hourly_guard()
+        # Compatibility parameter only: the obsolete M0 hourly guard is no
+        # longer evaluated or consulted by the real-order executor.
+        _ = m0_hourly_performance
         with self.lock:
             rules = dict(self.live_rules)
             internal = {
@@ -9166,7 +9155,6 @@ class LiveM0WEngine:
                 "balances": list(self.balances),
                 "quota": dict(self.quota),
                 "portfolio": dict(self.portfolio_state),
-                "hourlyGuard": dict(self.hourly_guard_state),
                 "autoRedeem": {
                     "enabled": self.auto_redeem_enabled,
                     "status": self.auto_redeem_status,
@@ -9206,6 +9194,10 @@ class LiveM0WEngine:
                 for strategy in rules["strategies"]
             },
             "overallPerformance": self.ledger.strategy_performance(),
+            "strategyLifecycle": self.ledger.strategy_lifecycle_summary(
+                tuple(LIVE_SUPPORTED_STRATEGIES),
+                tuple(str(value) for value in rules["strategies"]),
+            ),
             "orders": self.ledger.recent_orders(),
             "activePositions": (
                 self.ledger.active_strategy_positions(market_id=current_market_id)
@@ -9286,16 +9278,12 @@ class LiveM0WEngine:
                 },
                 "autoRedeemDelaySeconds": LIVE_AUTO_REDEEM_DELAY_SECONDS,
                 "retryAmbiguousRedeem": False,
-                "hourlyGuard": {
-                    "timezone": "Asia/Taipei",
-                    "statisticsStrategy": "M0",
-                    "minWinRatePct": float(
-                        rules["minHourlyWinRatePct"]
-                    ),
-                    "maxWinThenLossRatePct": float(
-                        rules["maxHourlyWinThenLossRatePct"]
-                    ),
-                    "exactBoundaryAllowed": True,
+                "strategyLifecycle": {
+                    "version": "STRATEGY_LIFECYCLE_GUARD_V1",
+                    "advisoryOnly": True,
+                    "automaticBlocking": False,
+                    "automaticStakeChanges": False,
+                    "statisticsBasis": "settled real-money parent-strategy markets",
                 },
                 "performanceBasis": "official settled token outcomes; unsettled and unfilled orders are excluded",
                 "reason": "Binance MARKET minimum is approximately 1.5 USDT; configurable stakes use LIMIT GTC only.",
