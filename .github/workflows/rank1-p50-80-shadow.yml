@@ -1,0 +1,41 @@
+name: Rank1 P50_80 shadow
+
+on:
+  push:
+    branches:
+      - feature/rank1-p50-80-shadow
+  pull_request:
+    branches:
+      - feature/regime-guard
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Rank1 focused tests
+        run: >-
+          python -m pytest
+          tests/test_decision_rank1_snapshot_v2.py
+          tests/test_decision_strategy_native_v2.py
+          tests/test_decision_strategy_config_v2.py
+          -q
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.13.0"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Dashboard production build
+        working-directory: dashboard
+        run: npm run build
+      - name: Diff check
+        run: git diff --check
