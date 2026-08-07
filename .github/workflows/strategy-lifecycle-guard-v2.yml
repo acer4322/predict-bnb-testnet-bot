@@ -35,6 +35,7 @@ jobs:
         run: |
           python scripts/apply_strategy_lifecycle_guard_v3.py
           python scripts/fix_strategy_lifecycle_test_gate.py
+          python scripts/fix_strategy_lifecycle_legacy_assertions.py
 
       - name: Verify patch scope
         run: |
@@ -88,6 +89,7 @@ jobs:
           rm .github/workflows/strategy-lifecycle-guard-v2.yml
           rm scripts/apply_strategy_lifecycle_guard_v3.py
           rm scripts/fix_strategy_lifecycle_test_gate.py
+          rm scripts/fix_strategy_lifecycle_legacy_assertions.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
