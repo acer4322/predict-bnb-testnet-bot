@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import CalibratedConfirmationLab from "./calibrated-confirmation-lab";
 import StrongTrendGuardPanel from "./strong-trend-guard-panel";
+import DecisionStrategyPanel from "./decision-strategy-panel";
 import MicropriceStrategyPanel, { MICROPRICE_STRATEGY_IDS } from "./microprice-strategy-panel";
 
 function apiUrl(path: string) {
@@ -15,7 +16,7 @@ function apiUrl(path: string) {
 type NumericConfig = Record<string, number | boolean>;
 type StrategyId = "A" | "B" | "B2" | "C" | "D" | "E" | "F" | "E2" | "G" | "H" | "I" | "J" | "K" | "L" | "M"
   | "M0" | "M01" | "M01T180" | "M01T180D" | "M01TASYM" | "M01O" | "M01O_F1" | "M01O_LIVE" | "M01F" | "M01R" | "M0W" | "M01W" | "M1" | "M2" | "M3" | "M4" | "M5" | "M6" | "M7_1" | "M7_2" | "M7_3" | "M7_5"
-  | "R_MICROPRICE" | "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_BASE" | "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_STRICT" | "R_MICROPRICE_REVERSE" | "R_OFI" | "R_OFI_MIN040" | "R_OFI_EVENT_CUM" | "R_OFI_EVENT_CUM_FILTERED" | "R_FUTURES_LEAD" | "R_FUTURES_LEAD_CONTINUOUS_V2" | "R_FUTURES_LEAD_REVERSE" | "R_FUTURES_LEAD_REGIME_REVERSE_3L" | "R_FUTURES_LEAD_EXIT30" | "R_FUTURES_LEAD_DISTANCE" | "R_FUTURES_LEAD_EXIT30_DISTANCE" | "R_FUTURES_LEAD_SIGNAL_100" | "R_FUTURES_LEAD_MIN_ENTRY_020" | "R_FUTURES_LEAD_OBSERVER_F1" | "R_FUTURES_LEAD_OBSERVER_V2" | "R_FUTURES_LEAD_OBSERVER_V3" | "R_FUTURES_LEAD_OBSERVER_V4" | "R_FUTURES_LEAD_OBSERVER_V6" | "R_OFI_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V6" | "R_CALIBRATED_VALUE_OBSERVER_V6" | "R_MICROPRICE_OBSERVER_AUTO_V6" | "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6" | "R_CALIBRATED_VALUE" | "R_CALIBRATED_VALUE_REVERSE" | "R_CALIBRATED_VALUE_CONTINUOUS_V2" | "R_CONSENSUS" | "R_CONFIRM_ADD_10";
+  | "R_MICROPRICE" | "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_BASE" | "R_MICROPRICE_CONFIRM_STABLE_DIRECTION_STRICT" | "R_MICROPRICE_REVERSE" | "R_OFI" | "R_OFI_MIN040" | "R_OFI_EVENT_CUM" | "R_OFI_EVENT_CUM_FILTERED" | "R_FUTURES_LEAD" | "R_FUTURES_LEAD_CONTINUOUS_V2" | "R_FUTURES_LEAD_REVERSE" | "R_FUTURES_LEAD_REGIME_REVERSE_3L" | "R_FUTURES_LEAD_EXIT30" | "R_FUTURES_LEAD_DISTANCE" | "R_FUTURES_LEAD_EXIT30_DISTANCE" | "R_FUTURES_LEAD_SIGNAL_100" | "R_FUTURES_LEAD_MIN_ENTRY_020" | "R_FUTURES_LEAD_OBSERVER_F1" | "R_FUTURES_LEAD_OBSERVER_V2" | "R_FUTURES_LEAD_OBSERVER_V3" | "R_FUTURES_LEAD_OBSERVER_V4" | "R_FUTURES_LEAD_OBSERVER_V6" | "R_OFI_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V3" | "R_MICROPRICE_OBSERVER_V6" | "R_CALIBRATED_VALUE_OBSERVER_V6" | "R_MICROPRICE_OBSERVER_AUTO_V6" | "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6" | "R_CALIBRATED_VALUE" | "R_CALIBRATED_VALUE_REVERSE" | "R_CALIBRATED_VALUE_CONTINUOUS_V2" | "R_CONSENSUS" | "R_CONFIRM_ADD_10" | "R_DECISION_RANK1" | "R_DECISION_RANK2";
 type Observation = {
   timestamp: string; topic_id: number; market_id: number; title: string;
   start_price: number; spot_price: number; seconds_left: number;
@@ -64,7 +65,7 @@ type M0HourlyPerformance = {
   settledTrades?: number; hours?: M0HourlyBucket[];
 };
 type ResetState = { status: "loading" | "success" | "error"; message: string };
-type StrategyView = "live-m0w" | "research" | "microprice-strategies" | "calibrated-confirmation" | "strong-trend-guard" | "reliability-shadow" | "lead-observer" | "m-series" | "pair-arb" | "legacy" | "paused";
+type StrategyView = "live-m0w" | "research" | "microprice-strategies" | "calibrated-confirmation" | "strong-trend-guard" | "decision-strategy" | "reliability-shadow" | "lead-observer" | "m-series" | "pair-arb" | "legacy" | "paused";
 const TEMPORARILY_STOPPED_THRESHOLD_USDT = -500;
 const TEMPORARILY_STOPPED_STRATEGIES: StrategyId[] = ["A", "C", "D", "J", "L", "M", "M2", "M4", "M5", "M6"];
 const ALL_MX_SUFFIXES = ["T60", "T70", "T80", "T90", "T98", "P50", "P10", "REV"] as const;
@@ -353,6 +354,8 @@ const LIVE_STRATEGY_LABELS: Record<string, string> = {
   R_CALIBRATED_VALUE: "研究實單 · 校準機率價值",
   R_CALIBRATED_VALUE_CONTINUOUS_V2: "Shadow · Value 持續校準 V2",
   R_OFI_EVENT_CUM: "研究實單 · 累積事件級 OFI",
+  R_DECISION_RANK1: "決策策略 · Rank 1 效用加權共識",
+  R_DECISION_RANK2: "決策策略 · Rank 2 同情境冠軍",
 };
 const LIVE_CONFIRMATION_ADD_SOURCE_STRATEGIES = new Set([
   "R_MICROPRICE",
@@ -693,7 +696,7 @@ function parseDashboardSession(raw: string | null): DashboardSessionState | null
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<DashboardSessionState>;
-    const validViews: StrategyView[] = ["live-m0w", "research", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];
+    const validViews: StrategyView[] = ["live-m0w", "research", "decision-strategy", "reliability-shadow", "lead-observer", "m-series", "pair-arb", "legacy", "paused"];
     if (!parsed.strategyView || !validViews.includes(parsed.strategyView)) return null;
     return {
       strategyView: parsed.strategyView,
@@ -748,6 +751,8 @@ const initial: State = {
     R_CALIBRATED_VALUE: { ...EMPTY_SUMMARY }, R_CALIBRATED_VALUE_CONTINUOUS_V2: { ...EMPTY_SUMMARY },
     R_CONSENSUS: { ...EMPTY_SUMMARY },
     R_CONFIRM_ADD_10: { ...EMPTY_SUMMARY },
+    R_DECISION_RANK1: { ...EMPTY_SUMMARY },
+    R_DECISION_RANK2: { ...EMPTY_SUMMARY },
   },
 };
 
@@ -3159,7 +3164,7 @@ export default function Home() {
   const isReliabilityView = strategyView === "reliability-shadow";
   const isPairView = strategyView === "pair-arb";
   const isPausedView = strategyView === "paused";
-  const isNonConfigView = isLiveView || isReliabilityView || strategyView === "microprice-strategies" || strategyView === "calibrated-confirmation" || strategyView === "strong-trend-guard";
+  const isNonConfigView = isLiveView || isReliabilityView || strategyView === "microprice-strategies" || strategyView === "calibrated-confirmation" || strategyView === "strong-trend-guard" || strategyView === "decision-strategy";
   const activeLivePositions = isLiveView && latest
     ? (state.liveM0W?.activePositions ?? []).filter(position => (
         position.market_id === latest.market_id
@@ -3169,6 +3174,7 @@ export default function Home() {
   const visibleTrades = strategyView === "lead-observer" ? observerTradePage.trades : state.trades.filter(trade => {
     if (strategyView === "microprice-strategies") return MICROPRICE_STRATEGY_IDS.includes(String(trade.strategy) as (typeof MICROPRICE_STRATEGY_IDS)[number]);
     if (strategyView === "strong-trend-guard") return trade.strategy.startsWith("R_STRONG_TREND_GUARD_");
+    if (strategyView === "decision-strategy") return ["R_DECISION_RANK1", "R_DECISION_RANK2"].includes(String(trade.strategy));
     if (strategyView === "calibrated-confirmation") return ["R_CALIBRATED_VALUE_IMMEDIATE_CONTROL", "R_CALIBRATED_VALUE_CONFIRM_V2", "R_CALIBRATED_VALUE_CONFIRM_V2_REVERSE", "R_CALIBRATED_VALUE_CONFIRM_RANGE12", "R_CALIBRATED_VALUE_LOWTAIL_CONFIRM"].includes(String(trade.strategy));
     if (isPausedView) return stoppedStrategySet.has(trade.strategy);
     if (strategyView === "research") return trade.strategy.startsWith("R_") && !trade.strategy.includes("_OBSERVER_");
@@ -3213,13 +3219,14 @@ export default function Home() {
       </OptionalPanel>
 
       <form onSubmit={save}>
-        <div className="section-heading strategy-console-heading"><div><span className="eyebrow">{strategyView === "live-m0w" ? `REAL MONEY · ${state.liveM0W?.strategy ?? "M0W"}` : strategyView === "microprice-strategies" ? "MICROPRICE · ELEVEN NATIVE STRATEGIES" : strategyView === "calibrated-confirmation" ? "CALIBRATED VALUE · NATIVE CONFIRMATION" : strategyView === "strong-trend-guard" ? "STRONG OPPOSING TREND · EIGHT SHADOWS" : strategyView === "reliability-shadow" ? "MODEL RELIABILITY · SHADOW TAGS" : strategyView === "lead-observer" ? "OBSERVER · EIGHT SHADOWS" : strategyView === "research" ? "FIVE PRIMARY + TWELVE SHADOWS · PAPER" : strategyView === "m-series" ? "M SERIES · PRIMARY" : strategyView === "pair-arb" ? "COMPLEMENTARY PAIR · NEW" : strategyView === "paused" ? "TEMPORARILY STOPPED" : "LEGACY A–L"}</span><h2>{strategyView === "live-m0w" ? "正式實單監視與規則" : strategyView === "microprice-strategies" ? "Microprice 策略區" : strategyView === "calibrated-confirmation" ? "Calibrated Value 五組前向確認測試" : strategyView === "strong-trend-guard" ? "逆強趨勢阻擋測試" : strategyView === "reliability-shadow" ? "模型可靠／失準研究標籤" : strategyView === "lead-observer" ? "Observer 版本與策略組合觀測" : strategyView === "research" ? "五組主策略＋十二組 Shadow" : strategyView === "m-series" ? "M 系列策略控制台" : strategyView === "pair-arb" ? "UP＋DOWN 互補測試" : strategyView === "paused" ? "暫時停止觀測" : "舊策略控制台"}</h2></div>{!isNonConfigView && <div className="save-box"><span>{saveState}</span><button type="submit">儲存參數</button></div>}</div>
+        <div className="section-heading strategy-console-heading"><div><span className="eyebrow">{strategyView === "live-m0w" ? `REAL MONEY · ${state.liveM0W?.strategy ?? "M0W"}` : strategyView === "microprice-strategies" ? "MICROPRICE · ELEVEN NATIVE STRATEGIES" : strategyView === "calibrated-confirmation" ? "CALIBRATED VALUE · NATIVE CONFIRMATION" : strategyView === "strong-trend-guard" ? "STRONG OPPOSING TREND · EIGHT SHADOWS" : strategyView === "decision-strategy" ? "DECISION CONTROLLERS · RANK 1 + RANK 2" : strategyView === "reliability-shadow" ? "MODEL RELIABILITY · SHADOW TAGS" : strategyView === "lead-observer" ? "OBSERVER · EIGHT SHADOWS" : strategyView === "research" ? "FIVE PRIMARY + TWELVE SHADOWS · PAPER" : strategyView === "m-series" ? "M SERIES · PRIMARY" : strategyView === "pair-arb" ? "COMPLEMENTARY PAIR · NEW" : strategyView === "paused" ? "TEMPORARILY STOPPED" : "LEGACY A–L"}</span><h2>{strategyView === "live-m0w" ? "正式實單監視與規則" : strategyView === "microprice-strategies" ? "Microprice 策略區" : strategyView === "calibrated-confirmation" ? "Calibrated Value 五組前向確認測試" : strategyView === "strong-trend-guard" ? "逆強趨勢阻擋測試" : strategyView === "decision-strategy" ? "決策策略測試" : strategyView === "reliability-shadow" ? "模型可靠／失準研究標籤" : strategyView === "lead-observer" ? "Observer 版本與策略組合觀測" : strategyView === "research" ? "五組主策略＋十二組 Shadow" : strategyView === "m-series" ? "M 系列策略控制台" : strategyView === "pair-arb" ? "UP＋DOWN 互補測試" : strategyView === "paused" ? "暫時停止觀測" : "舊策略控制台"}</h2></div>{!isNonConfigView && <div className="save-box"><span>{saveState}</span><button type="submit">儲存參數</button></div>}</div>
         <div className="strategy-tabs" role="tablist" aria-label="策略系列">
           <button type="button" role="tab" id="live-m0w-tab" aria-controls="live-m0w-panel" aria-selected={strategyView === "live-m0w"} className={strategyView === "live-m0w" ? "active live" : "live"} onClick={() => setStrategyView("live-m0w")}><strong>{state.liveM0W?.strategy ?? "M0W"} 正式實單</strong><span>{liveRulesDirty ? "有尚未套用的實單規則草稿" : "策略、金額與時段門檻可調整"}</span></button>
           <button type="button" role="tab" id="research-tab" aria-controls="research-panel" aria-selected={strategyView === "research"} className={strategyView === "research" ? "active" : ""} onClick={() => setStrategyView("research")}><strong>5 主策略＋12 Shadow</strong><span>新增兩組持續校準 V2 · 全部 paper only</span></button>
           <button type="button" role="tab" id="microprice-strategies-tab" aria-controls="microprice-strategies-panel" aria-selected={strategyView === "microprice-strategies"} className={strategyView === "microprice-strategies" ? "active" : ""} onClick={() => setStrategyView("microprice-strategies")}><strong>Microprice 策略區</strong><span>11 組前向、對照與防護 · 原生頁籤</span></button>
           <button type="button" role="tab" id="calibrated-value-confirmation-tab" aria-controls="calibrated-value-confirmation-panel" aria-selected={strategyView === "calibrated-confirmation"} className={strategyView === "calibrated-confirmation" ? "active" : ""} onClick={() => setStrategyView("calibrated-confirmation")}><strong>Calibrated 確認</strong><span>五組前向測試 · 原生頁籤</span></button>
           <button type="button" role="tab" id="strong-trend-guard-tab" aria-controls="strong-trend-guard-panel" aria-selected={strategyView === "strong-trend-guard"} className={strategyView === "strong-trend-guard" ? "active shadow-tag" : "shadow-tag"} onClick={() => setStrategyView("strong-trend-guard")}><strong>逆強趨勢阻擋</strong><span>8 組來源策略 · Forward Paper A/B</span></button>
+          <button type="button" role="tab" id="decision-strategy-tab" aria-controls="decision-strategy-panel" aria-selected={strategyView === "decision-strategy"} className={strategyView === "decision-strategy" ? "active shadow-tag" : "shadow-tag"} onClick={() => setStrategyView("decision-strategy")}><strong>決策策略</strong><span>Rank 1＋Rank 2 · 原生 Forward Paper</span></button>
           <button type="button" role="tab" id="reliability-shadow-tab" aria-controls="reliability-shadow-panel" aria-selected={strategyView === "reliability-shadow"} className={strategyView === "reliability-shadow" ? "active shadow-tag" : "shadow-tag"} onClick={() => setStrategyView("reliability-shadow")}><strong>可靠／失準標籤</strong><span>實單成交鏡像 · 原單與反事實對比</span></button>
           <button type="button" role="tab" id="lead-observer-tab" aria-controls="lead-observer-panel" aria-selected={strategyView === "lead-observer"} className={strategyView === "lead-observer" ? "active" : ""} onClick={() => setStrategyView("lead-observer")}><strong>Observer 組合</strong><span>Lead 5 版＋其他策略 6 組</span></button>
           <button type="button" role="tab" id="m-series-tab" aria-controls="m-series-panel" aria-selected={strategyView === "m-series"} className={strategyView === "m-series" ? "active" : ""} onClick={() => setStrategyView("m-series")}><strong>M 系列主實驗</strong><span>M01 時間／市況過濾、Floor／Rebound、M1／M3／M7</span></button>
@@ -3228,7 +3235,7 @@ export default function Home() {
           <button type="button" role="tab" id="paused-tab" aria-controls="paused-panel" aria-selected={strategyView === "paused"} className={strategyView === "paused" ? "active paused" : "paused"} onClick={() => setStrategyView("paused")}><strong>暫時停止觀測</strong><span>{TEMPORARILY_STOPPED_STRATEGIES.length + ALL_MX_SUFFIXES.length * 2} 組 · 含 M／M0 出場分支</span></button>
         </div>
 
-        {strategyView === "live-m0w" ? <LiveM0WPanel data={state.liveM0W} controlState={liveControlState} rulesSaveState={liveRulesSaveState} rulesDraft={liveRulesDraft} rulesDirty={liveRulesDirty} onControl={controlLive} onRulesUpdate={updateLiveRulesDraft} onRulesReset={resetLiveRulesDraft} onRulesSave={saveLiveRules} /> : strategyView === "microprice-strategies" ? <MicropriceStrategyPanel payload={state} /> : strategyView === "calibrated-confirmation" ? <CalibratedConfirmationLab payload={state} /> : strategyView === "strong-trend-guard" ? <StrongTrendGuardPanel experiment={(state.researchForward as any)?.strongTrendGuardExperiment} /> : strategyView === "reliability-shadow" ? <ReliabilityShadowPanel data={state.liveM0W} /> : strategyView === "lead-observer" ? <FuturesLeadObserverPanel data={state.researchForward} summaries={state.summaries} config={draft} observer={state.marketObserver} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "research" ? <ResearchForwardPanel data={state.researchForward} summaries={state.summaries} config={draft} live={state.liveM0W} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "m-series" ? <div role="tabpanel" id="m-series-panel" aria-labelledby="m-series-tab">
+        {strategyView === "live-m0w" ? <LiveM0WPanel data={state.liveM0W} controlState={liveControlState} rulesSaveState={liveRulesSaveState} rulesDraft={liveRulesDraft} rulesDirty={liveRulesDirty} onControl={controlLive} onRulesUpdate={updateLiveRulesDraft} onRulesReset={resetLiveRulesDraft} onRulesSave={saveLiveRules} /> : strategyView === "microprice-strategies" ? <MicropriceStrategyPanel payload={state} /> : strategyView === "calibrated-confirmation" ? <CalibratedConfirmationLab payload={state} /> : strategyView === "strong-trend-guard" ? <StrongTrendGuardPanel experiment={(state.researchForward as any)?.strongTrendGuardExperiment} /> : strategyView === "decision-strategy" ? <DecisionStrategyPanel experiment={(state.researchForward as any)?.decisionStrategyExperiment} /> : strategyView === "reliability-shadow" ? <ReliabilityShadowPanel data={state.liveM0W} /> : strategyView === "lead-observer" ? <FuturesLeadObserverPanel data={state.researchForward} summaries={state.summaries} config={draft} observer={state.marketObserver} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "research" ? <ResearchForwardPanel data={state.researchForward} summaries={state.summaries} config={draft} live={state.liveM0W} onConfig={update} onReset={resetStrategy} resetStates={resetStates} /> : strategyView === "m-series" ? <div role="tabpanel" id="m-series-panel" aria-labelledby="m-series-tab">
           <div className="strategy-family-intro">
             <div><span className="eyebrow">18 ACTIVE OBSERVATION IDS</span><h3>持續觀測的開盤方向與延遲實驗</h3></div>
             <p>已跌到 -500 USDT 以下的策略移至「暫時停止觀測」。其餘每個 ID 仍有自己的交易摘要與歸零起點；Prediction 訂單簿只負責模擬執行。</p>
