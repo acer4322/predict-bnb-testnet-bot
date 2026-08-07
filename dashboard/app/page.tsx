@@ -6,6 +6,7 @@ import CalibratedConfirmationLab from "./calibrated-confirmation-lab";
 import StrongTrendGuardPanel from "./strong-trend-guard-panel";
 import DecisionStrategyPanel from "./decision-strategy-panel";
 import MicropriceStrategyPanel, { MICROPRICE_STRATEGY_IDS } from "./microprice-strategy-panel";
+import StrategyLifecycleGuardPanel, { type StrategyLifecycleState } from "./strategy-lifecycle-guard";
 
 function apiUrl(path: string) {
   const hostname = window.location.hostname;
@@ -482,15 +483,7 @@ type LiveM0WState = {
   configurableStakeRangeUsdt?: { min?: number; max?: number };
   balances?: Array<{ accountType?: string; availableBalance?: number | null; enabled?: boolean }>;
   quota?: { dailyLimit?: number | null; remainingDailyLimit?: number | null };
-  hourlyGuard?: {
-    status?: string; blocked?: boolean; timezone?: string; utcOffset?: string;
-    hour?: number; label?: string; evaluatedAt?: string;
-    settledTrades?: number; wins?: number; losses?: number;
-    winRatePct?: number | null; winThenLossCount?: number;
-    winThenLossOpportunities?: number; winThenLossRatePct?: number | null;
-    minWinRatePct?: number; maxWinThenLossRatePct?: number;
-    reasons?: string[]; resetAt?: string | null;
-  };
+  strategyLifecycle?: StrategyLifecycleState;
   portfolio?: {
     activePositionsCount?: number; totalRealizedPnl?: number | null;
     totalUnrealizedPnl?: number | null; totalPnl?: number | null;
@@ -1982,7 +1975,6 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
   const depthCheck = data?.lastDepthCheck;
   const quoteAttempt = data?.lastQuoteAttempt;
   const autoRedeem = data?.autoRedeem ?? {};
-  const hourlyGuard = data?.hourlyGuard ?? {};
   const qcPolicy = data?.policy?.pairQc015;
   const redeemSummary = autoRedeem.summary ?? {};
   const redeems = Array.isArray(autoRedeem.redeems) ? autoRedeem.redeems : [];
@@ -2003,10 +1995,6 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
   const status = String(data?.status ?? "WAITING").toUpperCase();
   const live = Boolean(data?.armed && data?.runtimeEnabled);
   const danger = /ERROR|BLOCKED|REJECTED|AMBIGUOUS/.test(status);
-  const hourlyGuardStatus = String(hourlyGuard.status ?? "WAITING").toUpperCase();
-  const hourlyBlocked = hourlyGuard.blocked === true;
-  const hourlyGuardClass = hourlyBlocked ? "blocked" : hourlyGuardStatus === "ALLOW" ? "allow" : "waiting";
-  const hourlyReasons = Array.isArray(hourlyGuard.reasons) ? hourlyGuard.reasons : [];
   useEffect(() => {
     setRedeemPage(current => Math.min(current, redeemPageCount));
   }, [redeemPageCount]);
@@ -2049,7 +2037,7 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
       `${strategy} 兩連敗冷卻 ${rulesDraft.strategyLossCooldownEnabled[index] ? "開啟" : "關閉"}`
     )).join("、");
     const reliabilitySummary = `可靠候選 ${rulesDraft.reliabilityGateTags.length ? rulesDraft.reliabilityGateTags.join("＋") : "全部關閉"}`;
-    const summary = `${strategySummary}、${observerSummary}、${drawdownSummary}、${cooldownSummary}、${reliabilitySummary}、M0 時段勝率至少 ${rulesDraft.minHourlyWinRatePct}%、一勝一敗率最多 ${rulesDraft.maxHourlyWinThenLossRatePct}%`;
+    const summary = `${strategySummary}、${observerSummary}、${drawdownSummary}、${cooldownSummary}、${reliabilitySummary}`;
     if (!window.confirm(`確定更新正式實單規則？\n\n${summary}\n\n新規則只影響之後的新訊號，不會修改既有訂單。`)) return;
     await onRulesSave(rulesDraft);
   };
@@ -2221,24 +2209,11 @@ function LiveM0WPanel({ data, controlState, rulesSaveState, rulesDraft, rulesDir
             : `目前連敗 ${cooldownState?.consecutiveLosses ?? 0}`;
           return <label key={`live-loss-cooldown-${index}`}><span>策略 {index + 1} 兩連敗冷卻</span><select aria-label={`策略 ${index + 1} 是否使用兩連敗冷卻`} disabled={!selected} value={rulesDraft.strategyLossCooldownEnabled[index] ? "enabled" : "disabled"} onChange={event => updateStrategyLossCooldown(index, event.target.value === "enabled")}><option value="disabled">不使用兩連敗冷卻</option><option value="enabled">連敗兩次後跳過下一市場</option></select><small>{selected ? `${cooldownStatus}；只計此策略官方結算，跳過後歸零` : "請先選擇此槽位的實單策略"}</small></label>;
         })}
-        <label><span>M0 每小時最低勝率</span><div className="live-rule-number"><input type="number" min="0" max="100" step="0.1" value={rulesDraft.minHourlyWinRatePct} onChange={event => onRulesUpdate("minHourlyWinRatePct", Number(event.target.value))} /><b>%</b></div><small>實際勝率低於此值便暫停該小時</small></label>
-        <label><span>M0 一勝一敗率上限</span><div className="live-rule-number"><input type="number" min="0" max="100" step="0.1" value={rulesDraft.maxHourlyWinThenLossRatePct} onChange={event => onRulesUpdate("maxHourlyWinThenLossRatePct", Number(event.target.value))} /><b>%</b></div><small>實際比率高於此值便暫停該小時</small></label>
       </div>
       <div className="live-rules-actions"><p>未儲存草稿會保留在這個瀏覽器，切換頁籤或重新整理不會消失；只有按下「確認並套用」才會改動後端實單規則。策略必須在「M 系列主實驗」保持啟用。同一個私有區域網路中的手機也能正式儲存；恢復實單仍只能在這台電腦操作。</p><div><button type="button" className="secondary" onClick={onRulesReset} disabled={!rulesDirty}>放棄草稿</button><button type="button" onClick={saveRules} disabled={!rulesDirty || rulesSaveState === "儲存中…"}>{rulesSaveState === "儲存中…" ? "儲存中…" : "確認並套用新規則"}</button></div></div>
     </section>
 
-    <section className={`live-hourly-guard ${hourlyGuardClass}`} aria-label="M0 每小時實單閘門">
-      <div className="live-hourly-guard-head">
-        <div><span className="eyebrow">M0 HOURLY LIVE GUARD · ASIA/TAIPEI</span><h3>M0 每小時實單閘門</h3></div>
-        <strong>{hourlyBlocked ? "本時段暫停下單" : hourlyGuardStatus === "ALLOW" ? "本時段允許下單" : "等待統計判定"}</strong>
-      </div>
-      <div className="live-hourly-guard-metrics">
-        <div><span>台北時段</span><strong>{hourlyGuard.label ?? "—"}</strong><small>每小時自動重新判定</small></div>
-        <div><span>M0 獨立勝率</span><strong>{hourlyGuard.winRatePct == null ? "—" : `${hourlyGuard.winRatePct.toFixed(2)}%`}</strong><small>低於 {hourlyGuard.minWinRatePct ?? 50}% 即停單 · n={hourlyGuard.settledTrades ?? 0}</small></div>
-        <div><span>一勝一敗率</span><strong>{hourlyGuard.winThenLossRatePct == null ? "—" : `${hourlyGuard.winThenLossRatePct.toFixed(2)}%`}</strong><small>超過 {hourlyGuard.maxWinThenLossRatePct ?? 50}% 即停單 · {hourlyGuard.winThenLossCount ?? 0}/{hourlyGuard.winThenLossOpportunities ?? 0}</small></div>
-      </div>
-      <p>{hourlyReasons.length > 0 ? hourlyReasons.join("；") : "兩項門檻皆未觸發；剛好 50% 仍允許下單。缺少一勝一敗樣本時不以該條件停單。"}</p>
-    </section>
+    <StrategyLifecycleGuardPanel data={data?.strategyLifecycle} />
 
     <section className="live-policy-grid" aria-label="實單不可變規則">
       <article><span>實單訊號策略</span><strong>{activeStrategies.join(" ＋ ")}</strong><small>最多同時執行四種；各策略每市場各自防重複</small></article>
