@@ -10,6 +10,7 @@ import OracleCrossMarketPanel from "./oracle-cross-market-panel";
 import OracleCrossStrategyPanel from "./oracle-cross-strategy-panel";
 import PolyCrossTabContextBridge from "./poly-cross-tab-context-bridge";
 import PolyExecutionCanaryPanel from "./poly-execution-canary-panel";
+import PolyGapLiveDashboard from "./poly-gap-live-dashboard";
 import PolyStrategyScenarioComparison from "./poly-strategy-scenario-comparison";
 import "./globals.css";
 
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <PolyStrategyScenarioComparison />
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
+      <PolyGapLiveDashboard />
       <ConfirmationAddModeOptionGuardFast />
     </body>
   </html>;
