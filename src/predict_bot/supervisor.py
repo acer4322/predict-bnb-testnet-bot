@@ -79,19 +79,18 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
             file=sys.stderr,
             flush=True,
         )
-    # Stable Paper is a thin wrapper around the existing
-    # predict_bot.cross_oracle_strategy_entry_quote_exit_sim launcher.  The
-    # original strategies/canary remain loaded; only the extra A/B ledger is added.
+    # Paper chop guard builds on the stable-exit A/B wrapper, which itself keeps
+    # the original entry_quote_exit_sim launcher/canary and R_POLY_GAP_SCALP.
     print(
         "API supervisor: starting gap-aware Polymarket Paper strategies with "
-        "original R_POLY_GAP_SCALP plus isolated R_POLY_GAP_SCALP_STABLE exit A/B",
+        "R_POLY_GAP_SCALP, R_POLY_GAP_SCALP_STABLE and persistent CHOP regime guard",
         flush=True,
     )
     return subprocess.Popen(
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_strategy_stable_exit",
+            "predict_bot.cross_oracle_strategy_chop_guard",
         ]
     )
 
@@ -99,15 +98,16 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
 def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
-    # V12 deliberately subclasses predict_bot.poly_gap_live_v11 so the V11
-    # entry/exit order reconciliation and legacy-accounting safeguards are retained.
+    # V13 subclasses V12 -> V11: stable exit confirmation plus the complete
+    # entry/exit order-reconciliation safety chain remain unchanged.  The new
+    # Paper chop guard gates only NEW exposure.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V12 on port 8769 (stable 500ms/3-receipt exit confirmation, V11 order reconciliation retained)",
+        "V13 on port 8769 (V12 stable exit + persistent Paper CHOP pause gate)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v12"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v13"]
     )
 
 
