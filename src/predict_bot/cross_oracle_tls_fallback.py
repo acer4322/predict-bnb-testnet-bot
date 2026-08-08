@@ -17,6 +17,8 @@ _FALLBACK_COUNT = 0
 _LAST_FALLBACK_AT_MS: int | None = None
 _LAST_FALLBACK_HOST: str | None = None
 _LAST_PRIMARY_TLS_ERROR: str | None = None
+_LAST_GAMMA_DISCOVERY_METHOD: str | None = None
+_GAMMA_LIST_URL = "https://gamma-api.polymarket.com/markets"
 
 
 class _GammaMarketNotPublished(urllib.error.URLError):
@@ -44,12 +46,64 @@ def _is_gamma_slug_url(url: str) -> bool:
     )
 
 
-def _raise_gamma_404_if_needed(response: httpx.Response, url: str) -> None:
-    if response.status_code == 404 and _is_gamma_slug_url(url):
-        slug = urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1])
-        raise _GammaMarketNotPublished(
-            f"Gamma market not published yet: {slug} (HTTP 404)"
-        )
+def _gamma_slug_from_url(url: str) -> str | None:
+    if not _is_gamma_slug_url(url):
+        return None
+    return urllib.parse.unquote(urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1]) or None
+
+
+def _gamma_list_lookup(
+    client: httpx.Client,
+    *,
+    slug: str,
+) -> dict[str, Any] | None:
+    """Second discovery path for transient exact-slug 404s.
+
+    Gamma exposes both /markets/slug/{slug} and /markets?slug={slug}. Around
+    five-minute rollovers the exact endpoint can occasionally lag behind the
+    list/query endpoint. Only an exact slug match is accepted so we can never
+    silently bind the previous or next five-minute market.
+    """
+
+    response = client.get(
+        _GAMMA_LIST_URL,
+        params={"slug": slug, "limit": 5},
+    )
+    response.raise_for_status()
+    payload = response.json()
+    rows = payload if isinstance(payload, list) else []
+    for row in rows:
+        if isinstance(row, dict) and str(row.get("slug") or "") == slug:
+            return row
+    return None
+
+
+def _read_public_json(
+    client: httpx.Client,
+    url: str,
+) -> Any:
+    """Read one public endpoint and recover exact Gamma slug 404 via list lookup."""
+
+    global _LAST_GAMMA_DISCOVERY_METHOD
+
+    response = client.get(url)
+    if response.status_code == 404:
+        slug = _gamma_slug_from_url(url)
+        if slug:
+            recovered = _gamma_list_lookup(client, slug=slug)
+            if recovered is not None:
+                with _LOCK:
+                    _LAST_GAMMA_DISCOVERY_METHOD = "LIST_QUERY_FALLBACK"
+                return recovered
+            raise _GammaMarketNotPublished(
+                f"Gamma market not published yet: {slug} (exact 404; list query empty)"
+            )
+    response.raise_for_status()
+    payload = response.json()
+    if _is_gamma_slug_url(url):
+        with _LOCK:
+            _LAST_GAMMA_DISCOVERY_METHOD = "EXACT_SLUG"
+    return payload
 
 
 def _public_polymarket_json(url: str, *, timeout: float = 4.0) -> Any:
@@ -61,8 +115,9 @@ def _public_polymarket_json(url: str, *, timeout: float = 4.0) -> Any:
     that Python does not trust even when environment proxies are disabled.
 
     Gamma's current five-minute slug can transiently return HTTP 404 around a
-    rollover. That is classified separately as "market not published yet" and
-    must never be reported as a TLS fallback failure.
+    rollover. The exact-slug path is immediately retried through the Gamma
+    list/query endpoint for the same slug. If both paths say the market is not
+    available, that is classified as WAITING_GAMMA rather than a TLS failure.
     """
 
     global _FALLBACK_COUNT, _LAST_FALLBACK_AT_MS, _LAST_FALLBACK_HOST, _LAST_PRIMARY_TLS_ERROR
@@ -87,13 +142,10 @@ def _public_polymarket_json(url: str, *, timeout: float = 4.0) -> Any:
             trust_env=False,
             follow_redirects=True,
         ) as client:
-            response = client.get(url)
-            _raise_gamma_404_if_needed(response, url)
-            response.raise_for_status()
-            return response.json()
+            return _read_public_json(client, url)
     except _GammaMarketNotPublished:
         raise
-    except httpx.HTTPError as primary_exc:
+    except (json.JSONDecodeError, httpx.HTTPError) as primary_exc:
         if not _is_self_signed_tls_error(primary_exc):
             raise urllib.error.URLError(
                 f"direct httpx request failed: {primary_exc}"
@@ -109,10 +161,7 @@ def _public_polymarket_json(url: str, *, timeout: float = 4.0) -> Any:
             trust_env=False,
             follow_redirects=True,
         ) as client:
-            response = client.get(url)
-            _raise_gamma_404_if_needed(response, url)
-            response.raise_for_status()
-            payload = response.json()
+            payload = _read_public_json(client, url)
     except _GammaMarketNotPublished:
         raise
     except (httpx.HTTPError, json.JSONDecodeError) as fallback_exc:
@@ -143,12 +192,15 @@ def _discover_market_with_waiting_404(
 ) -> bool:
     ok = _original_discover_market(self, slug, bucket)
     if ok:
+        with _LOCK:
+            discovery_method = _LAST_GAMMA_DISCOVERY_METHOD
         with self.lock:
             self.polymarket["marketDiscovery"] = {
                 "status": "FOUND",
                 "slug": slug,
                 "bucketStartSec": int(bucket),
                 "checkedAtMs": int(time.time() * 1000),
+                "method": discovery_method or "UNKNOWN",
             }
         return True
 
@@ -166,13 +218,14 @@ def _discover_market_with_waiting_404(
             "slug": slug,
             "bucketStartSec": int(bucket),
             "checkedAtMs": now_ms,
-            "detail": "Gamma returned HTTP 404; retrying current 5m slug",
+            "detail": "Exact slug returned 404 and list query had no exact match; retrying current 5m slug",
+            "retrySeconds": float(resilient.DISCOVERY_RETRY_SECONDS),
         }
         # Preserve the feed gap, but classify it as a normal market publication
         # wait instead of a transport/TLS failure.
         if getattr(self, "gap_active", False):
             self.gap_reason = "MARKET_NOT_PUBLISHED"
-            self.gap_detail = f"Gamma HTTP 404 for {slug}; retrying"
+            self.gap_detail = f"Gamma has no exact match for {slug}; retrying"
             self.gap_target_slug = slug
     self.last_discovery_error = None
     self.consecutive_discovery_failures = 0
@@ -191,6 +244,7 @@ def _snapshot_with_tls_fallback(self: Any) -> dict[str, Any]:
         fallback_at = _LAST_FALLBACK_AT_MS
         fallback_host = _LAST_FALLBACK_HOST
         primary_error = _LAST_PRIMARY_TLS_ERROR
+        discovery_method = _LAST_GAMMA_DISCOVERY_METHOD
     continuity = payload.get("continuity")
     if isinstance(continuity, dict):
         continuity.update(
@@ -204,6 +258,8 @@ def _snapshot_with_tls_fallback(self: Any) -> dict[str, Any]:
                 "lastTlsFallbackAtMs": fallback_at,
                 "lastTlsFallbackHost": fallback_host,
                 "lastPrimaryTlsError": primary_error,
+                "lastGammaDiscoveryMethod": discovery_method,
+                "gammaExact404ListFallback": True,
             }
         )
     polymarket = payload.get("polymarket")
