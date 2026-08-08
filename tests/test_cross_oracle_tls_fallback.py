@@ -7,6 +7,7 @@ import pytest
 
 from predict_bot.cross_oracle_tls_fallback import (
     _ALLOWED_HOSTS,
+    _gamma_slug_from_url,
     _is_gamma_slug_url,
     _is_self_signed_tls_error,
     _public_polymarket_json,
@@ -39,9 +40,9 @@ def test_helper_refuses_binance_before_any_network_request() -> None:
 
 
 def test_gamma_slug_detection_is_narrow() -> None:
-    assert _is_gamma_slug_url(
-        "https://gamma-api.polymarket.com/markets/slug/btc-updown-5m-1786190100"
-    )
+    url = "https://gamma-api.polymarket.com/markets/slug/btc-updown-5m-1786190100"
+    assert _is_gamma_slug_url(url)
+    assert _gamma_slug_from_url(url) == "btc-updown-5m-1786190100"
     assert not _is_gamma_slug_url(
         "https://clob.polymarket.com/book?token_id=abc"
     )
@@ -61,4 +62,18 @@ def test_gamma_404_is_normalized_to_waiting_market_not_tls_failure() -> None:
     assert '"status": "WAITING_GAMMA"' in source
     assert 'self.polymarket["error"] = None' in source
     assert 'self.gap_reason = "MARKET_NOT_PUBLISHED"' in source
-    assert "Gamma HTTP 404" in source
+    assert "exact 404; list query empty" in source
+
+
+def test_gamma_exact_404_has_same_slug_list_query_recovery() -> None:
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "predict_bot"
+        / "cross_oracle_tls_fallback.py"
+    ).read_text(encoding="utf-8")
+    assert 'params={"slug": slug, "limit": 5}' in source
+    assert 'str(row.get("slug") or "") == slug' in source
+    assert '"LIST_QUERY_FALLBACK"' in source
+    assert '"EXACT_SLUG"' in source
+    assert '"gammaExact404ListFallback": True' in source
