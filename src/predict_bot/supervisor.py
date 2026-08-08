@@ -99,16 +99,16 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
 def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
-    # Compatibility lineage: predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14.
-    # V14 adds only a strict new-entry market/freshness gate; all V11-V13 position
-    # management, stable exit, order reconciliation and Paper CHOP protections remain.
+    # Compatibility lineage: predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15.
+    # V15 keeps V14's strict Poly/current-market binding and only prefetches the
+    # exact next Binance Prediction market metadata before the rollover boundary.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V14 on port 8769 (V13 CHOP guard + exact current-market Poly binding/warm-up)",
+        "V15 on port 8769 (V14 strict binding + exact next-Binance-market prefetch)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v14"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v15"]
     )
 
 
@@ -131,7 +131,9 @@ def main() -> int:
 
     try:
         while True:
-            child = subprocess.Popen([sys.executable, "-m", "predict_bot.server"])
+            child = subprocess.Popen(
+                [sys.executable, "-m", "predict_bot.server_binance_prefetch"]
+            )
             try:
                 while True:
                     exit_code = child.poll()
