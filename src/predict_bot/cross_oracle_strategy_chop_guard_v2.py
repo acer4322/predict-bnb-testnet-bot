@@ -1,0 +1,67 @@
+from __future__ import annotations
+
+from typing import Any
+
+from . import cross_oracle_strategy_chop_guard as guard
+
+
+class ImmediateChopBreakerPaperEngine(guard.ChopGuardPaperEngine):
+    """Expose an immediate same-market breaker on top of persistent hysteresis.
+
+    The persistent guard changes state only from finalized markets.  This wrapper
+    additionally blocks NEW live exposure as soon as the *current* Paper-observed
+    market reaches the CHOPPY reversal threshold, preventing repeated re-entry and
+    exit churn during the remainder of that same five-minute window.
+    """
+
+    def snapshot(self) -> dict[str, Any]:
+        payload = super().snapshot()
+        state = payload.get("chopGuard")
+        if not isinstance(state, dict):
+            return payload
+        current = state.get("currentMarket")
+        current_reversals = 0
+        current_evaluable = False
+        if isinstance(current, dict):
+            try:
+                current_reversals = int(current.get("reversals") or 0)
+            except (TypeError, ValueError):
+                current_reversals = 0
+            current_evaluable = current.get("evaluable", True) is True
+        current_choppy = bool(
+            current_evaluable
+            and current_reversals >= guard.CHOP_GUARD_REVERSALS_PER_MARKET
+        )
+        persistent_paused = bool(state.get("paused"))
+        block_new_entries = persistent_paused or current_choppy
+        if persistent_paused:
+            block_reason = str(state.get("reason") or "persistent Paper CHOP pause")
+        elif current_choppy:
+            block_reason = (
+                f"current market already has {current_reversals} confirmed reversals; "
+                "same-market churn breaker active"
+            )
+        else:
+            block_reason = "Paper CHOP guard allows new exposure"
+        state.update(
+            currentMarketChoppy=current_choppy,
+            currentMarketConfirmedReversals=current_reversals,
+            persistentPaused=persistent_paused,
+            blockNewEntries=block_new_entries,
+            blockReason=block_reason,
+            sameMarketImmediateBreaker=True,
+        )
+        return payload
+
+
+# Keep every layer installed by cross_oracle_strategy_chop_guard and replace only
+# the concrete engine class constructed by the existing 8768 sidecar launcher.
+guard.stable.launch.strategy_module.GapAwareCrossOraclePaperEngine = ImmediateChopBreakerPaperEngine
+
+
+def main() -> int:
+    return guard.main()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
