@@ -47,6 +47,12 @@ def _current_strategy() -> str:
 
 def install_regime_reverse_prediction_age_patch() -> None:
     from .live_trading import LiveM0WEngine
+    from .poly_live_bridge_patch import install_poly_live_bridge_patch
+
+    # Install late in the package live-patch sequence: confirmation-add source
+    # selection is already frozen, so the three Poly strategies become normal
+    # fixed-stake live choices without silently inheriting confirmation-add.
+    install_poly_live_bridge_patch()
 
     current_property = getattr(LiveM0WEngine, "max_prediction_book_age_ms", None)
     if not isinstance(current_property, property):
