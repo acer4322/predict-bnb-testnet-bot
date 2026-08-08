@@ -4,7 +4,7 @@ param(
 )
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ProjectPorts = @(8766, 8767, 4310)
+$ProjectPorts = @(8766, 8767, 8768, 4310)
 foreach ($Name in @("api", "web")) {
     $PidFile = Join-Path $Root ".$Name.pid"
     if (Test-Path $PidFile) {
@@ -45,7 +45,7 @@ if ($Remaining -and -not $ElevatedCleanup) {
 }
 
 if ($Remaining) {
-    throw "Could not clear local ports 8766/8767/4310. Close the older PowerShell window or run Stop BTC 5M Lab as administrator."
+    throw "Could not clear local ports 8766/8767/8768/4310. Close the older PowerShell window or run Stop BTC 5M Lab as administrator."
 }
 
 if (-not $Quiet) {
