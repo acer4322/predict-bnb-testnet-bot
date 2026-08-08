@@ -9,6 +9,7 @@ import NativeObserverLiveControls from "./native-observer-live-controls";
 import OracleCrossMarketPanel from "./oracle-cross-market-panel";
 import OracleCrossStrategyPanel from "./oracle-cross-strategy-panel";
 import PolyCrossTabContextBridge from "./poly-cross-tab-context-bridge";
+import PolyQuoteCanaryPanel from "./poly-quote-canary-panel";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {children}
       <OracleCrossMarketPanel />
       <OracleCrossStrategyPanel />
+      <PolyQuoteCanaryPanel />
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
       <ConfirmationAddModeOptionGuardFast />
