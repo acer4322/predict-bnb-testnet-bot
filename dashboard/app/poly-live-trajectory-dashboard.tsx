@@ -148,7 +148,7 @@ export default function PolyLiveTrajectoryDashboard() {
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [marketKey, setMarketKey] = useState<string | null>(null);
-  const [poly, setPoly] = useState<CrossState["polymarket"]>(null);
+  const [poly, setPoly] = useState<CrossState["polymarket"] | null>(null);
   const [binanceMarketId, setBinanceMarketId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const keyRef = useRef<string | null>(null);
@@ -184,7 +184,7 @@ export default function PolyLiveTrajectoryDashboard() {
         const nextPoly = cross.state.polymarket;
         const slug = String(nextPoly?.market?.slug ?? "");
         const marketId = finite(binance.latest.market_id);
-        setPoly(nextPoly);
+        setPoly(nextPoly ?? null);
         setBinanceMarketId(marketId == null ? null : Math.trunc(marketId));
         setError("");
         if (!slug || marketId == null) return;
