@@ -182,7 +182,7 @@ function saveTrajectory(slug: string, points: PolyTrajectoryPoint[]) {
 function PolyTrajectoryOverlay({
   host,
   points,
-  currentSecondsLeft,
+  currentSecondsLeft: _currentSecondsLeft,
 }: {
   host: Element;
   points: PolyTrajectoryPoint[];
@@ -222,40 +222,25 @@ function PolyTrajectoryOverlay({
       const width = baseRect.width;
       const height = baseRect.height;
       const pad = 18;
-      const elapsedNow = Math.max(
-        1,
-        MARKET_DURATION_SECONDS - Math.max(0, Math.min(MARKET_DURATION_SECONDS, currentSecondsLeft ?? points.at(-1)?.secondsLeft ?? MARKET_DURATION_SECONDS)),
-      );
 
-      const draw = (select: (point: PolyTrajectoryPoint) => number | null, color: string) => {
-        let started = false;
+      // Mirror the native MarketChart renderer exactly: equal x spacing by
+      // observation order, the same 0..1 y transform, line width and join.
+      const draw = (values: (number | null)[], color: string) => {
         ctx.beginPath();
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2.15;
+        ctx.lineWidth = 2.4;
         ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-        ctx.setLineDash([7, 5]);
-        for (const point of points) {
-          const value = select(point);
-          if (value == null || value < 0 || value > 1) continue;
-          const elapsed = MARKET_DURATION_SECONDS - point.secondsLeft;
-          if (elapsed < 0 || elapsed > elapsedNow + 2) continue;
-          const progress = Math.max(0, Math.min(1, elapsed / elapsedNow));
-          const x = pad + progress * (width - pad * 2);
+        values.forEach((value, i) => {
+          if (value == null) return;
+          const x = pad + (i / Math.max(1, values.length - 1)) * (width - pad * 2);
           const y = height - pad - value * (height - pad * 2);
-          if (!started) {
-            ctx.moveTo(x, y);
-            started = true;
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-        if (started) ctx.stroke();
-        ctx.setLineDash([]);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
       };
 
-      draw(point => point.upAsk, POLY_UP_COLOR);
-      draw(point => point.downAsk, POLY_DOWN_COLOR);
+      draw(points.map(point => point.upAsk), POLY_UP_COLOR);
+      draw(points.map(point => point.downAsk), POLY_DOWN_COLOR);
     };
 
     render();
@@ -268,7 +253,7 @@ function PolyTrajectoryOverlay({
       window.removeEventListener("resize", render);
       hostElement.style.position = previousInlinePosition;
     };
-  }, [host, points, currentSecondsLeft]);
+  }, [host, points]);
 
   return <canvas
     ref={ref}
@@ -479,7 +464,7 @@ export default function OracleCrossMarketPanel() {
           {error ?? chainlink?.error ?? poly?.error}
         </p>}
         <p style={{ marginTop: 8, fontSize: 11, color: "rgba(215,225,245,.52)" }}>
-          只供研究與後續 cross-oracle 回放；不參與策略判斷、不送單。起始價為本機 Chainlink BTC/USD 在該 5 分鐘邊界最近的已保存 tick，offset 會明示，避免把重建值誤當 Polymarket 官方顯示值。上方 Binance 市場價格軌跡會同步疊加 Polymarket Ask：青色虛線為 Poly UP、紫色虛線為 Poly DOWN。
+          只供研究與後續 cross-oracle 回放；不參與策略判斷、不送單。起始價為本機 Chainlink BTC/USD 在該 5 分鐘邊界最近的已保存 tick，offset 會明示，避免把重建值誤當 Polymarket 官方顯示值。上方 Binance 市場價格軌跡會同步疊加 Polymarket Ask：青色實線為 Poly UP、紫色實線為 Poly DOWN，繪圖方式與原 MarketChart 相同。
         </p>
       </div>,
       host,
