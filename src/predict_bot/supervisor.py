@@ -56,6 +56,20 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
     return subprocess.Popen([sys.executable, "-m", "predict_bot.cross_oracle"])
 
 
+def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
+    if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
+        return None
+    if not _enabled("PREDICT_CROSS_ORACLE_STRATEGIES_ENABLED", True):
+        return None
+    print(
+        "API supervisor: starting Polymarket lead/gap Paper strategies",
+        flush=True,
+    )
+    return subprocess.Popen(
+        [sys.executable, "-m", "predict_bot.cross_oracle_strategy_server"]
+    )
+
+
 def main() -> int:
     max_restarts = _positive_int("PREDICT_API_MAX_RESTARTS", 3)
     restart_window = _positive_float(
@@ -67,7 +81,9 @@ def main() -> int:
     )
     restart_times: list[float] = []
     cross_oracle = _start_cross_oracle()
+    cross_oracle_strategies = _start_cross_oracle_strategies()
     next_cross_oracle_restart_at = 0.0
+    next_strategy_restart_at = 0.0
 
     try:
         while True:
@@ -77,21 +93,34 @@ def main() -> int:
                     exit_code = child.poll()
                     if exit_code is not None:
                         break
+                    now = time.monotonic()
                     if (
                         _enabled("PREDICT_CROSS_ORACLE_ENABLED", True)
                         and cross_oracle is not None
                         and cross_oracle.poll() is not None
-                        and time.monotonic() >= next_cross_oracle_restart_at
+                        and now >= next_cross_oracle_restart_at
                     ):
                         print(
                             "API supervisor: cross-oracle collector exited; restarting it",
                             file=sys.stderr,
                             flush=True,
                         )
-                        next_cross_oracle_restart_at = (
-                            time.monotonic() + cross_oracle_restart_delay
-                        )
+                        next_cross_oracle_restart_at = now + cross_oracle_restart_delay
                         cross_oracle = _start_cross_oracle()
+                    if (
+                        _enabled("PREDICT_CROSS_ORACLE_ENABLED", True)
+                        and _enabled("PREDICT_CROSS_ORACLE_STRATEGIES_ENABLED", True)
+                        and cross_oracle_strategies is not None
+                        and cross_oracle_strategies.poll() is not None
+                        and now >= next_strategy_restart_at
+                    ):
+                        print(
+                            "API supervisor: cross-oracle Paper strategy sidecar exited; restarting it",
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        next_strategy_restart_at = now + cross_oracle_restart_delay
+                        cross_oracle_strategies = _start_cross_oracle_strategies()
                     time.sleep(0.5)
             except KeyboardInterrupt:
                 _stop_child(child)
@@ -124,6 +153,7 @@ def main() -> int:
             )
             time.sleep(restart_delay)
     finally:
+        _stop_child(cross_oracle_strategies)
         _stop_child(cross_oracle)
 
 
