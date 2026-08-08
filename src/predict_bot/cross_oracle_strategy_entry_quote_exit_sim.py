@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from . import cross_oracle_strategy_resilient as strategy_module
-from .poly_quote_canary_exit_sim import ExitSimulatedPolyQuoteCanary
+from .poly_quote_canary_scenario_summary import ScenarioSummaryPolyQuoteCanary
 
 
-# Keep the gap-aware Paper engine unchanged. Only replace its canary dependency:
-# real signed get-quote for ENTRY, counterfactual execution scenarios for EXIT.
-strategy_module.PolyQuoteCanary = ExitSimulatedPolyQuoteCanary
+# This is the module supervisor actually launches. Keep the gap-aware Paper
+# engine unchanged, but inject the complete V5 canary here so /state exposes:
+# - real signed BUY quote quality
+# - simulated EXIT best/worst envelopes
+# - strategy-level scenarioPortfolioSummaries used by the three native Poly cards.
+strategy_module.PolyQuoteCanary = ScenarioSummaryPolyQuoteCanary
 
 
 def main() -> int:
