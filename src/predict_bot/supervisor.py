@@ -98,11 +98,11 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "on port 8769 (real-money master remains fail-closed unless enabled)",
+        "V6 on port 8769 (strict entry, exit-priority execution)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v5"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v6"]
     )
 
 
