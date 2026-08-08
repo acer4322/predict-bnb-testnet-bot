@@ -80,15 +80,15 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
             flush=True,
         )
     print(
-        "API supervisor: starting gap-aware Polymarket lead/gap Paper strategies "
-        "with live-sized signed ENTRY quote canary and simulated EXIT scenarios",
+        "API supervisor: starting gap-aware Polymarket Paper strategies with "
+        "original R_POLY_GAP_SCALP plus isolated R_POLY_GAP_SCALP_STABLE exit A/B",
         flush=True,
     )
     return subprocess.Popen(
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_strategy_entry_quote_exit_sim",
+            "predict_bot.cross_oracle_strategy_stable_exit",
         ]
     )
 
@@ -98,11 +98,11 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V11 on port 8769 (10% entry cap, 20% exit tolerance, entry+exit order reconciliation, legacy exit correction)",
+        "V12 on port 8769 (stable 500ms/3-receipt exit confirmation, V11 order reconciliation retained)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v11"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v12"]
     )
 
 
