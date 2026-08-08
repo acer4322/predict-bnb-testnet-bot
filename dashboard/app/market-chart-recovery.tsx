@@ -137,6 +137,8 @@ export default function MarketChartRecovery() {
 
     const refresh = async () => {
       if (!active || loading || document.visibilityState !== "visible") return;
+      const existingCanvas = attachVisibilityGuard();
+      if (existingCanvas && points.length) paint(existingCanvas, points);
       loading = true;
       try {
         const response = await fetch(apiUrl("/api/realtime"), {
