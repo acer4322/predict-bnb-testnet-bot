@@ -83,11 +83,15 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
         )
     print(
         "API supervisor: starting gap-aware Polymarket lead/gap Paper strategies "
-        "with live-sized signed quote canary",
+        "with live-sized signed ENTRY quote canary and simulated EXIT scenarios",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.cross_oracle_strategy_quote_sized"]
+        [
+            sys.executable,
+            "-m",
+            "predict_bot.cross_oracle_strategy_entry_quote_exit_sim",
+        ]
     )
 
 
