@@ -98,12 +98,12 @@ function age(value: unknown) {
 function sourceTime(value: unknown) {
   const number = finite(value);
   if (number == null) return "—";
-  return new Date(number).toLocaleTimeString(undefined, {
+  const date = new Date(number);
+  return `${date.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    fractionalSecondDigits: 3,
-  });
+  })}.${String(date.getMilliseconds()).padStart(3, "0")}`;
 }
 
 function bytes(value: unknown) {
@@ -125,17 +125,20 @@ function statusLive(value: string | null | undefined) {
 
 export default function OracleCrossMarketPanel() {
   const [host, setHost] = useState<Element | null>(null);
+  const [researchView, setResearchView] = useState(false);
   const [state, setState] = useState<CrossOracleState | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const locate = () => {
       const next = document.querySelector(".market-panel");
-      if (next) setHost(next);
+      setHost(next);
+      const eyebrow = next?.querySelector(".market-title .eyebrow");
+      setResearchView(Boolean(eyebrow?.textContent?.includes("模擬研究")));
     };
     locate();
     const observer = new MutationObserver(locate);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => observer.disconnect();
   }, []);
 
@@ -196,7 +199,7 @@ export default function OracleCrossMarketPanel() {
     return pieces.join(" ｜ ");
   }, [chainlink?.status, chainlink?.ageMs, chainlink?.sourceTimestampMs, poly?.status, poly?.ageMs, poly?.sourceTimestampMs]);
 
-  if (!host) return null;
+  if (!host || !researchView) return null;
 
   return createPortal(
     <div
