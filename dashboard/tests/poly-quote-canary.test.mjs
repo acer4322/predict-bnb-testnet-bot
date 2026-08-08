@@ -11,10 +11,12 @@ function read(relative) {
   return fs.readFileSync(path.join(app, relative), "utf8");
 }
 
-test("root layout mounts Poly execution canary", () => {
+test("root layout mounts Poly execution canary and strategy scenario comparison", () => {
   const layout = read("layout.tsx");
   assert.match(layout, /PolyExecutionCanaryPanel/);
   assert.match(layout, /<PolyExecutionCanaryPanel\s*\/>/);
+  assert.match(layout, /PolyStrategyScenarioComparison/);
+  assert.match(layout, /<PolyStrategyScenarioComparison\s*\/>/);
   assert.doesNotMatch(layout, /<PolyQuoteCanaryPanel\s*\/>/);
 });
 
@@ -42,4 +44,18 @@ test("exit canary is scenario simulation rather than signed SELL quote", () => {
   assert.match(panel, /sim_best_final_pnl_usdt/);
   assert.match(panel, /sim_no_sell_final_pnl_usdt/);
   assert.match(panel, /官方結算/);
+});
+
+test("original three Poly strategy cards receive best and worst gross comparisons", () => {
+  const panel = read("poly-strategy-scenario-comparison.tsx");
+  assert.match(panel, /scenarioPortfolioSummaries/);
+  assert.match(panel, /R_POLY_LEAD_ENTRY/);
+  assert.match(panel, /R_POLY_LEAD_EXIT/);
+  assert.match(panel, /R_POLY_GAP_SCALP/);
+  assert.match(panel, /最佳狀況/);
+  assert.match(panel, /最糟狀況/);
+  assert.match(panel, /交易／持倉/);
+  assert.match(panel, /勝率/);
+  assert.match(panel, /Gross PnL/);
+  assert.match(panel, /可實作進場/);
 });
