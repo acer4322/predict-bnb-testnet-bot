@@ -9,7 +9,7 @@
     "dev": "vinext dev --hostname 0.0.0.0 --port 4310",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/native-observer-controls.test.mjs",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs tests/native-observer-controls.test.mjs tests/oracle-cross-market.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
