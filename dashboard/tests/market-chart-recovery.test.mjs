@@ -30,10 +30,18 @@ test("exactly one market chart painter is visible at a time", () => {
   const source = read("market-chart-recovery.tsx");
   assert.match(source, /canvas\.market-chart/);
   assert.match(source, /canvas\.synchronized-market-chart-overlay/);
-  assert.match(source, /base\.style\.visibility = healthy \? "hidden" : "visible"/);
-  assert.match(source, /overlay\.style\.visibility = healthy \? "visible" : "hidden"/);
+  assert.match(source, /baseVisibility = overlay && healthy \? "hidden" : "visible"/);
+  assert.match(source, /overlayVisibility = healthy \? "visible" : "hidden"/);
   assert.match(source, /native-market-chart/);
   assert.match(source, /synchronized-overlay/);
+});
+
+test("visibility arbitration also catches overlay style races", () => {
+  const source = read("market-chart-recovery.tsx");
+  assert.match(source, /MutationObserver\(applyVisibility\)/);
+  assert.match(source, /attributes: true/);
+  assert.match(source, /attributeFilter: \["style"\]/);
+  assert.match(source, /applyingVisibility/);
 });
 
 test("fallback coordinator never draws into either canvas", () => {
