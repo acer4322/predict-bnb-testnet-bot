@@ -3,14 +3,19 @@ from __future__ import annotations
 import json
 import os
 import time
+import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
+import httpx
+
+from . import cross_oracle as cross_oracle_module
 from .cross_oracle import (
     DB_PATH,
     HOST,
     PORT,
     CrossOracleCollector,
+    USER_AGENT,
     current_btc_5m_slug,
 )
 
@@ -23,6 +28,39 @@ POLY_CONTINUITY_MAX_AGE_MS = max(
     500,
     int(os.environ.get("PREDICT_CROSS_ORACLE_CONTINUITY_MAX_AGE_MS", "2000")),
 )
+HTTP_TRANSPORT = "httpx-direct-no-env-proxy"
+
+
+def _direct_http_json(url: str, *, timeout: float = 4.0) -> Any:
+    """Read public Polymarket HTTP endpoints without inherited proxy settings.
+
+    A fresh client is intentionally created for each discovery/book-prime request.
+    This avoids reusing a pre-sleep keep-alive/TLS session and, with trust_env=False,
+    prevents Windows/environment proxy interception from changing the certificate
+    chain. TLS verification remains enabled.
+    """
+
+    try:
+        with httpx.Client(
+            headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+            timeout=timeout,
+            verify=True,
+            trust_env=False,
+            follow_redirects=True,
+        ) as client:
+            response = client.get(url)
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPError as exc:
+        # The base collector already fail-closes and retries urllib-style network
+        # errors. Preserve that contract while using httpx underneath.
+        raise urllib.error.URLError(f"direct httpx request failed: {exc}") from exc
+
+
+# The resilient sidecar is a dedicated process. Replacing the base helper here
+# covers both Gamma market discovery and CLOB REST book priming without changing
+# websocket behavior or live/paper strategy execution paths.
+cross_oracle_module._http_json = _direct_http_json
 
 
 class ResilientCrossOracleCollector(CrossOracleCollector):
@@ -268,6 +306,9 @@ class ResilientCrossOracleCollector(CrossOracleCollector):
                 "lastTlsError": self.last_tls_error,
                 "reconnectCount": self.reconnect_count,
                 "streamRestartCount": self.stream_restart_count,
+                "httpTransport": HTTP_TRANSPORT,
+                "httpTrustEnv": False,
+                "tlsVerify": True,
             }
         payload["continuity"] = continuity
         polymarket = payload.get("polymarket")
@@ -303,7 +344,7 @@ def main() -> int:
     handler = type("ResilientCrossOracleHandler", (_Handler,), {"collector": collector})
     server = ThreadingHTTPServer((HOST, PORT), handler)
     print(
-        f"Resilient cross-oracle collector listening on http://{HOST}:{PORT}/state; db={DB_PATH}",
+        f"Resilient cross-oracle collector listening on http://{HOST}:{PORT}/state; db={DB_PATH}; http={HTTP_TRANSPORT}",
         flush=True,
     )
     try:
