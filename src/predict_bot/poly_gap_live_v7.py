@@ -20,6 +20,14 @@ NO_DEPTH_RETRY_COOLDOWN_MS = max(
     100,
     int(os.environ.get("PREDICT_POLY_GAP_LIVE_NO_DEPTH_RETRY_COOLDOWN_MS", "250")),
 )
+RATE_LIMIT_RETRY_COOLDOWN_MS = max(
+    PLACE_REJECT_RETRY_COOLDOWN_MS,
+    int(os.environ.get("PREDICT_POLY_GAP_LIVE_RATE_LIMIT_RETRY_COOLDOWN_MS", "5000")),
+)
+BALANCE_RETRY_COOLDOWN_MS = max(
+    RATE_LIMIT_RETRY_COOLDOWN_MS,
+    int(os.environ.get("PREDICT_POLY_GAP_LIVE_BALANCE_RETRY_COOLDOWN_MS", "10000")),
+)
 
 
 class ReArmingScalpPolyGapLiveEngine(ExitPriorityPolyGapLiveEngine):
@@ -37,6 +45,7 @@ class ReArmingScalpPolyGapLiveEngine(ExitPriorityPolyGapLiveEngine):
     - lack of visible first-level depth is retryable instead of market-long latched;
     - a confirmed flat exit clears the entry latch immediately, so the opposite
       Poly direction can form the next round in the same market;
+    - rate-limit and balance failures use slower backoff instead of hot-looping;
     - ambiguous placement and unconfirmed positions remain fail-closed.
     """
 
@@ -82,6 +91,19 @@ class ReArmingScalpPolyGapLiveEngine(ExitPriorityPolyGapLiveEngine):
                 (int(round_id),),
             ).fetchone()
         return dict(row) if row else None
+
+    @staticmethod
+    def _failure_cooldown_ms(row: dict[str, Any]) -> int:
+        reason = str(row.get("error_kind") or row.get("close_reason") or "")
+        message = str(row.get("error_message") or "").lower()
+        combined = f"{reason.lower()} {message}"
+        if "429" in combined or "rate limit" in combined or "too many request" in combined:
+            return RATE_LIMIT_RETRY_COOLDOWN_MS
+        if "insufficient" in combined or "balance" in combined:
+            return BALANCE_RETRY_COOLDOWN_MS
+        if reason in {"ENTRY_PLACE_REJECTED", "PREFLIGHT"}:
+            return PLACE_REJECT_RETRY_COOLDOWN_MS
+        return ENTRY_RETRY_COOLDOWN_MS
 
     def _finish_round(self, row: dict[str, Any], pnl: float, proceeds: float, reason: str) -> None:
         super()._finish_round(row, pnl, proceeds, reason)
@@ -214,12 +236,7 @@ class ReArmingScalpPolyGapLiveEngine(ExitPriorityPolyGapLiveEngine):
         if state in {"REJECTED", "FAILED"}:
             # Definite failures are safe to retry. Placement ambiguity is never
             # represented by these states; it remains AMBIGUOUS + market halt.
-            cooldown = (
-                PLACE_REJECT_RETRY_COOLDOWN_MS
-                if reason in {"ENTRY_PLACE_REJECTED", "PREFLIGHT"}
-                else ENTRY_RETRY_COOLDOWN_MS
-            )
-            self._schedule_retry(key, cooldown, reason)
+            self._schedule_retry(key, self._failure_cooldown_ms(refreshed), reason)
             self.status = "ENTRY_RETRY_COOLDOWN"
         elif state == "AMBIGUOUS":
             self.status = "MARKET_HALTED"
@@ -247,6 +264,8 @@ class ReArmingScalpPolyGapLiveEngine(ExitPriorityPolyGapLiveEngine):
             "entryRetryCooldownMs": ENTRY_RETRY_COOLDOWN_MS,
             "placeRejectRetryCooldownMs": PLACE_REJECT_RETRY_COOLDOWN_MS,
             "noDepthRetryCooldownMs": NO_DEPTH_RETRY_COOLDOWN_MS,
+            "rateLimitRetryCooldownMs": RATE_LIMIT_RETRY_COOLDOWN_MS,
+            "balanceRetryCooldownMs": BALANCE_RETRY_COOLDOWN_MS,
             "retryRemainingMs": self._retry_remaining_ms(current_key) if current_key else 0,
             "lastRearmAtMs": self.last_rearm_at_ms,
             "lastRearmReason": self.last_rearm_reason,
