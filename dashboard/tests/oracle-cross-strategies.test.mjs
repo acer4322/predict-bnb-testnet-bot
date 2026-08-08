@@ -11,21 +11,48 @@ function read(relative) {
   return fs.readFileSync(path.join(app, relative), "utf8");
 }
 
-test("root layout mounts the cross-oracle strategy panel", () => {
+test("root layout mounts the cross-oracle strategy bridge", () => {
   const layout = read("layout.tsx");
   assert.match(layout, /OracleCrossStrategyPanel/);
   assert.match(layout, /<OracleCrossStrategyPanel\s*\/>/);
 });
 
-test("strategy panel exposes all three forward Paper experiments", () => {
+test("cross-oracle strategies render as an independent lower strategy tab", () => {
+  const panel = read("oracle-cross-strategy-panel.tsx");
+  assert.match(panel, /poly-cross-market-tab/);
+  assert.match(panel, /poly-cross-market-panel/);
+  assert.match(panel, /strategy-tabs/);
+  assert.match(panel, /Poly 跨市場/);
+  assert.match(panel, /poly-cross-market-active/);
+  assert.doesNotMatch(panel, /querySelector\("\.market-panel"\)/);
+});
+
+test("strategy panel keeps all three lead gap experiments", () => {
   const panel = read("oracle-cross-strategy-panel.tsx");
   assert.match(panel, /R_POLY_LEAD_ENTRY/);
   assert.match(panel, /R_POLY_LEAD_EXIT/);
   assert.match(panel, /R_POLY_GAP_SCALP/);
   assert.match(panel, /Binance Ask/);
   assert.match(panel, /Binance Bid/);
-  assert.match(panel, /gross PnL/);
   assert.match(panel, /\/api\/oracle-cross-strategies/);
+});
+
+test("strategy panel exposes five source-mirror confidence exits and protection metrics", () => {
+  const panel = read("oracle-cross-strategy-panel.tsx");
+  for (const strategy of [
+    "R_CALIBRATED_VALUE",
+    "R_MICROPRICE",
+    "R_MICROPRICE_CONFIRM",
+    "R_FUTURES_LEAD",
+    "R_OFI",
+  ]) {
+    assert.match(panel, new RegExp(strategy));
+  }
+  assert.match(panel, /避免虧損/);
+  assert.match(panel, /犧牲獲利/);
+  assert.match(panel, /淨保護/);
+  assert.match(panel, /若不退場 PnL/);
+  assert.match(panel, /confidenceShadows/);
 });
 
 test("dashboard route only proxies the local Paper strategy sidecar", () => {
