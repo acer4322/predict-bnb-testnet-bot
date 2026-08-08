@@ -110,7 +110,30 @@ export default function MarketChartRecovery() {
     let marketId: number | null = null;
     let points: Point[] = [];
     let loading = false;
+    let visibilityObserver: MutationObserver | null = null;
+    let observedCanvas: HTMLCanvasElement | null = null;
     const controller = new AbortController();
+
+    const attachVisibilityGuard = () => {
+      const canvas = document.querySelector<HTMLCanvasElement>("canvas.market-chart");
+      if (canvas === observedCanvas) return canvas;
+      visibilityObserver?.disconnect();
+      visibilityObserver = null;
+      observedCanvas = canvas;
+      if (!canvas) return null;
+      const forceVisible = () => {
+        if (canvas.style.visibility === "hidden") {
+          canvas.style.visibility = "visible";
+        }
+      };
+      forceVisible();
+      visibilityObserver = new MutationObserver(forceVisible);
+      visibilityObserver.observe(canvas, {
+        attributes: true,
+        attributeFilter: ["style"],
+      });
+      return canvas;
+    };
 
     const refresh = async () => {
       if (!active || loading || document.visibilityState !== "visible") return;
@@ -149,7 +172,7 @@ export default function MarketChartRecovery() {
         } else {
           points = [...points.slice(0, -1), next];
         }
-        const canvas = document.querySelector<HTMLCanvasElement>("canvas.market-chart");
+        const canvas = attachVisibilityGuard();
         if (canvas) paint(canvas, points);
       } catch {
         // The main dashboard owns connection-error UI. This helper only keeps
@@ -163,7 +186,7 @@ export default function MarketChartRecovery() {
       if (document.visibilityState === "visible") void refresh();
     };
     const resize = () => {
-      const canvas = document.querySelector<HTMLCanvasElement>("canvas.market-chart");
+      const canvas = attachVisibilityGuard();
       if (canvas) paint(canvas, points);
     };
 
@@ -174,6 +197,7 @@ export default function MarketChartRecovery() {
     return () => {
       active = false;
       controller.abort();
+      visibilityObserver?.disconnect();
       window.clearTimeout(start);
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", visibility);
