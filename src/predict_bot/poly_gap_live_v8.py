@@ -5,7 +5,6 @@ import time
 from typing import Any
 
 from . import poly_gap_live as base
-from . import poly_gap_live_v6 as v6
 from .poly_gap_live_v7 import ReArmingScalpPolyGapLiveEngine
 
 
@@ -27,31 +26,19 @@ EXIT_SLIPPAGE_BPS = max(
     int(os.environ.get("PREDICT_POLY_GAP_LIVE_EXIT_SLIPPAGE_BPS", "2000")),
 )
 
-# V8 owns the live entry/exit defaults. V6's exit implementation reads its
-# module globals at call time, so updating them here preserves the tested V6/V7
-# flatten-first lifecycle while widening only the execution tolerance.
-base.QUOTE_SLIPPAGE_BPS = ENTRY_SLIPPAGE_BPS
-v6.ENTRY_SLIPPAGE_BPS = ENTRY_SLIPPAGE_BPS
-v6.EXIT_SLIPPAGE_BPS = EXIT_SLIPPAGE_BPS
-
 
 class MomentumTolerancePolyGapLiveEngine(ReArmingScalpPolyGapLiveEngine):
     """V8: keep the 3% signal requirement but allow momentum-driven entry repricing.
 
-    The original dedicated live path required the signed BUY quote to retain the
-    full SCALP_MIN_EDGE after the quote response. In fast markets that rejected
-    entries exactly when Binance began moving toward Polymarket.
-
-    V8 separates *signal quality* from *execution tolerance*:
-    - the visible Poly-vs-Binance Ask gap must still be >= SCALP_MIN_EDGE before
-      a round is created;
-    - after the signed BUY quote returns, Polymarket must still point in the same
-      confident direction and remain fresh;
-    - the signed BUY average may deteriorate by at most 10% versus the Binance
-      Ask observed when the signal fired (configurable in bps);
-    - the quote no longer has to retain the original 3% executable edge;
-    - ambiguous placements and unconfirmed positions remain hard market halts;
-    - SELL keeps the wider V6 exit-priority tolerance (20% by default here).
+    V8 separates signal quality from execution tolerance:
+    - visible Poly-vs-Binance Ask gap must still be >= SCALP_MIN_EDGE;
+    - Polymarket must remain fresh and keep the same confident direction while
+      the signed BUY quote is in flight;
+    - signed BUY average may deteriorate by at most 10% versus the trigger Ask
+      (configurable in bps), matching the intended MARKET-order tolerance;
+    - the signed quote no longer has to retain the original 3% edge;
+    - SELL is exit-priority and keeps a wider 20% default tolerance;
+    - ambiguous placements and unconfirmed positions remain hard market halts.
     """
 
     def _open_round(self, row: dict[str, Any], poly: dict[str, Any]) -> None:
@@ -271,6 +258,174 @@ class MomentumTolerancePolyGapLiveEngine(ReArmingScalpPolyGapLiveEngine):
                 f"triggerAsk={trigger_ask:.6f}; signedAverage={average:.6f}; "
                 f"cap={price_cap:.6f}; entrySlippage={ENTRY_SLIPPAGE_BPS}bps"
             ),
+        )
+
+    def _exit_round(self, row: dict[str, Any], signal_ms: int) -> None:
+        with self.lock:
+            client = self.client
+            wallet_address = self.wallet_address
+            wallet_id = self.wallet_id
+        if not base.MASTER_ENABLED or client is None or not wallet_address or not wallet_id:
+            self._halt_market(
+                int(row["market_id"]),
+                "exit required but live master/client is unavailable",
+                int(row["id"]),
+            )
+            return
+        try:
+            available = self._position_shares(str(row["token_id"]))
+        except Exception as exc:
+            self.last_error = f"exit position read: {str(exc)[:300]}"
+            self._event(
+                "ERROR",
+                "EXIT_POSITION_READ_FAILED",
+                int(row["market_id"]),
+                int(row["id"]),
+                str(exc)[:500],
+            )
+            return
+        if available is not None and available <= 1e-9:
+            proceeds = base._finite(row.get("exit_proceeds_usdt")) or 0.0
+            cost = base._finite(row.get("entry_cost_usdt")) or float(row["stake_usdt"])
+            self._event(
+                "INFO",
+                "EXIT_CONFIRMED",
+                int(row["market_id"]),
+                int(row["id"]),
+                "position was already flat when exit was checked",
+            )
+            self._finish_round(row, proceeds - cost, proceeds, "POSITION_ALREADY_FLAT")
+            return
+        if available is None or available <= 0:
+            return
+
+        self._update_round(int(row["id"]), state="EXIT_QUOTE", exit_signal_at_ms=signal_ms)
+        started_ms = base._now_ms()
+        started = time.monotonic()
+        self._update_round(int(row["id"]), exit_quote_started_at_ms=started_ms)
+        try:
+            quote = client.get_quote(
+                wallet_address=wallet_address,
+                token_id=str(row["token_id"]),
+                amount_in_wei=base._to_wei(available),
+                price_limit=None,
+                slippage_bps=EXIT_SLIPPAGE_BPS,
+                fee_rate_bps=int((self.market_cache or {}).get("fee_rate_bps") or 200),
+                funding_source="MPC",
+                side="SELL",
+                order_type="MARKET",
+            )
+        except Exception as exc:
+            message = str(exc)[:500]
+            self._update_round(
+                int(row["id"]),
+                state="OPEN",
+                error_kind="EXIT_QUOTE_REJECTED",
+                error_message=message,
+            )
+            self._event(
+                "WARN",
+                "EXIT_QUOTE_REJECTED",
+                int(row["market_id"]),
+                int(row["id"]),
+                message,
+            )
+            return
+
+        completed_ms = base._now_ms()
+        rtt_ms = max(0.0, (time.monotonic() - started) * 1000.0)
+        average = base._finite(quote.get("averagePrice"))
+        quote_id = str(quote.get("quoteId") or "")
+        proceeds = base._from_wei(quote.get("amountOut"))
+        self.last_exit_latency = {
+            "signalToQuoteStartMs": max(0, started_ms - signal_ms),
+            "quoteRttMs": rtt_ms,
+            "signalToQuoteResponseMs": max(0, completed_ms - signal_ms),
+        }
+        self._update_round(
+            int(row["id"]),
+            exit_quote_completed_at_ms=completed_ms,
+            exit_quote_rtt_ms=rtt_ms,
+            exit_quote_average=average,
+            exit_quote_amount_in_wei=str(quote.get("amountIn") or ""),
+            exit_quote_amount_out_wei=str(quote.get("amountOut") or ""),
+            exit_proceeds_usdt=proceeds,
+        )
+        if (
+            not quote_id
+            or proceeds is None
+            or proceeds < 0
+            or not self._quote_expiry_safe(quote, client)
+        ):
+            message = "SELL quote lacked executable id/proceeds/expiry"
+            self._update_round(
+                int(row["id"]),
+                state="OPEN",
+                error_kind="EXIT_QUOTE_INVALID",
+                error_message=message,
+            )
+            self._event(
+                "WARN",
+                "EXIT_QUOTE_INVALID",
+                int(row["market_id"]),
+                int(row["id"]),
+                message,
+            )
+            return
+        try:
+            placed = client.place_market_order(
+                wallet_address=wallet_address,
+                wallet_id=wallet_id,
+                quote_id=quote_id,
+                slippage_bps=EXIT_SLIPPAGE_BPS,
+                account_type=base.ACCOUNT_TYPE,
+                funding_source="MPC",
+            )
+        except base.ApiTransportError as exc:
+            self._halt_market(
+                int(row["market_id"]),
+                f"ambiguous SELL placement: {exc}",
+                int(row["id"]),
+            )
+            self._update_round(
+                int(row["id"]),
+                state="AMBIGUOUS",
+                error_kind="EXIT_PLACE_AMBIGUOUS",
+                error_message=str(exc)[:500],
+            )
+            return
+        except Exception as exc:
+            message = str(exc)[:500]
+            self._update_round(
+                int(row["id"]),
+                state="OPEN",
+                error_kind="EXIT_PLACE_REJECTED",
+                error_message=message,
+            )
+            self._event(
+                "WARN",
+                "EXIT_PLACE_REJECTED",
+                int(row["market_id"]),
+                int(row["id"]),
+                message,
+            )
+            return
+
+        placed_ms = base._now_ms()
+        order_id = base._first_text(placed, ("orderId", "order_id", "id"))
+        self._update_round(
+            int(row["id"]),
+            state="EXIT_SYNC",
+            exit_order_id=order_id,
+            exit_placed_at_ms=placed_ms,
+            exit_sync_started_at_ms=placed_ms,
+        )
+        self._event(
+            "WARN",
+            "EXIT_PLACED",
+            int(row["market_id"]),
+            int(row["id"]),
+            f"round {row['round_no']} SELL MARKET/FOK submitted; slippage={EXIT_SLIPPAGE_BPS}bps",
         )
 
     def snapshot(self) -> dict[str, Any]:
