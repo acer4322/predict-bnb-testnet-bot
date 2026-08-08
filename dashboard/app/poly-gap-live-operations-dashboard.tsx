@@ -84,7 +84,12 @@ type State = {
     entryPositionSyncTimeoutMs?: number;
     exitPositionSyncTimeoutMs?: number;
     entryEdgeRuleChanged?: boolean;
-    minimumExecutableEntryEdge?: number;
+    minimumExecutableEntryEdge?: number | null;
+    initialSignalMinimumEdge?: number;
+    entrySignedQuoteMaxDeteriorationBps?: number;
+    entrySignedQuoteMaxDeteriorationPct?: number;
+    entryAcceptanceRule?: string;
+    exitPriority?: boolean;
   };
   scalpCycle?: {
     repeatSameMarketRounds?: boolean;
@@ -223,7 +228,7 @@ export default function PolyGapLiveOperationsDashboard() {
       <div>
         <span className="eyebrow">DEDICATED LIVE EXECUTION · OPERATIONS</span>
         <h3 style={{ margin: "4px 0 0" }}>R_POLY_GAP_SCALP 專用實單狀態與紀錄</h3>
-        <small>目前狀況與歷史錯誤分開顯示；V7 允許同市場反覆 scalp，確定失敗只短暫 cooldown，確認 FLAT 後立即 re-arm。</small>
+        <small>V8：初始訊號仍需 ≥3% gap；signed BUY 允許相對觸發 Ask 最多惡化 10%，Poly 方向仍必須有效。SELL 採退出優先的較寬容忍度。</small>
       </div>
 
       <div className="poly-gap-ops-grid">
@@ -236,7 +241,7 @@ export default function PolyGapLiveOperationsDashboard() {
 
         <div className="poly-gap-ops-card">
           <span>高頻循環 / Re-arm</span>
-          <strong>{cycle?.repeatSameMarketRounds ? "同市場多輪已啟用" : "等待 V7"}</strong>
+          <strong>{cycle?.repeatSameMarketRounds ? "同市場多輪已啟用" : "等待 V8"}</strong>
           <small>Retry 倒數 {Number(cycle?.retryRemainingMs ?? 0).toFixed(0)} ms · 一般失敗 {cycle?.entryRetryCooldownMs ?? "—"} ms · Place 拒絕 {cycle?.placeRejectRetryCooldownMs ?? "—"} ms</small>
           <small>最後 re-arm：{cycle?.lastRearmReason ?? "—"}{cycle?.lastRearmAtMs ? ` · ${timeText(cycle.lastRearmAtMs)}` : ""}</small>
         </div>
@@ -252,7 +257,7 @@ export default function PolyGapLiveOperationsDashboard() {
           <span>成功開單率</span>
           <strong>{rate(entry?.successRate)}</strong>
           <small>確認開倉 {entry?.confirmed ?? 0} / 嘗試 {entry?.attempts ?? 0} · 已送 BUY {entry?.submitted ?? 0}</small>
-          <small>Quote 拒絕 {entry?.quoteRejected ?? 0} · Quote 後 edge 消失 {entry?.edgeGoneAfterQuote ?? 0} · Place 拒絕 {entry?.placeRejected ?? 0} · Ambiguous {entry?.ambiguous ?? 0}</small>
+          <small>Quote 拒絕 {entry?.quoteRejected ?? 0} · 舊版 edge 擋單 {entry?.edgeGoneAfterQuote ?? 0} · Place 拒絕 {entry?.placeRejected ?? 0} · Ambiguous {entry?.ambiguous ?? 0}</small>
         </div>
 
         <div className="poly-gap-ops-card">
@@ -265,8 +270,8 @@ export default function PolyGapLiveOperationsDashboard() {
         <div className="poly-gap-ops-card">
           <span>執行容忍度</span>
           <strong>ENTRY {bps(tuning?.entrySlippageBps)} · EXIT {bps(tuning?.exitSlippageBps)}</strong>
-          <small>ENTRY executable edge ≥ {rate(tuning?.minimumExecutableEntryEdge)}，規則未放寬。</small>
-          <small>Position sync：ENTRY {tuning?.entryPositionSyncTimeoutMs ?? "—"} ms · EXIT {tuning?.exitPositionSyncTimeoutMs ?? "—"} ms</small>
+          <small>初始訊號仍需 ≥ {rate(tuning?.initialSignalMinimumEdge)}；signed BUY 最多比觸發 Ask 惡化 {bps(tuning?.entrySignedQuoteMaxDeteriorationBps)}。</small>
+          <small>Quote 回來後不再要求保留完整 3% edge；Poly 方向必須仍一致。Position sync：ENTRY {tuning?.entryPositionSyncTimeoutMs ?? "—"} ms · EXIT {tuning?.exitPositionSyncTimeoutMs ?? "—"} ms</small>
         </div>
       </div>
 
@@ -316,7 +321,7 @@ export default function PolyGapLiveOperationsDashboard() {
       </div>
 
       {fetchError && <small style={{ color: "#ff9f9f" }}>8769 狀態讀取錯誤：{fetchError}</small>}
-      <small style={{ color: "#91a0bb" }}>版本 {state?.version ?? "—"}。`ENTRY_REARM_SCHEDULED` 代表確定失敗後等待下一次嘗試；`SCALP_REARMED_FLAT` 代表賣出確認 FLAT 後已重新武裝。</small>
+      <small style={{ color: "#91a0bb" }}>版本 {state?.version ?? "—"}。`ENTRY_PRICE_CAP_REJECTED` 代表 signed BUY 已超過觸發 Ask 的價格上限；`SCALP_REARMED_FLAT` 代表賣出確認 FLAT 後已重新武裝。</small>
     </section>,
     target,
   );
