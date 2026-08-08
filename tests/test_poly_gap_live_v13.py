@@ -11,7 +11,7 @@ def test_v13_builds_on_v12() -> None:
     assert issubclass(PaperChopGuardedPolyGapLiveEngine, StableExitPolyGapLiveEngine)
 
 
-def test_paused_paper_guard_blocks_new_entry_before_live_clients(tmp_path: Path, monkeypatch) -> None:
+def test_persistent_paper_guard_blocks_new_entry_before_live_clients(tmp_path: Path, monkeypatch) -> None:
     engine = PaperChopGuardedPolyGapLiveEngine(tmp_path / "v13-paused.db")
     try:
         monkeypatch.setattr(base, "MASTER_ENABLED", True)
@@ -21,13 +21,38 @@ def test_paused_paper_guard_blocks_new_entry_before_live_clients(tmp_path: Path,
             "_refresh_chop_guard",
             lambda **_kwargs: {
                 "verified": True,
-                "paused": True,
+                "blocked": True,
+                "persistentPaused": True,
+                "currentMarketChoppy": False,
                 "reason": "2/3 recent markets CHOPPY",
             },
         )
         engine._tick()
         assert engine.status == "BLOCKED_PAPER_CHOP_GUARD"
         assert "CHOPPY" in str(engine.last_error)
+    finally:
+        engine.stop()
+
+
+def test_current_market_chop_breaker_blocks_reentry_immediately(tmp_path: Path, monkeypatch) -> None:
+    engine = PaperChopGuardedPolyGapLiveEngine(tmp_path / "v13-current.db")
+    try:
+        monkeypatch.setattr(base, "MASTER_ENABLED", True)
+        engine._set_setting("runtime_enabled", "1")
+        monkeypatch.setattr(
+            engine,
+            "_refresh_chop_guard",
+            lambda **_kwargs: {
+                "verified": True,
+                "blocked": True,
+                "persistentPaused": False,
+                "currentMarketChoppy": True,
+                "reason": "current market already has 2 confirmed reversals",
+            },
+        )
+        engine._tick()
+        assert engine.status == "BLOCKED_PAPER_CURRENT_MARKET_CHOP"
+        assert "2 confirmed reversals" in str(engine.last_error)
     finally:
         engine.stop()
 
@@ -42,7 +67,7 @@ def test_unverified_paper_guard_fails_closed_for_new_entry(tmp_path: Path, monke
             "_refresh_chop_guard",
             lambda **_kwargs: {
                 "verified": False,
-                "paused": None,
+                "blocked": None,
                 "reason": "Paper guard unavailable",
                 "error": "HTTP 503",
             },
@@ -75,7 +100,7 @@ def test_guard_never_blocks_management_of_existing_round(tmp_path: Path, monkeyp
 
         def guard_refresh(**_kwargs):
             called["guard"] += 1
-            return {"verified": True, "paused": True}
+            return {"verified": True, "blocked": True}
 
         monkeypatch.setattr(StableExitPolyGapLiveEngine, "_tick", parent_tick)
         monkeypatch.setattr(engine, "_refresh_chop_guard", guard_refresh)
@@ -93,6 +118,8 @@ def test_v13_snapshot_exposes_fail_closed_guard_policy(tmp_path: Path) -> None:
         assert state["version"] == "POLY_GAP_DEDICATED_LIVE_V13"
         guard = state["paperChopGuard"]
         assert guard["failClosedForNewEntries"] is True
+        assert guard["sameMarketImmediateBreaker"] is True
+        assert guard["persistentCrossMarketPause"] is True
         assert guard["existingPositionManagementNeverBlocked"] is True
         assert guard["automaticResumeOwnedByPaper"] is True
     finally:
