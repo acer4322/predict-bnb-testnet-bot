@@ -160,12 +160,12 @@ def test_v10_snapshot_exposes_exit_reconciliation(tmp_path: Path) -> None:
         engine.stop()
 
 
-def test_supervisor_runs_v10_entrypoint() -> None:
+def test_supervisor_runs_v11_entrypoint() -> None:
     source = (
         Path(__file__).resolve().parents[1]
         / "src"
         / "predict_bot"
         / "supervisor.py"
     ).read_text(encoding="utf-8")
-    assert "predict_bot.poly_gap_live_v10" in source
-    assert "predict_bot.poly_gap_live_v9" not in source
+    assert "predict_bot.poly_gap_live_v11" in source
+    assert "predict_bot.poly_gap_live_v10" not in source
