@@ -102,7 +102,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v4"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v5"]
     )
 
 
