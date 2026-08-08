@@ -74,6 +74,9 @@ type Attempt = {
   sim_best_final_pnl_usdt?: number | null;
   sim_no_sell_final_pnl_usdt?: number | null;
   sim_settlement_status?: string | null;
+  sim_best_depth_mode?: string | null;
+  sim_source_exit_price?: number | null;
+  sim_legacy_exit_migrated?: number | null;
 };
 
 type Canary = {
@@ -141,6 +144,14 @@ function tone(status: string | null | undefined) {
   if (/^PASS_/.test(text) || /FINALIZED/.test(text)) return "positive";
   if (/FAIL_|REJECTED|ERROR/.test(text)) return "negative";
   return "";
+}
+
+function depthMode(row: Attempt) {
+  if (row.sim_best_depth_mode === "FIRST_LEVEL_DEPTH") return "第一檔真實深度";
+  if (row.sim_best_depth_mode === "UPPER_BOUND_NO_DEPTH") return "無深度：樂觀上限";
+  if (row.sim_best_depth_mode === "NO_RELIABLE_BID") return "無可靠 Bid";
+  if (row.sim_best_depth_mode === "NOT_APPLICABLE") return "不適用";
+  return row.sim_best_depth_mode ?? "—";
 }
 
 export default function PolyExecutionCanaryPanel() {
@@ -220,7 +231,7 @@ export default function PolyExecutionCanaryPanel() {
         <div>
           <span className="eyebrow">ENTRY REAL QUOTE · EXIT COUNTERFACTUAL SCENARIOS</span>
           <h3>Poly 實際進場品質／退出壓力模擬</h3>
-          <p>進場仍真的呼叫 Binance Prediction signed BUY get-quote，量測價格、容量、RTT、expiry 與訊號是否已消失；退出不再呼叫 SELL quote，因 Paper BUY 沒有建立真實 shares。退出改用「最佳可見第一檔」與「完全賣不掉持有到官方結算」兩個情境。</p>
+          <p>進場仍真的呼叫 Binance Prediction signed BUY get-quote，量測價格、容量、RTT、expiry 與訊號是否已消失；退出不再呼叫 SELL quote，因 Paper BUY 沒有建立真實 shares。退出改用最佳情境與完全賣不掉兩個邊界；有第一檔深度時限制可成交量，沒有 depth 時最佳情境只標成樂觀上限，不冒充實際可成交量。</p>
         </div>
         <span className={`pec-badge ${canary?.status === "READY" ? "positive" : ""}`}>{canary?.status ?? "WAITING"}</span>
       </div>
@@ -237,7 +248,7 @@ export default function PolyExecutionCanaryPanel() {
               <div><span>訊號→Quote</span><strong>{ms(summary.avgSignalToQuoteMs)}</strong><small>max {ms(summary.maxSignalToQuoteMs)}</small></div>
             </div>
             <small>實測本金 {configured[strategy] == null ? "Paper fallback" : `${configured[strategy].toFixed(2)} USDT`} · 價格追掉 {summary.priceMoved ?? 0} · 訊號消失 {summary.signalGone ?? 0} · 容量不足 {summary.capacityFailed ?? 0} · API 拒絕 {summary.quoteRejected ?? 0}</small>
-            <small>退出模擬 {summary.exitSimulations ?? 0} · 已等到官方結算 {summary.exitFinalized ?? 0} · 第一檔可評估 {summary.exitBestEvaluable ?? 0} · 舊 SELL reject 排除 {summary.legacySellQuoteRejectedExcluded ?? 0}</small>
+            <small>退出模擬 {summary.exitSimulations ?? 0} · 已等到官方結算 {summary.exitFinalized ?? 0} · 最佳情境可評估 {summary.exitBestEvaluable ?? 0} · 舊 SELL reject 排除 {summary.legacySellQuoteRejectedExcluded ?? 0}</small>
           </article>;
         })}
       </div>
@@ -265,20 +276,20 @@ export default function PolyExecutionCanaryPanel() {
       <div style={{ marginTop: 20 }}>
         <span className="eyebrow">EXIT EXECUTION STRESS · NO SIGNED SELL QUOTE</span>
         <h3>退出：最佳可見 vs 完全賣不掉</h3>
-        <p className="scenario-note">「最佳可見」也不是完美成交：只允許吃當下 held-side 最佳 Bid，而且成交 shares 不得超過可見第一檔 Bid size；剩下的部位持有到官方結算。「完全賣不掉」則 0 shares 成交，整筆持有到官方結算。官方結果出來後才回填兩個最終 PnL。</p>
+        <p className="scenario-note">最佳情境優先使用退出訊號當下已記錄的 held-side Bid。有第一檔 Bid size 時只成交可見 shares；若 realtime 沒提供 size，改顯示「無深度：樂觀上限」，假設全部 shares 能在該 Bid 賣出，但這只是上界，不算真實可成交證據。最糟情境固定 0 shares 賣出、全部持有到官方結算。</p>
         <div className="table-scroll">
           <table>
-            <thead><tr><th>退出訊號</th><th>策略／市場</th><th>進場實測</th><th>退出 Bid／深度</th><th>最佳可見成交</th><th>最佳可見最終</th><th>完全賣不掉最終</th><th>官方結果</th></tr></thead>
+            <thead><tr><th>退出訊號</th><th>策略／市場</th><th>進場實測</th><th>退出 Bid／深度</th><th>最佳情境成交</th><th>最佳情境最終</th><th>完全賣不掉最終</th><th>官方結果</th></tr></thead>
             <tbody>
               {exits.length === 0
-                ? <tr><td colSpan={8} className="empty">等待 Lead Exit / Gap Scalp 的下一個退出訊號。</td></tr>
+                ? <tr><td colSpan={8} className="empty">等待 Lead Exit / Gap Scalp 的下一個退出訊號；新版啟動時也會嘗試轉換舊 SELL reject。</td></tr>
                 : exits.slice(0, 30).map(row => <tr key={row.id}>
-                    <td>{clock(row.signal_at_ms)}<small>觀測 lag {ms(row.sim_exit_observation_lag_ms)}</small></td>
+                    <td>{clock(row.signal_at_ms)}<small>觀測 lag {ms(row.sim_exit_observation_lag_ms)}{row.sim_legacy_exit_migrated ? " · 舊資料轉換" : ""}</small></td>
                     <td>{row.strategy ?? "—"}<small>#{row.binance_market_id ?? "—"} · {row.side ?? "—"}</small></td>
                     <td>{money(row.sim_entry_cost_usdt)}<small>{n(row.sim_entry_shares)?.toFixed(6) ?? "—"} shares</small></td>
-                    <td>{price(row.sim_exit_bid)}<small>visible {n(row.sim_exit_bid_size)?.toFixed(6) ?? "—"} shares</small></td>
-                    <td>{row.sim_best_case_evaluable ? pct(row.sim_best_fill_ratio) : "不可評估"}<small>{row.sim_best_fill_shares == null ? "無可靠第一檔深度" : `${n(row.sim_best_fill_shares)?.toFixed(6)} sold · ${n(row.sim_best_unfilled_shares)?.toFixed(6)} hold`}</small></td>
-                    <td className={(n(row.sim_best_final_pnl_usdt) ?? 0) >= 0 ? "positive" : "negative"}>{row.sim_best_final_pnl_usdt == null ? "等待結算" : money(row.sim_best_final_pnl_usdt)}<small>第一檔成交部分含估算 exit fee</small></td>
+                    <td>{price(row.sim_exit_bid)}<small>{depthMode(row)} · visible {n(row.sim_exit_bid_size)?.toFixed(6) ?? "—"} shares</small></td>
+                    <td>{row.sim_best_case_evaluable ? pct(row.sim_best_fill_ratio) : "不可評估"}<small>{row.sim_best_fill_shares == null ? "沒有可靠 Bid" : `${n(row.sim_best_fill_shares)?.toFixed(6)} sold · ${n(row.sim_best_unfilled_shares)?.toFixed(6)} hold`}</small></td>
+                    <td className={(n(row.sim_best_final_pnl_usdt) ?? 0) >= 0 ? "positive" : "negative"}>{row.sim_best_final_pnl_usdt == null ? "等待結算" : money(row.sim_best_final_pnl_usdt)}<small>{row.sim_best_depth_mode === "UPPER_BOUND_NO_DEPTH" ? "樂觀上限；未證明深度足夠" : "可見成交部分含估算 exit fee"}</small></td>
                     <td className={(n(row.sim_no_sell_final_pnl_usdt) ?? 0) >= 0 ? "positive" : "negative"}>{row.sim_no_sell_final_pnl_usdt == null ? "等待結算" : money(row.sim_no_sell_final_pnl_usdt)}<small>0 shares 賣出，全部 hold</small></td>
                     <td className={tone(row.status)}>{row.sim_official_winner ?? row.sim_settlement_status ?? "—"}<small>{row.status ?? "—"}</small></td>
                   </tr>)}
@@ -289,7 +300,7 @@ export default function PolyExecutionCanaryPanel() {
 
       {(error || canary?.error || canary?.sizing?.liveRulesError) && <p style={{ marginTop: 10, color: "#ffb45c", fontSize: 12 }}>{error ?? canary?.error ?? canary?.sizing?.liveRulesError}</p>}
       <p style={{ marginTop: 9, fontSize: 11, color: "rgba(215,225,245,.52)" }}>
-        目前策略是否值得進入實單，優先看 BUY signed quote 的 PASS_SIMULATED_PLACE 比率、signal→quote 延遲、價格追掉與訊號消失率。退出情境只是壓力測試，不宣稱等同真實 SELL quote 或實際成交。
+        目前策略是否值得進入實單，優先看 BUY signed quote 的 PASS_SIMULATED_PLACE 比率、signal→quote 延遲、價格追掉與訊號消失率。退出情境只是壓力測試；UPPER_BOUND_NO_DEPTH 尤其只代表最佳可能上界，不宣稱真實流動性足以全部成交。
       </p>
     </section>,
     host,
