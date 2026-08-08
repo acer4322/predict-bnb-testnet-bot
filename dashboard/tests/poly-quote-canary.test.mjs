@@ -27,6 +27,9 @@ test("canary panel explains signed quote without place order", () => {
   assert.match(panel, /signal_to_quote_response_ms/);
   assert.match(panel, /quote_coverage_ratio/);
   assert.match(panel, /quote_expiry_headroom_ms/);
+  assert.match(panel, /simulated_entry_stake_usdt/);
+  assert.match(panel, /configuredEntryStakesUsdt/);
+  assert.match(panel, /sizingFetchOnSignalPath/);
   assert.match(panel, /R_POLY_LEAD_ENTRY/);
   assert.match(panel, /R_POLY_LEAD_EXIT/);
   assert.match(panel, /R_POLY_GAP_SCALP/);
