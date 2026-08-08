@@ -46,5 +46,5 @@ test("dedicated Poly GAP live panel exposes stake and maximum-loss controls", ()
   assert.match(dedicatedLive, /最大虧損（USDT）/);
   assert.match(dedicatedLive, /PREDICT_POLY_GAP_LIVE_ENABLED/);
   assert.match(dedicatedLive, /同一 5 分鐘市場可多輪/);
-  assert.match(dedicatedLive, /MARKET\/FOK|MARKET\/FOK/);
+  assert.match(dedicatedLive, /確認 FLAT 才 re-arm/);
 });
