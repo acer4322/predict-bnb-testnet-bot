@@ -27,6 +27,26 @@ test("panel renders Polymarket BTC 5m using the existing market card vocabulary"
   assert.match(panel, /\/api\/oracle-cross-market/);
 });
 
+test("panel overlays Polymarket asks on the existing Binance market chart", () => {
+  const panel = read("oracle-cross-market-panel.tsx");
+  assert.match(panel, /PolyTrajectoryOverlay/);
+  assert.match(panel, /canvas\.market-chart/);
+  assert.match(panel, /poly-market-chart-overlay/);
+  assert.match(panel, /Poly UP/);
+  assert.match(panel, /Poly DOWN/);
+  assert.match(panel, /setLineDash\(\[7, 5\]\)/);
+  assert.match(panel, /point => point\.upAsk/);
+  assert.match(panel, /point => point\.downAsk/);
+});
+
+test("Polymarket live trajectory cache survives ordinary dashboard refreshes", () => {
+  const panel = read("oracle-cross-market-panel.tsx");
+  assert.match(panel, /btc5m-poly-trajectory:/);
+  assert.match(panel, /window\.localStorage\.getItem/);
+  assert.match(panel, /window\.localStorage\.setItem/);
+  assert.match(panel, /secondsLeft/);
+});
+
 test("dashboard route proxies only the read-only sidecar state", () => {
   const route = read("api/oracle-cross-market/route.ts");
   assert.match(route, /127\.0\.0\.1:8767/);
