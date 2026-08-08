@@ -16,9 +16,17 @@ type CrossState = {
   polymarket?: {
     status?: string;
     ageMs?: number | null;
+    receivedTimestampMs?: number | null;
     error?: string | null;
-    marketDiscovery?: { status?: string; slug?: string; detail?: string } | null;
+    marketDiscovery?: { status?: string; slug?: string; detail?: string; method?: string } | null;
     market?: { slug?: string | null } | null;
+    continuity?: {
+      healthy?: boolean;
+      gapActive?: boolean;
+      targetMarketSlug?: string | null;
+      marketSlug?: string | null;
+      gapReason?: string | null;
+    } | null;
     up?: { bestAsk?: number | null };
     down?: { bestAsk?: number | null };
   };
@@ -35,6 +43,7 @@ type BinancePayload = {
 
 const LIMIT = 90;
 const SAMPLE_MS = 1000;
+const MAX_RENDERABLE_POLY_AGE_MS = 2000;
 const STORAGE_PREFIX = "btc5m-live-poly-trajectory:";
 
 function finite(value: unknown): number | null {
@@ -110,7 +119,10 @@ function TrajectoryCanvas({ points }: { points: Point[] }) {
         ctx.setLineDash(dashed ? [7, 5] : []);
         let started = false;
         values.forEach((value, index) => {
-          if (value == null || value < 0 || value > 1) return;
+          if (value == null || value < 0 || value > 1) {
+            started = false;
+            return;
+          }
           const x = padX + (index / Math.max(1, values.length - 1)) * (width - padX * 2);
           const y = height - padY - value * (height - padY * 2);
           if (!started) {
@@ -184,10 +196,30 @@ export default function PolyLiveTrajectoryDashboard() {
         const nextPoly = cross.state.polymarket;
         const slug = String(nextPoly?.market?.slug ?? "");
         const marketId = finite(binance.latest.market_id);
+        const ageMs = finite(nextPoly?.ageMs);
+        const receivedMs = finite(nextPoly?.receivedTimestampMs);
+        const continuity = nextPoly?.continuity;
+        const identityAligned = !continuity?.targetMarketSlug || !continuity?.marketSlug
+          ? true
+          : continuity.targetMarketSlug === continuity.marketSlug;
+        const polyFresh = String(nextPoly?.status ?? "").toUpperCase() === "LIVE"
+          && receivedMs != null
+          && ageMs != null
+          && ageMs <= MAX_RENDERABLE_POLY_AGE_MS
+          && continuity?.healthy !== false
+          && continuity?.gapActive !== true
+          && identityAligned;
+
         setPoly(nextPoly ?? null);
         setBinanceMarketId(marketId == null ? null : Math.trunc(marketId));
         setError("");
-        if (!slug || marketId == null) return;
+
+        if (!slug || marketId == null) {
+          keyRef.current = null;
+          setMarketKey(null);
+          setPoints([]);
+          return;
+        }
 
         const nextKey = `${Math.trunc(marketId)}:${slug}`;
         const point: Point = {
@@ -195,8 +227,8 @@ export default function PolyLiveTrajectoryDashboard() {
           atMs: Math.floor(Date.now() / SAMPLE_MS) * SAMPLE_MS,
           binanceUp: finite(binance.latest.up_ask),
           binanceDown: finite(binance.latest.down_ask),
-          polyUp: finite(nextPoly?.up?.bestAsk),
-          polyDown: finite(nextPoly?.down?.bestAsk),
+          polyUp: polyFresh ? finite(nextPoly?.up?.bestAsk) : null,
+          polyDown: polyFresh ? finite(nextPoly?.down?.bestAsk) : null,
         };
         setMarketKey(nextKey);
         setPoints(current => {
@@ -234,6 +266,13 @@ export default function PolyLiveTrajectoryDashboard() {
   const polyStatus = discovery?.status === "WAITING_GAMMA"
     ? "WAITING_GAMMA"
     : poly?.status ?? "—";
+  const continuity = poly?.continuity;
+  const polyFresh = poly?.receivedTimestampMs != null
+    && poly?.ageMs != null
+    && Number(poly.ageMs) <= MAX_RENDERABLE_POLY_AGE_MS
+    && String(poly?.status ?? "").toUpperCase() === "LIVE"
+    && continuity?.healthy !== false
+    && continuity?.gapActive !== true;
 
   return createPortal(
     <section aria-label="實單頁面 Polymarket 市場軌跡" style={{
@@ -248,11 +287,12 @@ export default function PolyLiveTrajectoryDashboard() {
         <div>
           <span className="eyebrow">LIVE VIEW · POLYMARKET / BINANCE</span>
           <h3 style={{ margin: "4px 0 0" }}>實單市場軌跡</h3>
-          <small>最近 90 秒共同 1 秒取樣。Binance 為實線，Polymarket 為虛線；只顯示，不參與送單。</small>
+          <small>最近 90 秒共同 1 秒取樣。Binance 為實線，Polymarket 為虛線；Poly freshness 無效時會斷線，不延用舊值。</small>
         </div>
         <div style={{ textAlign: "right" }}>
           <strong>{polyStatus}</strong>
           <small style={{ display: "block", marginTop: 4 }}>Binance #{binanceMarketId ?? "—"} · Poly age {poly?.ageMs == null ? "—" : `${Math.round(Number(poly.ageMs))} ms`}</small>
+          <small style={{ display: "block", marginTop: 2 }}>Poly receipt {poly?.receivedTimestampMs == null ? "—" : new Date(Number(poly.receivedTimestampMs)).toLocaleTimeString("zh-TW", { hour12: false })} · {polyFresh ? "FRESH" : "NOT FRESH"}</small>
         </div>
       </div>
 
@@ -269,7 +309,10 @@ export default function PolyLiveTrajectoryDashboard() {
       </div>
 
       {discovery?.status === "WAITING_GAMMA" && <small style={{ display: "block", marginTop: 9, color: "#ffcf8f" }}>
-        Gamma 尚未發布目前 5 分鐘 slug；collector 會持續重試。這是市場 discovery 等待，不是 TLS 錯誤。
+        Gamma 尚未發布目前 5 分鐘 slug；collector 會持續重試，並優先使用預抓的下一市場 metadata。這是市場 discovery 等待，不是 TLS 錯誤。
+      </small>}
+      {!polyFresh && polyStatus !== "WAITING_GAMMA" && <small style={{ display: "block", marginTop: 9, color: "#ffcf8f" }}>
+        Poly freshness 尚未確認；虛線暫停，避免把 cache 或上一市場價格當作即時價。
       </small>}
       {(error || poly?.error) && <small style={{ display: "block", marginTop: 9, color: "#ff9f9f" }}>資料錯誤：{error || poly?.error}</small>}
     </section>,
