@@ -52,11 +52,11 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting resilient Chainlink/Polymarket cross-oracle collector "
-        "with hard rollover invalidation, hardened Gamma discovery and restricted public-readonly HTTP/WSS TLS fallback",
+        "with next-market prefetch, guarded rollover, hardened Gamma discovery and restricted public-readonly TLS fallback",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.cross_oracle_rollover_guard"]
+        [sys.executable, "-m", "predict_bot.cross_oracle_prefetch_recovery"]
     )
 
 
