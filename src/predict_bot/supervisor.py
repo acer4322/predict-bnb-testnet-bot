@@ -52,11 +52,12 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting resilient Chainlink/Polymarket cross-oracle collector "
-        "with event-aware market identity, next-market prefetch, guarded rollover, hardened Gamma discovery and restricted public-readonly TLS fallback",
+        "with strict event-first UP/DOWN identity, next-market prefetch, rollover invalidation, "
+        "two-sided websocket initial-book readiness and automatic bad-subscription rediscovery",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.cross_oracle_event_identity_recovery"]
+        [sys.executable, "-m", "predict_bot.cross_oracle_trade_readiness"]
     )
 
 
@@ -98,15 +99,16 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
 def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
-    # Compatibility lineage: predict_bot.poly_gap_live_v11 -> V12 -> V13.
-    # V13 keeps the V11 order-reconciliation safety chain and gates only NEW risk.
+    # Compatibility lineage: predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14.
+    # V14 adds only a strict new-entry market/freshness gate; all V11-V13 position
+    # management, stable exit, order reconciliation and Paper CHOP protections remain.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V13 on port 8769 (V12 stable exit + immediate/persistent Paper CHOP pause gate)",
+        "V14 on port 8769 (V13 CHOP guard + exact current-market Poly binding/warm-up)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v13"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v14"]
     )
 
 
