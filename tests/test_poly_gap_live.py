@@ -6,6 +6,7 @@ from predict_bot.poly_gap_live import PolyGapLiveEngine
 from predict_bot.poly_gap_live_v2 import RolloverSafePolyGapLiveEngine
 from predict_bot.poly_gap_live_v3 import SignalGenerationPolyGapLiveEngine
 from predict_bot.poly_gap_live_v4 import ImmediateRiskPolyGapLiveEngine
+from predict_bot.poly_gap_live_v5 import OperationalMetricsPolyGapLiveEngine
 
 
 def test_dedicated_poly_gap_live_defaults_fail_closed(tmp_path: Path) -> None:
@@ -64,21 +65,59 @@ def test_database_allows_multiple_rounds_in_same_market(tmp_path: Path) -> None:
         engine.stop()
 
 
-def test_v4_builds_on_signal_generation_and_rollover_guards() -> None:
+def test_v5_builds_on_all_previous_dedicated_guards() -> None:
     assert issubclass(RolloverSafePolyGapLiveEngine, PolyGapLiveEngine)
     assert issubclass(SignalGenerationPolyGapLiveEngine, RolloverSafePolyGapLiveEngine)
     assert issubclass(ImmediateRiskPolyGapLiveEngine, SignalGenerationPolyGapLiveEngine)
+    assert issubclass(OperationalMetricsPolyGapLiveEngine, ImmediateRiskPolyGapLiveEngine)
 
 
-def test_v4_snapshot_exposes_signal_generation_single_owner_and_immediate_risk(tmp_path: Path) -> None:
-    engine = ImmediateRiskPolyGapLiveEngine(tmp_path / "poly_gap_live_v4.db")
+def test_v5_snapshot_separates_current_status_last_error_and_entry_success(tmp_path: Path) -> None:
+    engine = OperationalMetricsPolyGapLiveEngine(tmp_path / "poly_gap_live_v5.db")
     try:
+        now = 1_000
+        with engine.db_lock:
+            engine.db.execute(
+                """INSERT INTO poly_gap_live_rounds(
+                       market_id,topic_id,round_no,side,token_id,state,stake_usdt,
+                       entry_order_id,created_at_ms,updated_at_ms
+                   ) VALUES(1,2,1,'UP','token','CLOSED',1.0,'order-1',?,?)""",
+                (now, now),
+            )
+            first_id = int(engine.db.execute("SELECT last_insert_rowid()").fetchone()[0])
+            engine.db.execute(
+                """INSERT INTO poly_gap_live_events(
+                       at_ms,level,event_type,market_id,round_id,message
+                   ) VALUES(?, 'WARN', 'ENTRY_PLACED', 1, ?, 'submitted')""",
+                (now + 1, first_id),
+            )
+            engine.db.execute(
+                """INSERT INTO poly_gap_live_events(
+                       at_ms,level,event_type,market_id,round_id,message
+                   ) VALUES(?, 'INFO', 'ENTRY_CONFIRMED', 1, ?, 'confirmed')""",
+                (now + 2, first_id),
+            )
+            engine.db.execute(
+                """INSERT INTO poly_gap_live_rounds(
+                       market_id,topic_id,round_no,side,token_id,state,stake_usdt,
+                       error_kind,error_message,close_reason,created_at_ms,updated_at_ms
+                   ) VALUES(1,2,2,'DOWN','token2','REJECTED',1.0,
+                            'ENTRY_QUOTE_REJECTED','HTTP 400','ENTRY_QUOTE_REJECTED',?,?)""",
+                (now + 3, now + 4),
+            )
+            engine.db.commit()
         state = engine.snapshot()
-        assert state["version"] == "POLY_GAP_DEDICATED_LIVE_V4"
-        assert state["signalGeneration"]["latched"] is False
-        assert "edge below threshold" in state["signalGeneration"]["rearm"]
-        assert state["generalLiveConflict"]["singleRealMoneyOwner"] is True
+        assert state["version"] == "POLY_GAP_DEDICATED_LIVE_V5"
+        assert state["currentStatus"]["status"] == state["status"]
+        assert state["lastErrorDetail"]["kind"] == "ENTRY_QUOTE_REJECTED"
+        assert state["lastErrorDetail"]["message"] == "HTTP 400"
+        assert state["entryExecution"]["attempts"] == 2
+        assert state["entryExecution"]["submitted"] == 1
+        assert state["entryExecution"]["confirmed"] == 1
+        assert state["entryExecution"]["successRate"] == 0.5
+        assert state["entryExecution"]["quoteRejected"] == 1
         assert state["lossGuard"]["settingsApplyIsImmediate"] is True
+        assert state["generalLiveConflict"]["singleRealMoneyOwner"] is True
     finally:
         engine.stop()
 
@@ -105,7 +144,7 @@ def test_lowered_loss_cap_trips_immediately(tmp_path: Path) -> None:
         engine.stop()
 
 
-def test_supervisor_runs_v4_entrypoint() -> None:
+def test_supervisor_runs_v5_entrypoint() -> None:
     source = (Path(__file__).resolve().parents[1] / "src" / "predict_bot" / "supervisor.py").read_text(encoding="utf-8")
-    assert "predict_bot.poly_gap_live_v4" in source
-    assert "predict_bot.poly_gap_live_v3" not in source
+    assert "predict_bot.poly_gap_live_v5" in source
+    assert "predict_bot.poly_gap_live_v4" not in source
