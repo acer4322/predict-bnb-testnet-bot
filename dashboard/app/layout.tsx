@@ -7,6 +7,7 @@ import MaximumNetLossGuardDashboard from "./maximum-net-loss-guard-dashboard";
 import NativeObserverLiveControls from "./native-observer-live-controls";
 import OracleCrossMarketPanel from "./oracle-cross-market-panel";
 import OracleCrossStrategyPanel from "./oracle-cross-strategy-panel";
+import PolyCrossTabContextBridge from "./poly-cross-tab-context-bridge";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Link href="/xpair-canary" style={{ color: "#ffbd87", textDecoration: "none", padding: "7px 11px", borderRadius: 999 }}>XPAIR Canary</Link>
       </nav>
       <NativeObserverLiveControls />
+      <PolyCrossTabContextBridge />
       {children}
       <OracleCrossMarketPanel />
       <OracleCrossStrategyPanel />
