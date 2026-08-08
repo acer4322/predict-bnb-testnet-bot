@@ -13,6 +13,8 @@ type RoundRow = {
   entry_signal_at_ms?: number | null;
   entry_quote_average?: number | null;
   entry_order_id?: string | null;
+  exit_quote_average?: number | null;
+  exit_order_id?: string | null;
   pnl_usdt?: number | null;
   close_reason?: string | null;
   error_kind?: string | null;
@@ -27,6 +29,14 @@ type EventRow = {
   market_id?: number | null;
   round_id?: number | null;
   message?: string;
+};
+
+type ExecutionMetric = {
+  attempts?: number;
+  submitted?: number;
+  confirmed?: number;
+  successRate?: number | null;
+  definition?: string;
 };
 
 type State = {
@@ -55,16 +65,26 @@ type State = {
     state?: string;
   } | null;
   lastError?: string | null;
-  entryExecution?: {
-    attempts?: number;
-    submitted?: number;
-    confirmed?: number;
-    successRate?: number | null;
+  entryExecution?: ExecutionMetric & {
     quoteRejected?: number;
     edgeGoneAfterQuote?: number;
     placeRejected?: number;
     ambiguous?: number;
-    definition?: string;
+  };
+  exitExecution?: ExecutionMetric & {
+    quoteRejectedEvents?: number;
+    invalidQuoteEvents?: number;
+    placeRejectedEvents?: number;
+    notFlatRetryEvents?: number;
+    ambiguousCurrent?: number;
+  };
+  executionTuning?: {
+    entrySlippageBps?: number;
+    exitSlippageBps?: number;
+    entryPositionSyncTimeoutMs?: number;
+    exitPositionSyncTimeoutMs?: number;
+    entryEdgeRuleChanged?: boolean;
+    minimumExecutableEntryEdge?: number;
   };
   recentRounds?: RoundRow[];
   recentEvents?: EventRow[];
@@ -94,6 +114,11 @@ function shortId(value: unknown) {
   const text = String(value ?? "");
   if (!text) return "—";
   return text.length > 18 ? `${text.slice(0, 8)}…${text.slice(-6)}` : text;
+}
+
+function bps(value: unknown) {
+  const n = Number(value);
+  return Number.isFinite(n) ? `${n} bps (${(n / 100).toFixed(2)}%)` : "—";
 }
 
 export default function PolyGapLiveOperationsDashboard() {
@@ -144,6 +169,8 @@ export default function PolyGapLiveOperationsDashboard() {
   const current = state?.currentStatus;
   const lastError = state?.lastErrorDetail;
   const entry = state?.entryExecution;
+  const exit = state?.exitExecution;
+  const tuning = state?.executionTuning;
   const recentRounds = (state?.recentRounds ?? []).slice(0, 12);
   const recentEvents = (state?.recentEvents ?? []).slice(0, 12);
   const currentStatus = current?.status ?? state?.status ?? "OFFLINE";
@@ -171,7 +198,7 @@ export default function PolyGapLiveOperationsDashboard() {
       <div>
         <span className="eyebrow">DEDICATED LIVE EXECUTION · OPERATIONS</span>
         <h3 style={{ margin: "4px 0 0" }}>R_POLY_GAP_SCALP 專用實單狀態與紀錄</h3>
-        <small>目前狀況與歷史錯誤分開顯示；歷史錯誤不代表現在仍處於故障。</small>
+        <small>目前狀況與歷史錯誤分開顯示；ENTRY 保持嚴格，EXIT 使用獨立較寬的執行容忍度。</small>
       </div>
 
       <div className="poly-gap-ops-grid">
@@ -195,16 +222,30 @@ export default function PolyGapLiveOperationsDashboard() {
           <small>確認開倉 {entry?.confirmed ?? 0} / 嘗試 {entry?.attempts ?? 0} · 已送 BUY {entry?.submitted ?? 0}</small>
           <small>Quote 拒絕 {entry?.quoteRejected ?? 0} · Quote 後 edge 消失 {entry?.edgeGoneAfterQuote ?? 0} · Place 拒絕 {entry?.placeRejected ?? 0} · Ambiguous {entry?.ambiguous ?? 0}</small>
         </div>
+
+        <div className="poly-gap-ops-card">
+          <span>成功出場率</span>
+          <strong>{rate(exit?.successRate)}</strong>
+          <small>確認 FLAT {exit?.confirmed ?? 0} / 有退出訊號 {exit?.attempts ?? 0} · 已送 SELL {exit?.submitted ?? 0}</small>
+          <small>Quote 拒絕 {exit?.quoteRejectedEvents ?? 0} · 無效 Quote {exit?.invalidQuoteEvents ?? 0} · Place 拒絕 {exit?.placeRejectedEvents ?? 0} · 未平倉重試 {exit?.notFlatRetryEvents ?? 0}</small>
+        </div>
+
+        <div className="poly-gap-ops-card">
+          <span>執行容忍度</span>
+          <strong>ENTRY {bps(tuning?.entrySlippageBps)} · EXIT {bps(tuning?.exitSlippageBps)}</strong>
+          <small>ENTRY executable edge ≥ {rate(tuning?.minimumExecutableEntryEdge)}，規則未放寬。</small>
+          <small>Position sync：ENTRY {tuning?.entryPositionSyncTimeoutMs ?? "—"} ms · EXIT {tuning?.exitPositionSyncTimeoutMs ?? "—"} ms</small>
+        </div>
       </div>
 
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 7 }}>
-          <strong>開單紀錄</strong>
-          <small>成功率定義：ENTRY_CONFIRMED / round entry attempts</small>
+          <strong>開單／出場紀錄</strong>
+          <small>ENTRY：ENTRY_CONFIRMED / attempts；EXIT：確認 FLAT / 有退出訊號的 rounds</small>
         </div>
         <div className="poly-gap-ops-scroll">
           <table className="poly-gap-ops-table">
-            <thead><tr><th>時間</th><th>Market / Round</th><th>方向</th><th>狀態</th><th>金額</th><th>Entry quote</th><th>Order</th><th>PnL / 原因</th></tr></thead>
+            <thead><tr><th>時間</th><th>Market / Round</th><th>方向</th><th>狀態</th><th>金額</th><th>Entry / Exit quote</th><th>BUY / SELL Order</th><th>PnL / 原因</th></tr></thead>
             <tbody>
               {recentRounds.length === 0 && <tr><td colSpan={8}>尚無專用實單 round</td></tr>}
               {recentRounds.map(row => <tr key={row.id ?? `${row.market_id}:${row.round_no}`}>
@@ -213,8 +254,8 @@ export default function PolyGapLiveOperationsDashboard() {
                 <td>{row.side ?? "—"}</td>
                 <td>{row.state ?? "—"}</td>
                 <td>{Number(row.stake_usdt ?? 0).toFixed(2)} USDT</td>
-                <td>{row.entry_quote_average == null ? "—" : Number(row.entry_quote_average).toFixed(4)}</td>
-                <td>{shortId(row.entry_order_id)}</td>
+                <td>{row.entry_quote_average == null ? "—" : Number(row.entry_quote_average).toFixed(4)} / {row.exit_quote_average == null ? "—" : Number(row.exit_quote_average).toFixed(4)}</td>
+                <td>{shortId(row.entry_order_id)} / {shortId(row.exit_order_id)}</td>
                 <td className="poly-gap-ops-message">{row.pnl_usdt == null ? (row.error_kind ?? row.close_reason ?? "—") : money(row.pnl_usdt)}{row.error_message ? ` · ${row.error_message}` : ""}</td>
               </tr>)}
             </tbody>
