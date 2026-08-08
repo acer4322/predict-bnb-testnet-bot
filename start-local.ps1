@@ -66,6 +66,7 @@ $OptionalUserEnvironment = @(
     "BINANCE_LIVE_API_KEY",
     "BINANCE_LIVE_API_SECRET",
     "PREDICT_LIVE_ENABLED",
+    "PREDICT_POLY_GAP_LIVE_ENABLED",
     "PREDICT_LIVE_ACCOUNT_TYPE",
     "PREDICT_AUTO_REDEEM_ENABLED",
     "PREDICT_API_RESTART_ERROR_THRESHOLD",
@@ -172,6 +173,9 @@ if ($env:PREDICT_LIVE_ENABLED -match '^(1|true|yes|on)$') {
     catch {
         Write-Warning "REAL MONEY is configured, but its current state could not be read."
     }
+}
+if ($env:PREDICT_POLY_GAP_LIVE_ENABLED -match '^(1|true|yes|on)$') {
+    Write-Warning "REAL MONEY: dedicated R_POLY_GAP_SCALP master is enabled. Runtime remains controlled by its own dashboard switch and maximum-loss guard."
 }
 if ($env:PREDICT_AUTO_REDEEM_ENABLED -notmatch '^(0|false|no|off)$') {
     Write-Host "AUTO REDEEM ENABLED: claimable winners are redeemed 60 seconds after settlement."
