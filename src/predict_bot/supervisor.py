@@ -79,6 +79,9 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
             file=sys.stderr,
             flush=True,
         )
+    # Stable Paper is a thin wrapper around the existing
+    # predict_bot.cross_oracle_strategy_entry_quote_exit_sim launcher.  The
+    # original strategies/canary remain loaded; only the extra A/B ledger is added.
     print(
         "API supervisor: starting gap-aware Polymarket Paper strategies with "
         "original R_POLY_GAP_SCALP plus isolated R_POLY_GAP_SCALP_STABLE exit A/B",
@@ -96,6 +99,8 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
 def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
+    # V12 deliberately subclasses predict_bot.poly_gap_live_v11 so the V11
+    # entry/exit order reconciliation and legacy-accounting safeguards are retained.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
         "V12 on port 8769 (stable 500ms/3-receipt exit confirmation, V11 order reconciliation retained)",
