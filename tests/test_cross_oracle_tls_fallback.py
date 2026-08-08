@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ssl
 import urllib.error
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -11,6 +13,13 @@ from predict_bot.cross_oracle_tls_fallback import (
     _is_gamma_slug_url,
     _is_self_signed_tls_error,
     _public_polymarket_json,
+)
+from predict_bot.cross_oracle_transport_hardening import (
+    _WS_ALLOWED_HOSTS,
+    _gamma_list_lookup_404_safe,
+    _self_signed_tls_error,
+    _ws_host_allowed,
+    _ws_sslopt,
 )
 
 
@@ -23,14 +32,14 @@ def test_tls_fallback_scope_is_public_polymarket_only() -> None:
 
 
 def test_self_signed_detection_is_narrow() -> None:
-    assert _is_self_signed_tls_error(
-        RuntimeError(
-            "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
-            "self-signed certificate (_ssl.c:1028)"
-        )
+    error = RuntimeError(
+        "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
+        "self-signed certificate (_ssl.c:1028)"
     )
+    assert _is_self_signed_tls_error(error)
+    assert _self_signed_tls_error(error)
     assert not _is_self_signed_tls_error(RuntimeError("timed out"))
-    assert not _is_self_signed_tls_error(RuntimeError("HTTP 500"))
+    assert not _self_signed_tls_error(RuntimeError("HTTP 500"))
 
 
 def test_helper_refuses_binance_before_any_network_request() -> None:
@@ -77,3 +86,52 @@ def test_gamma_exact_404_has_same_slug_list_query_recovery() -> None:
     assert '"LIST_QUERY_FALLBACK"' in source
     assert '"EXACT_SLUG"' in source
     assert '"gammaExact404ListFallback": True' in source
+
+
+def test_gamma_list_query_404_is_not_wrapped_as_tls_failure() -> None:
+    class Response:
+        status_code = 404
+
+        def raise_for_status(self) -> None:
+            raise AssertionError("404 must be handled before raise_for_status")
+
+        def json(self) -> Any:
+            raise AssertionError("404 must not be decoded as JSON")
+
+    class Client:
+        def get(self, *_args: Any, **_kwargs: Any) -> Response:
+            return Response()
+
+    result = _gamma_list_lookup_404_safe(
+        Client(),
+        slug="btc-updown-5m-1786199100",
+    )
+    assert result is None
+
+
+def test_websocket_tls_fallback_is_public_polymarket_only() -> None:
+    assert _WS_ALLOWED_HOSTS == {
+        "ws-live-data.polymarket.com",
+        "ws-subscriptions-clob.polymarket.com",
+    }
+    assert _ws_host_allowed("wss://ws-live-data.polymarket.com")
+    assert _ws_host_allowed("wss://ws-subscriptions-clob.polymarket.com/ws/market")
+    assert not _ws_host_allowed("wss://api.binance.com/ws")
+    assert _ws_sslopt(False, "wss://ws-live-data.polymarket.com") is None
+    sslopt = _ws_sslopt(True, "wss://ws-live-data.polymarket.com")
+    assert sslopt is not None
+    assert sslopt["cert_reqs"] == ssl.CERT_NONE
+    assert sslopt["check_hostname"] is False
+    with pytest.raises(RuntimeError, match="refused non-public Polymarket host"):
+        _ws_sslopt(True, "wss://api.binance.com/ws")
+
+
+def test_supervisor_runs_transport_hardening_entrypoint() -> None:
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "predict_bot"
+        / "supervisor.py"
+    ).read_text(encoding="utf-8")
+    assert "predict_bot.cross_oracle_transport_hardening" in source
+    assert '"predict_bot.cross_oracle_tls_fallback"' not in source
