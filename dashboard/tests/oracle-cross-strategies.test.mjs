@@ -15,6 +15,8 @@ test("root layout mounts the cross-oracle strategy bridge", () => {
   const layout = read("layout.tsx");
   assert.match(layout, /OracleCrossStrategyPanel/);
   assert.match(layout, /<OracleCrossStrategyPanel\s*\/>/);
+  assert.match(layout, /PolyCrossTabContextBridge/);
+  assert.match(layout, /<PolyCrossTabContextBridge\s*\/>/);
 });
 
 test("cross-oracle strategies render as an independent lower strategy tab", () => {
@@ -25,6 +27,13 @@ test("cross-oracle strategies render as an independent lower strategy tab", () =
   assert.match(panel, /Poly 跨市場/);
   assert.match(panel, /poly-cross-market-active/);
   assert.doesNotMatch(panel, /querySelector\("\.market-panel"\)/);
+});
+
+test("Poly tab first switches the native dashboard into simulation research context", () => {
+  const bridge = read("poly-cross-tab-context-bridge.tsx");
+  assert.match(bridge, /button\.poly-cross-tab/);
+  assert.match(bridge, /research-tab/);
+  assert.match(bridge, /research\.click\(\)/);
 });
 
 test("strategy panel keeps all three lead gap experiments", () => {
