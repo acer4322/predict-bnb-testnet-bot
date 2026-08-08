@@ -46,11 +46,9 @@ type ApiPayload = {
   };
 };
 
-type StatHosts = {
+type CardHost = {
   strategy: StrategyId;
-  trades: Element;
-  winRate: Element;
-  pnl: Element;
+  card: Element;
 };
 
 function finite(value: unknown): number | null {
@@ -70,42 +68,34 @@ function money(value: unknown) {
   return `${number >= 0 ? "+" : "−"}$${Math.abs(number).toFixed(4)}`;
 }
 
-function trades(stats: ScenarioStats | undefined) {
-  return `${stats?.trades ?? 0} / ${stats?.open ?? 0}`;
-}
-
-function ComparisonLines({ best, worst, kind }: {
-  best: ScenarioStats | undefined;
-  worst: ScenarioStats | undefined;
-  kind: "trades" | "winRate" | "pnl";
+function ScenarioRow({ label, stats, kind }: {
+  label: string;
+  stats: ScenarioStats | undefined;
+  kind: "best" | "worst";
 }) {
-  const bestValue = kind === "trades"
-    ? trades(best)
-    : kind === "winRate"
-      ? pct(best?.winRate)
-      : money(best?.grossPnlUsdt);
-  const worstValue = kind === "trades"
-    ? trades(worst)
-    : kind === "winRate"
-      ? pct(worst?.winRate)
-      : money(worst?.grossPnlUsdt);
-  const bestPnl = finite(best?.grossPnlUsdt) ?? 0;
-  const worstPnl = finite(worst?.grossPnlUsdt) ?? 0;
-
-  return <div className="poly-native-scenario-lines" data-scenario-kind={kind}>
-    <div className="best">
-      <span>最佳</span>
-      <strong className={kind === "pnl" ? (bestPnl >= 0 ? "positive" : "negative") : ""}>{bestValue}</strong>
+  const pnl = finite(stats?.grossPnlUsdt) ?? 0;
+  return <div className={`poly-card-scenario-row ${kind}`} data-poly-scenario={kind}>
+    <div className="poly-card-scenario-name">
+      <strong>{label}</strong>
+      <small>{kind === "best" ? "最佳可見退出／無深度時樂觀上限" : "退出完全賣不掉，全部持有到結算"}</small>
     </div>
-    <div className="worst">
-      <span>最糟</span>
-      <strong className={kind === "pnl" ? (worstPnl >= 0 ? "positive" : "negative") : ""}>{worstValue}</strong>
+    <div>
+      <span>交易／持倉</span>
+      <strong>{stats?.trades ?? 0} / {stats?.open ?? 0}</strong>
+    </div>
+    <div>
+      <span>勝率</span>
+      <strong>{pct(stats?.winRate)}</strong>
+    </div>
+    <div>
+      <span>Gross PnL</span>
+      <strong className={pnl >= 0 ? "positive" : "negative"}>{money(stats?.grossPnlUsdt)}</strong>
     </div>
   </div>;
 }
 
 export default function PolyStrategyScenarioComparison() {
-  const [hosts, setHosts] = useState<StatHosts[]>([]);
+  const [hosts, setHosts] = useState<CardHost[]>([]);
   const [summaries, setSummaries] = useState<Record<string, ScenarioPortfolio>>({});
 
   useEffect(() => {
@@ -120,27 +110,14 @@ export default function PolyStrategyScenarioComparison() {
       const cards = Array.from(
         section.querySelectorAll<HTMLElement>(".m-exit-summary-grid.research-strategy-grid > .m-exit-card"),
       ).slice(0, 3);
-      const next: StatHosts[] = [];
-      cards.forEach((card, index) => {
+      const next = cards.flatMap((card, index) => {
         const strategy = STRATEGIES[index];
-        const cells = Array.from(card.querySelectorAll(":scope > .m-exit-primary-stats > div"));
-        if (!strategy || cells.length < 3) return;
-        next.push({
-          strategy,
-          trades: cells[0],
-          winRate: cells[1],
-          pnl: cells[2],
-        });
+        return strategy ? [{ strategy, card }] : [];
       });
       setHosts(previous => {
         if (
           previous.length === next.length
-          && previous.every((item, index) => (
-            item.strategy === next[index]?.strategy
-            && item.trades === next[index]?.trades
-            && item.winRate === next[index]?.winRate
-            && item.pnl === next[index]?.pnl
-          ))
+          && previous.every((item, index) => item.strategy === next[index]?.strategy && item.card === next[index]?.card)
         ) return previous;
         return next;
       });
@@ -183,33 +160,35 @@ export default function PolyStrategyScenarioComparison() {
 
   return <>
     <style>{`
-      #poly-cross-market-panel .poly-native-scenario-lines{margin-top:8px;padding-top:7px;border-top:1px solid rgba(126,145,178,.18);display:grid;gap:5px}
-      #poly-cross-market-panel .poly-native-scenario-lines>div{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px;border-radius:7px}
-      #poly-cross-market-panel .poly-native-scenario-lines .best{background:rgba(141,244,192,.065);border:1px solid rgba(141,244,192,.11)}
-      #poly-cross-market-panel .poly-native-scenario-lines .worst{background:rgba(255,180,92,.055);border:1px solid rgba(255,180,92,.11)}
-      #poly-cross-market-panel .poly-native-scenario-lines span{font:700 9px/1 var(--font-mono);letter-spacing:.06em;color:#91a0bb}
-      #poly-cross-market-panel .poly-native-scenario-lines strong{margin:0;font-size:12px;white-space:nowrap}
+      #poly-cross-market-panel .poly-card-scenario-comparison{margin-top:12px;padding-top:11px;border-top:1px solid rgba(126,145,178,.22)}
+      #poly-cross-market-panel .poly-card-scenario-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap}
+      #poly-cross-market-panel .poly-card-scenario-meta span{font:700 9px/1.2 var(--font-mono);letter-spacing:.07em;color:#91a0bb}
+      #poly-cross-market-panel .poly-card-scenario-meta small{color:#91a0bb}
+      #poly-cross-market-panel .poly-card-scenario-row{display:grid;grid-template-columns:minmax(150px,1.2fr) repeat(3,minmax(90px,1fr));gap:7px;margin-top:7px}
+      #poly-cross-market-panel .poly-card-scenario-row>div{padding:8px 9px;border-radius:9px;background:rgba(126,145,178,.07);min-width:0}
+      #poly-cross-market-panel .poly-card-scenario-row.best>div{border:1px solid rgba(141,244,192,.12)}
+      #poly-cross-market-panel .poly-card-scenario-row.worst>div{border:1px solid rgba(255,180,92,.12)}
+      #poly-cross-market-panel .poly-card-scenario-row span,#poly-cross-market-panel .poly-card-scenario-row small{display:block;color:#91a0bb;font-size:10px}
+      #poly-cross-market-panel .poly-card-scenario-row>div>strong{display:block;margin-top:3px;font-size:14px}
+      #poly-cross-market-panel .poly-card-scenario-name>strong{margin:0!important;font-size:12px!important;color:#dce6ff}
+      #poly-cross-market-panel .poly-card-scenario-name small{margin-top:4px}
+      @media(max-width:720px){#poly-cross-market-panel .poly-card-scenario-row{grid-template-columns:1fr 1fr}#poly-cross-market-panel .poly-card-scenario-name{grid-column:1/-1}}
     `}</style>
-    {hosts.flatMap(host => {
+    {hosts.map(host => {
       const summary = summaries[host.strategy];
-      if (!summary) return [];
-      return [
-        createPortal(
-          <ComparisonLines best={summary.best} worst={summary.worst} kind="trades" />,
-          host.trades,
-          `${host.strategy}-trades`,
-        ),
-        createPortal(
-          <ComparisonLines best={summary.best} worst={summary.worst} kind="winRate" />,
-          host.winRate,
-          `${host.strategy}-winrate`,
-        ),
-        createPortal(
-          <ComparisonLines best={summary.best} worst={summary.worst} kind="pnl" />,
-          host.pnl,
-          `${host.strategy}-pnl`,
-        ),
-      ];
+      if (!summary) return null;
+      return createPortal(
+        <div className="poly-card-scenario-comparison" data-poly-scenario-strategy={host.strategy}>
+          <div className="poly-card-scenario-meta">
+            <span>實際進場後的執行情境對比</span>
+            <small>Signed BUY 可實作 {summary.eligibleEntries ?? 0}/{summary.attemptedEntries ?? 0} · 排除 {summary.excludedEntryFailures ?? 0}</small>
+          </div>
+          <ScenarioRow label="最佳狀況" stats={summary.best} kind="best" />
+          <ScenarioRow label="最糟狀況" stats={summary.worst} kind="worst" />
+        </div>,
+        host.card,
+        host.strategy,
+      );
     })}
   </>;
 }
