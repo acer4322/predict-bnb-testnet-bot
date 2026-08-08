@@ -19,6 +19,7 @@ from .cross_oracle_strategy_server import (
     PORT,
     ResilientCrossOraclePaperEngine,
 )
+from .poly_quote_canary import PolyQuoteCanary
 
 
 class GapAwareCrossOraclePaperEngine(ResilientCrossOraclePaperEngine):
@@ -37,7 +38,86 @@ class GapAwareCrossOraclePaperEngine(ResilientCrossOraclePaperEngine):
         self.feed_gap_excluded_trades = 0
         self.feed_gap_excluded_confidence = 0
         self.feed_gap_resyncs = 0
+        self.quote_canary = PolyQuoteCanary(db_path)
         self._invalidate_simple_exit_positions_on_process_start()
+
+    def start(self) -> None:
+        self.quote_canary.start()
+        super().start()
+
+    def stop(self) -> None:
+        self.quote_canary.stop()
+        super().stop()
+
+    def _latest_trade_row(
+        self,
+        *,
+        strategy: str,
+        market_id: int,
+        trade_id: int | None = None,
+        opened_at_ms: int | None = None,
+    ) -> dict[str, Any] | None:
+        with self.db_lock:
+            if trade_id is not None:
+                row = self.db.execute(
+                    "SELECT * FROM cross_oracle_strategy_trades WHERE id=? LIMIT 1",
+                    (int(trade_id),),
+                ).fetchone()
+            elif opened_at_ms is not None:
+                row = self.db.execute(
+                    """SELECT * FROM cross_oracle_strategy_trades
+                        WHERE strategy=? AND binance_market_id=? AND opened_at_ms=?
+                        ORDER BY id DESC LIMIT 1""",
+                    (str(strategy), int(market_id), int(opened_at_ms)),
+                ).fetchone()
+            else:
+                row = self.db.execute(
+                    """SELECT * FROM cross_oracle_strategy_trades
+                        WHERE strategy=? AND binance_market_id=?
+                        ORDER BY id DESC LIMIT 1""",
+                    (str(strategy), int(market_id)),
+                ).fetchone()
+        return dict(row) if row is not None else None
+
+    def _open_trade(self, **kwargs: Any) -> bool:
+        opened = super()._open_trade(**kwargs)
+        if not opened:
+            return False
+        try:
+            row = self._latest_trade_row(
+                strategy=str(kwargs["strategy"]),
+                market_id=int(kwargs["binance_market_id"]),
+                opened_at_ms=int(kwargs["now_ms"]),
+            )
+            if row is not None:
+                self.quote_canary.enqueue_entry(row)
+        except Exception as exc:
+            with self.lock:
+                self.runtime["quoteCanaryError"] = str(exc)[:300]
+        return True
+
+    def _exit_trade_at_bid(
+        self,
+        trade: sqlite3.Row,
+        latest: dict[str, Any],
+        now_ms: int,
+        reason: str,
+    ) -> bool:
+        closed = super()._exit_trade_at_bid(trade, latest, now_ms, reason)
+        if not closed:
+            return False
+        try:
+            row = self._latest_trade_row(
+                strategy=str(trade["strategy"]),
+                market_id=int(trade["binance_market_id"]),
+                trade_id=int(trade["id"]),
+            )
+            if row is not None:
+                self.quote_canary.enqueue_exit(row)
+        except Exception as exc:
+            with self.lock:
+                self.runtime["quoteCanaryError"] = str(exc)[:300]
+        return True
 
     def _invalidate_simple_exit_positions_on_process_start(self) -> None:
         now_ms = int(time.time() * 1000)
@@ -169,6 +249,7 @@ class GapAwareCrossOraclePaperEngine(ResilientCrossOraclePaperEngine):
             "excludedConfidenceShadows": self.feed_gap_excluded_confidence,
             "recoveryResyncs": self.feed_gap_resyncs,
         }
+        payload["quoteCanary"] = self.quote_canary.snapshot()
         return payload
 
 
@@ -236,7 +317,8 @@ def main() -> int:
     handler = type("GapAwareCrossOracleStrategyHandler", (_Handler,), {"engine": engine})
     server = ThreadingHTTPServer((HOST, PORT), handler)
     print(
-        f"Gap-aware cross-oracle Paper strategies listening on http://{HOST}:{PORT}/state; db={DB_PATH}",
+        f"Gap-aware cross-oracle Paper strategies + signed quote canary listening on "
+        f"http://{HOST}:{PORT}/state; db={DB_PATH}",
         flush=True,
     )
     try:
