@@ -51,10 +51,13 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
     print(
-        "API supervisor: starting resilient Chainlink/Polymarket cross-oracle collector",
+        "API supervisor: starting resilient Chainlink/Polymarket cross-oracle collector "
+        "with restricted public-readonly TLS fallback",
         flush=True,
     )
-    return subprocess.Popen([sys.executable, "-m", "predict_bot.cross_oracle_resilient"])
+    return subprocess.Popen(
+        [sys.executable, "-m", "predict_bot.cross_oracle_tls_fallback"]
+    )
 
 
 def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
