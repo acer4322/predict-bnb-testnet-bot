@@ -98,11 +98,11 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V8 on port 8769 (10% momentum entry cap, 20% exit-priority tolerance)",
+        "V9 on port 8769 (10% entry cap, 20% exit tolerance, order reconciliation)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v8"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v9"]
     )
 
 
