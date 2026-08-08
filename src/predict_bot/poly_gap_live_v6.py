@@ -26,13 +26,18 @@ EXIT_POSITION_SYNC_TIMEOUT_MS = max(
     int(os.environ.get("PREDICT_POLY_GAP_LIVE_EXIT_POSITION_SYNC_TIMEOUT_MS", "750")),
 )
 
+# The base entry implementation reads this module-global value. Dedicated V6
+# keeps its default at the previous 100 bps while allowing an explicit entry-only
+# override without coupling it to the wider SELL tolerance below.
+base.QUOTE_SLIPPAGE_BPS = ENTRY_SLIPPAGE_BPS
+
 
 class ExitPriorityPolyGapLiveEngine(OperationalMetricsPolyGapLiveEngine):
     """V6: keep entry strict while making an already-open position easier to flatten.
 
-    Entry behavior remains inherited unchanged: the signed BUY quote still uses the
-    existing 100 bps default and the executable Poly-vs-signed-quote edge must stay
-    at or above SCALP_MIN_EDGE.
+    Entry behavior remains inherited unchanged: the signed BUY quote uses the
+    dedicated entry slippage setting (100 bps by default) and executable
+    Poly-vs-signed-quote edge must still remain at or above SCALP_MIN_EDGE.
 
     Exit behavior is intentionally asymmetric:
     - signed SELL quote/place use a dedicated, wider slippage tolerance;
