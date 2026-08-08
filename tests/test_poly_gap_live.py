@@ -4,6 +4,7 @@ from pathlib import Path
 
 from predict_bot.poly_gap_live import PolyGapLiveEngine
 from predict_bot.poly_gap_live_v2 import RolloverSafePolyGapLiveEngine
+from predict_bot.poly_gap_live_v3 import SignalGenerationPolyGapLiveEngine
 
 
 def test_dedicated_poly_gap_live_defaults_fail_closed(tmp_path: Path) -> None:
@@ -62,5 +63,24 @@ def test_database_allows_multiple_rounds_in_same_market(tmp_path: Path) -> None:
         engine.stop()
 
 
-def test_supervised_v2_is_rollover_safe_subclass() -> None:
+def test_v3_builds_on_rollover_safe_executor() -> None:
     assert issubclass(RolloverSafePolyGapLiveEngine, PolyGapLiveEngine)
+    assert issubclass(SignalGenerationPolyGapLiveEngine, RolloverSafePolyGapLiveEngine)
+
+
+def test_v3_snapshot_exposes_signal_generation_and_single_owner_guard(tmp_path: Path) -> None:
+    engine = SignalGenerationPolyGapLiveEngine(tmp_path / "poly_gap_live_v3.db")
+    try:
+        state = engine.snapshot()
+        assert state["version"] == "POLY_GAP_DEDICATED_LIVE_V3"
+        assert state["signalGeneration"]["latched"] is False
+        assert "edge below threshold" in state["signalGeneration"]["rearm"]
+        assert state["generalLiveConflict"]["singleRealMoneyOwner"] is True
+    finally:
+        engine.stop()
+
+
+def test_supervisor_runs_v3_entrypoint() -> None:
+    source = (Path(__file__).resolve().parents[1] / "src" / "predict_bot" / "supervisor.py").read_text(encoding="utf-8")
+    assert "predict_bot.poly_gap_live_v3" in source
+    assert "predict_bot.poly_gap_live_v2" not in source
