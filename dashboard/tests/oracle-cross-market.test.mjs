@@ -27,27 +27,30 @@ test("panel renders Polymarket BTC 5m using the existing market card vocabulary"
   assert.match(panel, /\/api\/oracle-cross-market/);
 });
 
-test("panel overlays Polymarket asks using the native MarketChart drawing semantics", () => {
+test("panel overlays Polymarket asks with the native 90-observation rolling window", () => {
   const panel = read("oracle-cross-market-panel.tsx");
   assert.match(panel, /PolyTrajectoryOverlay/);
   assert.match(panel, /canvas\.market-chart/);
   assert.match(panel, /poly-market-chart-overlay/);
   assert.match(panel, /Poly UP/);
   assert.match(panel, /Poly DOWN/);
+  assert.match(panel, /TRAJECTORY_HISTORY_LIMIT = 90/);
+  assert.match(panel, /slice\(-TRAJECTORY_HISTORY_LIMIT\)/);
   assert.match(panel, /ctx\.lineWidth = 2\.4/);
   assert.match(panel, /ctx\.lineJoin = "round"/);
+  assert.match(panel, /ctx\.setLineDash\(\[7, 5\]\)/);
   assert.match(panel, /i \/ Math\.max\(1, values\.length - 1\)/);
-  assert.doesNotMatch(panel, /setLineDash\(\[7, 5\]\)/);
   assert.doesNotMatch(panel, /elapsed \/ elapsedNow/);
-  assert.match(panel, /points\.map\(point => point\.upAsk\)/);
-  assert.match(panel, /points\.map\(point => point\.downAsk\)/);
+  assert.match(panel, /visiblePoints\.map\(point => point\.upAsk\)/);
+  assert.match(panel, /visiblePoints\.map\(point => point\.downAsk\)/);
 });
 
-test("Polymarket live trajectory cache survives ordinary dashboard refreshes", () => {
+test("Polymarket live trajectory cache survives refresh but rolls like Binance", () => {
   const panel = read("oracle-cross-market-panel.tsx");
   assert.match(panel, /btc5m-poly-trajectory:/);
   assert.match(panel, /window\.localStorage\.getItem/);
   assert.match(panel, /window\.localStorage\.setItem/);
+  assert.match(panel, /TRAJECTORY_HISTORY_LIMIT = 90/);
   assert.match(panel, /secondsLeft/);
 });
 
