@@ -78,6 +78,7 @@ const POLY_UP_COLOR = "#55d8ff";
 const POLY_DOWN_COLOR = "#c58cff";
 const TRAJECTORY_STORAGE_PREFIX = "btc5m-poly-trajectory:";
 const MARKET_DURATION_SECONDS = 300;
+const TRAJECTORY_HISTORY_LIMIT = 90;
 
 function finite(value: unknown): number | null {
   if (value == null || value === "") return null;
@@ -165,7 +166,7 @@ function loadTrajectory(slug: string): PolyTrajectoryPoint[] {
         };
       })
       .filter((row): row is PolyTrajectoryPoint => row != null)
-      .slice(-720);
+      .slice(-TRAJECTORY_HISTORY_LIMIT);
   } catch {
     return [];
   }
@@ -173,7 +174,10 @@ function loadTrajectory(slug: string): PolyTrajectoryPoint[] {
 
 function saveTrajectory(slug: string, points: PolyTrajectoryPoint[]) {
   try {
-    window.localStorage.setItem(trajectoryStorageKey(slug), JSON.stringify(points.slice(-720)));
+    window.localStorage.setItem(
+      trajectoryStorageKey(slug),
+      JSON.stringify(points.slice(-TRAJECTORY_HISTORY_LIMIT)),
+    );
   } catch {
     // Display cache is best-effort only; raw collector data remains authoritative.
   }
@@ -223,13 +227,15 @@ function PolyTrajectoryOverlay({
       const height = baseRect.height;
       const pad = 18;
 
-      // Mirror the native MarketChart renderer exactly: equal x spacing by
-      // observation order, the same 0..1 y transform, line width and join.
+      // Native MarketChart keeps the newest 90 observations. Mirror that exact
+      // rolling-window behavior here so both charts shed old points from the left.
+      const visiblePoints = points.slice(-TRAJECTORY_HISTORY_LIMIT);
       const draw = (values: (number | null)[], color: string) => {
         ctx.beginPath();
         ctx.strokeStyle = color;
         ctx.lineWidth = 2.4;
         ctx.lineJoin = "round";
+        ctx.setLineDash([7, 5]);
         values.forEach((value, i) => {
           if (value == null) return;
           const x = pad + (i / Math.max(1, values.length - 1)) * (width - pad * 2);
@@ -237,10 +243,11 @@ function PolyTrajectoryOverlay({
           if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
         ctx.stroke();
+        ctx.setLineDash([]);
       };
 
-      draw(points.map(point => point.upAsk), POLY_UP_COLOR);
-      draw(points.map(point => point.downAsk), POLY_DOWN_COLOR);
+      draw(visiblePoints.map(point => point.upAsk), POLY_UP_COLOR);
+      draw(visiblePoints.map(point => point.downAsk), POLY_DOWN_COLOR);
     };
 
     render();
@@ -364,7 +371,7 @@ export default function OracleCrossMarketPanel() {
       if (last && Math.abs(last.atMs - atMs) < 650) {
         next = [...sameMarket.slice(0, -1), nextPoint];
       } else {
-        next = [...sameMarket, nextPoint].slice(-720);
+        next = [...sameMarket, nextPoint].slice(-TRAJECTORY_HISTORY_LIMIT);
       }
       saveTrajectory(activeSlug, next);
       return next;
@@ -464,7 +471,7 @@ export default function OracleCrossMarketPanel() {
           {error ?? chainlink?.error ?? poly?.error}
         </p>}
         <p style={{ marginTop: 8, fontSize: 11, color: "rgba(215,225,245,.52)" }}>
-          只供研究與後續 cross-oracle 回放；不參與策略判斷、不送單。起始價為本機 Chainlink BTC/USD 在該 5 分鐘邊界最近的已保存 tick，offset 會明示，避免把重建值誤當 Polymarket 官方顯示值。上方 Binance 市場價格軌跡會同步疊加 Polymarket Ask：青色實線為 Poly UP、紫色實線為 Poly DOWN，繪圖方式與原 MarketChart 相同。
+          只供研究與後續 cross-oracle 回放；不參與策略判斷、不送單。起始價為本機 Chainlink BTC/USD 在該 5 分鐘邊界最近的已保存 tick，offset 會明示，避免把重建值誤當 Polymarket 官方顯示值。上方 Binance 市場價格軌跡會同步疊加 Polymarket Ask：青色虛線為 Poly UP、紫色虛線為 Poly DOWN；與原 MarketChart 一樣只顯示最近 90 筆，舊點會從左側滾出。
         </p>
       </div>,
       host,
