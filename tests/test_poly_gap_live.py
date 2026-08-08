@@ -200,7 +200,7 @@ def test_lowered_loss_cap_trips_immediately(tmp_path: Path) -> None:
         engine.stop()
 
 
-def test_supervisor_runs_v9_entrypoint() -> None:
+def test_supervisor_runs_v10_entrypoint() -> None:
     source = (Path(__file__).resolve().parents[1] / "src" / "predict_bot" / "supervisor.py").read_text(encoding="utf-8")
-    assert "predict_bot.poly_gap_live_v9" in source
-    assert "predict_bot.poly_gap_live_v8" not in source
+    assert "predict_bot.poly_gap_live_v10" in source
+    assert "predict_bot.poly_gap_live_v9" not in source
