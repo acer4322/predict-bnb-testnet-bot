@@ -199,8 +199,9 @@ class MomentumTolerancePolyGapLiveEngine(ReArmingScalpPolyGapLiveEngine):
             return
 
         if average > price_cap + 1e-12:
+            cap_pct = ENTRY_MAX_DETERIORATION_BPS / 100.0
             message = (
-                f"signed BUY average {average:.6f} exceeds 10% entry cap {price_cap:.6f} "
+                f"signed BUY average {average:.6f} exceeds {cap_pct:.2f}% entry cap {price_cap:.6f} "
                 f"from trigger Ask {trigger_ask:.6f}; deterioration={deterioration_bps:.1f}bps"
             )
             self._update_round(
@@ -292,6 +293,14 @@ class MomentumTolerancePolyGapLiveEngine(ReArmingScalpPolyGapLiveEngine):
                 "exitPriority": True,
             }
         )
+        with self.db_lock:
+            row = self.db.execute(
+                """SELECT COUNT(*) AS n FROM poly_gap_live_rounds
+                    WHERE error_kind='ENTRY_SIGNED_QUOTE_ABOVE_PRICE_CAP'
+                       OR close_reason='ENTRY_SIGNED_QUOTE_ABOVE_PRICE_CAP'"""
+            ).fetchone()
+        entry_execution = payload.setdefault("entryExecution", {})
+        entry_execution["priceCapRejected"] = int(row["n"] if row else 0)
         return payload
 
 
