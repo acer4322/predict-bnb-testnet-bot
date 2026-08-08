@@ -31,9 +31,14 @@ class PaperChopGuardedPolyGapLiveEngine(StableExitPolyGapLiveEngine):
     or Paper process failure can never block EXIT/ENTRY reconciliation for money
     already at risk; it only suppresses new exposure.
 
+    Paper may block new entries for either of two reasons:
+    - immediate same-market breaker after the current market itself reaches the
+      repeated-reversal threshold;
+    - persistent cross-market pause after the hysteresis trigger fires.
+
     Fail-closed semantics are intentional: if the Paper guard cannot be verified
     as fresh, V13 does not open a new position.  Automatic resume occurs only
-    after the Paper sidecar itself clears its persistent hysteresis state.
+    after the Paper sidecar says new exposure is allowed again.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -41,7 +46,9 @@ class PaperChopGuardedPolyGapLiveEngine(StableExitPolyGapLiveEngine):
         self._next_chop_guard_poll_at = 0.0
         self.last_chop_guard: dict[str, Any] = {
             "verified": False,
-            "paused": None,
+            "blocked": None,
+            "persistentPaused": None,
+            "currentMarketChoppy": None,
             "reason": "not checked yet",
             "checkedAtMs": None,
             "evaluatedAtMs": None,
@@ -53,7 +60,9 @@ class PaperChopGuardedPolyGapLiveEngine(StableExitPolyGapLiveEngine):
     def _emit_guard_transition(self, state: dict[str, Any]) -> None:
         key = (
             bool(state.get("verified")),
-            state.get("paused"),
+            state.get("blocked"),
+            state.get("persistentPaused"),
+            state.get("currentMarketChoppy"),
             str(state.get("reason") or state.get("error") or ""),
         )
         if key == self._last_chop_guard_event_key:
@@ -62,8 +71,8 @@ class PaperChopGuardedPolyGapLiveEngine(StableExitPolyGapLiveEngine):
         if not state.get("verified"):
             event_type = "PAPER_CHOP_GUARD_UNVERIFIED"
             level = "WARN"
-        elif state.get("paused"):
-            event_type = "PAPER_CHOP_GUARD_PAUSED"
+        elif state.get("blocked"):
+            event_type = "PAPER_CHOP_GUARD_BLOCKED"
             level = "WARN"
         else:
             event_type = "PAPER_CHOP_GUARD_ARMED"
@@ -84,7 +93,9 @@ class PaperChopGuardedPolyGapLiveEngine(StableExitPolyGapLiveEngine):
         checked_ms = base._now_ms()
         state: dict[str, Any] = {
             "verified": False,
-            "paused": None,
+            "blocked": None,
+            "persistentPaused": None,
+            "currentMarketChoppy": None,
             "reason": None,
             "checkedAtMs": checked_ms,
             "evaluatedAtMs": None,
@@ -112,13 +123,23 @@ class PaperChopGuardedPolyGapLiveEngine(StableExitPolyGapLiveEngine):
                 raise RuntimeError(
                     f"Paper chopGuard stale: {age_ms}ms > {PAPER_CHOP_GUARD_MAX_AGE_MS}ms"
                 )
-            paused_raw = guard.get("paused")
-            if not isinstance(paused_raw, bool):
-                raise RuntimeError("Paper chopGuard paused state is not boolean")
+
+            blocked_raw = guard.get("blockNewEntries")
+            if not isinstance(blocked_raw, bool):
+                raise RuntimeError("Paper chopGuard blockNewEntries state is not boolean")
+            persistent_raw = guard.get("persistentPaused", guard.get("paused"))
+            if not isinstance(persistent_raw, bool):
+                raise RuntimeError("Paper chopGuard persistent pause state is not boolean")
+            current_choppy_raw = guard.get("currentMarketChoppy")
+            if not isinstance(current_choppy_raw, bool):
+                raise RuntimeError("Paper chopGuard current-market breaker state is not boolean")
+
             state.update(
                 verified=True,
-                paused=paused_raw,
-                reason=str(guard.get("reason") or "Paper chop guard active")[:500],
+                blocked=blocked_raw,
+                persistentPaused=persistent_raw,
+                currentMarketChoppy=current_choppy_raw,
+                reason=str(guard.get("blockReason") or guard.get("reason") or "Paper chop guard active")[:500],
                 evaluatedAtMs=evaluated_ms,
                 ageMs=age_ms,
                 guard=guard,
@@ -151,8 +172,12 @@ class PaperChopGuardedPolyGapLiveEngine(StableExitPolyGapLiveEngine):
             self.status = "BLOCKED_PAPER_CHOP_GUARD_UNVERIFIED"
             self.last_error = str(guard.get("error") or guard.get("reason") or "")[:500]
             return
-        if guard.get("paused") is True:
-            self.status = "BLOCKED_PAPER_CHOP_GUARD"
+        if guard.get("blocked") is True:
+            self.status = (
+                "BLOCKED_PAPER_CURRENT_MARKET_CHOP"
+                if guard.get("currentMarketChoppy") and not guard.get("persistentPaused")
+                else "BLOCKED_PAPER_CHOP_GUARD"
+            )
             self.last_error = str(guard.get("reason") or "Paper detected choppy markets")[:500]
             return
 
@@ -170,6 +195,8 @@ class PaperChopGuardedPolyGapLiveEngine(StableExitPolyGapLiveEngine):
             "maxAcceptedAgeMs": PAPER_CHOP_GUARD_MAX_AGE_MS,
             "paperState": nested,
             "failClosedForNewEntries": True,
+            "sameMarketImmediateBreaker": True,
+            "persistentCrossMarketPause": True,
             "existingPositionManagementNeverBlocked": True,
             "automaticResumeOwnedByPaper": True,
         }
