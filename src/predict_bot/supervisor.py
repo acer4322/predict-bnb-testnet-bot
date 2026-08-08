@@ -6,6 +6,7 @@ import sys
 import time
 
 from .pair_arb_live_minimum import install_pair_arb_minimum
+from .poly_confidence_restart_guard import invalidate_unfinished_confidence_shadows
 
 
 install_pair_arb_minimum()
@@ -61,6 +62,22 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
         return None
     if not _enabled("PREDICT_CROSS_ORACLE_STRATEGIES_ENABLED", True):
         return None
+    try:
+        excluded = invalidate_unfinished_confidence_shadows()
+        if excluded:
+            print(
+                "API supervisor: Poly confidence restart guard excluded "
+                f"{excluded} unfinished shadow(s)",
+                flush=True,
+            )
+    except Exception as exc:
+        # A restart guard failure must not silently validate a discontinuous
+        # shadow. The strategy sidecar still starts, but the error is visible.
+        print(
+            f"API supervisor: Poly confidence restart guard failed: {exc}",
+            file=sys.stderr,
+            flush=True,
+        )
     print(
         "API supervisor: starting Polymarket lead/gap Paper strategies",
         flush=True,
