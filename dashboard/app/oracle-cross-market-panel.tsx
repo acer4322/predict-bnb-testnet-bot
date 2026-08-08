@@ -66,19 +66,33 @@ type ApiPayload = {
   error?: string;
 };
 
-type PolyTrajectoryPoint = {
-  slug: string;
-  atMs: number;
-  secondsLeft: number;
-  upAsk: number | null;
-  downAsk: number | null;
+type BinanceRealtimePayload = {
+  latest?: {
+    market_id?: number | null;
+    up_ask?: number | null;
+    down_ask?: number | null;
+  } | null;
 };
 
+type SynchronizedTrajectoryPoint = {
+  marketKey: string;
+  bucketMs: number;
+  binanceMarketId: number;
+  polySlug: string;
+  binanceUpAsk: number | null;
+  binanceDownAsk: number | null;
+  polyUpAsk: number | null;
+  polyDownAsk: number | null;
+};
+
+const BINANCE_UP_COLOR = "#8df4c0";
+const BINANCE_DOWN_COLOR = "#ffb45c";
 const POLY_UP_COLOR = "#55d8ff";
 const POLY_DOWN_COLOR = "#c58cff";
-const TRAJECTORY_STORAGE_PREFIX = "btc5m-poly-trajectory:";
-const MARKET_DURATION_SECONDS = 300;
+const TRAJECTORY_STORAGE_PREFIX = "btc5m-sync-trajectory:";
 const TRAJECTORY_HISTORY_LIMIT = 90;
+const SYNC_SAMPLE_INTERVAL_MS = 1000;
+const SYNC_BOUNDARY_OFFSET_MS = 35;
 
 function finite(value: unknown): number | null {
   if (value == null || value === "") return null;
@@ -139,43 +153,55 @@ function statusLive(value: string | null | undefined) {
   return String(value ?? "").toUpperCase() === "LIVE";
 }
 
-function trajectoryStorageKey(slug: string) {
-  return `${TRAJECTORY_STORAGE_PREFIX}${slug}`;
+function binanceRealtimeUrl() {
+  const hostname = window.location.hostname;
+  const host = hostname.includes(":") ? `[${hostname}]` : hostname;
+  return `${window.location.protocol}//${host}:8766/api/realtime`;
 }
 
-function loadTrajectory(slug: string): PolyTrajectoryPoint[] {
+function sampleBucketMs(nowMs = Date.now()) {
+  return Math.floor(nowMs / SYNC_SAMPLE_INTERVAL_MS) * SYNC_SAMPLE_INTERVAL_MS;
+}
+
+function trajectoryStorageKey(marketKey: string) {
+  return `${TRAJECTORY_STORAGE_PREFIX}${marketKey}`;
+}
+
+function loadTrajectory(marketKey: string): SynchronizedTrajectoryPoint[] {
   try {
-    const raw = window.localStorage.getItem(trajectoryStorageKey(slug));
+    const raw = window.localStorage.getItem(trajectoryStorageKey(marketKey));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .map((row): PolyTrajectoryPoint | null => {
-        if (!row || row.slug !== slug) return null;
-        const atMs = finite(row.atMs);
-        const secondsLeft = finite(row.secondsLeft);
-        const upAsk = finite(row.upAsk);
-        const downAsk = finite(row.downAsk);
-        if (atMs == null || secondsLeft == null) return null;
+      .map((row): SynchronizedTrajectoryPoint | null => {
+        if (!row || row.marketKey !== marketKey) return null;
+        const bucketMs = finite(row.bucketMs);
+        const binanceMarketId = finite(row.binanceMarketId);
+        const polySlug = typeof row.polySlug === "string" ? row.polySlug : "";
+        if (bucketMs == null || binanceMarketId == null || !polySlug) return null;
         return {
-          slug,
-          atMs,
-          secondsLeft: Math.max(0, Math.min(MARKET_DURATION_SECONDS, secondsLeft)),
-          upAsk,
-          downAsk,
+          marketKey,
+          bucketMs,
+          binanceMarketId,
+          polySlug,
+          binanceUpAsk: finite(row.binanceUpAsk),
+          binanceDownAsk: finite(row.binanceDownAsk),
+          polyUpAsk: finite(row.polyUpAsk),
+          polyDownAsk: finite(row.polyDownAsk),
         };
       })
-      .filter((row): row is PolyTrajectoryPoint => row != null)
+      .filter((row): row is SynchronizedTrajectoryPoint => row != null)
       .slice(-TRAJECTORY_HISTORY_LIMIT);
   } catch {
     return [];
   }
 }
 
-function saveTrajectory(slug: string, points: PolyTrajectoryPoint[]) {
+function saveTrajectory(marketKey: string, points: SynchronizedTrajectoryPoint[]) {
   try {
     window.localStorage.setItem(
-      trajectoryStorageKey(slug),
+      trajectoryStorageKey(marketKey),
       JSON.stringify(points.slice(-TRAJECTORY_HISTORY_LIMIT)),
     );
   } catch {
@@ -183,14 +209,12 @@ function saveTrajectory(slug: string, points: PolyTrajectoryPoint[]) {
   }
 }
 
-function PolyTrajectoryOverlay({
+function SynchronizedTrajectoryOverlay({
   host,
   points,
-  currentSecondsLeft: _currentSecondsLeft,
 }: {
   host: Element;
-  points: PolyTrajectoryPoint[];
-  currentSecondsLeft: number | null;
+  points: SynchronizedTrajectoryPoint[];
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -201,9 +225,11 @@ function PolyTrajectoryOverlay({
 
     const hostElement = host as HTMLElement;
     const previousInlinePosition = hostElement.style.position;
+    const previousBaseVisibility = base.style.visibility;
     if (window.getComputedStyle(hostElement).position === "static") {
       hostElement.style.position = "relative";
     }
+    base.style.visibility = "hidden";
 
     const render = () => {
       const hostRect = host.getBoundingClientRect();
@@ -226,28 +252,46 @@ function PolyTrajectoryOverlay({
       const width = baseRect.width;
       const height = baseRect.height;
       const pad = 18;
-
-      // Native MarketChart keeps the newest 90 observations. Mirror that exact
-      // rolling-window behavior here so both charts shed old points from the left.
       const visiblePoints = points.slice(-TRAJECTORY_HISTORY_LIMIT);
-      const draw = (values: (number | null)[], color: string) => {
+
+      ctx.strokeStyle = "rgba(255,255,255,.07)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([]);
+      for (let i = 1; i < 4; i++) {
+        const y = (height / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      const draw = (values: (number | null)[], color: string, dashed: boolean) => {
         ctx.beginPath();
         ctx.strokeStyle = color;
         ctx.lineWidth = 2.4;
         ctx.lineJoin = "round";
-        ctx.setLineDash([7, 5]);
+        ctx.lineCap = "round";
+        ctx.setLineDash(dashed ? [7, 5] : []);
+        let started = false;
         values.forEach((value, i) => {
-          if (value == null) return;
+          if (value == null || value < 0 || value > 1) return;
           const x = pad + (i / Math.max(1, values.length - 1)) * (width - pad * 2);
           const y = height - pad - value * (height - pad * 2);
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else {
+            ctx.lineTo(x, y);
+          }
         });
-        ctx.stroke();
+        if (started) ctx.stroke();
         ctx.setLineDash([]);
       };
 
-      draw(visiblePoints.map(point => point.upAsk), POLY_UP_COLOR);
-      draw(visiblePoints.map(point => point.downAsk), POLY_DOWN_COLOR);
+      draw(visiblePoints.map(point => point.binanceUpAsk), BINANCE_UP_COLOR, false);
+      draw(visiblePoints.map(point => point.binanceDownAsk), BINANCE_DOWN_COLOR, false);
+      draw(visiblePoints.map(point => point.polyUpAsk), POLY_UP_COLOR, true);
+      draw(visiblePoints.map(point => point.polyDownAsk), POLY_DOWN_COLOR, true);
     };
 
     render();
@@ -259,13 +303,14 @@ function PolyTrajectoryOverlay({
       resizeObserver.disconnect();
       window.removeEventListener("resize", render);
       hostElement.style.position = previousInlinePosition;
+      base.style.visibility = previousBaseVisibility;
     };
   }, [host, points]);
 
   return <canvas
     ref={ref}
-    className="poly-market-chart-overlay"
-    aria-label="Polymarket UP 與 DOWN 價格疊加軌跡"
+    className="poly-market-chart-overlay synchronized-market-chart-overlay"
+    aria-label="Binance 與 Polymarket 每秒同步 UP 與 DOWN 價格軌跡"
     style={{
       position: "absolute",
       zIndex: 3,
@@ -279,8 +324,10 @@ export default function OracleCrossMarketPanel() {
   const [chartHost, setChartHost] = useState<Element | null>(null);
   const [researchView, setResearchView] = useState(false);
   const [state, setState] = useState<CrossOracleState | null>(null);
+  const [binanceLatest, setBinanceLatest] = useState<BinanceRealtimePayload["latest"]>(null);
   const [error, setError] = useState<string | null>(null);
-  const [trajectory, setTrajectory] = useState<PolyTrajectoryPoint[]>([]);
+  const [trajectory, setTrajectory] = useState<SynchronizedTrajectoryPoint[]>([]);
+  const trajectoryKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const locate = () => {
@@ -298,36 +345,99 @@ export default function OracleCrossMarketPanel() {
 
   useEffect(() => {
     let active = true;
+    let loading = false;
     let controller: AbortController | null = null;
+    let timer: number | null = null;
+
     const load = async () => {
-      if (document.visibilityState === "hidden") return;
+      if (loading || document.visibilityState === "hidden") return;
+      loading = true;
+      const bucketMs = sampleBucketMs();
       controller?.abort();
       controller = new AbortController();
       try {
-        const response = await fetch("/api/oracle-cross-market", {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        const payload = await response.json() as ApiPayload;
-        if (!response.ok || !payload.ok || !payload.state) {
-          throw new Error(payload.error ?? `HTTP ${response.status}`);
+        const [crossResponse, binanceResponse] = await Promise.all([
+          fetch("/api/oracle-cross-market", {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
+          fetch(binanceRealtimeUrl(), {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
+        ]);
+        const crossPayload = await crossResponse.json() as ApiPayload;
+        const binancePayload = await binanceResponse.json() as BinanceRealtimePayload;
+        if (!crossResponse.ok || !crossPayload.ok || !crossPayload.state) {
+          throw new Error(crossPayload.error ?? `cross-oracle HTTP ${crossResponse.status}`);
+        }
+        if (!binanceResponse.ok || !binancePayload.latest) {
+          throw new Error(`Binance realtime HTTP ${binanceResponse.status}`);
         }
         if (!active) return;
-        setState(payload.state);
+
+        const nextState = crossPayload.state;
+        const nextBinance = binancePayload.latest;
+        setState(nextState);
+        setBinanceLatest(nextBinance);
         setError(null);
+
+        const poly = nextState.polymarket;
+        const slug = String(poly?.market?.slug ?? "");
+        const marketId = finite(nextBinance.market_id);
+        if (!slug || marketId == null) return;
+        const marketKey = `${Math.trunc(marketId)}:${slug}`;
+        const nextPoint: SynchronizedTrajectoryPoint = {
+          marketKey,
+          bucketMs,
+          binanceMarketId: Math.trunc(marketId),
+          polySlug: slug,
+          binanceUpAsk: finite(nextBinance.up_ask),
+          binanceDownAsk: finite(nextBinance.down_ask),
+          polyUpAsk: finite(poly?.up?.bestAsk),
+          polyDownAsk: finite(poly?.down?.bestAsk),
+        };
+
+        setTrajectory(current => {
+          let sameMarket = current;
+          if (trajectoryKeyRef.current !== marketKey) {
+            trajectoryKeyRef.current = marketKey;
+            sameMarket = loadTrajectory(marketKey);
+          } else {
+            sameMarket = current.filter(point => point.marketKey === marketKey);
+          }
+          const last = sameMarket.at(-1);
+          const next = last?.bucketMs === bucketMs
+            ? [...sameMarket.slice(0, -1), nextPoint]
+            : [...sameMarket, nextPoint].slice(-TRAJECTORY_HISTORY_LIMIT);
+          saveTrajectory(marketKey, next);
+          return next;
+        });
       } catch (caught) {
         if (!active || (caught instanceof DOMException && caught.name === "AbortError")) return;
         setError(caught instanceof Error ? caught.message : String(caught));
+      } finally {
+        loading = false;
       }
     };
+
+    const scheduleNext = () => {
+      const remainder = Date.now() % SYNC_SAMPLE_INTERVAL_MS;
+      const delay = Math.max(20, SYNC_SAMPLE_INTERVAL_MS - remainder + SYNC_BOUNDARY_OFFSET_MS);
+      timer = window.setTimeout(() => {
+        void load();
+        scheduleNext();
+      }, delay);
+    };
+
     void load();
-    const timer = window.setInterval(load, 1000);
+    scheduleNext();
     const visibility = () => { if (document.visibilityState === "visible") void load(); };
     document.addEventListener("visibilitychange", visibility);
     return () => {
       active = false;
       controller?.abort();
-      window.clearInterval(timer);
+      if (timer != null) window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", visibility);
     };
   }, []);
@@ -335,49 +445,6 @@ export default function OracleCrossMarketPanel() {
   const chainlink = state?.chainlink;
   const poly = state?.polymarket;
   const market = poly?.market;
-  const activeSlug = market?.slug ?? null;
-
-  useEffect(() => {
-    if (!activeSlug) {
-      setTrajectory([]);
-      return;
-    }
-    setTrajectory(loadTrajectory(activeSlug));
-  }, [activeSlug]);
-
-  useEffect(() => {
-    if (!activeSlug) return;
-    const secondsLeft = finite(poly?.secondsLeft ?? market?.secondsLeft);
-    const upAsk = finite(poly?.up?.bestAsk);
-    const downAsk = finite(poly?.down?.bestAsk);
-    if (secondsLeft == null || (upAsk == null && downAsk == null)) return;
-    const normalizedSecondsLeft = Math.max(0, Math.min(MARKET_DURATION_SECONDS, secondsLeft));
-    const windowEndMs = finite(market?.windowEndMs);
-    const atMs = windowEndMs == null
-      ? finite(state?.generatedAtMs) ?? Date.now()
-      : windowEndMs - normalizedSecondsLeft * 1000;
-
-    setTrajectory(current => {
-      const sameMarket = current.filter(point => point.slug === activeSlug);
-      const nextPoint: PolyTrajectoryPoint = {
-        slug: activeSlug,
-        atMs,
-        secondsLeft: normalizedSecondsLeft,
-        upAsk,
-        downAsk,
-      };
-      const last = sameMarket.at(-1);
-      let next: PolyTrajectoryPoint[];
-      if (last && Math.abs(last.atMs - atMs) < 650) {
-        next = [...sameMarket.slice(0, -1), nextPoint];
-      } else {
-        next = [...sameMarket, nextPoint].slice(-TRAJECTORY_HISTORY_LIMIT);
-      }
-      saveTrajectory(activeSlug, next);
-      return next;
-    });
-  }, [activeSlug, market?.secondsLeft, market?.windowEndMs, poly?.secondsLeft, poly?.up?.bestAsk, poly?.down?.bestAsk, state?.generatedAtMs]);
-
   const current = finite(chainlink?.price);
   const start = finite(poly?.startPrice);
   const delta = current != null && start != null ? current - start : null;
@@ -399,7 +466,6 @@ export default function OracleCrossMarketPanel() {
   if (!host || !researchView) return null;
 
   const legendHost = chartHost?.querySelector(".chart-head > div") ?? null;
-  const currentSecondsLeft = finite(poly?.secondsLeft ?? market?.secondsLeft);
 
   return <>
     {createPortal(
@@ -461,6 +527,7 @@ export default function OracleCrossMarketPanel() {
             ● {collectorLive ? "兩條即時來源正常" : "來源尚未全部 LIVE"}
           </span>
           <span>{streamDetail}</span>
+          <span>圖表同步：Binance #{binanceLatest?.market_id ?? "—"} · 1 秒共同取樣</span>
           <span>Condition {shortId(market?.conditionId)}</span>
           <span>UP token {shortId(poly?.up?.tokenId, 6)} · DOWN token {shortId(poly?.down?.tokenId, 6)}</span>
           <span>研究 DB：{state?.storage?.chainlinkRows ?? 0} Chainlink ticks · {state?.storage?.polymarketRows ?? 0} Polymarket events · {bytes(state?.storage?.dbBytes)}</span>
@@ -471,14 +538,14 @@ export default function OracleCrossMarketPanel() {
           {error ?? chainlink?.error ?? poly?.error}
         </p>}
         <p style={{ marginTop: 8, fontSize: 11, color: "rgba(215,225,245,.52)" }}>
-          只供研究與後續 cross-oracle 回放；不參與策略判斷、不送單。起始價為本機 Chainlink BTC/USD 在該 5 分鐘邊界最近的已保存 tick，offset 會明示，避免把重建值誤當 Polymarket 官方顯示值。上方 Binance 市場價格軌跡會同步疊加 Polymarket Ask：青色虛線為 Poly UP、紫色虛線為 Poly DOWN；與原 MarketChart 一樣只顯示最近 90 筆，舊點會從左側滾出。
+          只供研究與後續 cross-oracle 回放；不參與策略判斷、不送單。起始價為本機 Chainlink BTC/USD 在該 5 分鐘邊界最近的已保存 tick，offset 會明示。上方市場價格軌跡現在由同一個 1 秒 scheduler 同時取樣 Binance 與 Polymarket：Binance 綠／橘實線，Poly 青／紫虛線；四條線共用同一批 1 秒 bucket 與最近 90 筆 rolling window，因此不會再因 Binance 來源 timestamp 去重而少點。
         </p>
       </div>,
       host,
     )}
 
     {chartHost && createPortal(
-      <PolyTrajectoryOverlay host={chartHost} points={trajectory} currentSecondsLeft={currentSecondsLeft} />,
+      <SynchronizedTrajectoryOverlay host={chartHost} points={trajectory} />,
       chartHost,
     )}
 
