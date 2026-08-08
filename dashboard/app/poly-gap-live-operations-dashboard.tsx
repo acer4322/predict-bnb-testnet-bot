@@ -86,6 +86,20 @@ type State = {
     entryEdgeRuleChanged?: boolean;
     minimumExecutableEntryEdge?: number;
   };
+  scalpCycle?: {
+    repeatSameMarketRounds?: boolean;
+    definiteEntryFailureRetries?: boolean;
+    entryRetryCooldownMs?: number;
+    placeRejectRetryCooldownMs?: number;
+    noDepthRetryCooldownMs?: number;
+    rateLimitRetryCooldownMs?: number;
+    balanceRetryCooldownMs?: number;
+    retryRemainingMs?: number;
+    lastRearmAtMs?: number | null;
+    lastRearmReason?: string | null;
+    rearmImmediatelyAfterConfirmedFlat?: boolean;
+    ambiguousPlacementStillHaltsMarket?: boolean;
+  };
   recentRounds?: RoundRow[];
   recentEvents?: EventRow[];
 };
@@ -171,10 +185,21 @@ export default function PolyGapLiveOperationsDashboard() {
   const entry = state?.entryExecution;
   const exit = state?.exitExecution;
   const tuning = state?.executionTuning;
+  const cycle = state?.scalpCycle;
   const recentRounds = (state?.recentRounds ?? []).slice(0, 12);
   const recentEvents = (state?.recentEvents ?? []).slice(0, 12);
   const currentStatus = current?.status ?? state?.status ?? "OFFLINE";
-  const statusHealthy = ["ARMED_WAITING_GAP", "MANAGING_POSITION", "ENTRY_SYNC", "EXIT_SYNC", "PAUSED", "MASTER_DISABLED"].includes(currentStatus);
+  const statusHealthy = [
+    "ARMED_WAITING_GAP",
+    "MANAGING_POSITION",
+    "ENTRY_SYNC",
+    "EXIT_SYNC",
+    "ENTRY_RETRY_COOLDOWN",
+    "GAP_RETRY_COOLDOWN",
+    "GAP_WAITING_DEPTH_RETRY",
+    "PAUSED",
+    "MASTER_DISABLED",
+  ].includes(currentStatus);
 
   return createPortal(
     <section aria-label="R_POLY_GAP_SCALP 專用實單執行紀錄" style={{
@@ -198,7 +223,7 @@ export default function PolyGapLiveOperationsDashboard() {
       <div>
         <span className="eyebrow">DEDICATED LIVE EXECUTION · OPERATIONS</span>
         <h3 style={{ margin: "4px 0 0" }}>R_POLY_GAP_SCALP 專用實單狀態與紀錄</h3>
-        <small>目前狀況與歷史錯誤分開顯示；ENTRY 保持嚴格，EXIT 使用獨立較寬的執行容忍度。</small>
+        <small>目前狀況與歷史錯誤分開顯示；V7 允許同市場反覆 scalp，確定失敗只短暫 cooldown，確認 FLAT 後立即 re-arm。</small>
       </div>
 
       <div className="poly-gap-ops-grid">
@@ -207,6 +232,13 @@ export default function PolyGapLiveOperationsDashboard() {
           <strong style={{ color: statusHealthy ? "#8ce6ad" : "#ffbd87" }}>{currentStatus}</strong>
           <small>Market #{current?.marketId ?? "—"} · Round {current?.activeRoundNo ?? "—"} · {current?.activeRoundState ?? "FLAT"}</small>
           <small>Master {current?.masterEnabled ?? state?.masterEnabled ? "ON" : "OFF"} · Runtime {current?.runtimeEnabled ?? state?.settings?.runtimeEnabled ? "ON" : "OFF"}</small>
+        </div>
+
+        <div className="poly-gap-ops-card">
+          <span>高頻循環 / Re-arm</span>
+          <strong>{cycle?.repeatSameMarketRounds ? "同市場多輪已啟用" : "等待 V7"}</strong>
+          <small>Retry 倒數 {Number(cycle?.retryRemainingMs ?? 0).toFixed(0)} ms · 一般失敗 {cycle?.entryRetryCooldownMs ?? "—"} ms · Place 拒絕 {cycle?.placeRejectRetryCooldownMs ?? "—"} ms</small>
+          <small>最後 re-arm：{cycle?.lastRearmReason ?? "—"}{cycle?.lastRearmAtMs ? ` · ${timeText(cycle.lastRearmAtMs)}` : ""}</small>
         </div>
 
         <div className="poly-gap-ops-card">
@@ -284,7 +316,7 @@ export default function PolyGapLiveOperationsDashboard() {
       </div>
 
       {fetchError && <small style={{ color: "#ff9f9f" }}>8769 狀態讀取錯誤：{fetchError}</small>}
-      <small style={{ color: "#91a0bb" }}>版本 {state?.version ?? "—"}。上次錯誤是歷史欄位；判斷現在能否交易請看「當前狀況」。</small>
+      <small style={{ color: "#91a0bb" }}>版本 {state?.version ?? "—"}。`ENTRY_REARM_SCHEDULED` 代表確定失敗後等待下一次嘗試；`SCALP_REARMED_FLAT` 代表賣出確認 FLAT 後已重新武裝。</small>
     </section>,
     target,
   );
