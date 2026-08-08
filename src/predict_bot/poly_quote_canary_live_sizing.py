@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import sqlite3
+import threading
+import time
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from .cross_oracle_strategies import (
+    STRATEGIES,
     STRATEGY_POLY_LEAD_ENTRY,
     STRATEGY_POLY_LEAD_EXIT,
     probability_direction,
@@ -12,6 +14,7 @@ from .cross_oracle_strategies import (
 from .poly_quote_canary import PolyQuoteCanary, _http_json
 
 LIVE_RULES_URL = "http://127.0.0.1:8766/api/live-rules"
+LIVE_RULES_REFRESH_SECONDS = 1.0
 
 
 def _positive_float(value: Any) -> float | None:
@@ -79,11 +82,20 @@ def _shares_from_wei(value: Any) -> float | None:
 class LiveSizedPolyQuoteCanary(PolyQuoteCanary):
     """Quote canary sized like the currently configured live strategy.
 
-    A selected live strategy is tested at its configured initial stake instead
-    of the paper ledger's default stake.  Unselected strategies remain tested at
-    their paper stake.  EXIT quote sizing reuses the ENTRY signed quote output
-    when available so the SELL canary represents the simulated BUY quantity.
+    Live rule sizing is refreshed in the background before a signal arrives.
+    That keeps the measured signal-to-quote-start path free of an artificial
+    `/api/live-rules` round trip. A selected live strategy is tested at its
+    configured initial stake; unselected strategies fall back to the Paper
+    stake. EXIT quote sizing reuses the ENTRY signed quote output when possible.
     """
+
+    def __init__(self, db_path: Any) -> None:
+        self.live_rule_stakes: dict[str, float] = {}
+        self.live_rule_sources: dict[str, str] = {}
+        self.live_rules_updated_at_ms: int | None = None
+        self.live_rules_error: str | None = None
+        self.live_rules_thread: threading.Thread | None = None
+        super().__init__(db_path)
 
     def _create_schema(self) -> None:
         super()._create_schema()
@@ -106,17 +118,55 @@ class LiveSizedPolyQuoteCanary(PolyQuoteCanary):
                 )
             self.db.commit()
 
+    def start(self) -> None:
+        self._refresh_live_rules()
+        if self.live_rules_thread is None or not self.live_rules_thread.is_alive():
+            self.live_rules_thread = threading.Thread(
+                target=self._live_rules_loop,
+                name="poly-quote-canary-live-rules",
+                daemon=True,
+            )
+            self.live_rules_thread.start()
+        super().start()
+
+    def stop(self) -> None:
+        super().stop()
+        if self.live_rules_thread:
+            self.live_rules_thread.join(timeout=1.5)
+
+    def _live_rules_loop(self) -> None:
+        while not self.stop_event.wait(LIVE_RULES_REFRESH_SECONDS):
+            self._refresh_live_rules()
+
+    def _refresh_live_rules(self) -> None:
+        try:
+            payload = _http_json(LIVE_RULES_URL, timeout=0.5)
+            stakes: dict[str, float] = {}
+            sources: dict[str, str] = {}
+            for strategy in STRATEGIES:
+                stake, source = configured_live_stake_from_state(payload, strategy)
+                if stake is not None and source is not None:
+                    stakes[strategy] = float(stake)
+                    sources[strategy] = source
+            with self.lock:
+                self.live_rule_stakes = stakes
+                self.live_rule_sources = sources
+                self.live_rules_updated_at_ms = int(time.time() * 1000)
+                self.live_rules_error = None
+        except Exception as exc:
+            with self.lock:
+                self.live_rules_error = str(exc)[:300]
+
     def _configured_entry_stake(
         self,
         strategy: str,
         paper_stake: float,
     ) -> tuple[float, str]:
-        try:
-            payload = _http_json(LIVE_RULES_URL, timeout=0.5)
-            stake, source = configured_live_stake_from_state(payload, strategy)
-        except Exception:
-            stake, source = None, None
-        if stake is not None and source is not None:
+        normalized = str(strategy or "").strip().upper()
+        with self.lock:
+            stake = self.live_rule_stakes.get(normalized)
+            source = self.live_rule_sources.get(normalized)
+        if stake is not None and source is not None and stake > 0:
             return float(stake), source
         return float(paper_stake), "PAPER_STAKE_FALLBACK"
 
@@ -213,9 +263,22 @@ class LiveSizedPolyQuoteCanary(PolyQuoteCanary):
 
     def snapshot(self) -> dict[str, Any]:
         payload = super().snapshot()
+        now_ms = int(time.time() * 1000)
+        with self.lock:
+            live_rule_stakes = dict(self.live_rule_stakes)
+            updated_at_ms = self.live_rules_updated_at_ms
+            rules_error = self.live_rules_error
         payload["sizing"] = {
             "entry": "configured live initial stake when selected; otherwise paper stake",
             "exit": "ENTRY signed quote shares when available; otherwise paper shares",
             "liveRulesUrl": LIVE_RULES_URL,
+            "liveRulesRefreshMs": int(LIVE_RULES_REFRESH_SECONDS * 1000),
+            "liveRulesUpdatedAtMs": updated_at_ms,
+            "liveRulesAgeMs": (
+                max(0, now_ms - updated_at_ms) if updated_at_ms is not None else None
+            ),
+            "liveRulesError": rules_error,
+            "configuredEntryStakesUsdt": live_rule_stakes,
+            "sizingFetchOnSignalPath": False,
         }
         return payload
