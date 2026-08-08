@@ -37,6 +37,9 @@ type QuoteAttempt = {
   side?: string;
   signal_at_ms?: number;
   paper_price?: number;
+  paper_stake_usdt?: number;
+  simulated_entry_stake_usdt?: number | null;
+  simulated_amount_source?: string | null;
   quote_average_price?: number | null;
   price_limit?: number | null;
   token_cache_hit?: number;
@@ -72,6 +75,16 @@ type QuoteCanaryState = {
     slippageBps?: number;
     scalpMinExecutableEdge?: number;
   };
+  sizing?: {
+    entry?: string;
+    exit?: string;
+    liveRulesRefreshMs?: number;
+    liveRulesUpdatedAtMs?: number | null;
+    liveRulesAgeMs?: number | null;
+    liveRulesError?: string | null;
+    configuredEntryStakesUsdt?: Partial<Record<StrategyId, number>> & Record<string, number>;
+    sizingFetchOnSignalPath?: boolean;
+  };
   marketCache?: {
     marketId?: number | null;
     cachedAtMs?: number | null;
@@ -105,6 +118,11 @@ function ms(value: unknown) {
 function prob(value: unknown) {
   const number = finite(value);
   return number == null ? "—" : number.toFixed(3);
+}
+
+function usd(value: unknown) {
+  const number = finite(value);
+  return number == null ? "—" : `${number.toFixed(2)} USDT`;
 }
 
 function pct(value: unknown) {
@@ -185,6 +203,7 @@ export default function PolyQuoteCanaryPanel() {
   if (!host) return null;
 
   const recent = canary?.recent ?? [];
+  const configuredStakes = canary?.sizing?.configuredEntryStakesUsdt ?? {};
   return createPortal(
     <section className="poly-quote-canary" aria-label="Polymarket signed quote execution canary" style={{ marginTop: 20 }}>
       <style>{`
@@ -217,13 +236,14 @@ export default function PolyQuoteCanaryPanel() {
       <div className="poly-runtime">
         <article><span>Quote 模式</span><strong>{canary?.signedQuoteRequested ? "SIGNED GET-QUOTE" : "—"}</strong><small>place-order {canary?.placeOrderCalled ? "CALLED" : "NEVER CALLED"}</small></article>
         <article><span>Token cache</span><strong>#{canary?.marketCache?.marketId ?? "—"}</strong><small>prime {ms(canary?.marketCache?.lookupMs)} · queue {canary?.queueDepth ?? 0}</small></article>
-        <article><span>最後 Quote</span><strong>{clock(canary?.lastQuoteAtMs)}</strong><small>credentials {canary?.credentialSource ?? "—"}</small></article>
+        <article><span>實單尺寸快取</span><strong>{STRATEGIES.filter(strategy => configuredStakes[strategy] != null).length}/3 selected</strong><small>age {ms(canary?.sizing?.liveRulesAgeMs)} · signal-path fetch {canary?.sizing?.sizingFetchOnSignalPath ? "YES" : "NO"}</small></article>
         <article><span>執行門檻</span><strong>coverage ≥ {pct(canary?.parameters?.minQuoteCoverage)}</strong><small>expiry ≥ {canary?.parameters?.minExpiryHeadroomMs ?? "—"}ms · reprice +{prob(canary?.parameters?.repriceGap)}</small></article>
       </div>
 
       <div className="quote-grid">
         {STRATEGIES.map(strategy => {
           const summary = canary?.strategies?.[strategy] ?? {};
+          const configuredStake = configuredStakes[strategy];
           return <article className="quote-card" key={strategy} data-poly-quote-strategy={strategy}>
             <span className="eyebrow">{strategy}</span>
             <h4>Signed quote 可執行率</h4>
@@ -235,7 +255,7 @@ export default function PolyQuoteCanaryPanel() {
             <div className="quote-fails">
               價格追掉 {summary.priceMoved ?? 0} · 訊號已消失 {summary.signalGone ?? 0} · 容量不足 {summary.capacityFailed ?? 0} · quote 到期太近 {summary.expiryFailed ?? 0} · API 拒絕 {summary.quoteRejected ?? 0}
             </div>
-            <small>平均不利價格變化 {signed(summary.avgAdversePriceMove)}；attempts {summary.attempts ?? 0}</small>
+            <small>實測進場本金 {configuredStake == null ? "Paper 本金 fallback" : usd(configuredStake)} · 平均不利價格變化 {signed(summary.avgAdversePriceMove)} · attempts {summary.attempts ?? 0}</small>
           </article>;
         })}
       </div>
@@ -250,7 +270,7 @@ export default function PolyQuoteCanaryPanel() {
                   <td>{clock(row.signal_at_ms)}<small>trade #{row.trade_id ?? "—"}</small></td>
                   <td>{row.strategy ?? "—"}<small>{row.phase ?? "—"} · {row.side ?? "—"}</small></td>
                   <td>#{row.binance_market_id ?? "—"}<small>{row.token_cache_hit ? "token cache hit" : `lookup ${ms(row.token_lookup_ms)}`}</small></td>
-                  <td>{prob(row.paper_price)} → {prob(row.quote_average_price)}<small>limit {prob(row.price_limit)} · adverse {signed(row.adverse_price_move)}</small></td>
+                  <td>{prob(row.paper_price)} → {prob(row.quote_average_price)}<small>limit {prob(row.price_limit)} · adverse {signed(row.adverse_price_move)}</small><small>{row.phase === "ENTRY" ? `quote size ${usd(row.simulated_entry_stake_usdt ?? row.paper_stake_usdt)}` : `size source ${row.simulated_amount_source ?? "—"}`}</small></td>
                   <td>{ms(row.quote_rtt_ms)}</td>
                   <td>{ms(row.signal_to_quote_response_ms)}<small>start lag {ms(row.signal_to_quote_start_ms)}</small></td>
                   <td>{pct(row.quote_coverage_ratio)}<small>expiry {ms(row.quote_expiry_headroom_ms)}</small></td>
@@ -260,9 +280,9 @@ export default function PolyQuoteCanaryPanel() {
         </table>
       </div>
 
-      {(error || canary?.error) && <p style={{ marginTop: 10, color: "#ffb45c", fontSize: 12 }}>{error ?? canary?.error}</p>}
+      {(error || canary?.error || canary?.sizing?.liveRulesError) && <p style={{ marginTop: 10, color: "#ffb45c", fontSize: 12 }}>{error ?? canary?.error ?? canary?.sizing?.liveRulesError}</p>}
       <p style={{ marginTop: 9, fontSize: 11, color: "rgba(215,225,245,.52)" }}>
-        PASS_SIMULATED_PLACE 只表示「若此刻立刻使用回傳 quoteId 送出 LIMIT，價格／容量／有效期與策略訊號仍通過 canary」。它不假裝 place-order 已成功，也不假裝一定成交；真正實單仍會經過原 live executor 的 book freshness、depth、quote 與 placement 安全檢查。
+        PASS_SIMULATED_PLACE 只表示「若此刻立刻使用回傳 quoteId 送出 LIMIT，價格／容量／有效期與策略訊號仍通過 canary」。它不假裝 place-order 已成功，也不假裝一定成交；真正實單仍會經過原 live executor 的 book freshness、depth、quote 與 placement 安全檢查。若策略已在實單規則中選用，進場 quote 使用該策略的實單初始本金；否則才退回 Paper 本金。
       </p>
     </section>,
     host,
