@@ -10,6 +10,7 @@ import OracleCrossMarketPanel from "./oracle-cross-market-panel";
 import OracleCrossStrategyPanel from "./oracle-cross-strategy-panel";
 import PolyCrossTabContextBridge from "./poly-cross-tab-context-bridge";
 import PolyExecutionCanaryPanel from "./poly-execution-canary-panel";
+import PolyStrategyScenarioComparison from "./poly-strategy-scenario-comparison";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <OracleCrossMarketPanel />
       <OracleCrossStrategyPanel />
       <PolyExecutionCanaryPanel />
+      <PolyStrategyScenarioComparison />
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
       <ConfirmationAddModeOptionGuardFast />
