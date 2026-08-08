@@ -11,31 +11,35 @@ function read(relative) {
   return fs.readFileSync(path.join(app, relative), "utf8");
 }
 
-test("root layout mounts realtime chart recovery", () => {
+test("root layout mounts market chart fallback coordinator", () => {
   const layout = read("layout.tsx");
   assert.match(layout, /MarketChartRecovery/);
   assert.match(layout, /<MarketChartRecovery\s*\/>/);
 });
 
-test("chart recovery samples realtime independently from statistics history", () => {
+test("fallback coordinator checks both synchronized sources every second", () => {
   const source = read("market-chart-recovery.tsx");
-  assert.match(source, /8766\$\{path\}/);
+  assert.match(source, /\/api\/oracle-cross-market/);
   assert.match(source, /\/api\/realtime/);
-  assert.match(source, /slice\(-360\)/);
-  assert.match(source, /up_ask/);
-  assert.match(source, /down_ask/);
-  assert.match(source, /waiting-quotes/);
+  assert.match(source, /Promise\.all/);
+  assert.match(source, /setInterval\(\(\) => void refreshHealth\(\), 1000\)/);
+  assert.match(source, /POLY_MAX_DISPLAY_AGE_MS = 2500/);
 });
 
-test("Poly overlay cannot leave the native chart hidden", () => {
+test("exactly one market chart painter is visible at a time", () => {
   const source = read("market-chart-recovery.tsx");
-  assert.match(source, /MutationObserver/);
-  assert.match(source, /attributeFilter: \["style"\]/);
-  assert.match(source, /canvas\.style\.visibility === "hidden"/);
-  assert.match(source, /canvas\.style\.visibility = "visible"/);
+  assert.match(source, /canvas\.market-chart/);
+  assert.match(source, /canvas\.synchronized-market-chart-overlay/);
+  assert.match(source, /base\.style\.visibility = healthy \? "hidden" : "visible"/);
+  assert.match(source, /overlay\.style\.visibility = healthy \? "visible" : "hidden"/);
+  assert.match(source, /native-market-chart/);
+  assert.match(source, /synchronized-overlay/);
 });
 
-test("null quotes remain null rather than becoming zero", () => {
+test("fallback coordinator never draws into either canvas", () => {
   const source = read("market-chart-recovery.tsx");
-  assert.match(source, /value == null \|\| value === ""/);
+  assert.doesNotMatch(source, /getContext\s*\(/);
+  assert.doesNotMatch(source, /clearRect\s*\(/);
+  assert.doesNotMatch(source, /lineTo\s*\(/);
+  assert.doesNotMatch(source, /\.stroke\s*\(/);
 });
