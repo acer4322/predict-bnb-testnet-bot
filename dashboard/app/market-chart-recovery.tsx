@@ -64,8 +64,8 @@ function synchronizedSourcesHealthy(
  * Visibility coordinator only.
  *
  * The synchronized Poly overlay is the sole painter while both feeds are
- * healthy.  The native MarketChart is the sole painter while the Poly overlay
- * is unavailable/stale.  This component must never draw into either canvas;
+ * healthy. The native MarketChart is the sole painter while the Poly overlay
+ * is unavailable/stale. This component must never draw into either canvas;
  * doing so creates competing animation loops and makes old trajectory segments
  * appear/disappear between frames.
  */
@@ -74,22 +74,38 @@ export default function MarketChartRecovery() {
     let active = true;
     let healthy = false;
     let loading = false;
+    let applyingVisibility = false;
     let controller: AbortController | null = null;
 
     const applyVisibility = () => {
+      if (applyingVisibility) return;
       const base = document.querySelector<HTMLCanvasElement>("canvas.market-chart");
       const overlay = document.querySelector<HTMLCanvasElement>(
         "canvas.synchronized-market-chart-overlay",
       );
       if (!base) return;
-      if (!overlay) {
-        base.style.visibility = "visible";
-        return;
+
+      const baseVisibility = overlay && healthy ? "hidden" : "visible";
+      const overlayVisibility = healthy ? "visible" : "hidden";
+      applyingVisibility = true;
+      try {
+        if (base.style.visibility !== baseVisibility) {
+          base.style.visibility = baseVisibility;
+        }
+        if (overlay && overlay.style.visibility !== overlayVisibility) {
+          overlay.style.visibility = overlayVisibility;
+        }
+        base.dataset.chartPainter = overlay && healthy
+          ? "synchronized-overlay"
+          : "native-market-chart";
+        if (overlay) {
+          overlay.dataset.chartPainter = healthy
+            ? "synchronized-overlay"
+            : "disabled-fallback";
+        }
+      } finally {
+        applyingVisibility = false;
       }
-      base.style.visibility = healthy ? "hidden" : "visible";
-      overlay.style.visibility = healthy ? "visible" : "hidden";
-      base.dataset.chartPainter = healthy ? "synchronized-overlay" : "native-market-chart";
-      overlay.dataset.chartPainter = healthy ? "synchronized-overlay" : "disabled-fallback";
     };
 
     const refreshHealth = async () => {
@@ -125,7 +141,12 @@ export default function MarketChartRecovery() {
     };
 
     const observer = new MutationObserver(applyVisibility);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style"],
+    });
 
     const visibility = () => {
       if (document.visibilityState === "visible") void refreshHealth();
