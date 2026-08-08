@@ -74,8 +74,6 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
                 flush=True,
             )
     except Exception as exc:
-        # A restart guard failure must not silently validate a discontinuous
-        # shadow. The strategy sidecar still starts, but the error is visible.
         print(
             f"API supervisor: Poly confidence restart guard failed: {exc}",
             file=sys.stderr,
@@ -95,6 +93,19 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
     )
 
 
+def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
+    if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
+        return None
+    print(
+        "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
+        "on port 8769 (real-money master remains fail-closed unless enabled)",
+        flush=True,
+    )
+    return subprocess.Popen(
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v2"]
+    )
+
+
 def main() -> int:
     max_restarts = _positive_int("PREDICT_API_MAX_RESTARTS", 3)
     restart_window = _positive_float(
@@ -107,8 +118,10 @@ def main() -> int:
     restart_times: list[float] = []
     cross_oracle = _start_cross_oracle()
     cross_oracle_strategies = _start_cross_oracle_strategies()
+    poly_gap_live = _start_poly_gap_live()
     next_cross_oracle_restart_at = 0.0
     next_strategy_restart_at = 0.0
+    next_poly_gap_live_restart_at = 0.0
 
     try:
         while True:
@@ -146,6 +159,19 @@ def main() -> int:
                         )
                         next_strategy_restart_at = now + cross_oracle_restart_delay
                         cross_oracle_strategies = _start_cross_oracle_strategies()
+                    if (
+                        _enabled("PREDICT_CROSS_ORACLE_ENABLED", True)
+                        and poly_gap_live is not None
+                        and poly_gap_live.poll() is not None
+                        and now >= next_poly_gap_live_restart_at
+                    ):
+                        print(
+                            "API supervisor: dedicated Poly GAP live executor exited; restarting it",
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        next_poly_gap_live_restart_at = now + cross_oracle_restart_delay
+                        poly_gap_live = _start_poly_gap_live()
                     time.sleep(0.5)
             except KeyboardInterrupt:
                 _stop_child(child)
@@ -178,6 +204,7 @@ def main() -> int:
             )
             time.sleep(restart_delay)
     finally:
+        _stop_child(poly_gap_live)
         _stop_child(cross_oracle_strategies)
         _stop_child(cross_oracle)
 
