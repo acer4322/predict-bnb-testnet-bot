@@ -83,14 +83,14 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
     # the original entry_quote_exit_sim launcher/canary and R_POLY_GAP_SCALP.
     print(
         "API supervisor: starting gap-aware Polymarket Paper strategies with "
-        "R_POLY_GAP_SCALP, R_POLY_GAP_SCALP_STABLE and persistent CHOP regime guard",
+        "R_POLY_GAP_SCALP, R_POLY_GAP_SCALP_STABLE and immediate+persistent CHOP guard",
         flush=True,
     )
     return subprocess.Popen(
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_strategy_chop_guard",
+            "predict_bot.cross_oracle_strategy_chop_guard_v2",
         ]
     )
 
@@ -98,12 +98,11 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
 def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
-    # V13 subclasses V12 -> V11: stable exit confirmation plus the complete
-    # entry/exit order-reconciliation safety chain remain unchanged.  The new
-    # Paper chop guard gates only NEW exposure.
+    # Compatibility lineage: predict_bot.poly_gap_live_v11 -> V12 -> V13.
+    # V13 keeps the V11 order-reconciliation safety chain and gates only NEW risk.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V13 on port 8769 (V12 stable exit + persistent Paper CHOP pause gate)",
+        "V13 on port 8769 (V12 stable exit + immediate/persistent Paper CHOP pause gate)",
         flush=True,
     )
     return subprocess.Popen(
