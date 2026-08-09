@@ -100,7 +100,9 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
 def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
-    # Compatibility lineage: V11 -> V12 -> V13 -> V14 -> V15 -> V16 -> V17.
+    # Compatibility lineage markers kept for historical regression tests:
+    # predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15 ->
+    # predict_bot.poly_gap_live_v16 -> predict_bot.poly_gap_live_v17.
     # V17 keeps every prior execution/market/time-sync safeguard and only fixes
     # expired-round settlement ownership so a prior market cannot remain active
     # forever after the exact-current Binance cache rolls forward.
