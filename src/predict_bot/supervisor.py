@@ -101,20 +101,20 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v11 -> predict_bot.poly_gap_live_v16 ->
     # predict_bot.poly_gap_live_v17 -> predict_bot.poly_gap_live_v18 ->
     # predict_bot.poly_gap_live_v19 -> predict_bot.poly_gap_live_v20 ->
-    # predict_bot.poly_gap_live_v21.
+    # predict_bot.poly_gap_live_v21 -> predict_bot.poly_gap_live_v22.
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5.
-    # V21 keeps every previous execution/settlement/time-sync/identity safeguard,
-    # but reads current Binance identity from a tiny local-only metadata endpoint
-    # instead of the full /api/realtime dashboard payload.
+    # V22 keeps V21's lightweight shared exact market reference but resolves it
+    # before signed execution-client preflight, so wallet/API failures cannot be
+    # mislabeled as WAITING_BINANCE_CURRENT_MARKET.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V21 on port 8769 (lightweight shared 8766 exact Binance market identity)",
+        "V22 on port 8769 (shared market identity before execution preflight)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v21"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v22"]
     )
 
 
