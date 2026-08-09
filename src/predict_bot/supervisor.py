@@ -100,16 +100,17 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
 def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
-    # Compatibility lineage: predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15 -> V16.
-    # V16 keeps V15/V14 trading behavior and only hardens Binance signed-request
-    # clock synchronization; signed POST requests remain never blindly retried.
+    # Compatibility lineage: V11 -> V12 -> V13 -> V14 -> V15 -> V16 -> V17.
+    # V17 keeps every prior execution/market/time-sync safeguard and only fixes
+    # expired-round settlement ownership so a prior market cannot remain active
+    # forever after the exact-current Binance cache rolls forward.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V16 on port 8769 (V15 exact Binance prefetch + self-healing Binance clock sync)",
+        "V17 on port 8769 (V16 time sync + expired-round settlement recovery)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v16"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v17"]
     )
 
 
