@@ -146,6 +146,8 @@ def test_supervisor_loads_time_hardening_in_all_signed_binance_processes() -> No
         / "predict_bot"
         / "supervisor.py"
     ).read_text(encoding="utf-8")
-    assert "predict_bot.server_binance_prefetch_v2" in source
+    assert "predict_bot.server_binance_prefetch_v4" in source
     assert "predict_bot.cross_oracle_strategy_chop_guard_v3" in source
+    assert "predict_bot.poly_gap_live_v19" in source
+    # V19 still inherits the V16 time-sync layer through V17/V18.
     assert "predict_bot.poly_gap_live_v16" in source
