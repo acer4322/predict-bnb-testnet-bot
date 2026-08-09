@@ -102,17 +102,19 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
         return None
     # Compatibility lineage markers kept for historical regression tests:
     # predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15 ->
-    # predict_bot.poly_gap_live_v16 -> V17 -> V18 -> predict_bot.poly_gap_live_v19.
-    # V19 keeps every previous execution/settlement/time-sync/identity safeguard,
-    # but obtains the current Binance market identity from the already-healthy
-    # local 8766 collector before falling back to direct exact discovery.
+    # predict_bot.poly_gap_live_v16 -> V17 -> V18 -> V19 ->
+    # predict_bot.poly_gap_live_v20.
+    # V20 keeps every previous execution/settlement/time-sync/identity safeguard,
+    # accepts the exact current 8766 market reference across the brief rollover
+    # race where latest_snapshot can still belong to the prior market, and clears
+    # stale previous-bucket market IDs instead of displaying them as current.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V19 on port 8769 (V18 strict discovery + shared verified 8766 market identity)",
+        "V20 on port 8769 (shared 8766 exact identity + rollover-race-safe promotion)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v19"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v20"]
     )
 
 
