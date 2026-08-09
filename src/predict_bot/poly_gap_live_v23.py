@@ -8,14 +8,14 @@ from .binance_exact_market import bucket_start_ms
 from .poly_gap_live_v22 import PreflightOrderedSharedMarketPolyGapLiveEngine
 
 
-MIN_ENTRY_DELAY_SECONDS = 10.0
+MIN_ENTRY_DELAY_SECONDS = 0.0
 MAX_ENTRY_DELAY_SECONDS = 240.0
 try:
     _configured_default_delay = float(
         base.os.environ.get("PREDICT_POLY_GAP_LIVE_ENTRY_DELAY_SECONDS", "10")
     )
 except ValueError:
-    _configured_default_delay = MIN_ENTRY_DELAY_SECONDS
+    _configured_default_delay = 10.0
 DEFAULT_ENTRY_DELAY_SECONDS = max(
     MIN_ENTRY_DELAY_SECONDS,
     min(MAX_ENTRY_DELAY_SECONDS, _configured_default_delay),
@@ -38,7 +38,7 @@ class DelayedEntryPolyGapLiveEngine(PreflightOrderedSharedMarketPolyGapLiveEngin
 
     This is deliberately a market-open delay, not a cooldown after every exit.
     Multiple same-market rounds remain possible after the configured opening
-    delay has elapsed.
+    delay has elapsed. A value of zero disables the market-open delay.
     """
 
     def _ensure_defaults(self) -> None:
@@ -142,7 +142,7 @@ class DelayedEntryPolyGapLiveEngine(PreflightOrderedSharedMarketPolyGapLiveEngin
             else None
         )
         return {
-            "enabled": True,
+            "enabled": delay_seconds > 0,
             "configuredSeconds": delay_seconds,
             "minimumAllowedSeconds": MIN_ENTRY_DELAY_SECONDS,
             "maximumAllowedSeconds": MAX_ENTRY_DELAY_SECONDS,
