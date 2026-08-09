@@ -26,34 +26,43 @@ def _seed_current_market(engine: DelayedEntryPolyGapLiveEngine, start_ms: int) -
         }
 
 
-def test_v23_default_entry_delay_is_at_least_ten_seconds(tmp_path: Path) -> None:
+def test_v23_default_entry_delay_remains_ten_seconds_but_minimum_is_zero(tmp_path: Path) -> None:
     engine = DelayedEntryPolyGapLiveEngine(tmp_path / "v23-default.db")
     try:
         state = engine.snapshot()
         assert state["version"] == "POLY_GAP_DEDICATED_LIVE_V23"
-        assert state["settings"]["entryDelaySeconds"] >= 10.0
-        assert state["entryDelay"]["minimumAllowedSeconds"] == MIN_ENTRY_DELAY_SECONDS
-        assert state["entryDelay"]["maximumAllowedSeconds"] == MAX_ENTRY_DELAY_SECONDS
+        assert state["settings"]["entryDelaySeconds"] == 10.0
+        assert state["entryDelay"]["minimumAllowedSeconds"] == MIN_ENTRY_DELAY_SECONDS == 0.0
+        assert state["entryDelay"]["maximumAllowedSeconds"] == MAX_ENTRY_DELAY_SECONDS == 240.0
         assert state["entryDelay"]["activePositionExitNeverDelayed"] is True
     finally:
         engine.stop()
 
 
-def test_v23_entry_delay_setting_persists_and_rejects_below_minimum(tmp_path: Path) -> None:
+def test_v23_entry_delay_setting_accepts_below_ten_and_persists(tmp_path: Path) -> None:
     db_path = tmp_path / "v23-setting.db"
     engine = DelayedEntryPolyGapLiveEngine(db_path)
     try:
-        with pytest.raises(ValueError, match="between 10 and 240"):
-            engine.update_settings({"entryDelaySeconds": 9})
+        state = engine.update_settings({"entryDelaySeconds": 5})
+        assert state["settings"]["entryDelaySeconds"] == 5.0
 
-        state = engine.update_settings({"entryDelaySeconds": 25})
-        assert state["settings"]["entryDelaySeconds"] == 25.0
+        state = engine.update_settings({"entryDelaySeconds": 0})
+        assert state["settings"]["entryDelaySeconds"] == 0.0
+        assert state["entryDelay"]["enabled"] is False
+
+        with pytest.raises(ValueError, match="between 0 and 240"):
+            engine.update_settings({"entryDelaySeconds": -1})
+        with pytest.raises(ValueError, match="between 0 and 240"):
+            engine.update_settings({"entryDelaySeconds": 241})
+
+        state = engine.update_settings({"entryDelaySeconds": 7})
+        assert state["settings"]["entryDelaySeconds"] == 7.0
     finally:
         engine.stop()
 
     reopened = DelayedEntryPolyGapLiveEngine(db_path)
     try:
-        assert reopened.snapshot()["settings"]["entryDelaySeconds"] == 25.0
+        assert reopened.snapshot()["settings"]["entryDelaySeconds"] == 7.0
     finally:
         reopened.stop()
 
@@ -87,6 +96,22 @@ def test_v23_market_open_delay_counts_from_exact_market_start(tmp_path: Path, mo
         ready = engine._entry_delay_state()
         assert ready["ready"] is True
         assert ready["remainingMs"] == 0
+    finally:
+        engine.stop()
+
+
+def test_v23_zero_delay_is_immediately_ready_for_current_market(tmp_path: Path, monkeypatch) -> None:
+    engine = DelayedEntryPolyGapLiveEngine(tmp_path / "v23-zero.db")
+    try:
+        start_ms = 1_800_000_000_000
+        engine._set_setting("entry_delay_seconds", "0")
+        _seed_current_market(engine, start_ms)
+        monkeypatch.setattr(live_base, "_now_ms", lambda: start_ms + 1)
+
+        state = engine._entry_delay_state()
+        assert state["enabled"] is False
+        assert state["ready"] is True
+        assert state["remainingMs"] == 0
     finally:
         engine.stop()
 
