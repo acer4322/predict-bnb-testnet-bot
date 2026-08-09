@@ -1,17 +1,26 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from . import cross_oracle_strategy_chop_guard as guard
 
 
+IMMEDIATE_CHOP_BREAKER_REVERSALS = max(
+    2,
+    int(os.environ.get("PREDICT_POLY_CHOP_GUARD_IMMEDIATE_REVERSALS", "2")),
+)
+
+
 class ImmediateChopBreakerPaperEngine(guard.ChopGuardPaperEngine):
     """Expose an immediate same-market breaker on top of persistent hysteresis.
 
-    The persistent guard changes state only from finalized markets.  This wrapper
-    additionally blocks NEW live exposure as soon as the *current* Paper-observed
-    market reaches the CHOPPY reversal threshold, preventing repeated re-entry and
-    exit churn during the remainder of that same five-minute window.
+    The persistent guard changes state only from finalized markets. This wrapper
+    blocks NEW live exposure sooner within the current market: by default after
+    two confirmed reversals. The persistent regime classifier is intentionally
+    slower (three reversals per market and three CHOPPY markets in a five-market
+    window by default), so a single noisy market does not over-contaminate future
+    markets while same-market churn remains protected.
     """
 
     def snapshot(self) -> dict[str, Any]:
@@ -30,7 +39,7 @@ class ImmediateChopBreakerPaperEngine(guard.ChopGuardPaperEngine):
             current_evaluable = current.get("evaluable", True) is True
         current_choppy = bool(
             current_evaluable
-            and current_reversals >= guard.CHOP_GUARD_REVERSALS_PER_MARKET
+            and current_reversals >= IMMEDIATE_CHOP_BREAKER_REVERSALS
         )
         persistent_paused = bool(state.get("paused"))
         block_new_entries = persistent_paused or current_choppy
@@ -46,10 +55,13 @@ class ImmediateChopBreakerPaperEngine(guard.ChopGuardPaperEngine):
         state.update(
             currentMarketChoppy=current_choppy,
             currentMarketConfirmedReversals=current_reversals,
+            currentMarketImmediateBreakerReversals=IMMEDIATE_CHOP_BREAKER_REVERSALS,
+            persistentMarketChoppyReversals=guard.CHOP_GUARD_REVERSALS_PER_MARKET,
             persistentPaused=persistent_paused,
             blockNewEntries=block_new_entries,
             blockReason=block_reason,
             sameMarketImmediateBreaker=True,
+            immediateAndPersistentThresholdsSeparated=True,
         )
         return payload
 
