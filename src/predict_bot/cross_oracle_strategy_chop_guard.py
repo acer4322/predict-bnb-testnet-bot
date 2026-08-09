@@ -7,24 +7,29 @@ from typing import Any
 from . import cross_oracle_strategy_stable_exit as stable
 
 
+# Persistent regime guard defaults are deliberately slower than the immediate
+# same-market breaker installed by cross_oracle_strategy_chop_guard_v2.
+# The immediate breaker still stops same-market churn after two confirmed
+# reversals; the persistent guard now requires broader evidence before pausing
+# future markets.
 CHOP_GUARD_REVERSALS_PER_MARKET = max(
     2,
-    int(os.environ.get("PREDICT_POLY_CHOP_GUARD_REVERSALS_PER_MARKET", "2")),
+    int(os.environ.get("PREDICT_POLY_CHOP_GUARD_REVERSALS_PER_MARKET", "3")),
 )
 CHOP_GUARD_TRIGGER_WINDOW_MARKETS = max(
     2,
-    int(os.environ.get("PREDICT_POLY_CHOP_GUARD_TRIGGER_WINDOW_MARKETS", "3")),
+    int(os.environ.get("PREDICT_POLY_CHOP_GUARD_TRIGGER_WINDOW_MARKETS", "5")),
 )
 CHOP_GUARD_TRIGGER_CHOPPY_MARKETS = max(
     1,
     min(
         CHOP_GUARD_TRIGGER_WINDOW_MARKETS,
-        int(os.environ.get("PREDICT_POLY_CHOP_GUARD_TRIGGER_CHOPPY_MARKETS", "2")),
+        int(os.environ.get("PREDICT_POLY_CHOP_GUARD_TRIGGER_CHOPPY_MARKETS", "3")),
     ),
 )
 CHOP_GUARD_RESUME_CALM_MARKETS = max(
     2,
-    int(os.environ.get("PREDICT_POLY_CHOP_GUARD_RESUME_CALM_MARKETS", "3")),
+    int(os.environ.get("PREDICT_POLY_CHOP_GUARD_RESUME_CALM_MARKETS", "2")),
 )
 CHOP_GUARD_MIN_DISTINCT_RECEIPTS = max(
     stable.STABLE_EXIT_CONFIRM_SAMPLES,
@@ -33,20 +38,20 @@ CHOP_GUARD_MIN_DISTINCT_RECEIPTS = max(
 
 
 class ChopGuardPaperEngine(stable.StableExitComparisonPaperEngine):
-    """Paper-owned market-regime guard for repeated confirmed retracements.
+    """Paper-owned persistent market-regime guard for repeated retracements.
 
-    The guard is deliberately independent of live fills/PnL.  It observes the
+    The guard is deliberately independent of live fills/PnL. It observes the
     same fresh Polymarket receipt stream used by the stable-exit Paper variant
     and counts only reversals that satisfy the same stable confirmation semantics
     (500 ms + three distinct receipt timestamps by default, with the same strong
     emergency threshold).
 
-    A completed/evaluable five-minute market is CHOPPY after >=2 confirmed
-    reversals (UP->DOWN->UP, or the mirror image).  Live should pause new entries
-    when 2 of the last 3 evaluable markets are CHOPPY.  Once paused, hysteresis is
-    intentionally conservative: three consecutive CALM evaluable markets are
-    required before the guard resumes.  Non-evaluable/feed-gap markets neither
-    trigger nor clear the pause.
+    Persistent classification is intentionally less sensitive than the separate
+    same-market immediate breaker. By default, a completed/evaluable five-minute
+    market is CHOPPY after >=3 confirmed reversals, and Live pauses future new
+    entries only when 3 of the last 5 evaluable markets are CHOPPY. Once paused,
+    two consecutive CALM evaluable markets are enough to resume. Non-evaluable or
+    feed-gap markets neither trigger nor clear the pause.
 
     State and completed market classifications are persisted in cross_oracle.db,
     so restarting the API cannot silently clear a risk pause.
@@ -90,9 +95,6 @@ class ChopGuardPaperEngine(stable.StableExitComparisonPaperEngine):
                    VALUES(1,0,?,'INITIAL')""",
                 (now_ms,),
             )
-            # A partially observed market cannot be reconstructed exactly after a
-            # process restart.  Preserve it as non-evaluable rather than letting a
-            # restart manufacture a calm market and clear a live pause.
             self.db.execute(
                 """UPDATE poly_chop_guard_markets
                       SET status='NOT_EVALUABLE', evaluable=0, finalized_at_ms=?,
@@ -451,9 +453,6 @@ class ChopGuardPaperEngine(stable.StableExitComparisonPaperEngine):
         return payload
 
 
-# Build on the stable-exit Paper wrapper and replace only the engine class that
-# the existing sidecar launcher constructs.  Original R_POLY_GAP_SCALP and the
-# R_POLY_GAP_SCALP_STABLE A/B ledger remain unchanged.
 stable.launch.strategy_module.GapAwareCrossOraclePaperEngine = ChopGuardPaperEngine
 
 
