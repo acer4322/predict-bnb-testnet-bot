@@ -52,12 +52,16 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting resilient Chainlink/Polymarket cross-oracle collector "
-        "with strict event-first UP/DOWN identity, next-market prefetch, rollover invalidation, "
-        "two-sided websocket initial-book readiness and automatic bad-subscription rediscovery",
+        "with bounded parallel Gamma event discovery, event-window fallback, strict UP/DOWN identity, "
+        "next-market prefetch, rollover invalidation and websocket initial-book readiness",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.cross_oracle_trade_readiness"]
+        [
+            sys.executable,
+            "-m",
+            "predict_bot.cross_oracle_gamma_redundant_discovery",
+        ]
     )
 
 
@@ -102,6 +106,8 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v17 -> predict_bot.poly_gap_live_v18 ->
     # predict_bot.poly_gap_live_v19 -> predict_bot.poly_gap_live_v20 ->
     # predict_bot.poly_gap_live_v21 -> predict_bot.poly_gap_live_v22.
+    # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
+    # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5.
