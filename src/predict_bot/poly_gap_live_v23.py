@@ -8,12 +8,25 @@ from .binance_exact_market import bucket_start_ms
 from .poly_gap_live_v22 import PreflightOrderedSharedMarketPolyGapLiveEngine
 
 
-DEFAULT_ENTRY_DELAY_SECONDS = max(
-    10.0,
-    float(base.os.environ.get("PREDICT_POLY_GAP_LIVE_ENTRY_DELAY_SECONDS", "10")),
-)
 MIN_ENTRY_DELAY_SECONDS = 10.0
 MAX_ENTRY_DELAY_SECONDS = 240.0
+try:
+    _configured_default_delay = float(
+        base.os.environ.get("PREDICT_POLY_GAP_LIVE_ENTRY_DELAY_SECONDS", "10")
+    )
+except ValueError:
+    _configured_default_delay = MIN_ENTRY_DELAY_SECONDS
+DEFAULT_ENTRY_DELAY_SECONDS = max(
+    MIN_ENTRY_DELAY_SECONDS,
+    min(MAX_ENTRY_DELAY_SECONDS, _configured_default_delay),
+)
+_BASE_SETTING_KEYS = {
+    "runtimeEnabled",
+    "stakeUsdt",
+    "maximumLossEnabled",
+    "maximumLossUsdt",
+    "resetLoss",
+}
 
 
 class DelayedEntryPolyGapLiveEngine(PreflightOrderedSharedMarketPolyGapLiveEngine):
@@ -60,14 +73,29 @@ class DelayedEntryPolyGapLiveEngine(PreflightOrderedSharedMarketPolyGapLiveEngin
         return settings
 
     def update_settings(self, values: dict[str, Any]) -> dict[str, Any]:
-        forwarded = dict(values)
-        if "entryDelaySeconds" in forwarded:
-            delay = float(forwarded.pop("entryDelaySeconds"))
-            if not math.isfinite(delay) or not MIN_ENTRY_DELAY_SECONDS <= delay <= MAX_ENTRY_DELAY_SECONDS:
+        allowed = _BASE_SETTING_KEYS | {"entryDelaySeconds"}
+        unknown = sorted(set(values) - allowed)
+        if unknown:
+            raise ValueError("unsupported settings: " + ", ".join(unknown))
+
+        delay: float | None = None
+        if "entryDelaySeconds" in values:
+            try:
+                delay = float(values["entryDelaySeconds"])
+            except (TypeError, ValueError) as exc:
+                raise ValueError("entryDelaySeconds must be a number") from exc
+            if (
+                not math.isfinite(delay)
+                or not MIN_ENTRY_DELAY_SECONDS <= delay <= MAX_ENTRY_DELAY_SECONDS
+            ):
                 raise ValueError(
                     f"entryDelaySeconds must be between {MIN_ENTRY_DELAY_SECONDS:g} and "
                     f"{MAX_ENTRY_DELAY_SECONDS:g} seconds"
                 )
+
+        forwarded = {key: value for key, value in values.items() if key != "entryDelaySeconds"}
+        state = super().update_settings(forwarded)
+        if delay is not None:
             self._set_setting("entry_delay_seconds", f"{delay:.3f}")
             self._event(
                 "INFO",
@@ -76,7 +104,8 @@ class DelayedEntryPolyGapLiveEngine(PreflightOrderedSharedMarketPolyGapLiveEngin
                 None,
                 f"new-entry delay set to {delay:.3f}s after each five-minute market open",
             )
-        return super().update_settings(forwarded)
+            state = self.snapshot()
+        return state
 
     def _entry_delay_state(self) -> dict[str, Any]:
         settings = self._settings()
@@ -113,7 +142,7 @@ class DelayedEntryPolyGapLiveEngine(PreflightOrderedSharedMarketPolyGapLiveEngin
             else None
         )
         return {
-            "enabled": delay_seconds > 0,
+            "enabled": True,
             "configuredSeconds": delay_seconds,
             "minimumAllowedSeconds": MIN_ENTRY_DELAY_SECONDS,
             "maximumAllowedSeconds": MAX_ENTRY_DELAY_SECONDS,
@@ -150,14 +179,13 @@ class DelayedEntryPolyGapLiveEngine(PreflightOrderedSharedMarketPolyGapLiveEngin
         delay = self._entry_delay_state()
         if delay["identityCurrent"] and not delay["ready"]:
             # Warm the signed execution client during the delay so crossing the
-            # 10s boundary does not incur avoidable wallet/time-sync startup lag.
+            # boundary does not incur avoidable wallet/time-sync startup lag.
             if not self._ensure_clients():
                 self.status = "BLOCKED_EXECUTION_PREFLIGHT"
                 if self.execution_preflight_last_error:
                     self.last_error = self.execution_preflight_last_error
                 return
             self.status = "WAITING_ENTRY_DELAY"
-            remaining_ms = int(delay["remainingMs"] or 0)
             self.last_error = None
             return
 
