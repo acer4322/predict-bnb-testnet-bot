@@ -102,17 +102,16 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
         return None
     # Compatibility lineage markers kept for historical regression tests:
     # predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15 ->
-    # predict_bot.poly_gap_live_v16 -> predict_bot.poly_gap_live_v17.
-    # V17 keeps every prior execution/market/time-sync safeguard and only fixes
-    # expired-round settlement ownership so a prior market cannot remain active
-    # forever after the exact-current Binance cache rolls forward.
+    # predict_bot.poly_gap_live_v16 -> V17 -> predict_bot.poly_gap_live_v18.
+    # V18 keeps all prior execution/settlement/time-sync protections and only
+    # widens exact Binance market/list discovery beyond the first 100 rows.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V17 on port 8769 (V16 time sync + expired-round settlement recovery)",
+        "V18 on port 8769 (V17 settlement recovery + deep exact Binance discovery)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v17"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v18"]
     )
 
 
@@ -136,7 +135,7 @@ def main() -> int:
     try:
         while True:
             child = subprocess.Popen(
-                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v2"]
+                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v3"]
             )
             try:
                 while True:
