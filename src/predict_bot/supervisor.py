@@ -102,16 +102,17 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
         return None
     # Compatibility lineage markers kept for historical regression tests:
     # predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15 ->
-    # predict_bot.poly_gap_live_v16 -> V17 -> predict_bot.poly_gap_live_v18.
-    # V18 keeps all prior execution/settlement/time-sync protections and only
-    # widens exact Binance market/list discovery beyond the first 100 rows.
+    # predict_bot.poly_gap_live_v16 -> V17 -> V18 -> predict_bot.poly_gap_live_v19.
+    # V19 keeps every previous execution/settlement/time-sync/identity safeguard,
+    # but obtains the current Binance market identity from the already-healthy
+    # local 8766 collector before falling back to direct exact discovery.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V18 on port 8769 (V17 settlement recovery + deep exact Binance discovery)",
+        "V19 on port 8769 (V18 strict discovery + shared verified 8766 market identity)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v18"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v19"]
     )
 
 
@@ -135,7 +136,7 @@ def main() -> int:
     try:
         while True:
             child = subprocess.Popen(
-                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v3"]
+                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v4"]
             )
             try:
                 while True:
@@ -208,8 +209,8 @@ def main() -> int:
             restart_times.append(now)
             print(
                 "API supervisor: watchdog requested a restart; "
-                f"starting again in {restart_delay:g} seconds "
-                f"({len(restart_times)}/{max_restarts}).",
+                "starting again in "
+                f"{restart_delay:g} seconds ({len(restart_times)}/{max_restarts}).",
                 file=sys.stderr,
                 flush=True,
             )
