@@ -101,9 +101,11 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
     # Compatibility lineage markers kept for historical regression tests:
-    # predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15 ->
-    # predict_bot.poly_gap_live_v16 -> V17 -> V18 -> V19 ->
-    # predict_bot.poly_gap_live_v20.
+    # predict_bot.poly_gap_live_v11 -> predict_bot.poly_gap_live_v16 ->
+    # predict_bot.poly_gap_live_v17 -> predict_bot.poly_gap_live_v18 ->
+    # predict_bot.poly_gap_live_v19 -> predict_bot.poly_gap_live_v20.
+    # Server lineage: predict_bot.server_binance_prefetch_v2 ->
+    # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4.
     # V20 keeps every previous execution/settlement/time-sync/identity safeguard,
     # accepts the exact current 8766 market reference across the brief rollover
     # race where latest_snapshot can still belong to the prior market, and clears
