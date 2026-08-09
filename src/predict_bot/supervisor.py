@@ -82,16 +82,17 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
         )
     # Paper chop guard builds on the stable-exit A/B wrapper, which itself keeps
     # the original entry_quote_exit_sim launcher/canary and R_POLY_GAP_SCALP.
+    # V3 adds process-local Binance signed-request clock recovery only.
     print(
         "API supervisor: starting gap-aware Polymarket Paper strategies with "
-        "R_POLY_GAP_SCALP, R_POLY_GAP_SCALP_STABLE and immediate+persistent CHOP guard",
+        "R_POLY_GAP_SCALP, R_POLY_GAP_SCALP_STABLE, CHOP guard and Binance time-sync hardening",
         flush=True,
     )
     return subprocess.Popen(
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_strategy_chop_guard_v2",
+            "predict_bot.cross_oracle_strategy_chop_guard_v3",
         ]
     )
 
@@ -99,16 +100,16 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
 def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     if not _enabled("PREDICT_CROSS_ORACLE_ENABLED", True):
         return None
-    # Compatibility lineage: predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15.
-    # V15 keeps V14's strict Poly/current-market binding and only prefetches the
-    # exact next Binance Prediction market metadata before the rollover boundary.
+    # Compatibility lineage: predict_bot.poly_gap_live_v11 -> V12 -> V13 -> V14 -> V15 -> V16.
+    # V16 keeps V15/V14 trading behavior and only hardens Binance signed-request
+    # clock synchronization; signed POST requests remain never blindly retried.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V15 on port 8769 (V14 strict binding + exact next-Binance-market prefetch)",
+        "V16 on port 8769 (V15 exact Binance prefetch + self-healing Binance clock sync)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v15"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v16"]
     )
 
 
@@ -132,7 +133,7 @@ def main() -> int:
     try:
         while True:
             child = subprocess.Popen(
-                [sys.executable, "-m", "predict_bot.server_binance_prefetch"]
+                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v2"]
             )
             try:
                 while True:
