@@ -93,7 +93,7 @@ def test_v18_keeps_strict_market_binding_and_exposes_deep_discovery(tmp_path: Pa
         engine.stop()
 
 
-def test_supervisor_launches_v18_and_server_prefetch_v3() -> None:
+def test_supervisor_keeps_v18_lineage_but_launches_v19_and_server_v4() -> None:
     source = (
         Path(__file__).resolve().parents[1]
         / "src"
@@ -101,4 +101,5 @@ def test_supervisor_launches_v18_and_server_prefetch_v3() -> None:
         / "supervisor.py"
     ).read_text(encoding="utf-8")
     assert "predict_bot.poly_gap_live_v18" in source
-    assert "predict_bot.server_binance_prefetch_v3" in source
+    assert "predict_bot.poly_gap_live_v19" in source
+    assert "predict_bot.server_binance_prefetch_v4" in source
