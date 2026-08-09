@@ -80,9 +80,6 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
             file=sys.stderr,
             flush=True,
         )
-    # Paper chop guard builds on the stable-exit A/B wrapper, which itself keeps
-    # the original entry_quote_exit_sim launcher/canary and R_POLY_GAP_SCALP.
-    # V3 adds process-local Binance signed-request clock recovery only.
     print(
         "API supervisor: starting gap-aware Polymarket Paper strategies with "
         "R_POLY_GAP_SCALP, R_POLY_GAP_SCALP_STABLE, CHOP guard and Binance time-sync hardening",
@@ -103,20 +100,21 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Compatibility lineage markers kept for historical regression tests:
     # predict_bot.poly_gap_live_v11 -> predict_bot.poly_gap_live_v16 ->
     # predict_bot.poly_gap_live_v17 -> predict_bot.poly_gap_live_v18 ->
-    # predict_bot.poly_gap_live_v19 -> predict_bot.poly_gap_live_v20.
+    # predict_bot.poly_gap_live_v19 -> predict_bot.poly_gap_live_v20 ->
+    # predict_bot.poly_gap_live_v21.
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
-    # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4.
-    # V20 keeps every previous execution/settlement/time-sync/identity safeguard,
-    # accepts the exact current 8766 market reference across the brief rollover
-    # race where latest_snapshot can still belong to the prior market, and clears
-    # stale previous-bucket market IDs instead of displaying them as current.
+    # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
+    # predict_bot.server_binance_prefetch_v5.
+    # V21 keeps every previous execution/settlement/time-sync/identity safeguard,
+    # but reads current Binance identity from a tiny local-only metadata endpoint
+    # instead of the full /api/realtime dashboard payload.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V20 on port 8769 (shared 8766 exact identity + rollover-race-safe promotion)",
+        "V21 on port 8769 (lightweight shared 8766 exact Binance market identity)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v20"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v21"]
     )
 
 
@@ -140,7 +138,7 @@ def main() -> int:
     try:
         while True:
             child = subprocess.Popen(
-                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v4"]
+                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v5"]
             )
             try:
                 while True:
