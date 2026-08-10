@@ -9,14 +9,19 @@ const BOOTSTRAP = String.raw`(() => {
   const nativeClearInterval = window.clearInterval.bind(window);
   const nativeSetTimeout = window.setTimeout.bind(window);
   const nativeClearTimeout = window.clearTimeout.bind(window);
+  const nativeStorageSetItem = Storage.prototype.setItem;
 
   const responseCache = new Map();
+  const trajectoryWriteAt = new Map();
   const CACHE_TTL_MS = 850;
+  const TRAJECTORY_STORAGE_WRITE_MS = 5000;
   const metrics = {
     cacheHits: 0,
     networkFetches: 0,
     sharedFetches: 0,
     staggeredIntervals: 0,
+    slowedIntervals: 0,
+    skippedTrajectoryWrites: 0,
     startedAtMs: Date.now(),
   };
 
@@ -32,15 +37,17 @@ const BOOTSTRAP = String.raw`(() => {
     } catch {
       return null;
     }
-    const method = String(init?.method || (typeof Request !== "undefined" && input instanceof Request ? input.method : "GET") || "GET").toUpperCase();
+    const requestMethod = typeof Request !== "undefined" && input instanceof Request ? input.method : "GET";
+    const method = String((init && init.method) || requestMethod || "GET").toUpperCase();
     if (method !== "GET") return null;
 
     const isPolyGap = url.origin === window.location.origin && url.pathname === "/api/poly-gap-live";
     const isOracle = url.origin === window.location.origin && url.pathname === "/api/oracle-cross-market";
-    const isBinanceRealtime = url.port === "8766" && url.pathname === "/api/realtime";
+    const isBinanceRealtime = url.pathname === "/api/realtime"
+      && (url.port === "8766" || url.origin === window.location.origin);
     if (!isPolyGap && !isOracle && !isBinanceRealtime) return null;
 
-    return { key: `${method} ${url.href}`, url: url.href };
+    return { key: method + " " + url.href, url: url.href };
   }
 
   function cloneSnapshot(snapshot) {
@@ -70,8 +77,8 @@ const BOOTSTRAP = String.raw`(() => {
     }
 
     const fetchInit = init ? { ...init } : {};
-    // Shared UI reads must not let one component abort the request for every
-    // other subscriber. Trading/collector processes are not affected by this.
+    // These are display-only shared GETs. One card must not abort a request
+    // that other dashboard cards are sharing. Trading processes are separate.
     if ("signal" in fetchInit) delete fetchInit.signal;
 
     const promise = (async () => {
@@ -103,20 +110,41 @@ const BOOTSTRAP = String.raw`(() => {
       return cloneSnapshot(snapshot);
     } catch (error) {
       const current = responseCache.get(info.key);
-      if (current?.promise === promise) responseCache.delete(info.key);
+      if (current && current.promise === promise) responseCache.delete(info.key);
       throw error;
     }
   };
 
+  Storage.prototype.setItem = function dashboardStorageSetItem(key, value) {
+    const textKey = String(key || "");
+    const trajectoryKey = textKey.startsWith("btc5m-live-poly-trajectory:")
+      || textKey.startsWith("btc5m-sync-trajectory:");
+    if (!trajectoryKey) return nativeStorageSetItem.call(this, key, value);
+
+    const now = Date.now();
+    const previous = trajectoryWriteAt.get(textKey) || 0;
+    if (now - previous < TRAJECTORY_STORAGE_WRITE_MS) {
+      metrics.skippedTrajectoryWrites += 1;
+      return;
+    }
+    trajectoryWriteAt.set(textKey, now);
+    return nativeStorageSetItem.call(this, key, value);
+  };
+
   let intervalSequence = 0;
-  let virtualIntervalId = 1_500_000_000;
+  let virtualIntervalId = 1500000000;
   const staggered = new Map();
 
   window.setInterval = function dashboardStaggeredInterval(handler, timeout, ...args) {
-    const ms = Number(timeout) || 0;
-    if (typeof handler !== "function" || ms < 450 || ms > 2500) {
+    const requestedMs = Number(timeout) || 0;
+    if (typeof handler !== "function" || requestedMs < 450 || requestedMs > 2500) {
       return nativeSetInterval(handler, timeout, ...args);
     }
+
+    // The sub-second timers found in the dashboard are DOM host locators, not
+    // trading clocks. Slow them down so they do not continuously scan the DOM.
+    const ms = requestedMs < 900 ? 1500 : requestedMs;
+    if (ms !== requestedMs) metrics.slowedIntervals += 1;
 
     const slots = 6;
     const step = Math.max(40, Math.min(120, Math.floor(ms / slots)));
@@ -149,12 +177,14 @@ const BOOTSTRAP = String.raw`(() => {
   window.__BTC5M_DASHBOARD_PERF__ = {
     metrics,
     cacheTtlMs: CACHE_TTL_MS,
+    trajectoryStorageWriteMs: TRAJECTORY_STORAGE_WRITE_MS,
     snapshot() {
       return {
         ...metrics,
         ageMs: Date.now() - metrics.startedAtMs,
         cachedEndpoints: responseCache.size,
         staggeredActive: staggered.size,
+        trajectoryKeys: trajectoryWriteAt.size,
       };
     },
   };
