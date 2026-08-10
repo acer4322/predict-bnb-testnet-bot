@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 const LIVE_RULES_TARGET = ".live-rules-editor";
@@ -15,7 +15,7 @@ function apiUrl(path: string) {
 type MaximumNetLossGuardState = {
   version?: string;
   enabled?: boolean;
-  status?: "DISABLED" | "MONITORING" | "TRIPPED" | string;
+  status?: string;
   maximumLossUsdt?: number;
   netPnlUsdt?: number;
   currentLossUsdt?: number;
@@ -30,6 +30,19 @@ type MaximumNetLossGuardState = {
   acknowledgedAt?: string | null;
   updatedAt?: string | null;
   manualResumeRequired?: boolean;
+  reductionEnabled?: boolean;
+  reductionThresholdUsdt?: number;
+  reductionMultiplierPct?: number;
+  reductionTripped?: boolean;
+  reductionTrippedAt?: string | null;
+  reductionTrippedLossUsdt?: number | null;
+  remainingBeforeReductionUsdt?: number;
+  reductionThresholdReached?: boolean;
+  effectiveStakeMultiplier?: number;
+  phase?: "NORMAL" | "REDUCED" | "STOPPED" | string;
+  sharedLossCounter?: boolean;
+  reductionLatchUntilReset?: boolean;
+  reductionAppliesToNewOrdersOnly?: boolean;
 };
 
 type LivePayload = {
@@ -54,12 +67,23 @@ function timeText(value: string | null | undefined) {
 export default function MaximumNetLossGuardDashboard() {
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [live, setLive] = useState<LivePayload | null>(null);
-  const [enabledDraft, setEnabledDraft] = useState(false);
-  const [limitDraft, setLimitDraft] = useState("10.00");
+  const [reduceEnabledDraft, setReduceEnabledDraft] = useState(false);
+  const [reduceThresholdDraft, setReduceThresholdDraft] = useState("5.00");
+  const [reduceMultiplierDraft, setReduceMultiplierDraft] = useState("50.00");
+  const [stopEnabledDraft, setStopEnabledDraft] = useState(false);
+  const [stopThresholdDraft, setStopThresholdDraft] = useState("10.00");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState("");
+
+  const syncDraft = useCallback((guard?: MaximumNetLossGuardState) => {
+    setReduceEnabledDraft(Boolean(guard?.reductionEnabled));
+    setReduceThresholdDraft(Number(guard?.reductionThresholdUsdt ?? 5).toFixed(2));
+    setReduceMultiplierDraft(Number(guard?.reductionMultiplierPct ?? 50).toFixed(2));
+    setStopEnabledDraft(Boolean(guard?.enabled));
+    setStopThresholdDraft(Number(guard?.maximumLossUsdt ?? 10).toFixed(2));
+  }, []);
 
   const loadState = useCallback(async (preserveDraft = true) => {
     try {
@@ -67,18 +91,12 @@ export default function MaximumNetLossGuardDashboard() {
       const body = await response.json() as LivePayload & { error?: string };
       if (!response.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
       setLive(body);
-      const guard = body.maximumNetLossGuard;
-      if (!preserveDraft || !dirty) {
-        setEnabledDraft(Boolean(guard?.enabled));
-        if (Number.isFinite(guard?.maximumLossUsdt)) {
-          setLimitDraft(Number(guard?.maximumLossUsdt).toFixed(2));
-        }
-      }
+      if (!preserveDraft || !dirty) syncDraft(body.maximumNetLossGuard);
       setError("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "無法讀取最大虧損狀態");
+      setError(caught instanceof Error ? caught.message : "無法讀取兩階段虧損風控狀態");
     }
-  }, [dirty]);
+  }, [dirty, syncDraft]);
 
   useEffect(() => {
     const locate = () => {
@@ -86,8 +104,8 @@ export default function MaximumNetLossGuardDashboard() {
       setTarget(current => current === next ? current : next);
     };
     locate();
-    const locateTimer = window.setInterval(locate, 750);
-    return () => window.clearInterval(locateTimer);
+    const timer = window.setInterval(locate, 750);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -99,11 +117,27 @@ export default function MaximumNetLossGuardDashboard() {
   }, [loadState]);
 
   const save = async () => {
-    const maximumLossUsdt = Number(limitDraft);
-    if (!Number.isFinite(maximumLossUsdt) || maximumLossUsdt < 0.01 || maximumLossUsdt > 1_000_000) {
-      setError("最大虧損必須介於 0.01–1,000,000 USDT");
+    const reduceThreshold = Number(reduceThresholdDraft);
+    const reduceMultiplier = Number(reduceMultiplierDraft);
+    const stopThreshold = Number(stopThresholdDraft);
+
+    if (!Number.isFinite(reduceThreshold) || reduceThreshold < 0.01 || reduceThreshold > 1_000_000) {
+      setError("減額門檻必須介於 0.01–1,000,000 USDT");
       return;
     }
+    if (!Number.isFinite(reduceMultiplier) || reduceMultiplier < 1 || reduceMultiplier > 100) {
+      setError("減額後比例必須介於 1–100%");
+      return;
+    }
+    if (!Number.isFinite(stopThreshold) || stopThreshold < 0.01 || stopThreshold > 1_000_000) {
+      setError("停止門檻必須介於 0.01–1,000,000 USDT");
+      return;
+    }
+    if (reduceEnabledDraft && stopEnabledDraft && reduceThreshold >= stopThreshold) {
+      setError("同時啟用時，減額門檻必須小於停止門檻");
+      return;
+    }
+
     setSaving(true);
     setError("");
     try {
@@ -111,19 +145,18 @@ export default function MaximumNetLossGuardDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          maximumNetLossGuardEnabled: enabledDraft,
-          maximumNetLossUsdt: maximumLossUsdt,
+          maximumNetLossReduceEnabled: reduceEnabledDraft,
+          maximumNetLossReduceUsdt: reduceThreshold,
+          maximumNetLossReduceMultiplierPct: reduceMultiplier,
+          maximumNetLossGuardEnabled: stopEnabledDraft,
+          maximumNetLossUsdt: stopThreshold,
         }),
       });
-      const body = await response.json() as {
-        liveM0W?: LivePayload;
-        error?: string;
-      } & LivePayload;
+      const body = await response.json() as { liveM0W?: LivePayload; error?: string } & LivePayload;
       if (!response.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
       const next = body.liveM0W ?? body;
       setLive(next);
-      setEnabledDraft(Boolean(next.maximumNetLossGuard?.enabled));
-      setLimitDraft(Number(next.maximumNetLossGuard?.maximumLossUsdt ?? maximumLossUsdt).toFixed(2));
+      syncDraft(next.maximumNetLossGuard);
       setDirty(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "儲存失敗");
@@ -133,7 +166,7 @@ export default function MaximumNetLossGuardDashboard() {
   };
 
   const resetCounter = async () => {
-    if (!window.confirm("確定要把最大虧損統計歸零嗎？這不會自動恢復已暫停的實單。")) return;
+    if (!window.confirm("確定將共用虧損統計歸零？這會同時解除『減額』與『停止』兩階段的已觸發狀態；歷史交易不會刪除。")) return;
     setResetting(true);
     setError("");
     try {
@@ -142,15 +175,11 @@ export default function MaximumNetLossGuardDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resetMaximumNetLoss: true }),
       });
-      const body = await response.json() as {
-        liveM0W?: LivePayload;
-        error?: string;
-      } & LivePayload;
+      const body = await response.json() as { liveM0W?: LivePayload; error?: string } & LivePayload;
       if (!response.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
       const next = body.liveM0W ?? body;
       setLive(next);
-      setEnabledDraft(Boolean(next.maximumNetLossGuard?.enabled));
-      setLimitDraft(Number(next.maximumNetLossGuard?.maximumLossUsdt ?? 10).toFixed(2));
+      syncDraft(next.maximumNetLossGuard);
       setDirty(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "歸零失敗");
@@ -159,110 +188,139 @@ export default function MaximumNetLossGuardDashboard() {
     }
   };
 
+  const guard = live?.maximumNetLossGuard;
+  const currentLoss = Math.max(0, Number(guard?.currentLossUsdt ?? 0));
+  const phase = guard?.phase ?? (guard?.tripped ? "STOPPED" : guard?.reductionTripped ? "REDUCED" : "NORMAL");
+  const reduced = phase === "REDUCED";
+  const stopped = phase === "STOPPED";
+
+  const riskBar = useMemo(() => {
+    const reduceThreshold = Number(guard?.reductionThresholdUsdt ?? 0);
+    const stopThreshold = Number(guard?.maximumLossUsdt ?? 0);
+    const reduceEnabled = Boolean(guard?.reductionEnabled);
+    const stopEnabled = Boolean(guard?.enabled);
+    const limit = stopEnabled && stopThreshold > 0
+      ? stopThreshold
+      : reduceEnabled && reduceThreshold > 0
+        ? reduceThreshold
+        : 0;
+    const progress = limit > 0 ? Math.min(100, currentLoss / limit * 100) : 0;
+    const reduceMarker = reduceEnabled && stopEnabled && reduceThreshold > 0 && stopThreshold > 0
+      ? Math.min(100, Math.max(0, reduceThreshold / stopThreshold * 100))
+      : null;
+    return { progress, reduceMarker };
+  }, [currentLoss, guard?.enabled, guard?.maximumLossUsdt, guard?.reductionEnabled, guard?.reductionThresholdUsdt]);
+
   if (!target) return null;
 
-  const guard = live?.maximumNetLossGuard;
-  const currentLoss = Number(guard?.currentLossUsdt ?? 0);
-  const maximumLoss = Number(guard?.maximumLossUsdt ?? 0);
-  const progress = maximumLoss > 0
-    ? Math.min(100, Math.max(0, currentLoss / maximumLoss * 100))
-    : 0;
-  const tripped = guard?.tripped === true;
-  const monitoring = guard?.enabled === true && !tripped;
-  const statusText = tripped
-    ? "已觸發 · 實單已暫停"
-    : monitoring
-      ? "監控中"
-      : "未啟用";
-  const statusColor = tripped ? "#ff8f8f" : monitoring ? "#8ce6ad" : "#aeb9cc";
+  const statusText = stopped
+    ? "STOPPED · 已停止新單"
+    : reduced
+      ? `REDUCED · 新單 ${Number(guard?.reductionMultiplierPct ?? 100).toFixed(0)}%`
+      : guard?.enabled || guard?.reductionEnabled
+        ? "NORMAL · 監控中"
+        : "未啟用";
+  const statusColor = stopped ? "#ff8f8f" : reduced ? "#ffb45c" : guard?.enabled || guard?.reductionEnabled ? "#8ce6ad" : "#aeb9cc";
 
   return createPortal(
     <section
-      aria-label="最大淨虧損暫停保護"
+      aria-label="兩階段淨虧損風控"
       style={{
         gridColumn: "1 / -1",
         marginTop: 12,
         padding: 16,
-        border: `1px solid ${tripped ? "rgba(255, 104, 104, .62)" : "rgba(126, 145, 178, .32)"}`,
+        border: `1px solid ${stopped ? "rgba(255,104,104,.62)" : reduced ? "rgba(255,180,92,.55)" : "rgba(126,145,178,.32)"}`,
         borderRadius: 14,
-        background: tripped ? "rgba(97, 27, 34, .23)" : "rgba(10, 16, 27, .58)",
+        background: stopped ? "rgba(97,27,34,.23)" : reduced ? "rgba(89,58,18,.18)" : "rgba(10,16,27,.58)",
         display: "grid",
         gap: 14,
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <div>
-          <span className="eyebrow">GLOBAL LIVE CIRCUIT BREAKER</span>
-          <h3 style={{ margin: "4px 0 0" }}>最大淨虧損暫停</h3>
+          <span className="eyebrow">GLOBAL LIVE TIERED LOSS GUARD</span>
+          <h3 style={{ margin: "4px 0 0" }}>淨虧損減額／停止保護</h3>
+          <small>同一個已實現淨損益計數：先達減額門檻就縮小新單，之後達停止門檻才停止新單。</small>
         </div>
         <strong style={{ color: statusColor }}>{statusText}</strong>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
         <div><small>目前淨損益</small><strong style={{ display: "block", marginTop: 4, color: Number(guard?.netPnlUsdt ?? 0) >= 0 ? "#8ce6ad" : "#ff9f9f" }}>{money(guard?.netPnlUsdt, true)}</strong></div>
         <div><small>目前虧損</small><strong style={{ display: "block", marginTop: 4 }}>{money(guard?.currentLossUsdt)}</strong></div>
-        <div><small>暫停門檻</small><strong style={{ display: "block", marginTop: 4 }}>{money(guard?.maximumLossUsdt)}</strong></div>
+        <div><small>減額門檻</small><strong style={{ display: "block", marginTop: 4 }}>{guard?.reductionEnabled ? money(guard?.reductionThresholdUsdt) : "關閉"}</strong></div>
+        <div><small>減額後新單</small><strong style={{ display: "block", marginTop: 4 }}>{guard?.reductionEnabled ? `${Number(guard?.reductionMultiplierPct ?? 100).toFixed(0)}%` : "100%"}</strong></div>
+        <div><small>停止門檻</small><strong style={{ display: "block", marginTop: 4 }}>{guard?.enabled ? money(guard?.maximumLossUsdt) : "關閉"}</strong></div>
         <div><small>歸零後已結算</small><strong style={{ display: "block", marginTop: 4 }}>{guard?.settledTrades ?? 0} 筆</strong></div>
       </div>
 
-      <div>
-        <div style={{ height: 8, borderRadius: 999, background: "rgba(126, 145, 178, .2)", overflow: "hidden" }}>
-          <div style={{ width: `${progress}%`, height: "100%", background: tripped ? "#ff7777" : "#d3a85b", transition: "width .25s ease" }} />
+      <div style={{ paddingTop: 18 }}>
+        <div style={{ position: "relative", height: 8, borderRadius: 999, background: "rgba(126,145,178,.2)", overflow: "visible" }} aria-label="共用虧損風控進度">
+          <div style={{ width: `${riskBar.progress}%`, height: "100%", borderRadius: 999, background: stopped ? "#ff7777" : reduced ? "#ffb45c" : "#d3a85b", transition: "width .25s ease" }} />
+          {riskBar.reduceMarker != null && <div style={{ position: "absolute", left: `${riskBar.reduceMarker}%`, top: -5, bottom: -5, width: 2, background: "#7ee3f5" }}>
+            <span style={{ position: "absolute", left: "50%", bottom: 12, transform: "translateX(-50%)", whiteSpace: "nowrap", fontSize: 10, color: "#7ee3f5" }}>減額線</span>
+          </div>}
         </div>
-        <small style={{ display: "block", marginTop: 6 }}>
-          距離暫停還有 {money(guard?.remainingBeforePauseUsdt)} · 上次歸零 {timeText(guard?.resetAt)}
-        </small>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+          <small>目前虧損 {money(guard?.currentLossUsdt)}</small>
+          <small>減額 {guard?.reductionEnabled ? money(guard?.reductionThresholdUsdt) : "關閉"}</small>
+          <small>停止 {guard?.enabled ? money(guard?.maximumLossUsdt) : "關閉"}</small>
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, alignItems: "end" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12, alignItems: "end" }}>
         <label style={{ display: "grid", gap: 6 }}>
-          <span>啟用最大虧損保護</span>
-          <select
-            value={enabledDraft ? "ON" : "OFF"}
-            disabled={saving || resetting}
-            onChange={event => {
-              setEnabledDraft(event.target.value === "ON");
-              setDirty(true);
-            }}
-          >
+          <span>減額風控</span>
+          <select value={reduceEnabledDraft ? "ON" : "OFF"} disabled={saving || resetting} onChange={event => { setReduceEnabledDraft(event.target.value === "ON"); setDirty(true); }}>
             <option value="OFF">關閉</option>
             <option value="ON">啟用</option>
           </select>
         </label>
         <label style={{ display: "grid", gap: 6 }}>
-          <span>最大淨虧損（USDT）</span>
-          <input
-            type="number"
-            min="0.01"
-            max="1000000"
-            step="0.01"
-            value={limitDraft}
-            disabled={saving || resetting}
-            onChange={event => {
-              setLimitDraft(event.target.value);
-              setDirty(true);
-            }}
-          />
+          <span>減額門檻（USDT）</span>
+          <input type="number" min="0.01" max="1000000" step="0.01" value={reduceThresholdDraft} disabled={saving || resetting} onChange={event => { setReduceThresholdDraft(event.target.value); setDirty(true); }} />
+        </label>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>減額後比例（%）</span>
+          <input type="number" min="1" max="100" step="1" value={reduceMultiplierDraft} disabled={saving || resetting} onChange={event => { setReduceMultiplierDraft(event.target.value); setDirty(true); }} />
+        </label>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>停止新單風控</span>
+          <select value={stopEnabledDraft ? "ON" : "OFF"} disabled={saving || resetting} onChange={event => { setStopEnabledDraft(event.target.value === "ON"); setDirty(true); }}>
+            <option value="OFF">關閉</option>
+            <option value="ON">啟用</option>
+          </select>
+        </label>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>停止門檻（USDT）</span>
+          <input type="number" min="0.01" max="1000000" step="0.01" value={stopThresholdDraft} disabled={saving || resetting} onChange={event => { setStopThresholdDraft(event.target.value); setDirty(true); }} />
         </label>
       </div>
 
+      <small style={{ color: "#9eabc2" }}>
+        三個數字欄位即使對應開關目前是關閉也可以先修改。減額比例套用到各策略原本的下注額，例如 50%：2.00→1.00、0.50→0.25；最低仍受正式實單最小 stake 0.01 USDT 保護。
+      </small>
+
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button type="button" disabled={!dirty || saving || resetting} onClick={() => void save()}>
-          {saving ? "儲存中…" : "套用最大虧損設定"}
+          {saving ? "儲存中…" : "套用兩階段風控設定"}
         </button>
         <button type="button" className="secondary" disabled={saving || resetting} onClick={() => void resetCounter()}>
-          {resetting ? "歸零中…" : "將目前損益歸零"}
+          {resetting ? "歸零中…" : "將共用損益歸零"}
         </button>
       </div>
 
       <small>
-        計算方式：上次手動歸零後所有正式已結算訂單的 PnL 相加。勝單收益會抵銷虧損；只有淨值為負時才顯示為「目前虧損」。未結算持倉不會提前計入。
+        計算方式：上次手動歸零後所有正式已結算訂單的 PnL 相加；勝單會抵銷虧損。減額一旦觸發會鎖定到下次手動歸零，避免在門檻附近反覆切換大小單。
       </small>
       <small>
-        達到門檻會直接觸發現有實單暫停。歸零不會自動恢復交易；請確認狀況後，再使用原本的「恢復實單」按鈕手動繼續。
+        減額只影響新的 BUY／新 confirmation-add tranche；已有持倉的 SELL、手動出場、正式結算與 reconciliation 不會被縮小或阻擋。停止門檻則沿用既有 fail-closed 暫停新單機制。
       </small>
-      {tripped && <small style={{ color: "#ff9f9f" }}>
-        觸發時間 {timeText(guard?.trippedAt)} · 觸發虧損 {money(guard?.trippedLossUsdt)}。手動恢復後，若虧損繼續擴大會再次暫停；若先回到門檻內，保護會重新完整上鎖。
+      {guard?.reductionTripped && !guard?.tripped && <small style={{ color: "#ffbd87" }}>
+        減額已觸發：{timeText(guard?.reductionTrippedAt)} · 觸發時虧損 {money(guard?.reductionTrippedLossUsdt)} · 目前新單倍率 {Number(guard?.effectiveStakeMultiplier ?? 1) * 100}%
+      </small>}
+      {guard?.tripped && <small style={{ color: "#ff9f9f" }}>
+        停止已觸發：{timeText(guard?.trippedAt)} · 觸發虧損 {money(guard?.trippedLossUsdt)}。要恢復新單仍需使用既有手動恢復流程。
       </small>}
       {error && <small style={{ color: "#ffbd87" }}>錯誤：{error}</small>}
     </section>,
