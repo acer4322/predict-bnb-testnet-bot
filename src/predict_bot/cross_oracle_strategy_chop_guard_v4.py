@@ -19,7 +19,9 @@ class HeartbeatRollingStatsPaperEngine(rolling.RollingStatsPaperEngine):
 
     The heartbeat is touched only after a normal Paper evaluation loop completes.
     It is independent of confident UP/DOWN direction, so neutral-but-healthy
-    markets do not look stale.  Writes are throttled to about once per second.
+    markets do not look stale. Writes are throttled to about once per second.
+    A newly created heartbeat starts at zero, so Live remains fail-closed until
+    the first successful Paper evaluation has actually completed.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -28,7 +30,6 @@ class HeartbeatRollingStatsPaperEngine(rolling.RollingStatsPaperEngine):
 
     def _create_schema(self) -> None:
         super()._create_schema()
-        now_ms = int(time.time() * 1000)
         with self.db_lock:
             self.db.execute(
                 """CREATE TABLE IF NOT EXISTS poly_chop_guard_heartbeat (
@@ -38,8 +39,7 @@ class HeartbeatRollingStatsPaperEngine(rolling.RollingStatsPaperEngine):
             )
             self.db.execute(
                 """INSERT OR IGNORE INTO poly_chop_guard_heartbeat(id,healthy_at_ms)
-                   VALUES(1,?)""",
-                (now_ms,),
+                   VALUES(1,0)"""
             )
             self.db.commit()
 
@@ -73,6 +73,7 @@ class HeartbeatRollingStatsPaperEngine(rolling.RollingStatsPaperEngine):
             "healthyAtMs": int(row["healthy_at_ms"] if row else 0),
             "writeIntervalMs": int(HEARTBEAT_WRITE_INTERVAL_SECONDS * 1000),
             "purpose": "lightweight persisted health source for dedicated Live guard verification",
+            "requiresSuccessfulPaperEvaluation": True,
         }
         return payload
 
