@@ -111,7 +111,8 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v25 -> predict_bot.poly_gap_live_v26 ->
     # predict_bot.poly_gap_live_v27 -> predict_bot.poly_gap_live_v28 ->
     # predict_bot.poly_gap_live_v29 -> predict_bot.poly_gap_live_v30 ->
-    # predict_bot.poly_gap_live_v31 -> predict_bot.poly_gap_live_v32.
+    # predict_bot.poly_gap_live_v31 -> predict_bot.poly_gap_live_v32 ->
+    # predict_bot.poly_gap_live_v33.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -122,19 +123,18 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V32 keeps V31 runtime-editable reversal breaker, V30 guard-verified fast
-    # handoff, V28 price controls and all earlier execution safety. BUY FOKs now
-    # require buffered visible executable depth from the existing direct book;
-    # SELL depth is diagnostic-only, and an explicit reversal SELL FOK no-fill
-    # retries execution without repeating the V12 signal debounce while fresh
-    # Poly still opposes the held side.
+    # V33 keeps all V32 execution-depth and confirmed-exit retry behavior plus
+    # the V31 dashboard-editable same-market reversal breaker. A stale Paper
+    # health heartbeat alone no longer blocks a new BUY when the persisted Paper
+    # pause row is readable and OFF; persisted paused=1 remains authoritative,
+    # while an unreadable persisted pause still fails closed.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V32 on port 8769 (buffered BUY FOK depth + fast confirmed-exit no-fill retry)",
+        "V33 on port 8769 (runtime reversal breaker + persisted Paper pause fallback)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v32"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v33"]
     )
 
 
