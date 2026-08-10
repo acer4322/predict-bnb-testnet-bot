@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
 
 from . import cross_oracle_strategy_chop_guard_v6 as v6
@@ -17,18 +18,51 @@ LEAD_MIN_MARKET_SAMPLES = max(
     20,
     int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_MIN_MARKET_SAMPLES", "240")),
 )
+LEAD_RETENTION_MARKETS = max(
+    55,
+    int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_RETENTION_MARKETS", "72")),
+)
+LEAD_PRUNE_INTERVAL_SECONDS = max(
+    30.0,
+    float(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_PRUNE_SECONDS", "60")),
+)
 
 
 class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
-    """V7: keep partial/outage markets out of 10/30/50 lead probabilities.
+    """V7: quality-gated and bounded 10/30/50 Poly-vs-Binance lead research.
 
     The collector is forward-only, so the first market after deployment may begin
     halfway through a five-minute window. A network outage can also leave a market
     with only a small trajectory fragment. Those rows remain visible for research,
     but they are not allowed to vote in either market-level or event-level lead
     probabilities unless the observed span and sample count meet the configured
-    minimums.
+    minimums. Raw trajectory retention is bounded above the 50-market research
+    window so the 250ms sampler cannot grow cross_oracle.db forever.
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._next_lead_prune_at = 0.0
+        super().__init__(*args, **kwargs)
+
+    def _evaluate_once(self) -> None:
+        super()._evaluate_once()
+        now = time.monotonic()
+        if now < self._next_lead_prune_at:
+            return
+        self._next_lead_prune_at = now + LEAD_PRUNE_INTERVAL_SECONDS
+        with self.db_lock:
+            self.db.execute(
+                """DELETE FROM poly_binance_lead_samples
+                    WHERE binance_market_id NOT IN (
+                        SELECT binance_market_id
+                        FROM poly_binance_lead_samples
+                        GROUP BY binance_market_id
+                        ORDER BY MAX(observed_at_ms) DESC, binance_market_id DESC
+                        LIMIT ?
+                    )""",
+                (LEAD_RETENTION_MARKETS,),
+            )
+            self.db.commit()
 
     def _market_analysis(self, market_id: int, rows: list[dict[str, Any]]) -> dict[str, Any]:
         payload = super()._market_analysis(market_id, rows)
@@ -76,6 +110,8 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
         if isinstance(validation, dict):
             validation["minimumMarketCoverageMs"] = LEAD_MIN_MARKET_COVERAGE_MS
             validation["minimumMarketSamples"] = LEAD_MIN_MARKET_SAMPLES
+            validation["retentionMarkets"] = LEAD_RETENTION_MARKETS
+            validation["pruneIntervalSeconds"] = LEAD_PRUNE_INTERVAL_SECONDS
             validation["partialMarketsVisibleButExcludedFromProbabilities"] = True
             validation["eventStatisticsUseCoverageQualifiedMarketsOnly"] = True
             validation["version"] = "poly_binance_lead_validation_v2"
