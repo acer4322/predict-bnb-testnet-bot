@@ -25,8 +25,9 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
     The collector is forward-only, so the first market after deployment may begin
     halfway through a five-minute window. A network outage can also leave a market
     with only a small trajectory fragment. Those rows remain visible for research,
-    but they are not allowed to vote in market-level lead probabilities unless the
-    observed span and sample count meet the configured minimums.
+    but they are not allowed to vote in either market-level or event-level lead
+    probabilities unless the observed span and sample count meet the configured
+    minimums.
     """
 
     def _market_analysis(self, market_id: int, rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -56,6 +57,19 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
             )
         return payload
 
+    def _window_stats(self, markets: list[dict[str, Any]], window: int) -> dict[str, Any]:
+        selected = markets[:window]
+        qualified = [market for market in selected if market.get("coverageQualified") is True]
+        payload = super()._window_stats(qualified, window)
+        payload["sampledMarkets"] = len(selected)
+        payload["coverageQualifiedMarkets"] = len(qualified)
+        payload["coverageExcludedMarkets"] = len(selected) - len(qualified)
+        payload["insufficientMarkets"] = len(selected) - int(payload.get("evaluableMarkets") or 0)
+        payload["marketIds"] = [int(market["marketId"]) for market in selected]
+        payload["qualifiedMarketIds"] = [int(market["marketId"]) for market in qualified]
+        payload["eventStatisticsUseCoverageQualifiedMarketsOnly"] = True
+        return payload
+
     def snapshot(self) -> dict[str, Any]:
         payload = super().snapshot()
         validation = payload.get("polyBinanceLeadValidation")
@@ -63,6 +77,7 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
             validation["minimumMarketCoverageMs"] = LEAD_MIN_MARKET_COVERAGE_MS
             validation["minimumMarketSamples"] = LEAD_MIN_MARKET_SAMPLES
             validation["partialMarketsVisibleButExcludedFromProbabilities"] = True
+            validation["eventStatisticsUseCoverageQualifiedMarketsOnly"] = True
             validation["version"] = "poly_binance_lead_validation_v2"
         return payload
 
