@@ -15,6 +15,10 @@ type State = {
     maximumLossEnabled?: boolean;
     maximumLossUsdt?: number;
     lossTripped?: boolean;
+    reduceLossEnabled?: boolean;
+    reduceLossUsdt?: number;
+    reducedStakeUsdt?: number;
+    lossReduced?: boolean;
     minimumEdge?: number;
   };
   lossGuard?: {
@@ -25,6 +29,16 @@ type State = {
     settledRounds?: number;
     enabled?: boolean;
     tripped?: boolean;
+    reductionEnabled?: boolean;
+    reductionThresholdUsdt?: number;
+    reducedStakeUsdt?: number;
+    reductionTripped?: boolean;
+    remainingBeforeReductionUsdt?: number;
+    normalStakeUsdt?: number;
+    effectiveStakeUsdt?: number;
+    phase?: "NORMAL" | "REDUCED" | "STOPPED" | string;
+    reductionLatchUntilReset?: boolean;
+    sharedLossCounter?: boolean;
   };
   rules?: {
     sameMarketMultipleRounds?: boolean;
@@ -91,10 +105,18 @@ function pct(value: unknown) {
   return Number.isFinite(n) ? `${(n * 100).toFixed(1)}%` : "—";
 }
 
+function plainMoney(value: unknown, digits = 2) {
+  const n = Number(value);
+  return Number.isFinite(n) ? `${n.toFixed(digits)} USDT` : "—";
+}
+
 export default function PolyGapLiveDashboard() {
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [state, setState] = useState<State | null>(null);
   const [stake, setStake] = useState("1.00");
+  const [reduceLoss, setReduceLoss] = useState("5.00");
+  const [reducedStake, setReducedStake] = useState("0.50");
+  const [reduceLossEnabled, setReduceLossEnabled] = useState(false);
   const [maxLoss, setMaxLoss] = useState("10.00");
   const [maxLossEnabled, setMaxLossEnabled] = useState(true);
   const [dirty, setDirty] = useState(false);
@@ -111,22 +133,27 @@ export default function PolyGapLiveDashboard() {
     return () => window.clearInterval(timer);
   }, []);
 
+  const syncSettings = useCallback((next: State) => {
+    setStake(Number(next.settings?.stakeUsdt ?? 1).toFixed(2));
+    setReduceLoss(Number(next.settings?.reduceLossUsdt ?? 5).toFixed(2));
+    setReducedStake(Number(next.settings?.reducedStakeUsdt ?? 0.5).toFixed(2));
+    setReduceLossEnabled(Boolean(next.settings?.reduceLossEnabled));
+    setMaxLoss(Number(next.settings?.maximumLossUsdt ?? 10).toFixed(2));
+    setMaxLossEnabled(Boolean(next.settings?.maximumLossEnabled));
+  }, []);
+
   const load = useCallback(async (preserve = true) => {
     try {
       const response = await fetch("/api/poly-gap-live", { cache: "no-store" });
       const body = await response.json() as Payload;
       if (!response.ok || !body.ok || !body.state) throw new Error(body.error ?? `HTTP ${response.status}`);
       setState(body.state);
-      if (!preserve || !dirty) {
-        setStake(Number(body.state.settings?.stakeUsdt ?? 1).toFixed(2));
-        setMaxLoss(Number(body.state.settings?.maximumLossUsdt ?? 10).toFixed(2));
-        setMaxLossEnabled(Boolean(body.state.settings?.maximumLossEnabled));
-      }
+      if (!preserve || !dirty) syncSettings(body.state);
       setError("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
     }
-  }, [dirty]);
+  }, [dirty, syncSettings]);
 
   useEffect(() => {
     void load(false);
@@ -148,9 +175,7 @@ export default function PolyGapLiveDashboard() {
       const payload = await response.json() as Payload;
       if (!response.ok || !payload.ok || !payload.state) throw new Error(payload.error ?? `HTTP ${response.status}`);
       setState(payload.state);
-      setStake(Number(payload.state.settings?.stakeUsdt ?? 1).toFixed(2));
-      setMaxLoss(Number(payload.state.settings?.maximumLossUsdt ?? 10).toFixed(2));
-      setMaxLossEnabled(Boolean(payload.state.settings?.maximumLossEnabled));
+      syncSettings(payload.state);
       setDirty(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -161,22 +186,59 @@ export default function PolyGapLiveDashboard() {
 
   const save = async () => {
     const stakeUsdt = Number(stake);
+    const reduceLossUsdt = Number(reduceLoss);
+    const reducedStakeUsdt = Number(reducedStake);
     const maximumLossUsdt = Number(maxLoss);
     if (!Number.isFinite(stakeUsdt) || stakeUsdt < 0.01 || stakeUsdt > 100) {
-      setError("每單金額必須介於 0.01–100 USDT");
+      setError("正常每單金額必須介於 0.01–100 USDT");
+      return;
+    }
+    if (!Number.isFinite(reducedStakeUsdt) || reducedStakeUsdt < 0.01 || reducedStakeUsdt > 100) {
+      setError("減額後每單金額必須介於 0.01–100 USDT");
+      return;
+    }
+    if (reduceLossEnabled && reducedStakeUsdt > stakeUsdt) {
+      setError("減額後每單金額不能高於正常每單金額");
+      return;
+    }
+    if (!Number.isFinite(reduceLossUsdt) || reduceLossUsdt < 0.01 || reduceLossUsdt > 1_000_000) {
+      setError("減額門檻必須介於 0.01–1,000,000 USDT");
       return;
     }
     if (!Number.isFinite(maximumLossUsdt) || maximumLossUsdt < 0.01 || maximumLossUsdt > 1_000_000) {
-      setError("最大虧損必須介於 0.01–1,000,000 USDT");
+      setError("停止門檻必須介於 0.01–1,000,000 USDT");
       return;
     }
-    await post({ stakeUsdt, maximumLossEnabled: maxLossEnabled, maximumLossUsdt });
+    if (reduceLossEnabled && maxLossEnabled && reduceLossUsdt >= maximumLossUsdt) {
+      setError("同時啟用時，減額門檻必須低於停止門檻");
+      return;
+    }
+    await post({
+      stakeUsdt,
+      reduceLossEnabled,
+      reduceLossUsdt,
+      reducedStakeUsdt,
+      maximumLossEnabled: maxLossEnabled,
+      maximumLossUsdt,
+    });
   };
 
-  const progress = useMemo(() => {
-    const loss = Number(state?.lossGuard?.currentLossUsdt ?? 0);
-    const limit = Number(state?.lossGuard?.maximumLossUsdt ?? 0);
-    return limit > 0 ? Math.min(100, Math.max(0, loss / limit * 100)) : 0;
+  const riskBar = useMemo(() => {
+    const loss = Math.max(0, Number(state?.lossGuard?.currentLossUsdt ?? 0));
+    const reductionEnabled = Boolean(state?.lossGuard?.reductionEnabled);
+    const stopEnabled = Boolean(state?.lossGuard?.enabled);
+    const reductionThreshold = Number(state?.lossGuard?.reductionThresholdUsdt ?? 0);
+    const stopThreshold = Number(state?.lossGuard?.maximumLossUsdt ?? 0);
+    const limit = stopEnabled && stopThreshold > 0
+      ? stopThreshold
+      : reductionEnabled && reductionThreshold > 0
+        ? reductionThreshold
+        : 0;
+    const progress = limit > 0 ? Math.min(100, Math.max(0, loss / limit * 100)) : 0;
+    const reductionMarker = reductionEnabled && stopEnabled && reductionThreshold > 0 && stopThreshold > 0
+      ? Math.min(100, Math.max(0, reductionThreshold / stopThreshold * 100))
+      : null;
+    return { progress, reductionMarker, limit };
   }, [state]);
 
   if (!target) return null;
@@ -184,7 +246,10 @@ export default function PolyGapLiveDashboard() {
   const active = state?.activeRound;
   const runtime = Boolean(state?.settings?.runtimeEnabled);
   const tripped = Boolean(state?.lossGuard?.tripped);
+  const reduced = Boolean(state?.lossGuard?.reductionTripped);
+  const phase = state?.lossGuard?.phase ?? (tripped ? "STOPPED" : reduced ? "REDUCED" : "NORMAL");
   const master = Boolean(state?.masterEnabled);
+  const effectiveStake = Number(state?.lossGuard?.effectiveStakeUsdt ?? state?.settings?.stakeUsdt ?? 0);
 
   return createPortal(
     <section className="poly-gap-live-control" aria-label="R_POLY_GAP_SCALP 專用實單">
@@ -196,7 +261,9 @@ export default function PolyGapLiveDashboard() {
         .poly-gap-live-grid span,.poly-gap-live-grid small{display:block;color:#91a0bb}.poly-gap-live-grid strong{display:block;margin-top:4px}
         .poly-gap-live-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}
         .poly-gap-live-controls label{display:grid;gap:6px}.poly-gap-live-actions{display:flex;gap:8px;flex-wrap:wrap}
-        .poly-gap-live-risk{height:8px;border-radius:999px;background:rgba(126,145,178,.18);overflow:hidden}.poly-gap-live-risk>div{height:100%;background:${tripped ? "#ff7777" : "#d3a85b"}}
+        .poly-gap-live-risk-shell{position:relative;padding-top:20px}.poly-gap-live-risk{position:relative;height:8px;border-radius:999px;background:rgba(126,145,178,.18);overflow:visible}.poly-gap-live-risk-fill{height:100%;border-radius:999px;background:${tripped ? "#ff7777" : reduced ? "#ffb45c" : "#d3a85b"}}
+        .poly-gap-live-risk-marker{position:absolute;top:-5px;bottom:-5px;width:2px;background:#7ee3f5;box-shadow:0 0 8px rgba(126,227,245,.55)}.poly-gap-live-risk-marker span{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);white-space:nowrap;padding:2px 5px;border-radius:5px;background:rgba(9,18,28,.94);color:#7ee3f5;font:700 9px var(--font-mono)}
+        .poly-gap-live-risk-labels{display:flex;justify-content:space-between;gap:12px;margin-top:7px;color:#91a0bb;font-size:11px;flex-wrap:wrap}.poly-gap-live-phase{font-weight:800}.poly-gap-live-phase.reduced{color:#ffb45c}.poly-gap-live-phase.stopped{color:#ff7777}.poly-gap-live-phase.normal{color:#8ce6ad}
         .poly-gap-live-warning{padding:10px;border-radius:10px;background:rgba(255,161,90,.08);border:1px solid rgba(255,161,90,.2)}
       `}</style>
 
@@ -204,7 +271,7 @@ export default function PolyGapLiveDashboard() {
         <div>
           <span className="eyebrow">DEDICATED LOW-LATENCY REAL MONEY · PORT 8769</span>
           <h3>R_POLY_GAP_SCALP 專用實單</h3>
-          <small>同一 5 分鐘市場可多輪；上一輪必須確認 FLAT 才 re-arm。Poly 使用現有 WS collector 的最新狀態，Binance Prediction book／quote／place 走專用持久 client。</small>
+          <small>同一 5 分鐘市場可多輪；上一輪必須確認 FLAT 才 re-arm。兩階段虧損風控共用同一個已實現淨損益計數：先減額、後停止；已有持倉的 EXIT 不受影響。</small>
         </div>
         <span className="poly-gap-live-badge">{state?.status ?? "OFFLINE"}</span>
       </div>
@@ -215,17 +282,27 @@ export default function PolyGapLiveDashboard() {
       </div>}
 
       <div className="poly-gap-live-grid">
-        <div><span>每單金額</span><strong>{Number(state?.settings?.stakeUsdt ?? 0).toFixed(2)} USDT</strong><small>每一 round 獨立</small></div>
+        <div><span>目前實際每單</span><strong>{effectiveStake.toFixed(2)} USDT</strong><small>正常 {Number(state?.lossGuard?.normalStakeUsdt ?? state?.settings?.stakeUsdt ?? 0).toFixed(2)} · 減額 {Number(state?.lossGuard?.reducedStakeUsdt ?? state?.settings?.reducedStakeUsdt ?? 0).toFixed(2)}</small></div>
+        <div><span>風控階段</span><strong className={`poly-gap-live-phase ${phase.toLowerCase()}`}>{phase}</strong><small>{phase === "REDUCED" ? "新 round 使用減額金額，直到虧損統計歸零" : phase === "STOPPED" ? "停止新 round；EXIT 繼續管理" : "使用正常每單金額"}</small></div>
         <div><span>目前淨損益</span><strong>{money(state?.lossGuard?.netPnlUsdt)}</strong><small>歸零後已完成 {state?.lossGuard?.settledRounds ?? 0} 輪</small></div>
-        <div><span>最大虧損</span><strong>{state?.lossGuard?.enabled ? `${Number(state?.lossGuard?.maximumLossUsdt ?? 0).toFixed(2)} USDT` : "關閉"}</strong><small>剩餘 {money(state?.lossGuard?.remainingBeforePauseUsdt)}</small></div>
+        <div><span>減額門檻</span><strong>{state?.lossGuard?.reductionEnabled ? plainMoney(state?.lossGuard?.reductionThresholdUsdt) : "關閉"}</strong><small>{state?.lossGuard?.reductionTripped ? "已觸發並鎖定" : `剩餘 ${money(state?.lossGuard?.remainingBeforeReductionUsdt)}`}</small></div>
+        <div><span>停止門檻</span><strong>{state?.lossGuard?.enabled ? plainMoney(state?.lossGuard?.maximumLossUsdt) : "關閉"}</strong><small>{state?.lossGuard?.tripped ? "已停止新 round" : `剩餘 ${money(state?.lossGuard?.remainingBeforePauseUsdt)}`}</small></div>
         <div><span>目前市場／輪次</span><strong>#{active?.market_id ?? state?.market?.market_id ?? "—"} · R{active?.round_no ?? "—"}</strong><small>{active ? `${active.side ?? "—"} · ${active.state ?? "—"}` : "FLAT / 等待 gap"}</small></div>
         <div><span>Poly / Binance</span><strong>{state?.poly?.direction ?? "NEUTRAL"} · {Number(state?.poly?.selectedMid ?? 0).toFixed(3)}</strong><small>Ask {state?.binance?.ask == null ? "—" : Number(state.binance.ask).toFixed(3)} · book RTT {ms(state?.binance?.bookRttMs)}</small></div>
         <div><span>累積實單</span><strong>{state?.summary?.rounds ?? 0} 輪</strong><small>勝率 {pct(state?.summary?.winRate)} · PnL {money(state?.summary?.pnlUsdt)}</small></div>
       </div>
 
-      <div>
-        <div className="poly-gap-live-risk"><div style={{ width: `${progress}%` }} /></div>
-        <small>目前虧損 {money(state?.lossGuard?.currentLossUsdt)} / 上限 {money(state?.lossGuard?.maximumLossUsdt)}。達上限後停止新 round；已有持倉仍保留自動 EXIT 管理。</small>
+      <div className="poly-gap-live-risk-shell">
+        <div className="poly-gap-live-risk" aria-label="共用虧損風控進度">
+          <div className="poly-gap-live-risk-fill" style={{ width: `${riskBar.progress}%` }} />
+          {riskBar.reductionMarker != null && <div className="poly-gap-live-risk-marker" style={{ left: `${riskBar.reductionMarker}%` }}><span>減額線</span></div>}
+        </div>
+        <div className="poly-gap-live-risk-labels">
+          <span>目前虧損 {money(state?.lossGuard?.currentLossUsdt)}</span>
+          <span>減額門檻 {state?.lossGuard?.reductionEnabled ? money(state?.lossGuard?.reductionThresholdUsdt) : "關閉"}</span>
+          <span>停止門檻 {state?.lossGuard?.enabled ? money(state?.lossGuard?.maximumLossUsdt) : "關閉"}</span>
+        </div>
+        <small>同一條虧損計數先判斷減額門檻，再判斷停止門檻。減額觸發後維持小額直到按「虧損統計歸零」；停止只禁止新 round，已有持倉仍保留自動 EXIT 管理。</small>
       </div>
 
       <div className="poly-gap-live-grid">
@@ -236,34 +313,49 @@ export default function PolyGapLiveDashboard() {
 
       <div className="poly-gap-live-controls">
         <label>
-          <span>每單金額（USDT）</span>
+          <span>正常每單金額（USDT）</span>
           <input type="number" min="0.01" max="100" step="0.01" value={stake} disabled={busy} onChange={event => { setStake(event.target.value); setDirty(true); }} />
         </label>
         <label>
-          <span>最大虧損保護</span>
+          <span>減額風控</span>
+          <select value={reduceLossEnabled ? "ON" : "OFF"} disabled={busy} onChange={event => { setReduceLossEnabled(event.target.value === "ON"); setDirty(true); }}>
+            <option value="ON">啟用</option>
+            <option value="OFF">關閉</option>
+          </select>
+        </label>
+        <label>
+          <span>減額門檻（USDT）</span>
+          <input type="number" min="0.01" max="1000000" step="0.01" value={reduceLoss} disabled={busy || !reduceLossEnabled} onChange={event => { setReduceLoss(event.target.value); setDirty(true); }} />
+        </label>
+        <label>
+          <span>減額後每單（USDT）</span>
+          <input type="number" min="0.01" max="100" step="0.01" value={reducedStake} disabled={busy || !reduceLossEnabled} onChange={event => { setReducedStake(event.target.value); setDirty(true); }} />
+        </label>
+        <label>
+          <span>停止新單風控</span>
           <select value={maxLossEnabled ? "ON" : "OFF"} disabled={busy} onChange={event => { setMaxLossEnabled(event.target.value === "ON"); setDirty(true); }}>
             <option value="ON">啟用</option>
             <option value="OFF">關閉</option>
           </select>
         </label>
         <label>
-          <span>最大虧損（USDT）</span>
+          <span>停止門檻（USDT）</span>
           <input type="number" min="0.01" max="1000000" step="0.01" value={maxLoss} disabled={busy || !maxLossEnabled} onChange={event => { setMaxLoss(event.target.value); setDirty(true); }} />
         </label>
       </div>
 
       <div className="poly-gap-live-actions">
-        <button type="button" disabled={!dirty || busy} onClick={() => void save()}>{busy ? "處理中…" : "套用專用實單設定"}</button>
+        <button type="button" disabled={!dirty || busy} onClick={() => void save()}>{busy ? "處理中…" : "套用兩階段風控設定"}</button>
         <button type="button" className="secondary" disabled={busy || !master || tripped} onClick={() => void post({ runtimeEnabled: !runtime })}>{runtime ? "暫停新 round" : "恢復專用實單"}</button>
         <button type="button" className="secondary" disabled={busy} onClick={() => {
-          if (window.confirm("確定將 R_POLY_GAP_SCALP 專用實單的最大虧損統計歸零？")) void post({ resetLoss: true });
+          if (window.confirm("確定將 R_POLY_GAP_SCALP 專用實單的共用虧損統計歸零？\n\n這會同時解除『減額』與『停止』兩個已觸發階段；歷史交易不會刪除。")) void post({ resetLoss: true });
         }}>虧損統計歸零</button>
       </div>
 
       {state?.haltedReason && <small style={{ color: "#ff9f9f" }}>本市場 HALT：{state.haltedReason}</small>}
       {state?.lastError && <small style={{ color: "#ffbd87" }}>最近錯誤：{state.lastError}</small>}
       {error && <small style={{ color: "#ff8f8f" }}>Dashboard：{error}</small>}
-      <small>安全規則：任何 place-order transport ambiguity 都不盲目 retry，而是 HALT 當前 market；同市場多輪只取消「永久一次」限制，不取消「一次只能有一個 active round」與「確認 FLAT 才 re-arm」。</small>
+      <small>安全規則：兩階段風控只改 NEW BUY。任何已持有部位的 SELL／EXIT、reconciliation 與正式結算都照常執行；任何 place-order transport ambiguity 仍不盲目 retry，而是 HALT 當前 market。</small>
     </section>,
     target,
   );
