@@ -107,21 +107,23 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v19 -> predict_bot.poly_gap_live_v20 ->
     # predict_bot.poly_gap_live_v21 -> predict_bot.poly_gap_live_v22 ->
     # predict_bot.poly_gap_live_v23 -> predict_bot.poly_gap_live_v24 ->
-    # predict_bot.poly_gap_live_v25.
+    # predict_bot.poly_gap_live_v25 -> predict_bot.poly_gap_live_v26.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5.
-    # V25 keeps all V24 tiered-loss and V23 market/execution safety, and adds
-    # read-only rolling 10-market Echtgeld win-rate/PnL/reversal-loss diagnostics.
+    # V26 keeps all V25 rolling diagnostics, V24 tiered-loss and V23 execution
+    # safety. Paper current-market CHOP becomes diagnostic-only for the immediate
+    # breaker; two completed Echtgeld reversal exits now stop same-market re-entry.
+    # Persistent Paper CHOP pause still blocks new exposure across markets.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V25 on port 8769 (V24 safety + rolling 10-market performance diagnostics)",
+        "V26 on port 8769 (V25 safety + 2 completed Live reversal exits same-market breaker)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v25"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v26"]
     )
 
 
