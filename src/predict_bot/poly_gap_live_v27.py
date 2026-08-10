@@ -8,7 +8,6 @@ from typing import Any
 from . import poly_gap_live as base
 from .cross_oracle_strategy_server import DB_PATH as CROSS_ORACLE_DB_PATH
 from .cross_oracle_strategy_chop_guard_v2 import IMMEDIATE_CHOP_BREAKER_REVERSALS
-from .poly_gap_live_v25 import RollingPerformancePolyGapLiveEngine
 from .poly_gap_live_v26 import LiveExitCountBreakerPolyGapLiveEngine
 
 
@@ -31,25 +30,25 @@ PAPER_GUARD_LAST_GOOD_GRACE_MS = max(
 
 
 class LocalDbPaperGuardPolyGapLiveEngine(LiveExitCountBreakerPolyGapLiveEngine):
-    """V27: verify persistent Paper CHOP state from the local SQLite heartbeat.
+    """V27: verify persistent Paper CHOP state from a lightweight local DB heartbeat.
 
     V13 used the shared 8769 httpx client to fetch the entire 8768 /state payload
-    before every flat-state re-entry decision.  That request inherits the live
-    executor's short transport timeout and the Paper endpoint builds a relatively
-    large snapshot.  A single transient localhost timeout therefore changed a
-    perfectly healthy flat executor into BLOCKED_PAPER_CHOP_GUARD_UNVERIFIED.
+    before every flat-state re-entry decision. That request inherits the live
+    executor's short transport timeout while the Paper endpoint builds a large
+    diagnostic snapshot. A single transient localhost timeout could therefore
+    become BLOCKED_PAPER_CHOP_GUARD_UNVERIFIED immediately after a flip exit.
 
-    V27 makes the gate depend on the source of truth that already persists the
-    regime state:
+    V27 separates the entry gate from that heavy diagnostic endpoint:
 
-    - poly_chop_guard_state.paused controls the persistent cross-market pause;
-    - the latest poly_chop_guard_markets.last_seen_at_ms is the Paper liveness
-      heartbeat and must remain fresh;
-    - current-market Paper reversals are retained as diagnostics only (V26);
-    - the immediate same-market breaker remains the Echtgeld completed reversal
-      exit counter introduced by V26;
-    - a short last-good grace absorbs a single SQLite read race, but never extends
-      beyond a stale Paper heartbeat.
+    - poly_chop_guard_state.paused is the persisted cross-market pause source;
+    - poly_chop_guard_heartbeat.healthy_at_ms is a dedicated 8768 health signal
+      written after successful Paper evaluation loops, independent of UP/DOWN vs
+      neutral direction;
+    - current-market Paper reversals remain diagnostic-only as introduced by V26;
+    - the immediate same-market breaker remains the persisted Echtgeld completed
+      reversal-exit count from V26;
+    - a short last-good grace absorbs one transient SQLite read race, but never
+      extends beyond a stale Paper health heartbeat.
 
     Existing positions and exit/reconciliation paths remain untouched because the
     guard is still consulted only while flat and considering NEW exposure.
@@ -62,7 +61,7 @@ class LocalDbPaperGuardPolyGapLiveEngine(LiveExitCountBreakerPolyGapLiveEngine):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def _read_local_guard_rows() -> tuple[dict[str, Any], dict[str, Any] | None]:
+    def _read_local_guard_rows() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any] | None]:
         db = sqlite3.connect(
             f"file:{CROSS_ORACLE_DB_PATH}?mode=ro",
             uri=True,
@@ -75,6 +74,11 @@ class LocalDbPaperGuardPolyGapLiveEngine(LiveExitCountBreakerPolyGapLiveEngine):
             ).fetchone()
             if state_row is None:
                 raise RuntimeError("poly_chop_guard_state row is unavailable")
+            heartbeat_row = db.execute(
+                "SELECT healthy_at_ms FROM poly_chop_guard_heartbeat WHERE id=1"
+            ).fetchone()
+            if heartbeat_row is None:
+                raise RuntimeError("poly_chop_guard_heartbeat row is unavailable")
             market_row = db.execute(
                 """SELECT market_id,status,confirmed_reversals,distinct_receipts,
                           evaluable,last_seen_at_ms,finalized_at_ms,reason
@@ -82,42 +86,55 @@ class LocalDbPaperGuardPolyGapLiveEngine(LiveExitCountBreakerPolyGapLiveEngine):
                     ORDER BY last_seen_at_ms DESC, market_id DESC
                     LIMIT 1"""
             ).fetchone()
-            return dict(state_row), (dict(market_row) if market_row is not None else None)
+            return (
+                dict(state_row),
+                dict(heartbeat_row),
+                dict(market_row) if market_row is not None else None,
+            )
         finally:
             db.close()
 
     def _local_guard_snapshot(self, checked_ms: int) -> dict[str, Any]:
-        state_row, market_row = self._read_local_guard_rows()
-        if market_row is None:
-            raise RuntimeError("Paper CHOP heartbeat market row is unavailable")
-
+        state_row, heartbeat_row, market_row = self._read_local_guard_rows()
         try:
-            heartbeat_ms = int(market_row.get("last_seen_at_ms") or 0)
+            heartbeat_ms = int(heartbeat_row.get("healthy_at_ms") or 0)
         except (TypeError, ValueError) as exc:
-            raise RuntimeError("Paper CHOP heartbeat timestamp is unavailable") from exc
+            raise RuntimeError("Paper CHOP health heartbeat timestamp is unavailable") from exc
         if heartbeat_ms <= 0:
-            raise RuntimeError("Paper CHOP heartbeat timestamp is unavailable")
+            raise RuntimeError("Paper CHOP health heartbeat timestamp is unavailable")
 
         heartbeat_age_ms = max(0, int(checked_ms) - heartbeat_ms)
         if heartbeat_ms > checked_ms + PAPER_GUARD_DB_MAX_HEARTBEAT_AGE_MS:
             raise RuntimeError(
-                f"Paper CHOP DB heartbeat is unexpectedly in the future: {heartbeat_ms}"
+                f"Paper CHOP health heartbeat is unexpectedly in the future: {heartbeat_ms}"
             )
         if heartbeat_age_ms > PAPER_GUARD_DB_MAX_HEARTBEAT_AGE_MS:
             raise RuntimeError(
-                "Paper CHOP DB heartbeat stale: "
+                "Paper CHOP health heartbeat stale: "
                 f"{heartbeat_age_ms}ms > {PAPER_GUARD_DB_MAX_HEARTBEAT_AGE_MS}ms"
             )
 
         persistent_paused = bool(int(state_row.get("paused") or 0))
-        market_status = str(market_row.get("status") or "")
-        market_evaluable = bool(int(market_row.get("evaluable") or 0))
-        current_reversals = int(market_row.get("confirmed_reversals") or 0)
+        market_status = str((market_row or {}).get("status") or "")
+        market_evaluable = bool(int((market_row or {}).get("evaluable") or 0))
+        current_reversals = int((market_row or {}).get("confirmed_reversals") or 0)
         current_choppy = bool(
             market_status == "ACTIVE"
             and market_evaluable
             and current_reversals >= IMMEDIATE_CHOP_BREAKER_REVERSALS
         )
+
+        paper_current = None
+        if market_row is not None:
+            paper_current = {
+                "marketId": int(market_row.get("market_id") or 0),
+                "status": market_status,
+                "reversals": current_reversals,
+                "distinctReceipts": int(market_row.get("distinct_receipts") or 0),
+                "evaluable": market_evaluable,
+                "lastSeenAtMs": int(market_row.get("last_seen_at_ms") or 0),
+                "reason": market_row.get("reason"),
+            }
 
         return {
             "verified": True,
@@ -127,27 +144,20 @@ class LocalDbPaperGuardPolyGapLiveEngine(LiveExitCountBreakerPolyGapLiveEngine):
             "reason": (
                 str(state_row.get("reason") or "persistent Paper CHOP pause")
                 if persistent_paused
-                else "local Paper CHOP DB heartbeat verified; new exposure allowed"
+                else "local Paper CHOP health heartbeat verified; new exposure allowed"
             ),
             "checkedAtMs": int(checked_ms),
             "evaluatedAtMs": int(heartbeat_ms),
             "ageMs": int(heartbeat_age_ms),
             "error": None,
-            "source": "LOCAL_CROSS_ORACLE_DB_HEARTBEAT_V27",
+            "source": "LOCAL_CROSS_ORACLE_DB_HEALTH_HEARTBEAT_V27",
             "dbPath": str(CROSS_ORACLE_DB_PATH),
             "paperState": {
                 "paused": persistent_paused,
                 "stateChangedAtMs": int(state_row.get("changed_at_ms") or 0),
                 "reason": state_row.get("reason"),
-                "currentMarket": {
-                    "marketId": int(market_row.get("market_id") or 0),
-                    "status": market_status,
-                    "reversals": current_reversals,
-                    "distinctReceipts": int(market_row.get("distinct_receipts") or 0),
-                    "evaluable": market_evaluable,
-                    "lastSeenAtMs": heartbeat_ms,
-                    "reason": market_row.get("reason"),
-                },
+                "healthHeartbeatAtMs": heartbeat_ms,
+                "currentMarket": paper_current,
             },
             "paperCurrentMarketChoppyDiagnosticOnly": current_choppy,
             "paperCurrentMarketReversalsDoNotTriggerImmediateBlock": True,
@@ -203,7 +213,7 @@ class LocalDbPaperGuardPolyGapLiveEngine(LiveExitCountBreakerPolyGapLiveEngine):
                     "persistentPaused": None,
                     "currentMarketChoppy": None,
                     "reason": (
-                        "local Paper CHOP DB heartbeat could not be verified; "
+                        "local Paper CHOP health heartbeat could not be verified; "
                         "new live entries fail closed"
                     ),
                     "checkedAtMs": checked_ms,
@@ -223,12 +233,13 @@ class LocalDbPaperGuardPolyGapLiveEngine(LiveExitCountBreakerPolyGapLiveEngine):
         payload = super().snapshot()
         payload["version"] = "POLY_GAP_DEDICATED_LIVE_V27"
         payload["paperGuardVerificationV27"] = {
-            "gateSource": "LOCAL_CROSS_ORACLE_DB_HEARTBEAT",
+            "gateSource": "LOCAL_CROSS_ORACLE_DB_HEALTH_HEARTBEAT",
             "dbPath": str(CROSS_ORACLE_DB_PATH),
             "pollMs": PAPER_GUARD_DB_POLL_MS,
             "maxHeartbeatAgeMs": PAPER_GUARD_DB_MAX_HEARTBEAT_AGE_MS,
             "lastGoodGraceMs": PAPER_GUARD_LAST_GOOD_GRACE_MS,
             "full8768SnapshotRequiredForEntryGate": False,
+            "neutralDirectionDoesNotMakeHeartbeatStale": True,
             "persistentPauseStillFailClosedWhenHeartbeatStale": True,
             "paperCurrentMarketChopDiagnosticOnly": True,
             "sameMarketImmediateBreaker": "2_COMPLETED_LIVE_REVERSAL_EXITS",
