@@ -4,6 +4,13 @@ import json
 import time
 from typing import Any
 
+from .maximum_net_loss_guard_v2_patch import install_maximum_net_loss_guard_v2_patch
+
+# Package import already installs the V1 hard-stop circuit breaker. Install V2
+# before importing server so LiveM0WEngine is bound with the numeric reduce stage
+# for the production 8766 process started by supervisor.
+install_maximum_net_loss_guard_v2_patch()
+
 from . import server as server
 from . import server_binance_prefetch_v4 as previous
 
