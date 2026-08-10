@@ -21,6 +21,21 @@ def _engine(path: Path) -> live_trading.LiveM0WEngine:
 def _insert_loss(ledger: live_trading.LiveLedger, pnl_usdt: float) -> None:
     time.sleep(0.002)
     now = live_trading.utc_iso()
+    market_id = 999001
+    cost = 10.0
+    order_id = ledger.record_signal(
+        topic_id=1,
+        market_id=market_id,
+        side="UP",
+        token_id="tiered-loss-test-token",
+        signal_price=0.5,
+        account_type="SPOT",
+        signal_at=now,
+        strategy="R_MICROPRICE",
+        max_stake_usdt=cost,
+        requested_amount_wei=str(int(cost * 10**18)),
+    )
+    assert order_id is not None
     with ledger.lock:
         ledger.db.execute(
             """INSERT INTO live_strategy_settlements(
@@ -29,12 +44,12 @@ def _insert_loss(ledger: live_trading.LiveLedger, pnl_usdt: float) -> None:
                    settled_at, updated_at
                ) VALUES (?, ?, 'SETTLED', 'LOSS', ?, ?, ?, ?, ?, ?)""",
             (
-                999001,
-                999001,
-                10.0,
-                max(0.0, 10.0 + pnl_usdt),
+                order_id,
+                market_id,
+                cost,
+                max(0.0, cost + pnl_usdt),
                 pnl_usdt,
-                pnl_usdt / 10.0 * 100.0,
+                pnl_usdt / cost * 100.0,
                 now,
                 now,
             ),
