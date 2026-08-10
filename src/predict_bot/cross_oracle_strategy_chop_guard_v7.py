@@ -26,6 +26,13 @@ LEAD_PRUNE_INTERVAL_SECONDS = max(
     30.0,
     float(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_PRUNE_SECONDS", "60")),
 )
+LEAD_DETAILED_EVENT_MARKETS = max(
+    3,
+    min(
+        20,
+        int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_DETAIL_MARKETS", "10")),
+    ),
+)
 
 
 class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
@@ -108,12 +115,20 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
         payload = super().snapshot()
         validation = payload.get("polyBinanceLeadValidation")
         if isinstance(validation, dict):
+            recent = validation.get("recentMarkets")
+            if isinstance(recent, list):
+                for index, market in enumerate(recent):
+                    if index >= LEAD_DETAILED_EVENT_MARKETS and isinstance(market, dict):
+                        market["events"] = []
+                        market["eventDetailsOmittedFromSnapshot"] = True
             validation["minimumMarketCoverageMs"] = LEAD_MIN_MARKET_COVERAGE_MS
             validation["minimumMarketSamples"] = LEAD_MIN_MARKET_SAMPLES
             validation["retentionMarkets"] = LEAD_RETENTION_MARKETS
             validation["pruneIntervalSeconds"] = LEAD_PRUNE_INTERVAL_SECONDS
+            validation["detailedEventMarkets"] = LEAD_DETAILED_EVENT_MARKETS
             validation["partialMarketsVisibleButExcludedFromProbabilities"] = True
             validation["eventStatisticsUseCoverageQualifiedMarketsOnly"] = True
+            validation["windowStatisticsComputedBeforeEventDetailTrimming"] = True
             validation["version"] = "poly_binance_lead_validation_v2"
         return payload
 
