@@ -18,12 +18,12 @@ class LiveExitCountBreakerPolyGapLiveEngine(RollingPerformancePolyGapLiveEngine)
 
     V13 originally used the Paper market-wide confirmed-reversal count for the
     immediate same-market breaker. That means a reversal observed before the
-    first Echtgeld entry could combine with the first real flip exit and block
+    first real-money entry could combine with the first real flip exit and block
     the rest of the market. V26 separates those responsibilities:
 
     - Paper currentMarketChoppy stays visible as a diagnostic only;
     - Paper persistentPaused still blocks new exposure exactly as before;
-    - the immediate same-market Live breaker is owned by the Echtgeld ledger;
+    - the immediate same-market Live breaker is owned by the real-money ledger;
     - a completed reversal exit means state=CLOSED with exit_signal_at_ms set;
     - the first completed reversal exit may re-arm into the new direction;
     - after the second completed reversal exit in the same Binance 5m market,
@@ -77,13 +77,13 @@ class LiveExitCountBreakerPolyGapLiveEngine(RollingPerformancePolyGapLiveEngine)
             current_choppy = bool(state.get("currentMarketChoppy"))
             state["paperRequestedBlockBeforeV26"] = bool(state.get("blocked"))
             state["paperCurrentMarketChoppyDiagnosticOnly"] = current_choppy
-            state["liveImmediateBreakerOwner"] = "EIGENGELD_COMPLETED_REVERSAL_EXITS"
+            state["liveImmediateBreakerOwner"] = "LIVE_COMPLETED_REVERSAL_EXITS"
             state["blocked"] = persistent
             if current_choppy and not persistent:
                 state["reason"] = (
                     "Paper detected current-market CHOP, but V26 treats that as diagnostic only; "
                     f"same-market Live blocking requires {LIVE_SAME_MARKET_BREAKER_EXIT_COUNT} "
-                    "completed Echtgeld reversal exits"
+                    "completed real-money reversal exits"
                 )
         return super()._emit_guard_transition(state)
 
@@ -127,7 +127,7 @@ class LiveExitCountBreakerPolyGapLiveEngine(RollingPerformancePolyGapLiveEngine)
                         self.status = "BLOCKED_LIVE_CURRENT_MARKET_REVERSAL_EXITS"
                         self.last_error = (
                             f"current market already completed {breaker['completedReversalExits']} "
-                            f"Echtgeld reversal exits; threshold={breaker['threshold']}; "
+                            f"real-money reversal exits; threshold={breaker['threshold']}; "
                             "no more new BUY rounds this market"
                         )
                         if self._same_market_breaker_event_market_id != market_id:
