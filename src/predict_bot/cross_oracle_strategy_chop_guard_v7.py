@@ -18,9 +18,12 @@ LEAD_MIN_MARKET_SAMPLES = max(
     20,
     int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_MIN_MARKET_SAMPLES", "240")),
 )
+# 900 five-minute markets = 75 hours.  This keeps a little more than three
+# full days of raw aligned Poly/Binance trajectories for opening-leader and
+# regime/chop research while remaining bounded.
 LEAD_RETENTION_MARKETS = max(
-    55,
-    int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_RETENTION_MARKETS", "72")),
+    72,
+    int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_RETENTION_MARKETS", "900")),
 )
 LEAD_PRUNE_INTERVAL_SECONDS = max(
     30.0,
@@ -36,15 +39,15 @@ LEAD_DETAILED_EVENT_MARKETS = max(
 
 
 class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
-    """V7: quality-gated and bounded 10/30/50 Poly-vs-Binance lead research.
+    """V7: quality-gated and bounded Poly-vs-Binance lead research.
 
     The collector is forward-only, so the first market after deployment may begin
     halfway through a five-minute window. A network outage can also leave a market
     with only a small trajectory fragment. Those rows remain visible for research,
     but they are not allowed to vote in either market-level or event-level lead
     probabilities unless the observed span and sample count meet the configured
-    minimums. Raw trajectory retention is bounded above the 50-market research
-    window so the 250ms sampler cannot grow cross_oracle.db forever.
+    minimums. Raw trajectory retention defaults to 900 five-minute markets (about
+    75 hours) so three-day causal research is available without unbounded growth.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -124,6 +127,7 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
             validation["minimumMarketCoverageMs"] = LEAD_MIN_MARKET_COVERAGE_MS
             validation["minimumMarketSamples"] = LEAD_MIN_MARKET_SAMPLES
             validation["retentionMarkets"] = LEAD_RETENTION_MARKETS
+            validation["retentionApproxHours"] = LEAD_RETENTION_MARKETS * 5.0 / 60.0
             validation["pruneIntervalSeconds"] = LEAD_PRUNE_INTERVAL_SECONDS
             validation["detailedEventMarkets"] = LEAD_DETAILED_EVENT_MARKETS
             validation["partialMarketsVisibleButExcludedFromProbabilities"] = True
