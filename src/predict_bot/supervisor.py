@@ -109,7 +109,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v21 -> predict_bot.poly_gap_live_v22 ->
     # predict_bot.poly_gap_live_v23 -> predict_bot.poly_gap_live_v24 ->
     # predict_bot.poly_gap_live_v25 -> predict_bot.poly_gap_live_v26 ->
-    # predict_bot.poly_gap_live_v27.
+    # predict_bot.poly_gap_live_v27 -> predict_bot.poly_gap_live_v28.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -118,17 +118,17 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V27 keeps all V26 same-market Live reversal-exit breaker behavior, V25
-    # rolling diagnostics, V24 tiered-loss and V23 execution safety. Persistent
-    # Paper CHOP verification reads the local persisted guard state plus the
-    # lightweight heartbeat; the v5 Paper sidecar only adds R_POLY_INVERTED_PRICE.
+    # V28 keeps V27 heartbeat verification and the complete earlier execution
+    # safety chain, and adds persistent dashboard-editable absolute entry ceiling
+    # plus held-side Binance Bid take-profit. TAKE_PROFIT exits are persisted
+    # separately and never consume the V26 same-market reversal-exit breaker.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V27 on port 8769 (V26 safety + local Paper guard heartbeat verification)",
+        "V28 on port 8769 (V27 safety + editable max-entry and take-profit prices)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v27"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v28"]
     )
 
 
