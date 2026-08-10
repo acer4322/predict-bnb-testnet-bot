@@ -4,6 +4,7 @@ import os
 from typing import Any
 
 from . import poly_gap_live as base
+from .poly_gap_live_v7 import ENTRY_RETRY_COOLDOWN_MS
 from .poly_gap_live_v35 import DurableExitCommitmentPolyGapLiveEngine
 
 
@@ -61,7 +62,9 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
       - fresh Poly must still explicitly point to the intended side;
       - the inherited entry price/depth guards run again on every retry;
       - the inherited signed-quote checks run again on every retry;
-      - retries and commitment lifetime are hard bounded.
+      - retries and commitment lifetime are hard bounded;
+      - when the fast-retry budget ends, V7's slower normal rearm cooldown is
+        scheduled so a new round cannot bypass the V36 cap in the same tick.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -74,6 +77,7 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
         self._v36_fast_retry_fills = 0
         self._v36_retry_waits_for_book = 0
         self._v36_retry_cancels: dict[str, int] = {}
+        self._v36_normal_rearms_scheduled = 0
         super().__init__(*args, **kwargs)
 
     def _create_schema(self) -> None:
@@ -98,6 +102,25 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
                         f"ALTER TABLE poly_gap_live_execution_attempts ADD COLUMN {name} {sql_type}"
                     )
             self.db.commit()
+
+    def _schedule_normal_rearm(self, row: dict[str, Any], reason: str) -> None:
+        market_id = int(row.get("market_id") or 0)
+        side = str(row.get("side") or "").upper()
+        if market_id <= 0 or side not in {"UP", "DOWN"}:
+            return
+        try:
+            cooldown_ms = max(
+                ENTRY_RETRY_COOLDOWN_MS,
+                int(self._failure_cooldown_ms(row)),
+            )
+        except Exception:
+            cooldown_ms = ENTRY_RETRY_COOLDOWN_MS
+        self._schedule_retry(
+            (market_id, side),
+            cooldown_ms,
+            f"V36_{str(reason or 'FAST_RETRY_ENDED')}",
+        )
+        self._v36_normal_rearms_scheduled += 1
 
     def _cancel_entry_commitment(self, reason: str, *, event: bool = True) -> None:
         commitment = self._v36_entry_commitment
@@ -197,7 +220,7 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
         is_retry = int(self._v36_retrying_round_id == int(round_id))
         commitment = self._v36_entry_commitment or {}
         commitment_started = (
-            int(commitment.get("startedAtMs") or 0) or None if is_retry else None
+            (int(commitment.get("startedAtMs") or 0) or None) if is_retry else None
         )
         retry_ordinal = int(self._v36_retry_ordinal) if is_retry else 0
         with self.db_lock:
@@ -318,7 +341,12 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
             max_retries=ENTRY_NO_FILL_MAX_FAST_RETRIES,
             window_ms=ENTRY_NO_FILL_COMMITMENT_WINDOW_MS,
         )
-        if policy in {"EXPIRED", "EXHAUSTED", "CANCEL_DIRECTION_CHANGED"}:
+        if policy in {"EXPIRED", "EXHAUSTED"}:
+            self._cancel_entry_commitment(policy)
+            self._schedule_normal_rearm(row, policy)
+            self.status = "ENTRY_FAST_RETRY_ENDED_NORMAL_REARM_V36"
+            return True
+        if policy == "CANCEL_DIRECTION_CHANGED":
             self._cancel_entry_commitment(policy)
             return False
         if policy == "WAIT_FRESH_POLY":
@@ -346,7 +374,9 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
         if ask is None:
             if bool(getattr(self, "_entry_price_blocked_this_tick", False)):
                 self._cancel_entry_commitment("FRESH_BOOK_PRICE_BLOCKED")
-                return False
+                self._schedule_normal_rearm(row, "FRESH_BOOK_PRICE_BLOCKED")
+                self.status = "ENTRY_FAST_RETRY_PRICE_BLOCKED_NORMAL_REARM_V36"
+                return True
             commitment["nextRetryAtMs"] = base._now_ms() + ENTRY_NO_FILL_RETRY_COOLDOWN_MS
             commitment["lastUpdatedAtMs"] = base._now_ms()
             self._v36_retry_waits_for_book += 1
@@ -421,9 +451,15 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
         # Any quote/signal/price rejection during a retry is a fresh reason not to
         # chase the market. Only a later definitive FOK NO_FILL can preserve the
         # commitment, and that arrives through _sync_entry after ENTRY_SYNC.
-        self._cancel_entry_commitment(
-            str(refreshed.get("error_kind") or refreshed.get("close_reason") or retry_state or "RETRY_NOT_SUBMITTED")
+        reason = str(
+            refreshed.get("error_kind")
+            or refreshed.get("close_reason")
+            or retry_state
+            or "RETRY_NOT_SUBMITTED"
         )
+        self._cancel_entry_commitment(reason)
+        self._schedule_normal_rearm(refreshed, reason)
+        self.status = "ENTRY_FAST_RETRY_REJECTED_NORMAL_REARM_V36"
         return True
 
     def _tick(self) -> None:
@@ -463,6 +499,7 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
             "fastRetrySubmissions": int(self._v36_fast_retry_submissions),
             "fastRetryFills": int(self._v36_fast_retry_fills),
             "retryBookWaits": int(self._v36_retry_waits_for_book),
+            "normalRearmsScheduled": int(self._v36_normal_rearms_scheduled),
             "cancellations": dict(self._v36_retry_cancels),
             "activeCommitment": dict(self._v36_entry_commitment or {}),
             "lastBuyExecution": self._latest_buy_execution_v36(),
@@ -478,6 +515,7 @@ class FastEntryRetryPolyGapLiveEngine(DurableExitCommitmentPolyGapLiveEngine):
                 "entryNoFillRetryRequiresFreshSameSidePoly": True,
                 "entryNoFillRetryRechecksFreshBookDepth": True,
                 "entryAmbiguousPlacementNeverRetried": True,
+                "entryFastRetryCapCannotBypassNormalRearmCooldown": True,
             }
         )
         return payload
