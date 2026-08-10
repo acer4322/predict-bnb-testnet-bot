@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import os
+from pathlib import Path
 from typing import Any
 
 from . import poly_gap_live as base
@@ -52,6 +53,13 @@ class TieredLossGuardPolyGapLiveEngine(DelayedEntryPolyGapLiveEngine):
     reconciliation and official settlement recovery are never blocked by either
     stage.
     """
+
+    def __init__(self, db_path: Path = base.DB_PATH) -> None:
+        super().__init__(db_path)
+        # Reconstruct both latches from the persistent realized-loss ledger on
+        # process start. This prevents a restart/upgrade from placing one normal-
+        # sized BUY before the first new settlement happens to re-run the guard.
+        self._check_max_loss()
 
     def _ensure_defaults(self) -> None:
         super()._ensure_defaults()
@@ -249,6 +257,7 @@ class TieredLossGuardPolyGapLiveEngine(DelayedEntryPolyGapLiveEngine):
             "stage1": "REDUCE_NEW_ROUND_STAKE",
             "stage2": "STOP_NEW_ROUNDS",
             "reductionIsLatchedUntilReset": True,
+            "startupReconstructsLossLatches": True,
             "openPositionExitManagementUnaffected": True,
             "entryDelayUnaffected": True,
             "settlementRecoveryUnaffected": True,
