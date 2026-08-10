@@ -117,7 +117,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.cross_oracle_strategy_chop_guard_v5.
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
-    # predict_bot.server_binance_prefetch_v5.
+    # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
     # V27 keeps all V26 same-market Live reversal-exit breaker behavior, V25
     # rolling diagnostics, V24 tiered-loss and V23 execution safety. Persistent
     # Paper CHOP verification reads the local persisted guard state plus the
@@ -152,7 +152,7 @@ def main() -> int:
     try:
         while True:
             child = subprocess.Popen(
-                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v5"]
+                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v6"]
             )
             try:
                 while True:
