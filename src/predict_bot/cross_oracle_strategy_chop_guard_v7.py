@@ -36,6 +36,15 @@ LEAD_DETAILED_EVENT_MARKETS = max(
         int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_DETAIL_MARKETS", "10")),
     ),
 )
+# Raw samples continue to be persisted on every Paper evaluation tick, but the
+# expensive 10/30/50 market analytics are display/research data and do not need
+# to be rebuilt for every 250 ms receipt.  Keeping the last completed analysis
+# for ten seconds prevents /state from repeatedly scanning tens of thousands of
+# raw rows while preserving more than enough freshness for this Paper panel.
+LEAD_UI_ANALYTICS_CACHE_MS = max(
+    2_000,
+    int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_UI_CACHE_MS", "10000")),
+)
 
 
 class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
@@ -55,7 +64,22 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
         super().__init__(*args, **kwargs)
 
     def _evaluate_once(self) -> None:
+        # v6 intentionally invalidates its analytics cache whenever it persists a
+        # new raw sample.  With multi-day retention that makes every dashboard
+        # /state read rebuild all recent market analyses.  Preserve a still-fresh
+        # completed analytics snapshot; raw persistence itself is unchanged.
+        previous_cache = self._lead_cache
+        previous_cache_at_ms = self._lead_cache_at_ms
         super()._evaluate_once()
+        now_wall_ms = int(time.time() * 1000)
+        if (
+            self._lead_cache is None
+            and previous_cache is not None
+            and now_wall_ms - previous_cache_at_ms < LEAD_UI_ANALYTICS_CACHE_MS
+        ):
+            self._lead_cache = previous_cache
+            self._lead_cache_at_ms = previous_cache_at_ms
+
         now = time.monotonic()
         if now < self._next_lead_prune_at:
             return
@@ -130,6 +154,7 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
             validation["retentionApproxHours"] = LEAD_RETENTION_MARKETS * 5.0 / 60.0
             validation["pruneIntervalSeconds"] = LEAD_PRUNE_INTERVAL_SECONDS
             validation["detailedEventMarkets"] = LEAD_DETAILED_EVENT_MARKETS
+            validation["uiAnalyticsCacheMs"] = LEAD_UI_ANALYTICS_CACHE_MS
             validation["partialMarketsVisibleButExcludedFromProbabilities"] = True
             validation["eventStatisticsUseCoverageQualifiedMarketsOnly"] = True
             validation["windowStatisticsComputedBeforeEventDetailTrimming"] = True
