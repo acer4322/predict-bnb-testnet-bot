@@ -7,6 +7,7 @@ import MarketChartRecovery from "./market-chart-recovery";
 import MaximumNetLossGuardDashboard from "./maximum-net-loss-guard-dashboard";
 import NativeObserverLiveControls from "./native-observer-live-controls";
 import OracleCrossInvertedPriceCard from "./oracle-cross-inverted-price-card";
+import OracleCrossLeadValidation from "./oracle-cross-lead-validation";
 import OracleCrossMarketPanel from "./oracle-cross-market-panel";
 import OracleCrossRollingStats from "./oracle-cross-rolling-stats";
 import OracleCrossStrategyPanel from "./oracle-cross-strategy-panel";
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <OracleCrossMarketPanel />
       <OracleCrossStrategyPanel />
       <OracleCrossInvertedPriceCard />
+      <OracleCrossLeadValidation />
       <OracleCrossRollingStats />
       <PolyExecutionCanaryPanel />
       <PolyStrategyScenarioComparison />
