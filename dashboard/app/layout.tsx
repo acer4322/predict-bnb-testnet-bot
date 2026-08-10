@@ -18,6 +18,7 @@ import PolyGapLiveDashboard from "./poly-gap-live-dashboard";
 import PolyGapLiveOperationsDashboard from "./poly-gap-live-operations-dashboard";
 import PolyGapLiveReversalBreakerControl from "./poly-gap-live-reversal-breaker-control";
 import PolyGapLiveRollingPerformance from "./poly-gap-live-rolling-performance";
+import PolyGapShotgunEntryV37 from "./poly-gap-shotgun-entry-v37";
 import PolyLiveTrajectoryDashboard from "./poly-live-trajectory-dashboard";
 import PolyStrategyScenarioComparison from "./poly-strategy-scenario-comparison";
 import "./globals.css";
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
       <PolyGapLiveDashboard />
+      <PolyGapShotgunEntryV37 />
       <PolyGapLiveReversalBreakerControl />
       <PolyGapLiveRollingPerformance />
       <PolyLiveTrajectoryDashboard />
