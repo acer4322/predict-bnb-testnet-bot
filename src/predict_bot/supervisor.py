@@ -87,14 +87,14 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
     print(
         "API supervisor: starting gap-aware Polymarket Paper strategies with "
         "R_POLY_GAP_SCALP, R_POLY_GAP_SCALP_STABLE, R_POLY_INVERTED_PRICE, CHOP guard, "
-        "rolling stats, persisted health heartbeat and Poly/Binance 10/30/50 lead-lag validation",
+        "rolling stats, persisted health heartbeat and coverage-qualified Poly/Binance 10/30/50 lead-lag validation",
         flush=True,
     )
     return subprocess.Popen(
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_strategy_chop_guard_v6",
+            "predict_bot.cross_oracle_strategy_chop_guard_v7",
         ]
     )
 
@@ -116,7 +116,8 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
     # predict_bot.cross_oracle_strategy_chop_guard_v4 ->
     # predict_bot.cross_oracle_strategy_chop_guard_v5 ->
-    # predict_bot.cross_oracle_strategy_chop_guard_v6.
+    # predict_bot.cross_oracle_strategy_chop_guard_v6 ->
+    # predict_bot.cross_oracle_strategy_chop_guard_v7.
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
