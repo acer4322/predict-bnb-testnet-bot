@@ -15,6 +15,11 @@ const BOOTSTRAP = String.raw`(() => {
   const trajectoryWriteAt = new Map();
   const CACHE_TTL_MS = 850;
   const TRAJECTORY_STORAGE_WRITE_MS = 5000;
+  const MAX_TRAJECTORY_CACHE_KEYS = 6;
+  const TRAJECTORY_PREFIXES = [
+    "btc5m-live-poly-trajectory:",
+    "btc5m-sync-trajectory:",
+  ];
   const metrics = {
     cacheHits: 0,
     networkFetches: 0,
@@ -22,8 +27,74 @@ const BOOTSTRAP = String.raw`(() => {
     staggeredIntervals: 0,
     slowedIntervals: 0,
     skippedTrajectoryWrites: 0,
+    trajectoryKeysEvicted: 0,
+    quotaRecoveries: 0,
+    quotaRecoveryFailures: 0,
     startedAtMs: Date.now(),
   };
+
+  function isTrajectoryKey(key) {
+    const textKey = String(key || "");
+    return TRAJECTORY_PREFIXES.some(prefix => textKey.startsWith(prefix));
+  }
+
+  function marketIdFromTrajectoryKey(key) {
+    const textKey = String(key || "");
+    const match = textKey.match(/(?:trajectory:)(\d+)/);
+    return match ? Number(match[1]) : 0;
+  }
+
+  function trajectoryKeys(storage) {
+    const keys = [];
+    try {
+      for (let index = 0; index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (key && isTrajectoryKey(key)) keys.push(key);
+      }
+    } catch {
+      return [];
+    }
+    return keys;
+  }
+
+  function pruneTrajectoryCache(storage, keep = MAX_TRAJECTORY_CACHE_KEYS) {
+    const keys = trajectoryKeys(storage)
+      .sort((left, right) => marketIdFromTrajectoryKey(right) - marketIdFromTrajectoryKey(left));
+    const remove = keys.slice(Math.max(0, keep));
+    remove.forEach(key => {
+      try {
+        storage.removeItem(key);
+        trajectoryWriteAt.delete(key);
+        metrics.trajectoryKeysEvicted += 1;
+      } catch {
+        // Display cache cleanup is best effort only.
+      }
+    });
+    return remove.length;
+  }
+
+  function evictAllTrajectoryCache(storage) {
+    const keys = trajectoryKeys(storage);
+    keys.forEach(key => {
+      try {
+        storage.removeItem(key);
+        trajectoryWriteAt.delete(key);
+        metrics.trajectoryKeysEvicted += 1;
+      } catch {
+        // Never let expendable chart cache block live-rule storage.
+      }
+    });
+    return keys.length;
+  }
+
+  // Old builds kept one trajectory entry per market forever. Reclaim that space
+  // before React hydrates so critical live-rule drafts can be persisted again.
+  try {
+    pruneTrajectoryCache(window.localStorage, MAX_TRAJECTORY_CACHE_KEYS);
+  } catch {
+    // localStorage may be unavailable in privacy modes; the dashboard can run
+    // without persistent trajectory cache.
+  }
 
   function requestInfo(input, init) {
     let url;
@@ -117,18 +188,52 @@ const BOOTSTRAP = String.raw`(() => {
 
   Storage.prototype.setItem = function dashboardStorageSetItem(key, value) {
     const textKey = String(key || "");
-    const trajectoryKey = textKey.startsWith("btc5m-live-poly-trajectory:")
-      || textKey.startsWith("btc5m-sync-trajectory:");
-    if (!trajectoryKey) return nativeStorageSetItem.call(this, key, value);
+    const trajectoryKey = isTrajectoryKey(textKey);
 
-    const now = Date.now();
-    const previous = trajectoryWriteAt.get(textKey) || 0;
-    if (now - previous < TRAJECTORY_STORAGE_WRITE_MS) {
-      metrics.skippedTrajectoryWrites += 1;
+    if (trajectoryKey) {
+      const now = Date.now();
+      const previous = trajectoryWriteAt.get(textKey) || 0;
+      if (now - previous < TRAJECTORY_STORAGE_WRITE_MS) {
+        metrics.skippedTrajectoryWrites += 1;
+        return;
+      }
+      trajectoryWriteAt.set(textKey, now);
+      pruneTrajectoryCache(this, MAX_TRAJECTORY_CACHE_KEYS - 1);
+      try {
+        nativeStorageSetItem.call(this, key, value);
+      } catch (error) {
+        // Trajectory is a display cache only. If storage is full, drop it rather
+        // than surfacing QuotaExceededError or displacing live-rule drafts.
+        metrics.skippedTrajectoryWrites += 1;
+        try { this.removeItem(textKey); } catch { /* best effort */ }
+      }
       return;
     }
-    trajectoryWriteAt.set(textKey, now);
-    return nativeStorageSetItem.call(this, key, value);
+
+    try {
+      nativeStorageSetItem.call(this, key, value);
+      return;
+    } catch (error) {
+      const quotaError = error && (
+        error.name === "QuotaExceededError"
+        || error.name === "NS_ERROR_DOM_QUOTA_REACHED"
+        || error.code === 22
+        || error.code === 1014
+      );
+      if (!quotaError) throw error;
+
+      // Critical/non-trajectory state gets one recovery attempt after removing
+      // every expendable trajectory cache entry. This specifically protects
+      // btc5m-live-rules-draft-v1 and other user settings.
+      metrics.quotaRecoveries += 1;
+      evictAllTrajectoryCache(this);
+      try {
+        nativeStorageSetItem.call(this, key, value);
+      } catch (retryError) {
+        metrics.quotaRecoveryFailures += 1;
+        throw retryError;
+      }
+    }
   };
 
   let intervalSequence = 0;
@@ -178,13 +283,20 @@ const BOOTSTRAP = String.raw`(() => {
     metrics,
     cacheTtlMs: CACHE_TTL_MS,
     trajectoryStorageWriteMs: TRAJECTORY_STORAGE_WRITE_MS,
+    maxTrajectoryCacheKeys: MAX_TRAJECTORY_CACHE_KEYS,
+    pruneTrajectoryCache() {
+      return pruneTrajectoryCache(window.localStorage, MAX_TRAJECTORY_CACHE_KEYS);
+    },
+    clearTrajectoryCache() {
+      return evictAllTrajectoryCache(window.localStorage);
+    },
     snapshot() {
       return {
         ...metrics,
         ageMs: Date.now() - metrics.startedAtMs,
         cachedEndpoints: responseCache.size,
         staggeredActive: staggered.size,
-        trajectoryKeys: trajectoryWriteAt.size,
+        trajectoryKeys: trajectoryKeys(window.localStorage).length,
       };
     },
   };
