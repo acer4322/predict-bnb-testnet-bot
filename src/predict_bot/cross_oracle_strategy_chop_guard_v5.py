@@ -40,12 +40,38 @@ INVERTED_MAX_ENTRY_ASK = max(
 
 
 # Extend the runtime summary tuple without modifying the original three strategy
-# definitions.  RollingStatsPaperEngine imports STRATEGIES by value, so extend
+# definitions. RollingStatsPaperEngine imports STRATEGIES by value, so extend
 # both module bindings before the concrete v5 engine is constructed.
 if STRATEGY_POLY_INVERTED_PRICE not in strategies.STRATEGIES:
     strategies.STRATEGIES = (*strategies.STRATEGIES, STRATEGY_POLY_INVERTED_PRICE)
 if STRATEGY_POLY_INVERTED_PRICE not in rolling.STRATEGIES:
     rolling.STRATEGIES = (*rolling.STRATEGIES, STRATEGY_POLY_INVERTED_PRICE)
+
+
+def inverted_price_signal(
+    *,
+    poly_selected_mid: float,
+    binance_selected_mid: float,
+    executable_ask: float,
+) -> dict[str, Any]:
+    mirror_sum = float(poly_selected_mid) + float(binance_selected_mid)
+    mirror_error = abs(mirror_sum - 1.0)
+    strong_poly = poly_selected_mid + 1e-12 >= INVERTED_MIN_POLY_SELECTED_MID
+    cheap_binance = binance_selected_mid - 1e-12 <= INVERTED_MAX_BINANCE_SELECTED_MID
+    mirror_like = mirror_error - 1e-12 <= INVERTED_MIRROR_TOLERANCE
+    executable = executable_ask - 1e-12 <= INVERTED_MAX_ENTRY_ASK
+    return {
+        "triggered": bool(strong_poly and cheap_binance and mirror_like and executable),
+        "polySelectedMid": float(poly_selected_mid),
+        "binanceSelectedMid": float(binance_selected_mid),
+        "binanceSelectedAsk": float(executable_ask),
+        "mirrorSum": mirror_sum,
+        "mirrorError": mirror_error,
+        "strongPoly": strong_poly,
+        "cheapBinance": cheap_binance,
+        "mirrorLike": mirror_like,
+        "executable": executable,
+    }
 
 
 class InvertedPricePaperEngine(v4.HeartbeatRollingStatsPaperEngine):
@@ -55,10 +81,10 @@ class InvertedPricePaperEngine(v4.HeartbeatRollingStatsPaperEngine):
       Poly selected mid ~= 0.80 while Binance same-side mid ~= 0.20
       Poly selected mid ~= 0.90 while Binance same-side mid ~= 0.10
 
-    The signal uses mids so spread does not define the research hypothesis.  The
+    The signal uses mids so spread does not define the research hypothesis. The
     simulated fill remains conservative at the current Binance Ask and is capped
     separately, so a pathological spread cannot create an unrealistically cheap
-    Paper fill.  One trade is allowed per Binance 5m market and the position is
+    Paper fill. One trade is allowed per Binance 5m market and the position is
     held to official settlement; no flip-exit rule is mixed into this first test.
     """
 
@@ -87,20 +113,17 @@ class InvertedPricePaperEngine(v4.HeartbeatRollingStatsPaperEngine):
         if self._has_trade_for_market(STRATEGY_POLY_INVERTED_PRICE, binance_market_id):
             return
 
+        executable_ask = strategies.selected_quote(latest, poly_direction, "ask")
+        if executable_ask is None:
+            return
         poly_selected_mid = strategies.selected_probability(poly_up_mid, poly_direction)
         binance_selected_mid = strategies.selected_probability(binance_up_mid, poly_direction)
-        mirror_sum = poly_selected_mid + binance_selected_mid
-        mirror_error = abs(mirror_sum - 1.0)
-
-        if poly_selected_mid + 1e-12 < INVERTED_MIN_POLY_SELECTED_MID:
-            return
-        if binance_selected_mid - 1e-12 > INVERTED_MAX_BINANCE_SELECTED_MID:
-            return
-        if mirror_error - 1e-12 > INVERTED_MIRROR_TOLERANCE:
-            return
-
-        executable_ask = strategies.selected_quote(latest, poly_direction, "ask")
-        if executable_ask is None or executable_ask - 1e-12 > INVERTED_MAX_ENTRY_ASK:
+        signal = inverted_price_signal(
+            poly_selected_mid=poly_selected_mid,
+            binance_selected_mid=binance_selected_mid,
+            executable_ask=executable_ask,
+        )
+        if not signal["triggered"]:
             return
 
         self._open_trade(
@@ -114,11 +137,7 @@ class InvertedPricePaperEngine(v4.HeartbeatRollingStatsPaperEngine):
             now_ms=now_ms,
             reason="POLY_BINANCE_INVERTED_PRICE",
             metadata={
-                "polySelectedMid": poly_selected_mid,
-                "binanceSelectedMid": binance_selected_mid,
-                "binanceSelectedAsk": executable_ask,
-                "mirrorSum": mirror_sum,
-                "mirrorError": mirror_error,
+                **signal,
                 "minPolySelectedMid": INVERTED_MIN_POLY_SELECTED_MID,
                 "maxBinanceSelectedMid": INVERTED_MAX_BINANCE_SELECTED_MID,
                 "mirrorTolerance": INVERTED_MIRROR_TOLERANCE,
