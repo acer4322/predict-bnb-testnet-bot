@@ -113,7 +113,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v29 -> predict_bot.poly_gap_live_v30 ->
     # predict_bot.poly_gap_live_v31 -> predict_bot.poly_gap_live_v32 ->
     # predict_bot.poly_gap_live_v33 -> predict_bot.poly_gap_live_v34 ->
-    # predict_bot.poly_gap_live_v35.
+    # predict_bot.poly_gap_live_v35 -> predict_bot.poly_gap_live_v36.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -124,17 +124,17 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V35 makes a confirmed reversal SELL commitment durable across neutral/missing
-    # Poly observations until a fresh explicit held-side direction cancels it. It
-    # also refreshes SELL depth after the position read so the diagnostic book is
-    # immediately adjacent to signed quote acquisition rather than 200-400ms old.
+    # V36 keeps V35's durable SELL commitment, then adds a bounded same-round
+    # BUY execution commitment after a definitive MARKET/FOK NO_FILL. Every retry
+    # requires fresh same-side Poly plus a fresh Binance book/depth preflight; an
+    # ambiguous placement is never retried.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V35 on port 8769 (durable EXIT commitment + near-quote SELL book + exact place RTT)",
+        "V36 on port 8769 (durable EXIT + bounded same-round BUY no-fill fast retry + executable-lead telemetry)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v35"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v36"]
     )
 
 
