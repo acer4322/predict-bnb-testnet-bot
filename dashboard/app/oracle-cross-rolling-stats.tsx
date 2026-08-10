@@ -7,6 +7,7 @@ const STRATEGIES = [
   "R_POLY_LEAD_ENTRY",
   "R_POLY_LEAD_EXIT",
   "R_POLY_GAP_SCALP",
+  "R_POLY_INVERTED_PRICE",
 ] as const;
 
 type StrategyId = typeof STRATEGIES[number];
