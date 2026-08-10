@@ -111,7 +111,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v25 -> predict_bot.poly_gap_live_v26 ->
     # predict_bot.poly_gap_live_v27 -> predict_bot.poly_gap_live_v28 ->
     # predict_bot.poly_gap_live_v29 -> predict_bot.poly_gap_live_v30 ->
-    # predict_bot.poly_gap_live_v31.
+    # predict_bot.poly_gap_live_v31 -> predict_bot.poly_gap_live_v32.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -122,18 +122,19 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V31 keeps the V30 guard-verified fast reversal handoff, V28 price controls,
-    # V27 local Paper heartbeat verification and all earlier execution safety.
-    # The same-market completed reversal-exit breaker is now persisted and
-    # dashboard-editable, and the same runtime threshold also gates projected
-    # reversal handoff BUYs.
+    # V32 keeps V31 runtime-editable reversal breaker, V30 guard-verified fast
+    # handoff, V28 price controls and all earlier execution safety. BUY FOKs now
+    # require buffered visible executable depth from the existing direct book;
+    # SELL depth is diagnostic-only, and an explicit reversal SELL FOK no-fill
+    # retries execution without repeating the V12 signal debounce while fresh
+    # Poly still opposes the held side.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V31 on port 8769 (runtime-editable projected reversal-exit breaker)",
+        "V32 on port 8769 (buffered BUY FOK depth + fast confirmed-exit no-fill retry)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v31"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v32"]
     )
 
 
