@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import ConfirmationAddModeOptionGuardFast from "./confirmation-add-mode-option-guard-fast";
+import DashboardPerformanceBootstrap from "./dashboard-performance-bootstrap";
 import LossStreakGuardDashboard from "./loss-streak-guard-dashboard";
 import MarketChartRecovery from "./market-chart-recovery";
 import MaximumNetLossGuardDashboard from "./maximum-net-loss-guard-dashboard";
@@ -32,6 +33,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="zh-TW">
     <body className={`${geist.variable} ${mono.variable}`}>
+      <DashboardPerformanceBootstrap />
       <nav aria-label="BTC 5M Lab 頁面" style={{
         position: "fixed",
         top: 12,
