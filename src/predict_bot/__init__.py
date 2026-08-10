@@ -54,6 +54,9 @@ from .loss_streak_minimum_stake_patch import (
 from .maximum_net_loss_guard_patch import (
     install_maximum_net_loss_guard_patch as _install_maximum_net_loss_guard_patch,
 )
+from .maximum_net_loss_guard_v2_patch import (
+    install_maximum_net_loss_guard_v2_patch as _install_maximum_net_loss_guard_v2_patch,
+)
 from .microprice_c3_mid_confirm import (
     install_microprice_c3_mid_confirm as _install_microprice_c3_mid_confirm,
 )
@@ -157,6 +160,7 @@ _install_loss_streak_guard_patch()
 _install_loss_streak_guard_hotfix()
 _install_loss_streak_minimum_stake_patch()
 _install_maximum_net_loss_guard_patch()
+_install_maximum_net_loss_guard_v2_patch()
 _install_live_rules_async_preflight_patch()
 _install_live_strong_trend_guard_patch()
 _install_regime_reverse_prediction_age_patch()
@@ -177,6 +181,7 @@ del _install_loss_streak_guard_hotfix
 del _install_loss_streak_guard_patch
 del _install_loss_streak_minimum_stake_patch
 del _install_maximum_net_loss_guard_patch
+del _install_maximum_net_loss_guard_v2_patch
 del _install_microprice_c3_mid_confirm
 del _install_microprice_confirm_exit_098_entry_guard_patch
 del _install_microprice_confirm_exit_098_horizon_patch
