@@ -15,14 +15,15 @@ class RollingPerformancePolyGapLiveEngine(TieredLossGuardPolyGapLiveEngine):
 
     A game is one distinct completed Binance 5m market, not one scalp round.
     Same-market round PnL is summed before win/loss and average-PnL statistics are
-    computed.  The current market is excluded even if it already contains closed
+    computed. The current market is excluded even if it already contains closed
     rounds, preventing a still-tradable market from entering the rolling sample.
 
-    A reversal-loss market is counted once when at least one real-money round in
-    that market actually CLOSED at a loss after an exit signal was emitted.  This
-    intentionally uses execution/accounting evidence rather than a fragile
-    close_reason string, so reconciled SELL fills are still classified correctly.
-    Official SETTLED losses without a filled exit are not called reversal losses.
+    A reversal-loss game is counted once only when the whole market finishes net
+    negative and at least one real-money round in that market actually CLOSED at
+    a loss after an exit signal was emitted. This uses execution/accounting
+    evidence rather than a fragile close_reason string, so reconciled SELL fills
+    are still classified correctly. Official SETTLED losses without a filled exit
+    are not called reversal-loss games.
     """
 
     def _rolling_live_performance(self, current_market_id: int | None) -> dict[str, Any]:
@@ -42,7 +43,7 @@ class RollingPerformancePolyGapLiveEngine(TieredLossGuardPolyGapLiveEngine):
                                  AND exit_signal_at_ms IS NOT NULL
                                 THEN 1 ELSE 0
                             END
-                        ) AS reversal_loss
+                        ) AS has_reversal_loss_round
                     FROM poly_gap_live_rounds
                     WHERE state IN ('CLOSED','SETTLED')
                       AND pnl_usdt IS NOT NULL
@@ -60,7 +61,7 @@ class RollingPerformancePolyGapLiveEngine(TieredLossGuardPolyGapLiveEngine):
                     ORDER BY last_updated_at_ms DESC, market_id DESC
                     LIMIT ?
                 )
-                SELECT market_id, market_pnl, last_updated_at_ms, reversal_loss
+                SELECT market_id, market_pnl, last_updated_at_ms, has_reversal_loss_round
                 FROM completed_markets
                 ORDER BY last_updated_at_ms DESC, market_id DESC
                 """,
@@ -74,7 +75,12 @@ class RollingPerformancePolyGapLiveEngine(TieredLossGuardPolyGapLiveEngine):
         neutral = count - wins - losses
         decided = wins + losses
         total_pnl = sum(pnls)
-        reversal_loss_markets = sum(int(row["reversal_loss"] or 0) for row in rows)
+        reversal_loss_markets = sum(
+            1
+            for row in rows
+            if float(row["market_pnl"] or 0.0) < -1e-12
+            and int(row["has_reversal_loss_round"] or 0) == 1
+        )
         return {
             "windowMarkets": ROLLING_LIVE_MARKETS,
             "markets": count,
@@ -88,7 +94,8 @@ class RollingPerformancePolyGapLiveEngine(TieredLossGuardPolyGapLiveEngine):
             "marketIds": [int(row["market_id"]) for row in rows],
             "basis": "distinct completed Binance 5m markets; same-market round PnL aggregated first",
             "reversalLossDefinition": (
-                "market contains >=1 CLOSED Echtgeld round with pnl_usdt<0 and exit_signal_at_ms present"
+                "market net PnL<0 and contains >=1 CLOSED Echtgeld round with pnl_usdt<0 "
+                "and exit_signal_at_ms present"
             ),
             "currentMarketExcluded": True,
             "officialSettlementLossWithoutFilledExitIsNotReversalLoss": True,
