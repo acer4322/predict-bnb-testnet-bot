@@ -112,7 +112,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v27 -> predict_bot.poly_gap_live_v28 ->
     # predict_bot.poly_gap_live_v29 -> predict_bot.poly_gap_live_v30 ->
     # predict_bot.poly_gap_live_v31 -> predict_bot.poly_gap_live_v32 ->
-    # predict_bot.poly_gap_live_v33.
+    # predict_bot.poly_gap_live_v33 -> predict_bot.poly_gap_live_v34.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -123,18 +123,18 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V33 keeps all V32 execution-depth and confirmed-exit retry behavior plus
-    # the V31 dashboard-editable same-market reversal breaker. A stale Paper
-    # health heartbeat alone no longer blocks a new BUY when the persisted Paper
-    # pause row is readable and OFF; persisted paused=1 remains authoritative,
-    # while an unreadable persisted pause still fails closed.
+    # V34 keeps V33's persisted Paper-pause fallback and V31 runtime reversal
+    # threshold while extending V32 execution diagnostics. A confirmed reversal
+    # SELL no-fill gets a short EXIT commitment so neutral Poly cannot immediately
+    # force another 500ms/3-sample debounce; each fresh SELL attempt uses a <=100ms
+    # held-side Bid snapshot, and place-order request start/RTT are recorded exactly.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V33 on port 8769 (runtime reversal breaker + persisted Paper pause fallback)",
+        "V34 on port 8769 (EXIT commitment + fresh SELL telemetry + exact place RTT)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v33"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v34"]
     )
 
 
