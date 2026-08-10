@@ -13,6 +13,7 @@ import PolyCrossTabContextBridge from "./poly-cross-tab-context-bridge";
 import PolyExecutionCanaryPanel from "./poly-execution-canary-panel";
 import PolyGapLiveDashboard from "./poly-gap-live-dashboard";
 import PolyGapLiveOperationsDashboard from "./poly-gap-live-operations-dashboard";
+import PolyGapLiveRollingPerformance from "./poly-gap-live-rolling-performance";
 import PolyLiveTrajectoryDashboard from "./poly-live-trajectory-dashboard";
 import PolyStrategyScenarioComparison from "./poly-strategy-scenario-comparison";
 import "./globals.css";
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
       <PolyGapLiveDashboard />
+      <PolyGapLiveRollingPerformance />
       <PolyLiveTrajectoryDashboard />
       <PolyGapLiveOperationsDashboard />
       <ConfirmationAddModeOptionGuardFast />
