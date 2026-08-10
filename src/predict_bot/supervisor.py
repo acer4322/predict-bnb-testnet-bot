@@ -106,22 +106,22 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v17 -> predict_bot.poly_gap_live_v18 ->
     # predict_bot.poly_gap_live_v19 -> predict_bot.poly_gap_live_v20 ->
     # predict_bot.poly_gap_live_v21 -> predict_bot.poly_gap_live_v22 ->
-    # predict_bot.poly_gap_live_v23.
+    # predict_bot.poly_gap_live_v23 -> predict_bot.poly_gap_live_v24.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5.
-    # V23 keeps all V22 market/preflight safety and adds a persistent configurable
-    # no-new-entry window after each exact five-minute market opens. Existing
-    # position management and exits are never delayed.
+    # V24 keeps all V23 market/preflight/entry-delay safety and adds a shared
+    # two-stage realized-loss guard: reduce NEW-round stake first, hard-stop later.
+    # Existing position management and exits are never reduced or blocked.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V23 on port 8769 (V22 safety + configurable >=10s market-open entry delay)",
+        "V24 on port 8769 (V23 safety + tiered reduce-stake / hard-stop loss guard)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v23"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v24"]
     )
 
 
