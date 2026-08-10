@@ -109,7 +109,8 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v21 -> predict_bot.poly_gap_live_v22 ->
     # predict_bot.poly_gap_live_v23 -> predict_bot.poly_gap_live_v24 ->
     # predict_bot.poly_gap_live_v25 -> predict_bot.poly_gap_live_v26 ->
-    # predict_bot.poly_gap_live_v27 -> predict_bot.poly_gap_live_v28.
+    # predict_bot.poly_gap_live_v27 -> predict_bot.poly_gap_live_v28 ->
+    # predict_bot.poly_gap_live_v29.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -118,17 +119,18 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V28 keeps V27 heartbeat verification and the complete earlier execution
-    # safety chain, and adds persistent dashboard-editable absolute entry ceiling
-    # plus held-side Binance Bid take-profit. TAKE_PROFIT exits are persisted
-    # separately and never consume the V26 same-market reversal-exit breaker.
+    # V29 keeps the V28 price controls, V27 local Paper heartbeat verification,
+    # V26 same-market breaker and the complete earlier execution safety chain.
+    # On a confirmed reversal, the old SELL must be acknowledged as submitted;
+    # the opposite BUY may then be submitted immediately without waiting for the
+    # SELL fill/flat reconciliation. A projected breaker hit forbids that BUY.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V28 on port 8769 (V27 safety + editable max-entry and take-profit prices)",
+        "V29 on port 8769 (V28 safety + projected-breaker-aware reversal handoff)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v28"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v29"]
     )
 
 
