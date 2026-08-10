@@ -114,7 +114,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v31 -> predict_bot.poly_gap_live_v32 ->
     # predict_bot.poly_gap_live_v33 -> predict_bot.poly_gap_live_v34 ->
     # predict_bot.poly_gap_live_v35 -> predict_bot.poly_gap_live_v36 ->
-    # predict_bot.poly_gap_live_v37.
+    # predict_bot.poly_gap_live_v37 -> predict_bot.poly_gap_live_v37_guarded.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -128,14 +128,15 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # V37 keeps V36's durable EXIT and bounded BUY no-fill retry when normal entry
     # is selected, then adds an optional one-generation-per-market-direction
     # parallel LIMIT/GTC Shotgun entry ladder. Shotgun defaults OFF and enforces
-    # the observed 1.00 USDT minimum per level.
+    # the observed 1.00 USDT minimum per level. The guarded launcher throttles
+    # zero-share reversal position rechecks while GTC levels are still resting.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
         "V37 on port 8769 (V36 execution + optional parallel LIMIT/GTC Shotgun entry)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v37"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v37_guarded"]
     )
 
 
