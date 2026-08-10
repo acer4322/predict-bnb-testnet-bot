@@ -39,15 +39,15 @@ def _row(engine, market_id, state, pnl, exit_signal_at_ms, updated_at_ms):
 def test_rolling_stats_aggregate_rounds_by_market_and_classify_reversal_losses():
     engine = _engine()
     try:
-        # Market 101 has two rounds. The loss was caused by a real flip exit, but
-        # the market remains a net winner after same-market aggregation.
+        # Market 101 contains a flip-exit loss round but remains net profitable,
+        # so it is a winning game and NOT a reversal-loss game.
         _row(engine, 101, "CLOSED", 0.50, 1_000, 1_100)
         _row(engine, 101, "CLOSED", -0.10, 1_200, 1_300)
 
-        # Official settlement loss: counts as a losing market, not a flip-exit loss.
+        # Official settlement loss: losing game, but not caused by a filled flip exit.
         _row(engine, 102, "SETTLED", -0.20, None, 2_000)
 
-        # Real flip-exit loss.
+        # Net-losing market with a real flip-exit loss.
         _row(engine, 103, "CLOSED", -0.30, 3_000, 3_100)
 
         # Current market must never enter rolling results even if a round has closed.
@@ -62,7 +62,7 @@ def test_rolling_stats_aggregate_rounds_by_market_and_classify_reversal_losses()
         assert abs(stats["winRate"] - (1 / 3)) < 1e-12
         assert abs(stats["totalPnlUsdt"] - (-0.10)) < 1e-12
         assert abs(stats["averagePnlUsdt"] - (-0.10 / 3)) < 1e-12
-        assert stats["reversalLossMarkets"] == 2
+        assert stats["reversalLossMarkets"] == 1
         assert stats["marketIds"] == [103, 102, 101]
     finally:
         engine.db.close()
