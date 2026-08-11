@@ -2,6 +2,7 @@ from predict_bot import poly_gap_live as base
 from predict_bot.poly_gap_live_v40 import ImmediateExitCautiousReentryPolyGapLiveEngine
 from predict_bot.poly_gap_live_v41 import PolySourceFreshnessGuardPolyGapLiveEngine
 from predict_bot.poly_gap_live_v42 import (
+    TAKE_PROFIT_MARKET_LOCK_STATUS,
     TakeProfitMarketLockPolyGapLiveEngine,
     take_profit_reentry_policy,
 )
@@ -75,6 +76,30 @@ def test_only_take_profit_intent_locks_same_market(tmp_path) -> None:
         # A later intent update must never reopen the market after TP triggered.
         engine._set_exit_intent(round_id, "POLY_DIRECTION_FLIP")
         assert engine._is_take_profit_locked_market(4242) is True
+    finally:
+        engine.stop()
+
+
+def test_take_profit_lock_rejects_raced_same_market_round_before_quote(tmp_path) -> None:
+    db_path = tmp_path / "poly_gap_v42_block.db"
+    engine = TakeProfitMarketLockPolyGapLiveEngine(db_path)
+    try:
+        source = _insert_round(engine, 4343)
+        engine._set_exit_intent(int(source["id"]), "TAKE_PROFIT")
+
+        raced = _insert_round(engine, 4343)
+        engine._open_round(
+            raced,
+            {"direction": "UP", "selectedMid": 0.90},
+        )
+        refreshed = engine._round_state(int(raced["id"]))
+        assert refreshed is not None
+        assert refreshed["state"] == "REJECTED"
+        assert refreshed["close_reason"] == "TAKE_PROFIT_MARKET_REENTRY_BLOCKED_V42"
+        assert refreshed["error_kind"] == "TAKE_PROFIT_MARKET_REENTRY_BLOCKED_V42"
+        assert engine.status == TAKE_PROFIT_MARKET_LOCK_STATUS
+        assert refreshed["entry_quote_started_at_ms"] is None
+        assert refreshed["entry_order_id"] is None
     finally:
         engine.stop()
 
