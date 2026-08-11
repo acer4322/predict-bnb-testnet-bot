@@ -12,13 +12,18 @@ export default defineConfig({
         changeOrigin: false,
         rewrite: () => '/api/realtime',
       },
-      '/bridge/poly-gap': {
-        target: 'http://127.0.0.1:8769',
+      '/bridge/cross-oracle': {
+        target: 'http://127.0.0.1:8767',
         changeOrigin: false,
         rewrite: () => '/state',
       },
-      '/bridge/cross-oracle': {
-        target: 'http://127.0.0.1:8767',
+      '/bridge/strategies': {
+        target: 'http://127.0.0.1:8768',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
+      '/bridge/poly-gap': {
+        target: 'http://127.0.0.1:8769',
         changeOrigin: false,
         rewrite: () => '/state',
       },
