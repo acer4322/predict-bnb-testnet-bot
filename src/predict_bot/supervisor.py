@@ -13,6 +13,7 @@ install_pair_arb_minimum()
 
 API_RESTART_EXIT_CODE = 75
 SUPERVISOR_GIVE_UP_EXIT_CODE = 76
+RUNTIME_PROFILE = os.environ.get("PREDICT_RUNTIME_PROFILE", "FULL_LAB").strip().upper()
 
 
 def _positive_int(name: str, default: int) -> int:
@@ -52,15 +53,14 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting resilient Chainlink/Polymarket cross-oracle collector "
-        "with bounded parallel Gamma event discovery, event-window fallback, strict UP/DOWN identity, "
-        "next-market prefetch, rollover invalidation and websocket initial-book readiness",
+        f"with bounded storage retention; profile={RUNTIME_PROFILE}",
         flush=True,
     )
     return subprocess.Popen(
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_gamma_redundant_discovery",
+            "predict_bot.cross_oracle_storage_retention",
         ]
     )
 
@@ -85,9 +85,8 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
             flush=True,
         )
     print(
-        "API supervisor: starting gap-aware Polymarket Paper strategies with "
-        "R_POLY_GAP_SCALP, R_POLY_GAP_SCALP_STABLE, R_POLY_INVERTED_PRICE, CHOP guard, "
-        "rolling stats, persisted health heartbeat and coverage-qualified Poly/Binance 10/30/50 lead-lag validation",
+        "API supervisor: starting gap-aware Polymarket Paper/leader sidecar with "
+        "R_POLY_GAP_SCALP, rolling stats and lead-lag validation",
         flush=True,
     )
     return subprocess.Popen(
@@ -118,7 +117,8 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v38 -> predict_bot.poly_gap_live_v39 ->
     # predict_bot.poly_gap_live_v40 -> predict_bot.poly_gap_live_v41.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
-    # predict_bot.cross_oracle_gamma_redundant_discovery.
+    # predict_bot.cross_oracle_gamma_redundant_discovery ->
+    # predict_bot.cross_oracle_storage_retention.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
     # predict_bot.cross_oracle_strategy_chop_guard_v4 ->
     # predict_bot.cross_oracle_strategy_chop_guard_v5 ->
@@ -127,14 +127,6 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V40 preserves V39 entry freshness/edge safety, V38 leader guard, and V37
-    # Shotgun behavior, but moves reversal caution from exit to re-entry:
-    # first fresh confident opposite Poly direction starts SELL immediately;
-    # after SELL submission the opposite side must stay fresh for 2s, then pass
-    # fresh book edge >=0.075 and signed-quote edge >=0.075 before re-entry.
-    # Re-entry forces normal MARKET/FOK; saved/resting Shotgun orders are unchanged.
-    # V41 preserves all V40 exit/re-entry behavior and adds a quote-source-age
-    # entry-only guard so an active socket draining stale Poly events cannot BUY.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
         "V41 on port 8769 (V40 immediate reversal SELL + cautious re-entry + source-age BUY guard)",
@@ -146,6 +138,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
 
 
 def main() -> int:
+    print(f"API supervisor runtime profile: {RUNTIME_PROFILE}", flush=True)
     max_restarts = _positive_int("PREDICT_API_MAX_RESTARTS", 3)
     restart_window = _positive_float(
         "PREDICT_API_RESTART_WINDOW_SECONDS", 600.0
