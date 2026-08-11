@@ -5,6 +5,7 @@ from typing import Any
 from . import poly_gap_live as base
 from .pinned_binance_poly_strategy import PinnedBinancePolyDivergenceMixin
 from .pinned_force_market_execution import PinnedForceMarketExecutionMixin
+from .pinned_passive_telemetry import PinnedPassiveTelemetryMixin
 from .pinned_signed_edge_guard import PinnedSignedEdgeGuardMixin
 from .poly_gap_multi_asset_live_v2 import LiveGradeMultiAssetPolyGapLiveEngine
 
@@ -13,6 +14,7 @@ SAFE_PAUSE_MIGRATION_KEY = "multi_asset_live_v3_safe_pause_migrated"
 
 
 class PinnedMultiAssetPolyGapLiveEngine(
+    PinnedPassiveTelemetryMixin,
     PinnedForceMarketExecutionMixin,
     PinnedSignedEdgeGuardMixin,
     PinnedBinancePolyDivergenceMixin,
@@ -25,7 +27,8 @@ class PinnedMultiAssetPolyGapLiveEngine(
     Resume Echtgeld in Dashboard V2 after reviewing the new strategy/settings.
     Existing positions are still reconciled/managed by the inherited engine.
     Pinned entries force MARKET/FOK, suppress new Shotgun generations and must
-    retain the configured strong edge after signed quote.
+    retain the configured strong edge after signed quote. Detector telemetry is
+    available passively while ordinary POLY_GAP mode remains selected.
     """
 
     def _ensure_defaults(self) -> None:
@@ -53,6 +56,7 @@ class PinnedMultiAssetPolyGapLiveEngine(
             "pinnedDivergenceSelectable": True,
             "pinnedSignedEdgeMustPersist": True,
             "pinnedShotgunSuppressed": True,
+            "pinnedPassiveTelemetry": True,
             "observerVersionRequired": "MULTI_PREDICTION_OBSERVER_V2",
         }
         payload.setdefault("rules", {}).update(
@@ -60,6 +64,7 @@ class PinnedMultiAssetPolyGapLiveEngine(
             pinnedDivergenceSelectableV3=True,
             pinnedSignedEdgeMustPersistV3=True,
             pinnedShotgunSuppressedV3=True,
+            pinnedPassiveTelemetryV3=True,
             firstV3StartupForcePausesNewEntries=True,
         )
         return payload
