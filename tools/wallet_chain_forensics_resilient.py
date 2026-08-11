@@ -5,7 +5,7 @@ from __future__ import annotations
 Method-aware RPC routing:
 - block/time/chain queries prefer official BNB endpoints, which have much higher
   public limits but intentionally disable eth_getLogs;
-- eth_getLogs uses third-party log-capable endpoints only.
+- eth_getLogs uses third-party log-capable endpoints only and is throttled.
 
 This keeps scarce third-party free-tier quota for the one method that actually
 needs it. The launcher is read-only and does not alter trading code.
@@ -23,9 +23,6 @@ if spec is None or spec.loader is None:
 core = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(core)
 
-# Official BNB endpoints are suitable for eth_chainId / eth_blockNumber /
-# eth_getBlockByNumber. BNB docs state eth_getLogs is disabled on these public
-# Mainnet endpoints, so they are never used for log scans here.
 DEFAULT_BLOCK_RPCS = (
     "https://bsc-dataseed.bnbchain.org",
     "https://bsc-dataseed-public.bnbchain.org",
@@ -33,8 +30,6 @@ DEFAULT_BLOCK_RPCS = (
     "https://bsc-dataseed.defibit.io",
 )
 
-# Third-party endpoints used only for eth_getLogs. User-provided BSC_RPC_URL or
-# BSC_RPC_FALLBACK_URLS are placed ahead of these defaults.
 DEFAULT_LOG_RPCS = (
     "https://bsc-rpc.publicnode.com",
     "https://bsc.drpc.org",
@@ -89,6 +84,8 @@ class ResilientJsonRpcClient(core.JsonRpcClient):
         self.log_urls = _unique(env_logs + [user_primary] + env_fallbacks + list(DEFAULT_LOG_RPCS))
         self.retry_rounds = max(1, int(os.environ.get("BSC_RPC_RETRY_ROUNDS", "3")))
         self.retry_base_sleep = max(0.1, float(os.environ.get("BSC_RPC_RETRY_SLEEP", "0.75")))
+        self.log_min_interval = max(0.0, float(os.environ.get("BSC_LOG_MIN_INTERVAL", "0.40")))
+        self._last_log_request = 0.0
         resolved_timeout = max(5.0, float(os.environ.get("BSC_RPC_TIMEOUT", str(timeout))))
         initial = self.block_urls[0] if self.block_urls else user_primary
         super().__init__(initial, timeout=resolved_timeout)
@@ -99,7 +96,18 @@ class ResilientJsonRpcClient(core.JsonRpcClient):
             return "logs", self.log_urls
         return "block", self.block_urls
 
+    def _throttle_logs(self) -> None:
+        if self.log_min_interval <= 0:
+            return
+        now = time.monotonic()
+        wait = self.log_min_interval - (now - self._last_log_request)
+        if wait > 0:
+            time.sleep(wait)
+        self._last_log_request = time.monotonic()
+
     def _attempt_call(self, method: str, params: list[object], url: str) -> object:
+        if method == "eth_getLogs":
+            self._throttle_logs()
         self.url = url
         return super().call(method, params)
 
@@ -120,8 +128,6 @@ class ResilientJsonRpcClient(core.JsonRpcClient):
                 self._method_cursor[pool_name] = idx
                 return result
             except core.RpcError as exc:
-                # Range/result-size errors for eth_getLogs are deliberately not
-                # retried here. The core scanner will split the block range.
                 if not _retryable_rpc_error(exc):
                     raise
                 last_error = exc
@@ -141,8 +147,6 @@ class ResilientJsonRpcClient(core.JsonRpcClient):
         ) from last_error
 
 
-# core.main() resolves JsonRpcClient at runtime, so replacing this symbol gives
-# the existing scanner method-aware routing without duplicating parsing logic.
 core.JsonRpcClient = ResilientJsonRpcClient
 
 
