@@ -209,9 +209,21 @@ class ImmediateExitCautiousReentryPolyGapLiveEngine(EntryFreshnessAndEdgeGuardPo
 
     def _open_round(self, row: dict[str, Any], poly: dict[str, Any]) -> None:
         guard = self._v40_reentry_guard
-        target_reentry = bool(isinstance(guard, dict) and int(row.get("market_id") or 0) == int(guard.get("marketId") or -1)
-                              and str(row.get("side") or "").upper() == str(guard.get("targetSide") or "").upper()
-                              and self._refresh_reentry_confirmation() == "ELIGIBLE")
+        if isinstance(guard, dict) and int(row.get("market_id") or 0) == int(guard.get("marketId") or -1):
+            target = str(guard.get("targetSide") or "").upper()
+            side = str(row.get("side") or "").upper()
+            confirmation = self._refresh_reentry_confirmation()
+            if side != target or confirmation != "ELIGIBLE":
+                message = f"reversal re-entry BUY blocked; side={side}; target={target}; confirmation={confirmation}"
+                self._update_round(int(row["id"]), state="REJECTED", close_reason="REVERSAL_REENTRY_LOCKED_V40",
+                                   error_kind="REVERSAL_REENTRY_LOCKED_V40", error_message=message)
+                self.status = "REVERSAL_REENTRY_BLOCKED_V40"
+                self.last_error = message
+                self._event("INFO", "REVERSAL_REENTRY_BUY_BLOCKED_V40", int(row["market_id"]), int(row["id"]), message)
+                return
+            target_reentry = True
+        else:
+            target_reentry = False
         if not target_reentry:
             return super()._open_round(row, poly)
         assert isinstance(guard, dict)
