@@ -5,31 +5,53 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Real-money ETH/BNB/Wallet-Clone executors intentionally require the dedicated
-# BINANCE_LIVE_* pair.  Do not silently reuse the read-only BINANCE_API_* pair.
-# Credentials entered here live only in this PowerShell process and are inherited
-# by the Dashboard V2 child processes; they are not written to disk or User env.
-if ([string]::IsNullOrWhiteSpace($env:BINANCE_LIVE_API_KEY) -or
-    [string]::IsNullOrWhiteSpace($env:BINANCE_LIVE_API_SECRET)) {
-    Write-Host "Enter Binance LIVE HMAC credentials for this session only."
-    Write-Host "These are required by ETH/BNB Echtgeld and Wallet Maker Clone; they are not saved to disk."
-    $env:BINANCE_LIVE_API_KEY = Read-Host "BINANCE_LIVE_API_KEY"
-    if ([string]::IsNullOrWhiteSpace($env:BINANCE_LIVE_API_KEY)) {
-        throw "BINANCE_LIVE_API_KEY is required for Echtgeld/Wallet Maker Clone."
+function Import-PersistedEnvironmentVariable {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    $current = [Environment]::GetEnvironmentVariable($Name, "Process")
+    if (-not [string]::IsNullOrWhiteSpace($current)) {
+        return $current
     }
 
-    $SecureSecret = Read-Host "BINANCE_LIVE_API_SECRET" -AsSecureString
-    $SecretPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureSecret)
-    try {
-        $env:BINANCE_LIVE_API_SECRET = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($SecretPtr)
+    $userValue = [Environment]::GetEnvironmentVariable($Name, "User")
+    if (-not [string]::IsNullOrWhiteSpace($userValue)) {
+        [Environment]::SetEnvironmentVariable($Name, $userValue, "Process")
+        return $userValue
     }
-    finally {
-        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($SecretPtr)
+
+    $machineValue = [Environment]::GetEnvironmentVariable($Name, "Machine")
+    if (-not [string]::IsNullOrWhiteSpace($machineValue)) {
+        [Environment]::SetEnvironmentVariable($Name, $machineValue, "Process")
+        return $machineValue
     }
-    if ([string]::IsNullOrWhiteSpace($env:BINANCE_LIVE_API_SECRET)) {
-        throw "BINANCE_LIVE_API_SECRET is required for Echtgeld/Wallet Maker Clone."
-    }
+
+    return $null
 }
+
+# Echtgeld ETH/BNB and Wallet Maker Clone intentionally use the dedicated
+# BINANCE_LIVE_* credential pair.  Credentials are now expected to be stored in
+# the Windows Process/User/Machine environment; this launcher never prompts for
+# or writes credentials.  User/Machine values are copied into this process so
+# the Dashboard V2 child processes inherit them even when this PowerShell window
+# was opened before the variables were saved.
+$LiveApiKey = Import-PersistedEnvironmentVariable -Name "BINANCE_LIVE_API_KEY"
+$LiveApiSecret = Import-PersistedEnvironmentVariable -Name "BINANCE_LIVE_API_SECRET"
+
+if ([string]::IsNullOrWhiteSpace($LiveApiKey) -or
+    [string]::IsNullOrWhiteSpace($LiveApiSecret)) {
+    throw @"
+Binance LIVE credentials were not found in the environment.
+Expected variables:
+  BINANCE_LIVE_API_KEY
+  BINANCE_LIVE_API_SECRET
+Set them as Windows User or Machine environment variables, then run this launcher again.
+"@
+}
+
+Write-Host "Binance LIVE credentials loaded from environment; interactive credential input skipped."
 
 $Launcher = Join-Path $Root "start-dashboard-v2.ps1"
 if (-not (Test-Path $Launcher)) {
