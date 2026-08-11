@@ -96,11 +96,83 @@ body { background: #f3f5f8; }
 }
 .ant-table-cell { font-variant-numeric: tabular-nums; }
 
+.multi-market-section { margin-top: 14px; }
+.section-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.section-heading-row h4 { margin: 0 0 2px !important; }
+.trajectory-card { height: 100%; }
+.trajectory-card .ant-card-body { padding: 14px; }
+.asset-countdown { font-variant-numeric: tabular-nums; font-weight: 600; }
+.trajectory-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.trajectory-stats { margin-bottom: 8px; }
+.trajectory-stats .ant-statistic-title { font-size: 11px; margin-bottom: 0; }
+.trajectory-stats .ant-statistic-content { font-size: 17px; font-variant-numeric: tabular-nums; }
+.trajectory-chart-wrap {
+  height: 164px;
+  position: relative;
+  padding: 4px 0 10px 30px;
+  border: 1px solid #edf0f3;
+  border-radius: 9px;
+  background: #fbfcfe;
+  overflow: hidden;
+}
+.trajectory-chart { width: 100%; height: 150px; display: block; overflow: visible; }
+.trajectory-gridline { stroke: #edf0f3; stroke-width: 1; }
+.trajectory-midline { stroke: #d9dde3; stroke-width: 1; stroke-dasharray: 4 5; }
+.trajectory-poly-line { stroke: #1677ff; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trajectory-binance-line { stroke: #fa8c16; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trajectory-axis-label {
+  position: absolute;
+  left: 5px;
+  color: #a0a7b0;
+  font-size: 9px;
+  line-height: 1;
+}
+.trajectory-axis-top { top: 6px; }
+.trajectory-axis-mid { top: 77px; }
+.trajectory-axis-bottom { bottom: 7px; }
+.trajectory-empty { height: 164px; display: flex; align-items: center; justify-content: center; }
+.trajectory-empty .ant-empty { margin: 0; }
+.trajectory-legend {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+  color: #6b7280;
+  font-size: 10px;
+}
+.trajectory-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend-line { display: inline-block; width: 15px; height: 2px; border-radius: 2px; }
+.legend-line.poly { background: #1677ff; }
+.legend-line.binance { background: #fa8c16; }
+.trajectory-samples { margin-left: auto; }
+.trajectory-meta {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+}
+.trajectory-meta .ant-typography { font-size: 10px; min-width: 0; }
+
 @media (max-width: 991px) {
   .app-header { padding: 0 10px; }
   .app-content { padding: 10px; }
   .header-subtitle { display: none; }
   .page-heading { align-items: center; }
+  .section-heading-row { align-items: center; }
 }
 
 @media (max-width: 640px) {
@@ -109,4 +181,6 @@ body { background: #f3f5f8; }
   .page-heading { align-items: flex-start; }
   .page-heading .ant-typography-secondary { font-size: 12px; }
   .metric-card .ant-statistic-content { font-size: 21px; }
+  .section-heading-row { align-items: flex-start; flex-direction: column; }
+  .trajectory-meta { grid-template-columns: 1fr; }
 }
