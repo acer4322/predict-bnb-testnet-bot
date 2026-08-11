@@ -36,6 +36,37 @@
   min-width: 0;
 }
 
+.trajectory-predict-line {
+  stroke: #722ed1;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.legend-line.predict { background: #722ed1; }
+
+.trajectory-gap-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin: -2px 0 7px;
+  color: #8c8c8c;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trajectory-gap-strip strong {
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.trajectory-meta-four {
+  grid-template-columns: auto auto auto auto minmax(0, 1fr);
+}
+
+.predict-config-alert { margin-bottom: 10px; }
+
 @media (max-width: 767px) {
   .detail-card-height .ant-card-body,
   .guard-card .ant-card-body,
@@ -47,4 +78,6 @@
   .diagnostic-detail-card .ant-descriptions-item-label {
     width: auto;
   }
+
+  .trajectory-meta-four { grid-template-columns: 1fr; }
 }
