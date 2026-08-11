@@ -13,6 +13,7 @@ import {
 import type { MenuProps } from 'antd'
 import { type ServiceSnapshot, useDashboardStore } from './store'
 import { useStrategyStore } from './strategy-store'
+import { usePredictFunStore } from './predict-fun-store'
 import {
   DiagnosticsPage,
   LivePage,
@@ -50,12 +51,17 @@ function Shell() {
   const services = useDashboardStore((state) => state.services)
   const refreshStrategies = useStrategyStore((state) => state.refresh)
   const strategyService = useStrategyStore((state) => state.service)
+  const refreshPredictFun = usePredictFunStore((state) => state.refresh)
+  const predictFunService = usePredictFunStore((state) => state.service)
   const mobile = !screens.lg
 
   useEffect(() => {
     let cancelled = false
     const tick = () => {
-      if (!cancelled && document.visibilityState === 'visible') void refreshFast()
+      if (!cancelled && document.visibilityState === 'visible') {
+        void refreshFast()
+        void refreshPredictFun()
+      }
     }
     tick()
     const timer = window.setInterval(tick, 1000)
@@ -66,7 +72,7 @@ function Shell() {
       window.clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [refreshFast])
+  }, [refreshFast, refreshPredictFun])
 
   useEffect(() => {
     let cancelled = false
@@ -124,6 +130,7 @@ function Shell() {
             <ServiceTag label="8768" service={strategyService} />
             <ServiceTag label="8769" service={services.polyGap} />
             <ServiceTag label="8770" service={services.multiMarket} />
+            <ServiceTag label="8771" service={predictFunService} />
           </Space>
         </Header>
         <Content className="app-content">
