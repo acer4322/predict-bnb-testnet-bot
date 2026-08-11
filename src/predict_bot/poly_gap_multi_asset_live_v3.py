@@ -4,6 +4,7 @@ from typing import Any
 
 from . import poly_gap_live as base
 from .pinned_binance_poly_strategy import PinnedBinancePolyDivergenceMixin
+from .pinned_force_market_execution import PinnedForceMarketExecutionMixin
 from .pinned_signed_edge_guard import PinnedSignedEdgeGuardMixin
 from .poly_gap_multi_asset_live_v2 import LiveGradeMultiAssetPolyGapLiveEngine
 
@@ -12,6 +13,7 @@ SAFE_PAUSE_MIGRATION_KEY = "multi_asset_live_v3_safe_pause_migrated"
 
 
 class PinnedMultiAssetPolyGapLiveEngine(
+    PinnedForceMarketExecutionMixin,
     PinnedSignedEdgeGuardMixin,
     PinnedBinancePolyDivergenceMixin,
     LiveGradeMultiAssetPolyGapLiveEngine,
@@ -22,7 +24,8 @@ class PinnedMultiAssetPolyGapLiveEngine(
     database accidentally persisted runtime_enabled=1. Operators must explicitly
     Resume Echtgeld in Dashboard V2 after reviewing the new strategy/settings.
     Existing positions are still reconciled/managed by the inherited engine.
-    Pinned entries must also retain the configured strong edge after signed quote.
+    Pinned entries force MARKET/FOK, suppress new Shotgun generations and must
+    retain the configured strong edge after signed quote.
     """
 
     def _ensure_defaults(self) -> None:
@@ -49,12 +52,14 @@ class PinnedMultiAssetPolyGapLiveEngine(
             "explicitRuntimeResumeRequired": True,
             "pinnedDivergenceSelectable": True,
             "pinnedSignedEdgeMustPersist": True,
+            "pinnedShotgunSuppressed": True,
             "observerVersionRequired": "MULTI_PREDICTION_OBSERVER_V2",
         }
         payload.setdefault("rules", {}).update(
             multiAssetLiveV3=True,
             pinnedDivergenceSelectableV3=True,
             pinnedSignedEdgeMustPersistV3=True,
+            pinnedShotgunSuppressedV3=True,
             firstV3StartupForcePausesNewEntries=True,
         )
         return payload
