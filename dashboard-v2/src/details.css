@@ -1,0 +1,50 @@
+.detail-card-height,
+.guard-card,
+.diagnostic-detail-card,
+.service-health-card {
+  height: 100%;
+}
+
+.detail-card-height .ant-card-body,
+.guard-card .ant-card-body,
+.diagnostic-detail-card .ant-card-body {
+  min-height: 210px;
+}
+
+.guard-card .ant-descriptions-item-label,
+.diagnostic-detail-card .ant-descriptions-item-label {
+  width: 132px;
+}
+
+.service-health-card .ant-card-body {
+  min-height: 118px;
+}
+
+.ant-descriptions-item-content,
+.ant-statistic-content,
+.ant-table-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+.ant-descriptions-item-content code,
+.ant-table-cell code {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.ant-tabs-content-holder {
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .detail-card-height .ant-card-body,
+  .guard-card .ant-card-body,
+  .diagnostic-detail-card .ant-card-body {
+    min-height: 0;
+  }
+
+  .guard-card .ant-descriptions-item-label,
+  .diagnostic-detail-card .ant-descriptions-item-label {
+    width: auto;
+  }
+}
