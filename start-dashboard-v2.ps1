@@ -26,6 +26,53 @@ function Get-ObserverVersion {
     return $null
 }
 
+function Get-ListeningProcessId([int]$Port) {
+    try {
+        $Connection = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop |
+            Select-Object -First 1
+        if ($Connection) { return [int]$Connection.OwningProcess }
+    }
+    catch { }
+    return $null
+}
+
+function Stop-OwnedDashboardV2Web {
+    $PidPath = Join-Path $Root ".web-v2.pid"
+    if (-not (Test-Path $PidPath)) { return $false }
+    try {
+        $SavedPid = [int](Get-Content $PidPath -Raw)
+    }
+    catch {
+        Remove-Item $PidPath -Force -ErrorAction SilentlyContinue
+        return $false
+    }
+    $ListeningPid = Get-ListeningProcessId 4320
+    if (-not $ListeningPid -or $ListeningPid -ne $SavedPid) {
+        return $false
+    }
+    $Process = Get-Process -Id $SavedPid -ErrorAction SilentlyContinue
+    if (-not $Process) {
+        Remove-Item $PidPath -Force -ErrorAction SilentlyContinue
+        return $false
+    }
+    Stop-Process -Id $SavedPid -Force -ErrorAction Stop
+    Remove-Item $PidPath -Force -ErrorAction SilentlyContinue
+    for ($i = 0; $i -lt 20; $i++) {
+        if (-not (Get-ListeningProcessId 4320)) { return $true }
+        Start-Sleep -Milliseconds 100
+    }
+    return (-not (Get-ListeningProcessId 4320))
+}
+
+function Test-DashboardV2Proxy {
+    # The root page alone is not enough: an old Vite process can keep serving
+    # HTML while using a stale vite.config.ts, which makes every service badge
+    # look offline.  Verify representative core + multi-market bridges too.
+    return (Test-LocalService "http://127.0.0.1:4320") -and `
+           (Test-LocalService "http://127.0.0.1:4320/bridge/realtime") -and `
+           (Test-LocalService "http://127.0.0.1:4320/bridge/multi-market")
+}
+
 # Import only named user-scoped settings. Secrets remain environment variables;
 # this script never writes credentials into config files or Dashboard storage.
 $UserEnvironment = @(
@@ -94,7 +141,20 @@ else {
 }
 
 $WebOwned = $false
-if (-not (Test-LocalService "http://127.0.0.1:4320")) {
+$WebRootReady = Test-LocalService "http://127.0.0.1:4320"
+if ($WebRootReady -and -not (Test-DashboardV2Proxy)) {
+    Write-Warning "Dashboard V2: port 4320 serves HTML but its API bridge is stale/unhealthy."
+    if (Stop-OwnedDashboardV2Web) {
+        Write-Host "Dashboard V2: stopped the previously-owned stale Vite process; starting the current proxy config."
+        $WebRootReady = $false
+    }
+    else {
+        $ForeignPid = Get-ListeningProcessId 4320
+        throw "Port 4320 is occupied by a stale/foreign web process (PID=$ForeignPid). Stop that process, then rerun start-dashboard-v2.ps1. Direct backend services are healthy but this process cannot proxy them."
+    }
+}
+
+if (-not $WebRootReady) {
     $Web = Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "dev") `
         -WorkingDirectory $Dashboard -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $Data "web-v2.stdout.log") `
@@ -103,17 +163,26 @@ if (-not (Test-LocalService "http://127.0.0.1:4320")) {
     $WebOwned = $true
 }
 else {
-    Write-Host "Dashboard V2: existing web server detected on 4320."
+    Write-Host "Dashboard V2: existing current web/proxy server detected on 4320."
 }
 
 $Deadline = (Get-Date).AddSeconds(120)
 $Required = @(
     @{ Name = "8766"; Url = "http://127.0.0.1:8766/api/realtime" },
+    @{ Name = "8767 Poly"; Url = "http://127.0.0.1:8767/state" },
+    @{ Name = "8768 Strategies"; Url = "http://127.0.0.1:8768/state" },
     @{ Name = "8769 BTC"; Url = "http://127.0.0.1:8769/state" },
     @{ Name = "8770 observer"; Url = "http://127.0.0.1:8770/state" },
     @{ Name = "8772 ETH"; Url = "http://127.0.0.1:8772/state" },
     @{ Name = "8773 BNB"; Url = "http://127.0.0.1:8773/state" },
-    @{ Name = "4320 Dashboard V2"; Url = "http://127.0.0.1:4320" }
+    @{ Name = "4320 Dashboard V2"; Url = "http://127.0.0.1:4320" },
+    @{ Name = "4320->8766 bridge"; Url = "http://127.0.0.1:4320/bridge/realtime" },
+    @{ Name = "4320->8767 bridge"; Url = "http://127.0.0.1:4320/bridge/cross-oracle" },
+    @{ Name = "4320->8768 bridge"; Url = "http://127.0.0.1:4320/bridge/strategies" },
+    @{ Name = "4320->8769 bridge"; Url = "http://127.0.0.1:4320/bridge/poly-gap" },
+    @{ Name = "4320->8770 bridge"; Url = "http://127.0.0.1:4320/bridge/multi-market" },
+    @{ Name = "4320->8772 bridge"; Url = "http://127.0.0.1:4320/bridge/eth-live" },
+    @{ Name = "4320->8773 bridge"; Url = "http://127.0.0.1:4320/bridge/bnb-live" }
 )
 while ((Get-Date) -lt $Deadline) {
     $Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url) })
@@ -135,6 +204,7 @@ Write-Host "Dashboard V2 ready: http://localhost:4320"
 Write-Host "BTC live state: http://127.0.0.1:8769/state"
 Write-Host "ETH live state: http://127.0.0.1:8772/state"
 Write-Host "BNB live state: http://127.0.0.1:8773/state"
+Write-Host "Dashboard V2 bridges verified: 8766/8767/8768/8769/8770/8772/8773."
 Write-Host "Echtgeld WRITE controls are localhost-only and require the current Vite session token."
 
 $EthMaster = $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED -match '^(1|true|yes|on)$'
