@@ -57,6 +57,46 @@ function Get-ProcessCommandLine([int]$ProcessId) {
     catch { return "" }
 }
 
+function Stop-StaleCoreSupervisor([string]$Version) {
+    $ListenerProcessId = Get-ListeningProcessId 8769
+    if (-not $ListenerProcessId) { return $false }
+
+    try {
+        $ListenerProcess = Get-CimInstance Win32_Process -Filter "ProcessId=$ListenerProcessId" -ErrorAction Stop
+    }
+    catch {
+        return $false
+    }
+
+    $SupervisorProcessId = [int]$ListenerProcess.ParentProcessId
+    $ListenerCommand = [string]$ListenerProcess.CommandLine
+    $SupervisorCommand = Get-ProcessCommandLine $SupervisorProcessId
+    $LooksLikePolyGap = $ListenerCommand.ToLowerInvariant().Contains("predict_bot.poly_gap_live_v")
+    $LooksLikeSupervisor = $SupervisorCommand.ToLowerInvariant().Contains("predict_bot.supervisor")
+
+    if (-not ($LooksLikePolyGap -and $LooksLikeSupervisor)) {
+        Write-Warning "Dashboard V2 found stale BTC version $Version on 8769, but its process tree is not a recognized predict_bot.supervisor tree. Listener PID=$ListenerProcessId command=$ListenerCommand; parent PID=$SupervisorProcessId command=$SupervisorCommand"
+        return $false
+    }
+
+    Write-Warning "Dashboard V2: stale core supervisor detected ($Version on 8769; supervisor PID=$SupervisorProcessId). Stopping its process tree before starting the current V45 core."
+    & taskkill.exe /PID $SupervisorProcessId /T /F | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Dashboard V2 failed to stop stale core supervisor PID=$SupervisorProcessId with taskkill /T /F."
+    }
+    Remove-Item (Join-Path $Root ".api-v2.pid") -Force -ErrorAction SilentlyContinue
+
+    for ($i = 0; $i -lt 50; $i++) {
+        $CoreStillListening = (Get-ListeningProcessId 8766) -or `
+                              (Get-ListeningProcessId 8767) -or `
+                              (Get-ListeningProcessId 8768) -or `
+                              (Get-ListeningProcessId 8769)
+        if (-not $CoreStillListening) { return $true }
+        Start-Sleep -Milliseconds 100
+    }
+    return $false
+}
+
 function Stop-StaleDashboardV2Web {
     $ListeningPid = Get-ListeningProcessId 4320
     if (-not $ListeningPid) { return $true }
@@ -130,6 +170,18 @@ if (-not $env:BINANCE_API_KEY -or -not $env:BINANCE_API_SECRET) {
     $SecretPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureSecret)
     try { $env:BINANCE_API_SECRET = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($SecretPtr) }
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($SecretPtr) }
+}
+
+# If an older core is still alive from a previous launcher/manual session, only
+# replace it automatically when 8769 is a recognized poly_gap child whose parent
+# is predict_bot.supervisor. Unknown processes are never killed automatically.
+if (Test-LocalService "http://127.0.0.1:8769/state") {
+    $ExistingBtcVersion = Get-ServiceVersion 8769
+    if ($ExistingBtcVersion -and $ExistingBtcVersion -ne "POLY_GAP_DEDICATED_LIVE_V45") {
+        if (-not (Stop-StaleCoreSupervisor $ExistingBtcVersion)) {
+            throw "Port 8769 is occupied by $ExistingBtcVersion and Dashboard V2 could not safely replace its process tree. Stop that process manually before upgrading BTC to POLY_GAP_DEDICATED_LIVE_V45."
+        }
+    }
 }
 
 $ApiOwned = $false
