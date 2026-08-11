@@ -15,7 +15,10 @@ function Stop-OwnedProcess([string]$PidFile, [string]$Label, [switch]$Tree) {
             else {
                 Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
             }
-            if (-not $Quiet) { Write-Host "Stopped $Label ($ProcessId)$($(if ($Tree) { ' process tree' } else { '' }))" }
+            if (-not $Quiet) {
+                $Suffix = if ($Tree) { " process tree" } else { "" }
+                Write-Host "Stopped $Label ($ProcessId)$Suffix"
+            }
         }
     }
     finally {
