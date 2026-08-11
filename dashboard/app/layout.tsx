@@ -14,6 +14,7 @@ import OracleCrossRollingStats from "./oracle-cross-rolling-stats";
 import OracleCrossStrategyPanel from "./oracle-cross-strategy-panel";
 import PolyCrossTabContextBridge from "./poly-cross-tab-context-bridge";
 import PolyExecutionCanaryPanel from "./poly-execution-canary-panel";
+import PolyGapLeaderGuardV38 from "./poly-gap-leader-guard-v38";
 import PolyGapLiveDashboard from "./poly-gap-live-dashboard";
 import PolyGapLiveOperationsDashboard from "./poly-gap-live-operations-dashboard";
 import PolyGapLiveReversalBreakerControl from "./poly-gap-live-reversal-breaker-control";
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <LossStreakGuardDashboard />
       <MaximumNetLossGuardDashboard />
       <PolyGapLiveDashboard />
+      <PolyGapLeaderGuardV38 />
       <PolyGapShotgunEntryV37 />
       <PolyGapLiveReversalBreakerControl />
       <PolyGapLiveRollingPerformance />
