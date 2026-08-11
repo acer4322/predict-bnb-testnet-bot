@@ -116,7 +116,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v35 -> predict_bot.poly_gap_live_v36 ->
     # predict_bot.poly_gap_live_v37 -> predict_bot.poly_gap_live_v37_guarded ->
     # predict_bot.poly_gap_live_v38 -> predict_bot.poly_gap_live_v39 ->
-    # predict_bot.poly_gap_live_v40.
+    # predict_bot.poly_gap_live_v40 -> predict_bot.poly_gap_live_v41.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -133,13 +133,15 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # after SELL submission the opposite side must stay fresh for 2s, then pass
     # fresh book edge >=0.075 and signed-quote edge >=0.075 before re-entry.
     # Re-entry forces normal MARKET/FOK; saved/resting Shotgun orders are unchanged.
+    # V41 preserves all V40 exit/re-entry behavior and adds a quote-source-age
+    # entry-only guard so an active socket draining stale Poly events cannot BUY.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V40 on port 8769 (immediate reversal SELL + 2s/0.075 cautious re-entry)",
+        "V41 on port 8769 (V40 immediate reversal SELL + cautious re-entry + source-age BUY guard)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v40"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v41"]
     )
 
 
