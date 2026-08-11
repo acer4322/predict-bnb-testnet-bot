@@ -52,10 +52,6 @@ def _asset_environment(asset: str) -> dict[str, str]:
     config = ASSETS[asset]
     env = os.environ.copy()
     master_name = f"PREDICT_{asset}_POLY_GAP_LIVE_ENABLED"
-    # Dashboard V2 officially supports ETH/BNB Echtgeld now. Capability defaults
-    # ON unless the operator explicitly set the asset master to false. V3 itself
-    # applies a one-time runtime PAUSE migration, so capability never means an
-    # automatic BUY after upgrading.
     env["PREDICT_POLY_GAP_LIVE_ENABLED"] = env.get(master_name, "true")
     env["PREDICT_POLY_GAP_LIVE_ASSET"] = asset
     env["PREDICT_POLY_GAP_LIVE_SYMBOL"] = str(config["symbol"])
@@ -63,14 +59,7 @@ def _asset_environment(asset: str) -> dict[str, str]:
     env["PREDICT_POLY_GAP_LIVE_HOST"] = "127.0.0.1"
     env["PREDICT_POLY_GAP_LIVE_DB"] = str(ROOT / "data" / str(config["db"]))
     env["PREDICT_MULTI_PREDICTION_STATE_URL"] = f"http://127.0.0.1:{OBSERVER_PORT}/state"
-    # Keep this aligned even though the final asset subclass supplies its own
-    # _poly_state. Any inherited diagnostic that consults the base URL sees the
-    # same asset observer rather than the BTC-only 8767 collector.
     env["PREDICT_CROSS_ORACLE_STATE_URL"] = f"http://127.0.0.1:{OBSERVER_PORT}/state"
-
-    # Echtgeld execution must not silently fall back to the general/read-only
-    # credential pair. The inherited credential helper may support that fallback
-    # for legacy BTC compatibility, so remove it in these isolated child processes.
     env.pop("BINANCE_API_KEY", None)
     env.pop("BINANCE_API_SECRET", None)
     return env
@@ -80,10 +69,6 @@ def _clone_environment(asset: str) -> dict[str, str]:
     config = CLONES[asset]
     env = os.environ.copy()
     master_name = f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED"
-    # Clone capability is available by default, but every clone process force-
-    # pauses runtime on startup. Real orders still require an explicit localhost
-    # Dashboard resume, and the clone refuses to coexist with the normal asset
-    # live engine when that engine is enabled or managing a position.
     env["PREDICT_WALLET_MAKER_CLONE_ENABLED"] = env.get(master_name, "true")
     env["PREDICT_WALLET_MAKER_CLONE_ASSET"] = asset
     env["PREDICT_WALLET_MAKER_CLONE_SYMBOL"] = str(config["symbol"])
@@ -124,12 +109,12 @@ def _clone_process(asset: str) -> subprocess.Popen[bytes] | None:
         return None
     master = os.environ.get(f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED", "true")
     print(
-        f"multi-asset live: starting {asset} dual-sided wallet maker clone V3 on {port}; "
+        f"multi-asset live: starting {asset} dual-sided wallet maker clone V4 on {port}; "
         f"master={master}; runtime is force-paused on every process start",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.wallet_maker_clone_live_v3"],
+        [sys.executable, "-m", "predict_bot.wallet_maker_clone_live_v4"],
         env=_clone_environment(asset),
     )
 
