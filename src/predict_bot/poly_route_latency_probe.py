@@ -91,12 +91,21 @@ def _decorate(payload: dict[str, Any], label: str) -> dict[str, Any]:
         ],
     }
     payload["measurementMeaning"] = {
-        "wsSourceAgeMs": "local receive time minus Polymarket event timestamp; lower is fresher but not pure network RTT",
-        "restSourceAgeMs": "local receive time minus Polymarket REST book timestamp; lower is fresher but includes polling/source semantics",
+        "wsSourceAgeMs": "local receive time minus Polymarket event timestamp when the feed exposes a usable timestamp; lower is fresher but not pure network RTT",
+        "restSourceAgeMs": "local receive time minus Polymarket REST book timestamp when exposed; lower is fresher but includes polling/source semantics",
         "restRttMs": "local round-trip time for public POST /books",
         "restMinusWsMs": "arrival-time difference for the identical order-book hash; positive means WS saw it first",
     }
+    if not payload.get("wsSourceAgeMs", {}).get("samples"):
+        payload.setdefault("measurementWarnings", []).append(
+            "No usable Polymarket source timestamps were observed on matched WS events, so absolute WS source-to-receive latency is unavailable in this run. Use identical-hash arrival lead and route-level RTT for A/B comparisons."
+        )
     return payload
+
+
+def _write_payload(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def main() -> int:
@@ -120,11 +129,27 @@ def main() -> int:
 
     payload = json.loads(output.read_text(encoding="utf-8"))
     payload = _decorate(payload, label)
+
+    # Persist the completed current run before attempting any optional comparison.
+    # A missing/invalid baseline must never discard a valid latency measurement.
+    _write_payload(output, payload)
+
     if args.compare_to:
         baseline_path = Path(args.compare_to)
-        baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
-        payload["comparison"] = compare_summaries(payload, baseline)
-    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        try:
+            baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+            payload["comparison"] = compare_summaries(payload, baseline)
+        except FileNotFoundError:
+            payload["comparison"] = None
+            payload.setdefault("comparisonWarnings", []).append(
+                f"Baseline file not found: {baseline_path}. Current run was saved normally; generate the baseline first and rerun with --compare-to."
+            )
+        except (OSError, json.JSONDecodeError) as exc:
+            payload["comparison"] = None
+            payload.setdefault("comparisonWarnings", []).append(
+                f"Baseline could not be read: {baseline_path}: {type(exc).__name__}: {exc}. Current run was saved normally."
+            )
+        _write_payload(output, payload)
 
     print(json.dumps(payload, ensure_ascii=False, indent=2), flush=True)
     print(f"saved: {output}", flush=True)
