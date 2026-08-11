@@ -28,9 +28,9 @@ function Test-JsonService([string]$Url) {
     catch { return $false }
 }
 
-function Get-ObserverVersion {
+function Get-ServiceVersion([int]$Port) {
     try {
-        $Payload = Invoke-RestMethod -Uri "http://127.0.0.1:8770/state" -TimeoutSec 2
+        $Payload = Invoke-RestMethod -Uri "http://127.0.0.1:${Port}/state" -TimeoutSec 2
         if ($Payload.state -and $Payload.state.version) { return [string]$Payload.state.version }
         if ($Payload.version) { return [string]$Payload.version }
     }
@@ -105,6 +105,12 @@ foreach ($Name in $UserEnvironment) {
     if ($Value) { Set-Item -LiteralPath "Env:$Name" -Value $Value }
 }
 
+# ETH/BNB are now first-class Dashboard V2 Echtgeld markets.  Capability is ON
+# by default unless the operator explicitly persisted false.  The V3 engine has
+# a one-time safe-pause migration, so this never means automatic new BUYs.
+if (-not $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED) { $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED = "true" }
+if (-not $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED) { $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED = "true" }
+
 if (-not $env:BINANCE_API_KEY -or -not $env:BINANCE_API_SECRET) {
     Write-Host "Enter the read-only Binance HMAC credentials for this session only."
     $env:BINANCE_API_KEY = Read-Host "BINANCE_API_KEY"
@@ -129,9 +135,21 @@ else {
 }
 
 if (Test-LocalService "http://127.0.0.1:8770/state") {
-    $ExistingObserverVersion = Get-ObserverVersion
+    $ExistingObserverVersion = Get-ServiceVersion 8770
     if ($ExistingObserverVersion -ne "MULTI_PREDICTION_OBSERVER_V2") {
-        throw "Port 8770 is occupied by $ExistingObserverVersion. Stop the old/manual multi_prediction_observer first; ETH/BNB Echtgeld requires MULTI_PREDICTION_OBSERVER_V2 so an old websocket generation can never authorize BUY."
+        throw "Port 8770 is occupied by $ExistingObserverVersion. Stop the old/manual multi_prediction_observer first; ETH/BNB Echtgeld requires MULTI_PREDICTION_OBSERVER_V2."
+    }
+}
+
+foreach ($AssetCheck in @(
+    @{ Asset = "ETH"; Port = 8772 },
+    @{ Asset = "BNB"; Port = 8773 }
+)) {
+    if (Test-LocalService "http://127.0.0.1:$($AssetCheck.Port)/state") {
+        $ExistingVersion = Get-ServiceVersion $AssetCheck.Port
+        if ($ExistingVersion -ne "POLY_GAP_MULTI_ASSET_LIVE_V3") {
+            throw "Port $($AssetCheck.Port) is occupied by $ExistingVersion. Run .\stop-dashboard-v2.ps1 (or stop the old external multi-asset supervisor) before upgrading $($AssetCheck.Asset) to POLY_GAP_MULTI_ASSET_LIVE_V3."
+        }
     }
 }
 
@@ -140,7 +158,7 @@ $MultiReady = (Test-LocalService "http://127.0.0.1:8770/state") -and `
               (Test-LocalService "http://127.0.0.1:8772/state") -and `
               (Test-LocalService "http://127.0.0.1:8773/state")
 if (-not $MultiReady) {
-    Write-Host "Dashboard V2: starting BTC/ETH/BNB observer V2 + isolated ETH/BNB live engines."
+    Write-Host "Dashboard V2: starting BTC/ETH/BNB observer V2 + isolated ETH/BNB live engines V3."
     $Multi = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.multi_asset_live_supervisor") `
         -WorkingDirectory $Root -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $Data "multi-live.stdout.log") `
@@ -149,7 +167,7 @@ if (-not $MultiReady) {
     $MultiOwned = $true
 }
 else {
-    Write-Host "Dashboard V2: existing 8770/8772/8773 services detected."
+    Write-Host "Dashboard V2: existing current 8770/8772/8773 services detected."
 }
 
 $WebOwned = $false
@@ -210,9 +228,14 @@ if ($BadBridges.Count -gt 0) {
     throw "Dashboard V2 proxy returned non-JSON/unhealthy responses for: $Names. The web server is not running the current vite.config.ts."
 }
 
-$ObserverVersion = Get-ObserverVersion
+$ObserverVersion = Get-ServiceVersion 8770
+$EthVersion = Get-ServiceVersion 8772
+$BnbVersion = Get-ServiceVersion 8773
 if ($ObserverVersion -ne "MULTI_PREDICTION_OBSERVER_V2") {
-    throw "8770 became ready as $ObserverVersion, but ETH/BNB Echtgeld requires MULTI_PREDICTION_OBSERVER_V2."
+    throw "8770 became ready as $ObserverVersion, but live trading requires MULTI_PREDICTION_OBSERVER_V2."
+}
+if ($EthVersion -ne "POLY_GAP_MULTI_ASSET_LIVE_V3" -or $BnbVersion -ne "POLY_GAP_MULTI_ASSET_LIVE_V3") {
+    throw "ETH/BNB engine version mismatch after startup: ETH=$EthVersion BNB=$BnbVersion; expected POLY_GAP_MULTI_ASSET_LIVE_V3."
 }
 
 Write-Host "Dashboard V2 ready: http://localhost:4320"
@@ -221,11 +244,12 @@ Write-Host "ETH live state: http://127.0.0.1:8772/state"
 Write-Host "BNB live state: http://127.0.0.1:8773/state"
 Write-Host "Dashboard V2 JSON bridges verified: 8766/8767/8768/8769/8770/8772/8773."
 Write-Host "Echtgeld WRITE controls are localhost-only and require the current Vite session token."
+Write-Host "ETH/BNB Echtgeld capability is available; V3 first startup force-pauses new entries until explicit Dashboard Resume."
 
 $EthMaster = $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED -match '^(1|true|yes|on)$'
 $BnbMaster = $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED -match '^(1|true|yes|on)$'
-if (-not $EthMaster) { Write-Warning "ETH master is OFF: set user env PREDICT_ETH_POLY_GAP_LIVE_ENABLED=true before Echtgeld can Resume." }
-if (-not $BnbMaster) { Write-Warning "BNB master is OFF: set user env PREDICT_BNB_POLY_GAP_LIVE_ENABLED=true before Echtgeld can Resume." }
+if (-not $EthMaster) { Write-Warning "ETH master explicitly OFF: set PREDICT_ETH_POLY_GAP_LIVE_ENABLED=true before Echtgeld can Resume." }
+if (-not $BnbMaster) { Write-Warning "BNB master explicitly OFF: set PREDICT_BNB_POLY_GAP_LIVE_ENABLED=true before Echtgeld can Resume." }
 
 if (-not $NoBrowser) { Start-Process "http://localhost:4320/live-markets" }
 Write-Host "READY: Dashboard V2 is running in the background."
