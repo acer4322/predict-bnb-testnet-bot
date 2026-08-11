@@ -53,14 +53,14 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting resilient Chainlink/Polymarket cross-oracle collector "
-        f"with bounded storage retention; profile={RUNTIME_PROFILE}",
+        f"with bounded raw retention + compact seven-day history; profile={RUNTIME_PROFILE}",
         flush=True,
     )
     return subprocess.Popen(
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_storage_retention",
+            "predict_bot.cross_oracle_storage_retention_v2",
         ]
     )
 
@@ -118,7 +118,8 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v40 -> predict_bot.poly_gap_live_v41.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery ->
-    # predict_bot.cross_oracle_storage_retention.
+    # predict_bot.cross_oracle_storage_retention ->
+    # predict_bot.cross_oracle_storage_retention_v2.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
     # predict_bot.cross_oracle_strategy_chop_guard_v4 ->
     # predict_bot.cross_oracle_strategy_chop_guard_v5 ->
