@@ -155,7 +155,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v38 -> predict_bot.poly_gap_live_v39 ->
     # predict_bot.poly_gap_live_v40 -> predict_bot.poly_gap_live_v41 ->
     # predict_bot.poly_gap_live_v42 -> predict_bot.poly_gap_live_v43 ->
-    # predict_bot.poly_gap_live_v44.
+    # predict_bot.poly_gap_live_v44 -> predict_bot.poly_gap_live_v45.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery ->
     # predict_bot.cross_oracle_storage_retention ->
@@ -169,15 +169,15 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V44 preserves all V40-V43 trading policy and adds a normalized runtime
-    # decision envelope plus integrated per-round execution idempotency/audit keys.
+    # V45 keeps V44 execution policy unchanged and adds a selectable entry gate:
+    # normal R_POLY_GAP_SCALP or R_PINNED_BINANCE_POLY_DIVERGENCE.
     print(
-        "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V44 on port 8769 (V40 reversal + V42 TP lock + V43 quote freshness + unified decisions/idempotency)",
+        "API supervisor: starting dedicated Poly live executor V45 on port 8769 "
+        "(V44 idempotency + selectable POLY_GAP / PINNED_DIVERGENCE entry)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v44"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v45"]
     )
 
 
@@ -244,7 +244,7 @@ def main() -> int:
                         and now >= next_poly_gap_live_restart_at
                     ):
                         print(
-                            "API supervisor: dedicated Poly GAP live executor exited; restarting it",
+                            "API supervisor: dedicated Poly live executor exited; restarting it",
                             file=sys.stderr,
                             flush=True,
                         )
