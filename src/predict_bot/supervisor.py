@@ -58,14 +58,14 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
         return None
     print(
         "API supervisor: starting resilient Chainlink/Polymarket cross-oracle collector "
-        f"with bounded raw retention + compact seven-day history; profile={RUNTIME_PROFILE}",
+        f"with bounded raw retention + compact seven-day history + quote-specific freshness; profile={RUNTIME_PROFILE}",
         flush=True,
     )
     return subprocess.Popen(
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_storage_retention_v2",
+            "predict_bot.cross_oracle_storage_retention_v3",
         ]
     )
 
@@ -99,9 +99,6 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
                 flush=True,
             )
     except Exception as exc:
-        # Never fall back to the collector DB after the split. If migration of
-        # legacy rows fails, 8768 still starts on its dedicated DB and Live's
-        # leader gate will remain fail-closed until enough fresh evidence exists.
         print(
             "API supervisor: strategy DB legacy migration failed; continuing on "
             f"dedicated DB {strategy_db}: {exc}",
@@ -157,11 +154,12 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v37 -> predict_bot.poly_gap_live_v37_guarded ->
     # predict_bot.poly_gap_live_v38 -> predict_bot.poly_gap_live_v39 ->
     # predict_bot.poly_gap_live_v40 -> predict_bot.poly_gap_live_v41 ->
-    # predict_bot.poly_gap_live_v42.
+    # predict_bot.poly_gap_live_v42 -> predict_bot.poly_gap_live_v43.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery ->
     # predict_bot.cross_oracle_storage_retention ->
-    # predict_bot.cross_oracle_storage_retention_v2.
+    # predict_bot.cross_oracle_storage_retention_v2 ->
+    # predict_bot.cross_oracle_storage_retention_v3.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
     # predict_bot.cross_oracle_strategy_chop_guard_v4 ->
     # predict_bot.cross_oracle_strategy_chop_guard_v5 ->
@@ -170,15 +168,17 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V42 preserves V40 immediate reversal SELL/cautious reversal re-entry and
-    # V41 source freshness, but TAKE_PROFIT now locks that 5m market to new BUYs.
+    # V43 preserves V40 immediate reversal SELL/cautious reversal re-entry,
+    # V41 source-age safety and V42 TAKE_PROFIT market lock, while consuming
+    # quote-specific collector timestamps so last_trade events cannot create
+    # false stale resets or a misleading WAITING_BINANCE_BOOK state.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V42 on port 8769 (V40 reversal safety + V41 source freshness + TP same-market BUY lock)",
+        "V43 on port 8769 (V40 reversal safety + V41 source age + V42 TP lock + quote timestamp race fix)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v42"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v43"]
     )
 
 
