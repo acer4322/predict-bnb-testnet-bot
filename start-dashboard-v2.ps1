@@ -7,6 +7,7 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Dashboard = Join-Path $Root "dashboard-v2"
 $Data = Join-Path $Root "data"
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
+$script:PredictFunEnabled = $false
 
 function Test-LocalService([string]$Url) {
     try {
@@ -80,9 +81,14 @@ function Stop-StaleDashboardV2Web {
 }
 
 function Test-DashboardV2Proxy {
-    return (Test-LocalService "http://127.0.0.1:4320") -and `
-           (Test-JsonService "http://127.0.0.1:4320/bridge/realtime") -and `
-           (Test-JsonService "http://127.0.0.1:4320/bridge/multi-market")
+    $Ready = (Test-LocalService "http://127.0.0.1:4320") -and `
+             (Test-JsonService "http://127.0.0.1:4320/bridge/realtime") -and `
+             (Test-JsonService "http://127.0.0.1:4320/bridge/multi-market")
+    if (-not $Ready) { return $false }
+    if ($script:PredictFunEnabled) {
+        return Test-JsonService "http://127.0.0.1:4320/bridge/predict-fun"
+    }
+    return $true
 }
 
 # Import only named user-scoped settings. Secrets remain environment variables;
@@ -92,6 +98,7 @@ $UserEnvironment = @(
     "BINANCE_API_SECRET",
     "BINANCE_LIVE_API_KEY",
     "BINANCE_LIVE_API_SECRET",
+    "PREDICT_FUN_API_KEY",
     "PREDICT_LIVE_ENABLED",
     "PREDICT_POLY_GAP_LIVE_ENABLED",
     "PREDICT_ETH_POLY_GAP_LIVE_ENABLED",
@@ -103,6 +110,11 @@ $UserEnvironment = @(
 foreach ($Name in $UserEnvironment) {
     $Value = [Environment]::GetEnvironmentVariable($Name, "User")
     if ($Value) { Set-Item -LiteralPath "Env:$Name" -Value $Value }
+}
+
+$script:PredictFunEnabled = -not [string]::IsNullOrWhiteSpace($env:PREDICT_FUN_API_KEY)
+if (-not $script:PredictFunEnabled) {
+    Write-Warning "PREDICT_FUN_API_KEY is not configured; Predict.fun observer 8771 will remain disabled."
 }
 
 # ETH/BNB are now first-class Dashboard V2 Echtgeld markets. Capability is ON
@@ -176,6 +188,26 @@ else {
     Write-Host "Dashboard V2: existing current 8770/8772/8773 services detected."
 }
 
+$PredictFunOwned = $false
+if ($script:PredictFunEnabled) {
+    if (Test-LocalService "http://127.0.0.1:8771/state") {
+        $ExistingPredictFunVersion = Get-ServiceVersion 8771
+        if ($ExistingPredictFunVersion -ne "PREDICT_FUN_MULTI_OBSERVER_V1") {
+            throw "Port 8771 is occupied by $ExistingPredictFunVersion. Stop the stale/manual Predict.fun observer before starting Dashboard V2."
+        }
+        Write-Host "Dashboard V2: existing Predict.fun observer detected on 8771."
+    }
+    else {
+        Write-Host "Dashboard V2: starting read-only Predict.fun observer (8771)."
+        $PredictFun = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.predict_fun_observer") `
+            -WorkingDirectory $Root -WindowStyle Hidden `
+            -RedirectStandardOutput (Join-Path $Data "predict-fun-v2.stdout.log") `
+            -RedirectStandardError (Join-Path $Data "predict-fun-v2.stderr.log") -PassThru
+        $PredictFun.Id | Set-Content (Join-Path $Root ".predict-fun-v2.pid")
+        $PredictFunOwned = $true
+    }
+}
+
 $WebOwned = $false
 $WebRootReady = Test-LocalService "http://127.0.0.1:4320"
 if ($WebRootReady -and -not (Test-DashboardV2Proxy)) {
@@ -208,6 +240,9 @@ $Required = @(
     @{ Name = "8773 BNB"; Url = "http://127.0.0.1:8773/state" },
     @{ Name = "4320 Dashboard V2"; Url = "http://127.0.0.1:4320" }
 )
+if ($script:PredictFunEnabled) {
+    $Required += @{ Name = "8771 Predict.fun"; Url = "http://127.0.0.1:8771/state" }
+}
 while ((Get-Date) -lt $Deadline) {
     $Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url) })
     if ($Missing.Count -eq 0 -and (Test-DashboardV2Proxy)) { break }
@@ -216,7 +251,7 @@ while ((Get-Date) -lt $Deadline) {
 $Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url) })
 if ($Missing.Count -gt 0) {
     $Names = ($Missing | ForEach-Object { $_.Name }) -join ", "
-    throw "Dashboard V2 startup incomplete: $Names. Check data\api-v2.stderr.log, data\multi-live.stderr.log, data\web-v2.stderr.log."
+    throw "Dashboard V2 startup incomplete: $Names. Check data\api-v2.stderr.log, data\multi-live.stderr.log, data\predict-fun-v2.stderr.log, data\web-v2.stderr.log."
 }
 
 $BridgeUrls = @(
@@ -228,6 +263,9 @@ $BridgeUrls = @(
     @{ Name = "8772"; Url = "http://127.0.0.1:4320/bridge/eth-live" },
     @{ Name = "8773"; Url = "http://127.0.0.1:4320/bridge/bnb-live" }
 )
+if ($script:PredictFunEnabled) {
+    $BridgeUrls += @{ Name = "8771"; Url = "http://127.0.0.1:4320/bridge/predict-fun" }
+}
 $BadBridges = @($BridgeUrls | Where-Object { -not (Test-JsonService $_.Url) })
 if ($BadBridges.Count -gt 0) {
     $Names = ($BadBridges | ForEach-Object { $_.Name }) -join ", "
@@ -238,6 +276,10 @@ $BtcVersion = Get-ServiceVersion 8769
 $ObserverVersion = Get-ServiceVersion 8770
 $EthVersion = Get-ServiceVersion 8772
 $BnbVersion = Get-ServiceVersion 8773
+$PredictFunVersion = $null
+if ($script:PredictFunEnabled) {
+    $PredictFunVersion = Get-ServiceVersion 8771
+}
 if ($BtcVersion -ne "POLY_GAP_DEDICATED_LIVE_V45") {
     throw "BTC 8769 became ready as $BtcVersion; expected POLY_GAP_DEDICATED_LIVE_V45. Stop the stale core supervisor and restart Dashboard V2."
 }
@@ -247,12 +289,21 @@ if ($ObserverVersion -ne "MULTI_PREDICTION_OBSERVER_V2") {
 if ($EthVersion -ne "POLY_GAP_MULTI_ASSET_LIVE_V3" -or $BnbVersion -ne "POLY_GAP_MULTI_ASSET_LIVE_V3") {
     throw "ETH/BNB engine version mismatch after startup: ETH=$EthVersion BNB=$BnbVersion; expected POLY_GAP_MULTI_ASSET_LIVE_V3."
 }
+if ($script:PredictFunEnabled -and $PredictFunVersion -ne "PREDICT_FUN_MULTI_OBSERVER_V1") {
+    throw "Predict.fun 8771 became ready as $PredictFunVersion; expected PREDICT_FUN_MULTI_OBSERVER_V1."
+}
 
 Write-Host "Dashboard V2 ready: http://localhost:4320"
 Write-Host "BTC live state: http://127.0.0.1:8769/state"
 Write-Host "ETH live state: http://127.0.0.1:8772/state"
 Write-Host "BNB live state: http://127.0.0.1:8773/state"
-Write-Host "Dashboard V2 JSON bridges verified: 8766/8767/8768/8769/8770/8772/8773."
+if ($script:PredictFunEnabled) {
+    Write-Host "Predict.fun observer state: http://127.0.0.1:8771/state"
+    Write-Host "Dashboard V2 JSON bridges verified: 8766/8767/8768/8769/8770/8771/8772/8773."
+}
+else {
+    Write-Host "Dashboard V2 JSON bridges verified: 8766/8767/8768/8769/8770/8772/8773 (Predict.fun disabled: no API key)."
+}
 Write-Host "Echtgeld WRITE controls are localhost-only and require the current Vite session token."
 Write-Host "ETH/BNB Echtgeld capability is available; V3 first startup force-pauses new entries until explicit Dashboard Resume."
 Write-Host "Pinned Divergence strategy page: http://localhost:4320/pinned-divergence"
