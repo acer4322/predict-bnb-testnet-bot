@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import math
 import os
 from typing import Any
@@ -53,6 +52,17 @@ class SequentialReplenishmentWalletMakerCloneEngine(base.NeutralAnchorWalletMake
                 for row in self.db.execute("PRAGMA table_info(wallet_maker_clone_orders)").fetchall()
             }
             if "generation" in columns:
+                if "terminal_at_ms" not in columns:
+                    self.db.execute(
+                        "ALTER TABLE wallet_maker_clone_orders ADD COLUMN terminal_at_ms INTEGER"
+                    )
+                    self.db.execute(
+                        """UPDATE wallet_maker_clone_orders
+                           SET terminal_at_ms=updated_at_ms
+                           WHERE terminal_at_ms IS NULL
+                             AND state IN ('FILLED','CANCELED','REJECTED')"""
+                    )
+                    self.db.commit()
                 return
 
             # V1-V5 used UNIQUE(pair_id, side), which made more than one parent
@@ -101,6 +111,7 @@ class SequentialReplenishmentWalletMakerCloneEngine(base.NeutralAnchorWalletMake
                         filled_share_qty REAL,
                         fill_percentage REAL,
                         last_reconciled_at_ms INTEGER,
+                        terminal_at_ms INTEGER,
                         raw_status_json TEXT,
                         error_kind TEXT,
                         error_message TEXT,
@@ -119,7 +130,7 @@ class SequentialReplenishmentWalletMakerCloneEngine(base.NeutralAnchorWalletMake
                         quote_expire_at_ms,quote_started_at_ms,quote_completed_at_ms,quote_rtt_ms,
                         place_started_at_ms,place_completed_at_ms,place_rtt_ms,order_id,vendor_order_id,
                         order_status,maker_usdt_amount,maker_share_qty,filled_usdt_amount,filled_share_qty,
-                        fill_percentage,last_reconciled_at_ms,raw_status_json,error_kind,error_message,
+                        fill_percentage,last_reconciled_at_ms,terminal_at_ms,raw_status_json,error_kind,error_message,
                         created_at_ms,updated_at_ms
                     )
                     SELECT
@@ -129,8 +140,9 @@ class SequentialReplenishmentWalletMakerCloneEngine(base.NeutralAnchorWalletMake
                         quote_expire_at_ms,quote_started_at_ms,quote_completed_at_ms,quote_rtt_ms,
                         place_started_at_ms,place_completed_at_ms,place_rtt_ms,order_id,vendor_order_id,
                         order_status,maker_usdt_amount,maker_share_qty,filled_usdt_amount,filled_share_qty,
-                        fill_percentage,last_reconciled_at_ms,raw_status_json,error_kind,error_message,
-                        created_at_ms,updated_at_ms
+                        fill_percentage,last_reconciled_at_ms,
+                        CASE WHEN state IN ('FILLED','CANCELED','REJECTED') THEN updated_at_ms ELSE NULL END,
+                        raw_status_json,error_kind,error_message,created_at_ms,updated_at_ms
                     FROM wallet_maker_clone_orders_v5_migration
                     """
                 )
@@ -177,6 +189,23 @@ class SequentialReplenishmentWalletMakerCloneEngine(base.NeutralAnchorWalletMake
                 (int(pair_id),),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def _update_order(self, order_row_id: int, **values: Any) -> None:
+        new_state = str(values.get("state") or "").upper()
+        with self.db_lock:
+            prior = self.db.execute(
+                "SELECT terminal_at_ms FROM wallet_maker_clone_orders WHERE id=?",
+                (int(order_row_id),),
+            ).fetchone()
+            prior_terminal = int(prior["terminal_at_ms"] or 0) if prior else 0
+        super()._update_order(order_row_id, **values)
+        if new_state in {"FILLED", "CANCELED", "REJECTED"} and prior_terminal <= 0:
+            with self.db_lock:
+                self.db.execute(
+                    "UPDATE wallet_maker_clone_orders SET terminal_at_ms=COALESCE(terminal_at_ms,?) WHERE id=?",
+                    (core._now_ms(), int(order_row_id)),
+                )
+                self.db.commit()
 
     def _insert_order_plan(self, pair_id: int, market_id: int, plan: dict[str, Any]) -> int:
         now = core._now_ms()
@@ -439,7 +468,9 @@ class SequentialReplenishmentWalletMakerCloneEngine(base.NeutralAnchorWalletMake
             state = str(latest.get("state") or "")
             if state != "FILLED":
                 continue
-            terminal_at_ms = int(latest.get("updated_at_ms") or latest.get("last_reconciled_at_ms") or now_ms)
+            terminal_at_ms = int(latest.get("terminal_at_ms") or 0)
+            if terminal_at_ms <= 0:
+                continue
             if now_ms - terminal_at_ms < REPLENISH_DELAY_SECONDS * 1000.0:
                 continue
             if self._place_side_generation(pair, market, side):
@@ -512,6 +543,7 @@ class SequentialReplenishmentWalletMakerCloneEngine(base.NeutralAnchorWalletMake
             autoRequoteEnabled=False,
             venueMinMaxCanDistortEffectivePotentialProfit=True,
             multiGenerationSchemaV6=True,
+            terminalFillTimestampPersistedV6=True,
         )
         return payload
 
