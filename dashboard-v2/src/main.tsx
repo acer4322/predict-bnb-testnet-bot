@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { ConfigProvider, theme } from 'antd'
 import zhTW from 'antd/locale/zh_TW'
-import App from './App'
+import AppV2 from './AppV2'
 import './styles.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -18,7 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         },
       }}
     >
-      <App />
+      <AppV2 />
     </ConfigProvider>
   </React.StrictMode>,
 )
