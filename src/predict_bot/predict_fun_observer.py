@@ -86,6 +86,20 @@ def expected_slug(asset: str, bucket: int) -> str:
     return f"{config['slugPrefix']}-{int(bucket)}"
 
 
+def normalize_predict_category_payload(payload: Any, *, slug: str) -> dict[str, Any] | None:
+    """Normalize GET /v1/categories/{slug} into the search-shaped selector payload."""
+    body = _record(payload)
+    category = _record(body.get("data")) if isinstance(body.get("data"), dict) else body
+    if not category:
+        return None
+    category = dict(category)
+    category.setdefault("slug", str(slug).lower())
+    return {
+        "success": body.get("success", True),
+        "data": {"categories": [category], "markets": []},
+    }
+
+
 def complement_price(value: Any, decimal_precision: int) -> float | None:
     try:
         number = Decimal(str(value))
@@ -359,6 +373,51 @@ class PredictFunObserver:
         response.raise_for_status()
         return response.json()
 
+    def _exact_category(self, asset: str, bucket: int) -> Any | None:
+        slug = expected_slug(asset, bucket)
+        response = self.http.get(f"{API_BASE}/v1/categories/{slug}")
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        return normalize_predict_category_payload(response.json(), slug=slug)
+
+    def _discover_market(self, asset: str, bucket: int) -> dict[str, Any] | None:
+        exact_error: Exception | None = None
+        try:
+            exact_payload = self._exact_category(asset, bucket)
+            if exact_payload is not None:
+                candidate = select_predict_market(exact_payload, asset=asset, bucket=bucket)
+                if candidate is not None:
+                    candidate["discoverySource"] = "CATEGORY_SLUG"
+                    return candidate
+        except Exception as exc:
+            exact_error = exc
+
+        try:
+            search_payload = self._search(asset)
+            candidate = select_predict_market(search_payload, asset=asset, bucket=bucket)
+            if candidate is not None:
+                candidate["discoverySource"] = "SEARCH_FALLBACK"
+                if exact_error is not None:
+                    self.last_error = (
+                        f"exact category discovery failed for {asset} {expected_slug(asset, bucket)}: "
+                        f"{str(exact_error)[:220]}; search fallback succeeded"
+                    )
+                return candidate
+        except Exception as search_error:
+            if exact_error is not None:
+                raise RuntimeError(
+                    f"exact category discovery failed: {exact_error}; search fallback failed: {search_error}"
+                ) from search_error
+            raise
+
+        if exact_error is not None:
+            self.last_error = (
+                f"exact category discovery failed for {asset} {expected_slug(asset, bucket)}: "
+                f"{str(exact_error)[:260]}; search fallback found no current market"
+            )
+        return None
+
     def _market_loop(self) -> None:
         while not self.stop_event.is_set():
             changed = False
@@ -373,8 +432,7 @@ class PredictFunObserver:
                     continue
                 self.next_discovery_at[asset] = now_monotonic + DISCOVERY_RETRY_SECONDS
                 try:
-                    payload = self._search(asset)
-                    candidate = select_predict_market(payload, asset=asset, bucket=bucket)
+                    candidate = self._discover_market(asset, bucket)
                 except Exception as exc:
                     with self.lock:
                         self.assets[asset]["status"] = "DISCOVERY_ERROR"
