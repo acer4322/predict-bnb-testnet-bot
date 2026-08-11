@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from predict_bot.predict_fun_observer import (
+    PredictFunObserver,
     complement_price,
     expected_slug,
     parse_predict_orderbook,
@@ -90,3 +91,70 @@ def test_select_predict_market_rejects_wrong_asset_or_interval() -> None:
         }
     }
     assert select_predict_market(payload, asset="BTC", bucket=bucket) is None
+
+
+def test_discover_market_uses_exact_category_before_search_for_eth_and_bnb() -> None:
+    bucket = 1_786_484_700
+
+    class FakeResponse:
+        status_code = 200
+
+        def __init__(self, payload: dict) -> None:
+            self.payload = payload
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return self.payload
+
+    class FakeHttp:
+        def __init__(self, asset: str, market_id: int) -> None:
+            self.asset = asset
+            self.market_id = market_id
+            self.calls: list[str] = []
+
+        def get(self, url: str, params: dict | None = None) -> FakeResponse:
+            self.calls.append(url)
+            if "/v1/search" in url:
+                raise AssertionError("search fallback must not run when exact category exists")
+            slug = expected_slug(self.asset, bucket)
+            assert url.endswith(f"/v1/categories/{slug}")
+            return FakeResponse(
+                {
+                    "success": True,
+                    "data": {
+                        "slug": slug,
+                        "title": f"{self.asset} Up or Down 5m",
+                        "startsAt": "2026-08-11T21:45:00.000Z",
+                        "endsAt": "2026-08-11T21:50:00.000Z",
+                        "variantData": {
+                            "type": "CRYPTO_UP_DOWN",
+                            "priceFeedSymbol": f"{self.asset}/USD",
+                        },
+                        "markets": [
+                            {
+                                "id": self.market_id,
+                                "title": f"{self.asset} Up or Down 5m",
+                                "tradingStatus": "OPEN",
+                                "isVisible": True,
+                                "decimalPrecision": 3,
+                            }
+                        ],
+                    },
+                }
+            )
+
+    for asset, market_id in (("ETH", 8102), ("BNB", 8103)):
+        observer = object.__new__(PredictFunObserver)
+        fake_http = FakeHttp(asset, market_id)
+        observer.http = fake_http
+        observer.last_error = None
+
+        selected = observer._discover_market(asset, bucket)
+
+        assert selected is not None
+        assert selected["id"] == market_id
+        assert selected["categorySlug"] == expected_slug(asset, bucket)
+        assert selected["discoverySource"] == "CATEGORY_SLUG"
+        assert len(fake_http.calls) == 1
