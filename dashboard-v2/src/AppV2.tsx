@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Button, Drawer, Grid, Layout, Menu, Space, Tag } from 'antd'
 import {
+  AimOutlined,
   ApiOutlined,
   BarChartOutlined,
   DashboardOutlined,
@@ -16,6 +17,7 @@ import { type ServiceSnapshot, useDashboardStore } from './store'
 import { useStrategyStore } from './strategy-store'
 import { usePredictFunStore } from './predict-fun-store'
 import LiveMarketsPage from './live-markets-page'
+import PinnedDivergencePage from './pinned-divergence-page'
 import {
   DiagnosticsPage,
   LivePage,
@@ -38,6 +40,7 @@ function ServiceTag({ label, service }: { label: string; service: ServiceSnapsho
 const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '總覽' },
   { key: '/live-markets', icon: <DollarOutlined />, label: 'Live Markets' },
+  { key: '/pinned-divergence', icon: <AimOutlined />, label: 'Pinned Divergence' },
   { key: '/live', icon: <SafetyCertificateOutlined />, label: 'Echtgeld Monitor' },
   { key: '/poly-gap', icon: <SwapOutlined />, label: 'Poly Gap' },
   { key: '/strategies', icon: <BarChartOutlined />, label: 'Strategies' },
@@ -140,6 +143,7 @@ function Shell() {
           <Routes>
             <Route path="/" element={<OverviewPage />} />
             <Route path="/live-markets" element={<LiveMarketsPage />} />
+            <Route path="/pinned-divergence" element={<PinnedDivergencePage />} />
             <Route path="/live" element={<LivePage />} />
             <Route path="/poly-gap" element={<PolyGapPage />} />
             <Route path="/strategies" element={<StrategiesPage />} />
