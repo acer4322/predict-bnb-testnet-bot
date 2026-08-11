@@ -81,7 +81,7 @@ def _asset_process(asset: str) -> subprocess.Popen[bytes] | None:
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_multi_asset_live_v1"],
+        [sys.executable, "-m", "predict_bot.poly_gap_multi_asset_live_v2"],
         env=_asset_environment(asset),
     )
 
