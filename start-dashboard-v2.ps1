@@ -16,6 +16,18 @@ function Test-LocalService([string]$Url) {
     catch { return $false }
 }
 
+function Test-JsonService([string]$Url) {
+    try {
+        $Response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 3
+        if ($Response.StatusCode -ne 200) { return $false }
+        $ContentType = [string]$Response.Headers["Content-Type"]
+        if ($ContentType -notmatch "application/json") { return $false }
+        $null = $Response.Content | ConvertFrom-Json -ErrorAction Stop
+        return $true
+    }
+    catch { return $false }
+}
+
 function Get-ObserverVersion {
     try {
         $Payload = Invoke-RestMethod -Uri "http://127.0.0.1:8770/state" -TimeoutSec 2
@@ -36,28 +48,31 @@ function Get-ListeningProcessId([int]$Port) {
     return $null
 }
 
-function Stop-OwnedDashboardV2Web {
-    $PidPath = Join-Path $Root ".web-v2.pid"
-    if (-not (Test-Path $PidPath)) { return $false }
+function Get-ProcessCommandLine([int]$ProcessId) {
     try {
-        $SavedPid = [int](Get-Content $PidPath -Raw)
+        $Process = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction Stop
+        return [string]$Process.CommandLine
     }
-    catch {
-        Remove-Item $PidPath -Force -ErrorAction SilentlyContinue
-        return $false
-    }
+    catch { return "" }
+}
+
+function Stop-StaleDashboardV2Web {
     $ListeningPid = Get-ListeningProcessId 4320
-    if (-not $ListeningPid -or $ListeningPid -ne $SavedPid) {
-        return $false
+    if (-not $ListeningPid) { return $true }
+
+    $CommandLine = Get-ProcessCommandLine $ListeningPid
+    $DashboardNeedle = ($Dashboard -replace "\\", "\\").ToLowerInvariant()
+    $CommandNeedle = ($CommandLine -replace "\\", "\\").ToLowerInvariant()
+    $LooksLikeThisDashboard = $CommandNeedle.Contains($DashboardNeedle) -and $CommandNeedle.Contains("vite")
+
+    if (-not $LooksLikeThisDashboard) {
+        throw "Port 4320 is occupied by an unknown web process (PID=$ListeningPid; command=$CommandLine). Stop it manually before starting Dashboard V2."
     }
-    $Process = Get-Process -Id $SavedPid -ErrorAction SilentlyContinue
-    if (-not $Process) {
-        Remove-Item $PidPath -Force -ErrorAction SilentlyContinue
-        return $false
-    }
-    Stop-Process -Id $SavedPid -Force -ErrorAction Stop
-    Remove-Item $PidPath -Force -ErrorAction SilentlyContinue
-    for ($i = 0; $i -lt 20; $i++) {
+
+    Write-Warning "Dashboard V2: stale Vite listener detected on 4320 (PID=$ListeningPid); restarting it so the current vite.config.ts proxy is loaded."
+    Stop-Process -Id $ListeningPid -Force -ErrorAction Stop
+    Remove-Item (Join-Path $Root ".web-v2.pid") -Force -ErrorAction SilentlyContinue
+    for ($i = 0; $i -lt 30; $i++) {
         if (-not (Get-ListeningProcessId 4320)) { return $true }
         Start-Sleep -Milliseconds 100
     }
@@ -65,12 +80,9 @@ function Stop-OwnedDashboardV2Web {
 }
 
 function Test-DashboardV2Proxy {
-    # The root page alone is not enough: an old Vite process can keep serving
-    # HTML while using a stale vite.config.ts, which makes every service badge
-    # look offline.  Verify representative core + multi-market bridges too.
     return (Test-LocalService "http://127.0.0.1:4320") -and `
-           (Test-LocalService "http://127.0.0.1:4320/bridge/realtime") -and `
-           (Test-LocalService "http://127.0.0.1:4320/bridge/multi-market")
+           (Test-JsonService "http://127.0.0.1:4320/bridge/realtime") -and `
+           (Test-JsonService "http://127.0.0.1:4320/bridge/multi-market")
 }
 
 # Import only named user-scoped settings. Secrets remain environment variables;
@@ -143,15 +155,10 @@ else {
 $WebOwned = $false
 $WebRootReady = Test-LocalService "http://127.0.0.1:4320"
 if ($WebRootReady -and -not (Test-DashboardV2Proxy)) {
-    Write-Warning "Dashboard V2: port 4320 serves HTML but its API bridge is stale/unhealthy."
-    if (Stop-OwnedDashboardV2Web) {
-        Write-Host "Dashboard V2: stopped the previously-owned stale Vite process; starting the current proxy config."
-        $WebRootReady = $false
+    if (-not (Stop-StaleDashboardV2Web)) {
+        throw "Dashboard V2 could not stop the stale Vite listener on 4320."
     }
-    else {
-        $ForeignPid = Get-ListeningProcessId 4320
-        throw "Port 4320 is occupied by a stale/foreign web process (PID=$ForeignPid). Stop that process, then rerun start-dashboard-v2.ps1. Direct backend services are healthy but this process cannot proxy them."
-    }
+    $WebRootReady = $false
 }
 
 if (-not $WebRootReady) {
@@ -175,24 +182,32 @@ $Required = @(
     @{ Name = "8770 observer"; Url = "http://127.0.0.1:8770/state" },
     @{ Name = "8772 ETH"; Url = "http://127.0.0.1:8772/state" },
     @{ Name = "8773 BNB"; Url = "http://127.0.0.1:8773/state" },
-    @{ Name = "4320 Dashboard V2"; Url = "http://127.0.0.1:4320" },
-    @{ Name = "4320->8766 bridge"; Url = "http://127.0.0.1:4320/bridge/realtime" },
-    @{ Name = "4320->8767 bridge"; Url = "http://127.0.0.1:4320/bridge/cross-oracle" },
-    @{ Name = "4320->8768 bridge"; Url = "http://127.0.0.1:4320/bridge/strategies" },
-    @{ Name = "4320->8769 bridge"; Url = "http://127.0.0.1:4320/bridge/poly-gap" },
-    @{ Name = "4320->8770 bridge"; Url = "http://127.0.0.1:4320/bridge/multi-market" },
-    @{ Name = "4320->8772 bridge"; Url = "http://127.0.0.1:4320/bridge/eth-live" },
-    @{ Name = "4320->8773 bridge"; Url = "http://127.0.0.1:4320/bridge/bnb-live" }
+    @{ Name = "4320 Dashboard V2"; Url = "http://127.0.0.1:4320" }
 )
 while ((Get-Date) -lt $Deadline) {
     $Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url) })
-    if ($Missing.Count -eq 0) { break }
+    if ($Missing.Count -eq 0 -and (Test-DashboardV2Proxy)) { break }
     Start-Sleep -Milliseconds 500
 }
 $Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url) })
 if ($Missing.Count -gt 0) {
     $Names = ($Missing | ForEach-Object { $_.Name }) -join ", "
     throw "Dashboard V2 startup incomplete: $Names. Check data\api-v2.stderr.log, data\multi-live.stderr.log, data\web-v2.stderr.log."
+}
+
+$BridgeUrls = @(
+    @{ Name = "8766"; Url = "http://127.0.0.1:4320/bridge/realtime" },
+    @{ Name = "8767"; Url = "http://127.0.0.1:4320/bridge/cross-oracle" },
+    @{ Name = "8768"; Url = "http://127.0.0.1:4320/bridge/strategies" },
+    @{ Name = "8769"; Url = "http://127.0.0.1:4320/bridge/poly-gap" },
+    @{ Name = "8770"; Url = "http://127.0.0.1:4320/bridge/multi-market" },
+    @{ Name = "8772"; Url = "http://127.0.0.1:4320/bridge/eth-live" },
+    @{ Name = "8773"; Url = "http://127.0.0.1:4320/bridge/bnb-live" }
+)
+$BadBridges = @($BridgeUrls | Where-Object { -not (Test-JsonService $_.Url) })
+if ($BadBridges.Count -gt 0) {
+    $Names = ($BadBridges | ForEach-Object { $_.Name }) -join ", "
+    throw "Dashboard V2 proxy returned non-JSON/unhealthy responses for: $Names. The web server is not running the current vite.config.ts."
 }
 
 $ObserverVersion = Get-ObserverVersion
@@ -204,7 +219,7 @@ Write-Host "Dashboard V2 ready: http://localhost:4320"
 Write-Host "BTC live state: http://127.0.0.1:8769/state"
 Write-Host "ETH live state: http://127.0.0.1:8772/state"
 Write-Host "BNB live state: http://127.0.0.1:8773/state"
-Write-Host "Dashboard V2 bridges verified: 8766/8767/8768/8769/8770/8772/8773."
+Write-Host "Dashboard V2 JSON bridges verified: 8766/8767/8768/8769/8770/8772/8773."
 Write-Host "Echtgeld WRITE controls are localhost-only and require the current Vite session token."
 
 $EthMaster = $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED -match '^(1|true|yes|on)$'
