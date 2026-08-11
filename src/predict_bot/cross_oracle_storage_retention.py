@@ -33,6 +33,7 @@ CLEANUP_SECONDS = max(
     30.0,
     float(os.environ.get("PREDICT_CROSS_ORACLE_CLEANUP_INTERVAL_SECONDS", "60")),
 )
+DEFER_POLY_BACKLOG_CLEANUP = PROFILE == "POLY_LIVE"
 
 _original_base_init = cross.CrossOracleCollector.__init__
 _original_start = Collector.start
@@ -113,8 +114,6 @@ cross.CrossOracleCollector.__init__ = _base_init
 
 
 def _install_policy(self: Any) -> None:
-    # FULL_LAB/RESEARCH use the normal SQLite connection. POLY_LIVE's filtered
-    # connection was installed during base initialization before sockets start.
     return None
 
 
@@ -126,16 +125,20 @@ def _cleanup_once(self: Any) -> dict[str, int]:
     ) * 1_000_000
     deleted = {"polyEvents": 0, "chainlinkTicks": 0}
     with self.db_lock:
-        row = self.db.execute(
-            "SELECT slug FROM polymarket_markets WHERE window_end_ms < ? ORDER BY window_end_ms LIMIT 1",
-            (poly_cutoff,),
-        ).fetchone()
-        if row is not None:
-            cur = self.db.execute(
-                "DELETE FROM polymarket_events WHERE market_slug=?",
-                (str(row[0]),),
-            )
-            deleted["polyEvents"] = max(0, int(cur.rowcount or 0))
+        # Never chew through a huge historical Poly backlog while real-money
+        # lightweight mode is active. New raw Poly writes are already disabled;
+        # compact/prune the old archive only while Live is stopped.
+        if not DEFER_POLY_BACKLOG_CLEANUP:
+            row = self.db.execute(
+                "SELECT slug FROM polymarket_markets WHERE window_end_ms < ? ORDER BY window_end_ms LIMIT 1",
+                (poly_cutoff,),
+            ).fetchone()
+            if row is not None:
+                cur = self.db.execute(
+                    "DELETE FROM polymarket_events WHERE market_slug=?",
+                    (str(row[0]),),
+                )
+                deleted["polyEvents"] = max(0, int(cur.rowcount or 0))
         cur = self.db.execute(
             "DELETE FROM chainlink_ticks WHERE id IN (SELECT id FROM chainlink_ticks WHERE received_wall_ns < ? ORDER BY id LIMIT 50000)",
             (chain_cutoff_ns,),
@@ -182,6 +185,7 @@ def _snapshot(self: Any) -> dict[str, Any]:
         polyRawRetentionHours=POLY_HOURS,
         chainlinkRetentionHours=CHAIN_HOURS,
         cleanupIntervalSeconds=CLEANUP_SECONDS,
+        polyBacklogCleanupDeferred=DEFER_POLY_BACKLOG_CLEANUP,
         lastRetentionCleanupAtMs=getattr(self, "_retention_at_ms", None),
         lastRetentionCleanup=getattr(self, "_retention_last", {}),
         retentionError=getattr(self, "_retention_error", None),
