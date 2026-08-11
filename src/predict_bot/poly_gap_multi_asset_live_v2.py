@@ -9,6 +9,30 @@ from .poly_gap_multi_asset_live_v1 import MULTI_OBSERVER_URL, MultiAssetPolyGapL
 REQUIRED_OBSERVER_VERSION = "MULTI_PREDICTION_OBSERVER_V2"
 
 
+def ws_generation_policy(
+    *,
+    observer_version: str | None,
+    current_ws_session: int | None,
+    quote_ws_session: int | None,
+) -> str:
+    """Fail-closed BUY authorization policy for the 8770 Poly quote generation."""
+    if str(observer_version or "") != REQUIRED_OBSERVER_VERSION:
+        return "BLOCK_OBSERVER_VERSION"
+    try:
+        current = int(current_ws_session or 0)
+    except (TypeError, ValueError):
+        current = 0
+    try:
+        quote = int(quote_ws_session or 0)
+    except (TypeError, ValueError):
+        quote = 0
+    if current <= 0 or quote <= 0:
+        return "BLOCK_SESSION_UNAVAILABLE"
+    if current != quote:
+        return "BLOCK_STALE_WS_GENERATION"
+    return "ALLOW"
+
+
 class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
     """V2: require quote freshness to belong to the current 8770 WS session."""
 
@@ -16,6 +40,7 @@ class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
         self._asset_observer_version: str | None = None
         self._last_asset_observer_state: dict[str, Any] | None = None
         self._ws_generation_blocks = 0
+        self._last_ws_generation_policy: str | None = None
         super().__init__(*args, **kwargs)
 
     def _asset_observer_state(self) -> dict[str, Any] | None:
@@ -43,19 +68,13 @@ class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
         result = super()._poly_state()
         if not isinstance(result, dict):
             return None
-        if self._asset_observer_version != REQUIRED_OBSERVER_VERSION:
-            self._ws_generation_blocks += 1
-            self.last_poly = None
-            self.last_error = (
-                f"{self.asset} Echtgeld requires {REQUIRED_OBSERVER_VERSION}; "
-                f"received {self._asset_observer_version or 'UNKNOWN'}"
-            )
-            return None
 
         state = self._last_asset_observer_state or {}
         poly = state.get("poly") if isinstance(state, dict) else None
         up = poly.get("up") if isinstance(poly, dict) else None
         if not isinstance(up, dict):
+            self._last_ws_generation_policy = "BLOCK_SESSION_UNAVAILABLE"
+            self._ws_generation_blocks += 1
             self.last_poly = None
             return None
         try:
@@ -67,14 +86,26 @@ class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
         except (TypeError, ValueError):
             quote_session = 0
 
-        if current_session <= 0 or quote_session <= 0 or current_session != quote_session:
+        policy = ws_generation_policy(
+            observer_version=self._asset_observer_version,
+            current_ws_session=current_session,
+            quote_ws_session=quote_session,
+        )
+        self._last_ws_generation_policy = policy
+        if policy != "ALLOW":
             self._ws_generation_blocks += 1
             self.last_poly = None
-            self.last_error = (
-                f"{self.asset} Poly quote is not from the current WS generation: "
-                f"quoteWsSession={quote_session or None}; wsSession={current_session or None}; "
-                "waiting for a fresh book/price_change before BUY"
-            )
+            if policy == "BLOCK_OBSERVER_VERSION":
+                self.last_error = (
+                    f"{self.asset} Echtgeld requires {REQUIRED_OBSERVER_VERSION}; "
+                    f"received {self._asset_observer_version or 'UNKNOWN'}"
+                )
+            else:
+                self.last_error = (
+                    f"{self.asset} Poly quote is not from the current WS generation: "
+                    f"quoteWsSession={quote_session or None}; wsSession={current_session or None}; "
+                    f"policy={policy}; waiting for a fresh book/price_change before BUY"
+                )
             return None
 
         result["collectorCurrentWsSession"] = current_session
@@ -91,6 +122,7 @@ class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
             "requiredObserverVersion": REQUIRED_OBSERVER_VERSION,
             "observedObserverVersion": self._asset_observer_version,
             "currentWsQuoteRequiredForBuy": True,
+            "lastPolicy": self._last_ws_generation_policy,
             "wsGenerationBlocks": int(self._ws_generation_blocks),
             "sellPolicyRelaxed": False,
         }
