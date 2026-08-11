@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import poly_gap_live as base
-from .poly_gap_multi_asset_live_v1 import MultiAssetPolyGapLiveEngine
+from .poly_gap_multi_asset_live_v1 import MULTI_OBSERVER_URL, MultiAssetPolyGapLiveEngine
 
 
 REQUIRED_OBSERVER_VERSION = "MULTI_PREDICTION_OBSERVER_V2"
@@ -20,10 +20,7 @@ class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
 
     def _asset_observer_state(self) -> dict[str, Any] | None:
         try:
-            response = self.http.get(base.os.environ.get(
-                "PREDICT_MULTI_PREDICTION_STATE_URL",
-                "http://127.0.0.1:8770/state",
-            ))
+            response = self.http.get(MULTI_OBSERVER_URL)
             response.raise_for_status()
             payload = response.json()
         except Exception as exc:
