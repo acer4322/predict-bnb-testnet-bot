@@ -12,9 +12,9 @@ class MinimumOrderSafeWalletMakerCloneEngine(base.SafeWalletMakerCloneEngine):
     """V3: enforce Binance Prediction's hard 1 USDT minimum order value.
 
     V1 already defaulted ``minimum_order_usdt`` to 1 USDT, but the setting
-    validator still allowed values below 1.  That is unsafe because low-price
+    validator still allowed values below 1. That is unsafe because low-price
     payoff-normalized quotes can otherwise produce a syntactically valid local
-    plan that Binance will reject.  V3 makes the venue minimum a hard backend
+    plan that Binance will reject. V3 makes the venue minimum a hard backend
     invariant, migrates any stale sub-1 persisted value, and keeps the final
     planned cost at or above 1 USDT even if an old database is loaded.
     """
@@ -93,7 +93,7 @@ class MinimumOrderSafeWalletMakerCloneEngine(base.SafeWalletMakerCloneEngine):
             return None
 
         # Defense in depth: an old/corrupt setting must never create a Binance
-        # order below the venue floor.  Recompute shares after lifting cost.
+        # order below the venue floor. Recompute shares after lifting cost.
         cost = max(
             BINANCE_PREDICTION_MIN_ORDER_USDT,
             float(plan.get("plannedCost") or 0.0),
@@ -113,7 +113,10 @@ class MinimumOrderSafeWalletMakerCloneEngine(base.SafeWalletMakerCloneEngine):
         return payload
 
 
+# V2 patches the V1 module entrypoint. Patch both names so direct imports and
+# ``python -m predict_bot.wallet_maker_clone_live_v3`` instantiate V3.
 base.WalletMakerCloneEngine = MinimumOrderSafeWalletMakerCloneEngine
+base.base.WalletMakerCloneEngine = MinimumOrderSafeWalletMakerCloneEngine
 
 
 def main() -> int:
