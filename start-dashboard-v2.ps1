@@ -97,6 +97,42 @@ function Stop-StaleCoreSupervisor([string]$Version) {
     return $false
 }
 
+function Stop-StaleMultiAssetSupervisor([int]$Port, [string]$Asset, [string]$Version) {
+    $ListenerProcessId = Get-ListeningProcessId $Port
+    if (-not $ListenerProcessId) { return $false }
+
+    try {
+        $ListenerProcess = Get-CimInstance Win32_Process -Filter "ProcessId=$ListenerProcessId" -ErrorAction Stop
+    }
+    catch {
+        return $false
+    }
+
+    $SupervisorProcessId = [int]$ListenerProcess.ParentProcessId
+    $ListenerCommand = [string]$ListenerProcess.CommandLine
+    $SupervisorCommand = Get-ProcessCommandLine $SupervisorProcessId
+    $LooksLikeAssetEngine = $ListenerCommand.ToLowerInvariant().Contains("predict_bot.poly_gap_multi_asset_live_v")
+    $LooksLikeSupervisor = $SupervisorCommand.ToLowerInvariant().Contains("predict_bot.multi_asset_live_supervisor")
+
+    if (-not ($LooksLikeAssetEngine -and $LooksLikeSupervisor)) {
+        Write-Warning "Dashboard V2 found stale $Asset version $Version on $Port, but its process tree is not a recognized predict_bot.multi_asset_live_supervisor tree. Listener PID=$ListenerProcessId command=$ListenerCommand; parent PID=$SupervisorProcessId command=$SupervisorCommand"
+        return $false
+    }
+
+    Write-Warning "Dashboard V2: stale multi-asset supervisor detected ($Asset $Version on $Port; supervisor PID=$SupervisorProcessId). Stopping its process tree before starting the current V3 engines."
+    & taskkill.exe /PID $SupervisorProcessId /T /F | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Dashboard V2 failed to stop stale multi-asset supervisor PID=$SupervisorProcessId with taskkill /T /F."
+    }
+    Remove-Item (Join-Path $Root ".multi-live.pid") -Force -ErrorAction SilentlyContinue
+
+    for ($i = 0; $i -lt 50; $i++) {
+        if (-not (Get-ListeningProcessId $Port)) { return $true }
+        Start-Sleep -Milliseconds 100
+    }
+    return $false
+}
+
 function Stop-StaleDashboardV2Web {
     $ListeningPid = Get-ListeningProcessId 4320
     if (-not $ListeningPid) { return $true }
@@ -204,6 +240,23 @@ else {
     }
 }
 
+# Upgrade stale ETH/BNB V2 process trees before validating the shared observer.
+# Killing the verified parent also removes its sibling asset child and any observer
+# that supervisor itself owns; an independently-running current observer is left alone.
+foreach ($AssetCheck in @(
+    @{ Asset = "ETH"; Port = 8772 },
+    @{ Asset = "BNB"; Port = 8773 }
+)) {
+    if (Test-LocalService "http://127.0.0.1:$($AssetCheck.Port)/state") {
+        $ExistingVersion = Get-ServiceVersion $AssetCheck.Port
+        if ($ExistingVersion -and $ExistingVersion -ne "POLY_GAP_MULTI_ASSET_LIVE_V3") {
+            if (-not (Stop-StaleMultiAssetSupervisor $AssetCheck.Port $AssetCheck.Asset $ExistingVersion)) {
+                throw "Port $($AssetCheck.Port) is occupied by $ExistingVersion and Dashboard V2 could not safely replace its process tree. Stop that process manually before upgrading $($AssetCheck.Asset) to POLY_GAP_MULTI_ASSET_LIVE_V3."
+            }
+        }
+    }
+}
+
 if (Test-LocalService "http://127.0.0.1:8770/state") {
     $ExistingObserverVersion = Get-ServiceVersion 8770
     if ($ExistingObserverVersion -ne "MULTI_PREDICTION_OBSERVER_V2") {
@@ -218,7 +271,7 @@ foreach ($AssetCheck in @(
     if (Test-LocalService "http://127.0.0.1:$($AssetCheck.Port)/state") {
         $ExistingVersion = Get-ServiceVersion $AssetCheck.Port
         if ($ExistingVersion -ne "POLY_GAP_MULTI_ASSET_LIVE_V3") {
-            throw "Port $($AssetCheck.Port) is occupied by $ExistingVersion. Run .\stop-dashboard-v2.ps1 (or stop the old external multi-asset supervisor) before upgrading $($AssetCheck.Asset) to POLY_GAP_MULTI_ASSET_LIVE_V3."
+            throw "Port $($AssetCheck.Port) is still occupied by $ExistingVersion after stale-process cleanup; expected POLY_GAP_MULTI_ASSET_LIVE_V3."
         }
     }
 }
