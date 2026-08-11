@@ -113,18 +113,35 @@ function Stop-StaleMultiAssetSupervisor([int]$Port, [string]$Asset, [string]$Ver
     $SupervisorCommand = Get-ProcessCommandLine $SupervisorProcessId
     $LooksLikeAssetEngine = $ListenerCommand.ToLowerInvariant().Contains("predict_bot.poly_gap_multi_asset_live_v")
     $LooksLikeSupervisor = $SupervisorCommand.ToLowerInvariant().Contains("predict_bot.multi_asset_live_supervisor")
+    $ParentMissing = [string]::IsNullOrWhiteSpace($SupervisorCommand)
 
-    if (-not ($LooksLikeAssetEngine -and $LooksLikeSupervisor)) {
-        Write-Warning "Dashboard V2 found stale $Asset version $Version on $Port, but its process tree is not a recognized predict_bot.multi_asset_live_supervisor tree. Listener PID=$ListenerProcessId command=$ListenerCommand; parent PID=$SupervisorProcessId command=$SupervisorCommand"
+    if (-not $LooksLikeAssetEngine) {
+        Write-Warning "Dashboard V2 found stale $Asset version $Version on $Port, but the listener is not a recognized predict_bot.poly_gap_multi_asset_live_v* process. Listener PID=$ListenerProcessId command=$ListenerCommand"
         return $false
     }
 
-    Write-Warning "Dashboard V2: stale multi-asset supervisor detected ($Asset $Version on $Port; supervisor PID=$SupervisorProcessId). Stopping its process tree before starting the current V3 engines."
-    & taskkill.exe /PID $SupervisorProcessId /T /F | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Dashboard V2 failed to stop stale multi-asset supervisor PID=$SupervisorProcessId with taskkill /T /F."
+    if ($LooksLikeSupervisor) {
+        Write-Warning "Dashboard V2: stale multi-asset supervisor detected ($Asset $Version on $Port; supervisor PID=$SupervisorProcessId). Stopping its process tree before starting the current V3 engines."
+        & taskkill.exe /PID $SupervisorProcessId /T /F | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Dashboard V2 failed to stop stale multi-asset supervisor PID=$SupervisorProcessId with taskkill /T /F."
+        }
+        Remove-Item (Join-Path $Root ".multi-live.pid") -Force -ErrorAction SilentlyContinue
     }
-    Remove-Item (Join-Path $Root ".multi-live.pid") -Force -ErrorAction SilentlyContinue
+    elseif ($ParentMissing) {
+        # A previous supervisor can exit/crash while its Python child remains alive.
+        # The listener command itself is enough to identify this as our stale asset
+        # engine, so kill only that orphan instead of touching an unrelated process.
+        Write-Warning "Dashboard V2: orphaned stale $Asset engine detected ($Version on $Port; listener PID=$ListenerProcessId; missing parent PID=$SupervisorProcessId). Stopping only the verified stale listener."
+        & taskkill.exe /PID $ListenerProcessId /F | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Dashboard V2 failed to stop orphaned stale $Asset listener PID=$ListenerProcessId with taskkill /F."
+        }
+    }
+    else {
+        Write-Warning "Dashboard V2 found stale $Asset version $Version on $Port, but its live parent is not predict_bot.multi_asset_live_supervisor. Listener PID=$ListenerProcessId command=$ListenerCommand; parent PID=$SupervisorProcessId command=$SupervisorCommand"
+        return $false
+    }
 
     for ($i = 0; $i -lt 50; $i++) {
         if (-not (Get-ListeningProcessId $Port)) { return $true }
@@ -241,8 +258,8 @@ else {
 }
 
 # Upgrade stale ETH/BNB V2 process trees before validating the shared observer.
-# Killing the verified parent also removes its sibling asset child and any observer
-# that supervisor itself owns; an independently-running current observer is left alone.
+# A verified live supervisor is stopped as a tree; a verified orphaned V2/Vx child
+# with no surviving parent is stopped by listener PID only.
 foreach ($AssetCheck in @(
     @{ Asset = "ETH"; Port = 8772 },
     @{ Asset = "BNB"; Port = 8773 }
