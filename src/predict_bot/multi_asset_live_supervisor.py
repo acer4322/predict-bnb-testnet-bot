@@ -40,8 +40,8 @@ def _observer_process() -> subprocess.Popen[bytes] | None:
     if _ready(OBSERVER_PORT):
         print("multi-asset live: using existing 8770 observer", flush=True)
         return None
-    print("multi-asset live: starting read-only BTC/ETH/BNB observer on 8770", flush=True)
-    return subprocess.Popen([sys.executable, "-m", "predict_bot.multi_prediction_observer"])
+    print("multi-asset live: starting live-grade read-only BTC/ETH/BNB observer V2 on 8770", flush=True)
+    return subprocess.Popen([sys.executable, "-m", "predict_bot.multi_prediction_observer_v2"])
 
 
 def _asset_environment(asset: str) -> dict[str, str]:
