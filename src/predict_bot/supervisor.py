@@ -115,7 +115,7 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # predict_bot.poly_gap_live_v33 -> predict_bot.poly_gap_live_v34 ->
     # predict_bot.poly_gap_live_v35 -> predict_bot.poly_gap_live_v36 ->
     # predict_bot.poly_gap_live_v37 -> predict_bot.poly_gap_live_v37_guarded ->
-    # predict_bot.poly_gap_live_v38.
+    # predict_bot.poly_gap_live_v38 -> predict_bot.poly_gap_live_v39.
     # Cross-oracle lineage: predict_bot.cross_oracle_trade_readiness ->
     # predict_bot.cross_oracle_gamma_redundant_discovery.
     # Paper guard lineage: predict_bot.cross_oracle_strategy_chop_guard_v3 ->
@@ -126,18 +126,18 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # Server lineage: predict_bot.server_binance_prefetch_v2 ->
     # predict_bot.server_binance_prefetch_v3 -> predict_bot.server_binance_prefetch_v4 ->
     # predict_bot.server_binance_prefetch_v5 -> predict_bot.server_binance_prefetch_v6.
-    # V38 preserves all V37 Shotgun behavior and adds a selectable leader guard:
-    # A) only POLY_LEADING may create new exposure;
-    # B) same entry filter plus BINANCE_LEADING_RISK/MIXED force the existing
-    # SELL path and persistently lock that 5m market against new strategy entry.
-    # Shotgun GTC auto-cancel remains unchanged/disabled.
+    # V39 preserves V38 leader guard and V37 Shotgun behavior, then adds two
+    # MARKET/FOK entry safety gates: V36 fast retries may not outlive the original
+    # signal by more than 1200ms by default, and signed BUY quotes must retain a
+    # strictly positive current Poly-vs-Binance edge before placement.
+    # Shotgun LIMIT/GTC entry and Shotgun auto-cancel behavior are unchanged.
     print(
         "API supervisor: starting dedicated R_POLY_GAP_SCALP live executor "
-        "V38 on port 8769 (V37 Shotgun + selectable Poly-only leader guard)",
+        "V39 on port 8769 (V38 leader guard + stale-retry and post-quote edge safety)",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v38"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v39"]
     )
 
 
