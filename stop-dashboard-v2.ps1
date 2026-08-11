@@ -19,8 +19,9 @@ function Stop-OwnedProcess([string]$PidFile, [string]$Label) {
 }
 
 # Only stop processes started by start-dashboard-v2.ps1.  If it detected an
-# already-running core API or multi-asset service, no PID file was created and
-# this script deliberately leaves that external process alone.
+# already-running core API, Predict.fun observer, or multi-asset service, no PID
+# file was created and this script deliberately leaves that external process alone.
 Stop-OwnedProcess ".web-v2.pid" "Dashboard V2"
+Stop-OwnedProcess ".predict-fun-v2.pid" "Predict.fun observer"
 Stop-OwnedProcess ".multi-live.pid" "multi-asset live supervisor"
 Stop-OwnedProcess ".api-v2.pid" "core API supervisor"
