@@ -130,7 +130,7 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
         [
             sys.executable,
             "-m",
-            "predict_bot.cross_oracle_strategy_chop_guard_v7",
+            "predict_bot.cross_oracle_strategy_dedicated",
         ],
         env=strategy_child_environment(),
     )
