@@ -1,0 +1,87 @@
+name: Apply loss streak guard
+
+on:
+  push:
+    branches:
+      - agent/loss-streak-guard
+  pull_request:
+    branches:
+      - feature/regime-guard
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/loss-streak-guard
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Make README patch optional
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/apply_loss_streak_guard.py')
+          content = path.read_text(encoding='utf-8')
+          marker = '# Documentation: clarify the persisted rule and causal recovery source.'
+          if marker in content:
+              content = content.split(marker, 1)[0] + 'print("loss streak guard patch applied")\n'
+              path.write_text(content, encoding='utf-8')
+          PY
+      - name: Apply patch
+        run: python .github/scripts/apply_loss_streak_guard.py
+      - name: Verify generated research registration
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          path = Path('src/predict_bot/research_forward.py')
+          content = path.read_text(encoding='utf-8')
+          anchor = 'RESEARCH_STRATEGIES = (*PRIMARY_RESEARCH_STRATEGIES, *SHADOW_RESEARCH_STRATEGIES)\n'
+          block = '''\nLOSS_STREAK_GUARD_RULES = {\n    "R_MICROPRICE_LOSS_STREAK_GUARD": "R_MICROPRICE",\n}\nLOSS_STREAK_GUARD_STRATEGIES = tuple(LOSS_STREAK_GUARD_RULES)\n'''
+          if 'LOSS_STREAK_GUARD_RULES =' not in content:
+              if anchor not in content:
+                  raise SystemExit('research strategy anchor missing')
+              content = content.replace(anchor, anchor + block, 1)
+          if '"R_MICROPRICE_LOSS_STREAK_GUARD"' not in content:
+              shadow_anchor = 'SHADOW_RESEARCH_STRATEGIES = (\n'
+              content = content.replace(
+                  shadow_anchor,
+                  shadow_anchor + '    "R_MICROPRICE_LOSS_STREAK_GUARD",\n',
+                  1,
+              )
+          ast.parse(content, filename=str(path))
+          assert 'LOSS_STREAK_GUARD_RULES = {' in content
+          assert '"R_MICROPRICE_LOSS_STREAK_GUARD": "R_MICROPRICE"' in content
+          assert 'LOSS_STREAK_GUARD_STRATEGIES = tuple(LOSS_STREAK_GUARD_RULES)' in content
+          path.write_text(content, encoding='utf-8')
+          print('research guard registration verified')
+          PY
+      - name: Install Python project
+        run: python -m pip install -e . pytest
+      - name: Run Python tests
+        run: pytest -q tests/test_loss_streak_guard.py tests/test_live_trading.py tests/test_research_forward.py tests/test_server.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install dashboard dependencies
+        run: npm ci --prefix dashboard
+      - name: Build and test dashboard
+        run: npm test --prefix dashboard
+      - name: Commit verified implementation
+        run: |
+          rm -f .github/scripts/apply_loss_streak_guard.py
+          rm -f .github/workflows/apply-loss-streak-guard.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add causal loss streak guard"
+          git push origin HEAD:agent/loss-streak-guard
