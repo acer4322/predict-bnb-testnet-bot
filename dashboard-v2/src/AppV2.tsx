@@ -6,6 +6,7 @@ import {
   BarChartOutlined,
   DashboardOutlined,
   DatabaseOutlined,
+  DollarOutlined,
   MenuOutlined,
   SafetyCertificateOutlined,
   SwapOutlined,
@@ -14,6 +15,7 @@ import type { MenuProps } from 'antd'
 import { type ServiceSnapshot, useDashboardStore } from './store'
 import { useStrategyStore } from './strategy-store'
 import { usePredictFunStore } from './predict-fun-store'
+import LiveMarketsPage from './live-markets-page'
 import {
   DiagnosticsPage,
   LivePage,
@@ -35,7 +37,8 @@ function ServiceTag({ label, service }: { label: string; service: ServiceSnapsho
 
 const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '總覽' },
-  { key: '/live', icon: <SafetyCertificateOutlined />, label: 'Echtgeld' },
+  { key: '/live-markets', icon: <DollarOutlined />, label: 'Live Markets' },
+  { key: '/live', icon: <SafetyCertificateOutlined />, label: 'Echtgeld Monitor' },
   { key: '/poly-gap', icon: <SwapOutlined />, label: 'Poly Gap' },
   { key: '/strategies', icon: <BarChartOutlined />, label: 'Strategies' },
   { key: '/trades', icon: <DatabaseOutlined />, label: 'Trades' },
@@ -112,7 +115,7 @@ function Shell() {
             <span>Dashboard V2</span>
           </div>
           {menu}
-          <div className="sider-note">PolyHermes-inspired UI · read-only migration</div>
+          <div className="sider-note">PolyHermes-inspired UI · LAN read-only / localhost Echtgeld control</div>
         </Sider>
       ) : null}
       <Layout className="main-layout">
@@ -121,7 +124,7 @@ function Shell() {
             {mobile ? <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} /> : null}
             <div>
               <strong>Prediction Trading Console</strong>
-              <div className="header-subtitle">V44 Echtgeld hot path 不變 · Dashboard V2 read-only</div>
+              <div className="header-subtitle">BTC / ETH / BNB 5M · LAN read-only · Echtgeld writes localhost-only</div>
             </div>
           </Space>
           <Space size={4} wrap>
@@ -136,6 +139,7 @@ function Shell() {
         <Content className="app-content">
           <Routes>
             <Route path="/" element={<OverviewPage />} />
+            <Route path="/live-markets" element={<LiveMarketsPage />} />
             <Route path="/live" element={<LivePage />} />
             <Route path="/poly-gap" element={<PolyGapPage />} />
             <Route path="/strategies" element={<StrategiesPage />} />
