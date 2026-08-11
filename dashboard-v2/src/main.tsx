@@ -4,6 +4,7 @@ import { ConfigProvider, theme } from 'antd'
 import zhTW from 'antd/locale/zh_TW'
 import AppV2 from './AppV2'
 import './styles.css'
+import './details.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
