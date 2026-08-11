@@ -88,6 +88,16 @@ export default defineConfig({
         changeOrigin: false,
         rewrite: () => '/state',
       },
+      '/bridge/eth-clone': {
+        target: 'http://127.0.0.1:8774',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
+      '/bridge/bnb-clone': {
+        target: 'http://127.0.0.1:8775',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
       '/control/btc-live': {
         target: 'http://127.0.0.1:8769',
         changeOrigin: false,
@@ -100,6 +110,16 @@ export default defineConfig({
       },
       '/control/bnb-live': {
         target: 'http://127.0.0.1:8773',
+        changeOrigin: false,
+        rewrite: () => '/settings',
+      },
+      '/control/eth-clone': {
+        target: 'http://127.0.0.1:8774',
+        changeOrigin: false,
+        rewrite: () => '/settings',
+      },
+      '/control/bnb-clone': {
+        target: 'http://127.0.0.1:8775',
         changeOrigin: false,
         rewrite: () => '/settings',
       },
