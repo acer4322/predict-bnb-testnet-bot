@@ -8,11 +8,15 @@ type Point = {
   sampledAtMs: number
   secondsLeft: number | null
   polyUp: number | null
+  polyDown: number | null
   binanceUp: number | null
-  midGap: number | null
+  binanceDown: number | null
 }
 
 type AssetName = 'BTC' | 'ETH' | 'BNB'
+type TrajectorySide = 'UP' | 'DOWN'
+type TrajectoryKey = 'polyUp' | 'polyDown' | 'binanceUp' | 'binanceDown'
+
 const ASSETS: AssetName[] = ['BTC', 'ETH', 'BNB']
 
 function formatProbability(value: unknown) {
@@ -31,6 +35,12 @@ function formatMs(value: unknown) {
   return n === null ? '—' : `${Math.round(n)} ms`
 }
 
+function difference(left: unknown, right: unknown) {
+  const a = asNumber(left)
+  const b = asNumber(right)
+  return a === null || b === null ? null : a - b
+}
+
 function parsePoints(value: unknown): Point[] {
   if (!Array.isArray(value)) return []
   return value
@@ -42,14 +52,15 @@ function parsePoints(value: unknown): Point[] {
         sampledAtMs,
         secondsLeft: asNumber(getPath(row, 'secondsLeft')),
         polyUp: asNumber(getPath(row, 'polyUp')),
+        polyDown: asNumber(getPath(row, 'polyDown')),
         binanceUp: asNumber(getPath(row, 'binanceUp')),
-        midGap: asNumber(getPath(row, 'midGap')),
+        binanceDown: asNumber(getPath(row, 'binanceDown')),
       }
     })
     .filter((row): row is Point => row !== null)
 }
 
-function pointsFor(values: Point[], key: 'polyUp' | 'binanceUp', width: number, height: number) {
+function pointsFor(values: Point[], key: TrajectoryKey, width: number, height: number) {
   if (values.length < 2) return ''
   const first = values[0].sampledAtMs
   const last = values[values.length - 1].sampledAtMs
@@ -65,28 +76,44 @@ function pointsFor(values: Point[], key: 'polyUp' | 'binanceUp', width: number, 
   return coords.join(' ')
 }
 
-function TrajectoryChart({ points }: { points: Point[] }) {
+function TrajectoryChart({ points, side }: { points: Point[]; side: TrajectorySide }) {
   const width = 640
-  const height = 150
-  const polyline = pointsFor(points, 'polyUp', width, height)
-  const binanceLine = pointsFor(points, 'binanceUp', width, height)
-
-  if (!polyline && !binanceLine) {
-    return <div className="trajectory-empty"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="等待軌跡樣本" /></div>
-  }
+  const height = 112
+  const polyKey: TrajectoryKey = side === 'UP' ? 'polyUp' : 'polyDown'
+  const binanceKey: TrajectoryKey = side === 'UP' ? 'binanceUp' : 'binanceDown'
+  const polyline = pointsFor(points, polyKey, width, height)
+  const binanceLine = pointsFor(points, binanceKey, width, height)
 
   return (
-    <div className="trajectory-chart-wrap">
-      <svg className="trajectory-chart" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label="Polymarket and Binance UP probability trajectory">
-        <line x1="0" y1={height / 2} x2={width} y2={height / 2} className="trajectory-midline" />
-        <line x1="0" y1={height * 0.25} x2={width} y2={height * 0.25} className="trajectory-gridline" />
-        <line x1="0" y1={height * 0.75} x2={width} y2={height * 0.75} className="trajectory-gridline" />
-        {polyline ? <polyline points={polyline} className="trajectory-poly-line" fill="none" vectorEffect="non-scaling-stroke" /> : null}
-        {binanceLine ? <polyline points={binanceLine} className="trajectory-binance-line" fill="none" vectorEffect="non-scaling-stroke" /> : null}
-      </svg>
-      <div className="trajectory-axis-label trajectory-axis-top">1.00</div>
-      <div className="trajectory-axis-label trajectory-axis-mid">0.50</div>
-      <div className="trajectory-axis-label trajectory-axis-bottom">0.00</div>
+    <div className="trajectory-side-block">
+      <div className="trajectory-side-heading">
+        <strong>{side}</strong>
+        <Text type="secondary">Polymarket vs Binance Prediction</Text>
+      </div>
+      {!polyline && !binanceLine ? (
+        <div className="trajectory-empty trajectory-empty-compact">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`等待 ${side} 軌跡樣本`} />
+        </div>
+      ) : (
+        <div className="trajectory-chart-wrap trajectory-chart-wrap-compact">
+          <svg
+            className="trajectory-chart trajectory-chart-compact"
+            viewBox={`0 0 ${width} ${height}`}
+            preserveAspectRatio="none"
+            role="img"
+            aria-label={`Polymarket and Binance ${side} probability trajectory`}
+          >
+            <line x1="0" y1={height / 2} x2={width} y2={height / 2} className="trajectory-midline" />
+            <line x1="0" y1={height * 0.25} x2={width} y2={height * 0.25} className="trajectory-gridline" />
+            <line x1="0" y1={height * 0.75} x2={width} y2={height * 0.75} className="trajectory-gridline" />
+            {polyline ? <polyline points={polyline} className="trajectory-poly-line" fill="none" vectorEffect="non-scaling-stroke" /> : null}
+            {binanceLine ? <polyline points={binanceLine} className="trajectory-binance-line" fill="none" vectorEffect="non-scaling-stroke" /> : null}
+          </svg>
+          <div className="trajectory-axis-label trajectory-axis-top">1.00</div>
+          <div className="trajectory-axis-label trajectory-axis-mid trajectory-axis-mid-compact">0.50</div>
+          <div className="trajectory-axis-label trajectory-axis-bottom">0.00</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -98,11 +125,17 @@ function AssetCard({ asset, data }: { asset: AssetName; data: unknown }) {
   const binanceStatus = asText(getPath(data, 'binance.status'), 'UNKNOWN')
   const points = parsePoints(getPath(data, 'trajectory'))
   const sourceMode = asText(getPath(data, 'sourceMode'))
+
   const polyUp = getPath(comparison, 'polyUpMid')
+  const polyDown = getPath(comparison, 'polyDownMid')
   const binanceUp = getPath(comparison, 'binanceUpMid')
-  const midGap = getPath(comparison, 'midGap')
+  const binanceDown = getPath(comparison, 'binanceDownMid')
+  const upGap = getPath(comparison, 'midGap') ?? difference(polyUp, binanceUp)
+  const downGap = getPath(comparison, 'midGapDown') ?? difference(polyDown, binanceDown)
   const edgeUp = getPath(comparison, 'executableEdgeUp')
+  const edgeDown = getPath(comparison, 'executableEdgeDown')
   const sourceAge = getPath(comparison, 'polySourceAgeMs')
+
   const polyHealthy = polyStatus === 'LIVE'
   const binanceHealthy = binanceStatus === 'LIVE'
   const slug = asText(getPath(data, 'poly.market.eventSlug'), '')
@@ -119,17 +152,33 @@ function AssetCard({ asset, data }: { asset: AssetName; data: unknown }) {
         <Badge status={binanceHealthy ? 'success' : 'error'} text={`Binance ${binanceStatus}`} />
       </div>
 
-      <Row gutter={8} className="trajectory-stats">
-        <Col span={6}><Statistic title="Poly UP" value={formatProbability(polyUp)} /></Col>
-        <Col span={6}><Statistic title="Binance UP" value={formatProbability(binanceUp)} /></Col>
-        <Col span={6}><Statistic title="Mid gap" value={formatGap(midGap)} /></Col>
-        <Col span={6}><Statistic title="UP edge" value={formatGap(edgeUp)} /></Col>
-      </Row>
+      <div className="trajectory-side-stats">
+        <div className="trajectory-side-label up">UP</div>
+        <Row gutter={8} className="trajectory-stats">
+          <Col span={6}><Statistic title="Poly" value={formatProbability(polyUp)} /></Col>
+          <Col span={6}><Statistic title="Binance" value={formatProbability(binanceUp)} /></Col>
+          <Col span={6}><Statistic title="Mid gap" value={formatGap(upGap)} /></Col>
+          <Col span={6}><Statistic title="Exec edge" value={formatGap(edgeUp)} /></Col>
+        </Row>
+      </div>
 
-      <TrajectoryChart points={points} />
+      <TrajectoryChart points={points} side="UP" />
+
+      <div className="trajectory-side-stats trajectory-down-stats">
+        <div className="trajectory-side-label down">DOWN</div>
+        <Row gutter={8} className="trajectory-stats">
+          <Col span={6}><Statistic title="Poly" value={formatProbability(polyDown)} /></Col>
+          <Col span={6}><Statistic title="Binance" value={formatProbability(binanceDown)} /></Col>
+          <Col span={6}><Statistic title="Mid gap" value={formatGap(downGap)} /></Col>
+          <Col span={6}><Statistic title="Exec edge" value={formatGap(edgeDown)} /></Col>
+        </Row>
+      </div>
+
+      <TrajectoryChart points={points} side="DOWN" />
+
       <div className="trajectory-legend">
-        <span><i className="legend-line poly" />Polymarket UP</span>
-        <span><i className="legend-line binance" />Binance UP</span>
+        <span><i className="legend-line poly" />Polymarket</span>
+        <span><i className="legend-line binance" />Binance Prediction</span>
         <span className="trajectory-samples">{points.length} samples</span>
       </div>
       <div className="trajectory-meta">
@@ -150,7 +199,7 @@ export default function MultiMarketOverview({ service }: { service: ServiceSnaps
       <div className="section-heading-row">
         <div>
           <Typography.Title level={4}>BTC / ETH / BNB 市場比對軌跡</Typography.Title>
-          <Text type="secondary">同一個 5 分鐘視窗比較 Polymarket UP mid 與 Binance Prediction UP mid；ETH/BNB 目前只觀測，不參與 Echtgeld。</Text>
+          <Text type="secondary">每個 5 分鐘視窗分別比較 UP 與 DOWN 的 Polymarket mid、Binance Prediction mid 與可執行 edge；ETH/BNB 目前只觀測，不參與 Echtgeld。</Text>
         </div>
         <Tag color={service.ok ? 'success' : 'warning'}>8770 · {service.ok ? `${Math.round(service.latencyMs ?? 0)}ms` : 'OFFLINE'}</Tag>
       </div>
