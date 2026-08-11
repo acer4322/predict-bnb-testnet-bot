@@ -32,6 +32,7 @@ import {
 } from '@ant-design/icons'
 import type { MenuProps, TableColumnsType } from 'antd'
 import { asNumber, asText, getPath, type ServiceSnapshot, useDashboardStore } from './store'
+import MultiMarketOverview from './multi-market-overview'
 
 const { Header, Sider, Content } = Layout
 const { Title, Text } = Typography
@@ -104,6 +105,7 @@ function useModel() {
   const realtime = services.realtime.data
   const polyGap = nestedState(services.polyGap.data)
   const crossOracle = services.crossOracle.data
+  const multiMarket = services.multiMarket.data
 
   const marketId = getPath(
     polyGap,
@@ -175,6 +177,7 @@ function useModel() {
     realtime,
     polyGap,
     crossOracle,
+    multiMarket,
     marketId,
     secondsLeft,
     polyUp,
@@ -202,7 +205,7 @@ function OverviewPage() {
 
   return (
     <>
-      <PageHeading title="總覽" subtitle="第一屏只保留當前 5m market、跨市場訊號、持倉與 execution 狀態。" />
+      <PageHeading title="總覽" subtitle="第一屏保留 BTC Echtgeld hot path；下方獨立比較 BTC / ETH / BNB 的 Poly ↔ Binance 5m 市場軌跡。" />
       <Row gutter={[12, 12]}>
         <Col xs={24} lg={16}>
           <Card title={<Space><RadarChartOutlined /> BTC 5M Market</Space>} extra={<Tag color="geekblue">#{asText(m.marketId)}</Tag>}>
@@ -240,7 +243,7 @@ function OverviewPage() {
           <Card title="Execution" className="stack-card">
             <Space direction="vertical" size={8} style={{ width: '100%' }}>
               <Tag color={statusColor(m.status)}>{asText(m.status, 'WAITING')}</Tag>
-              <Text type="secondary">{asText(m.version, 'V43 state 尚未回傳')}</Text>
+              <Text type="secondary">{asText(m.version, 'V44 state 尚未回傳')}</Text>
               <div>
                 <Text type="secondary">Source freshness</Text>
                 <Progress percent={sourceAge === null ? 0 : Math.max(0, Math.min(100, 100 - (sourceAge / 750) * 100))} showInfo={false} status={sourceAge !== null && !sourceFresh ? 'exception' : 'normal'} />
@@ -249,6 +252,7 @@ function OverviewPage() {
           </Card>
         </Col>
       </Row>
+      <MultiMarketOverview service={m.services.multiMarket} />
     </>
   )
 }
@@ -363,14 +367,15 @@ function DiagnosticsPage() {
   const entries: Array<[string, ServiceSnapshot, unknown]> = [
     ['8766 · realtime', m.services.realtime, m.realtime],
     ['8767 · cross-oracle', m.services.crossOracle, m.crossOracle],
-    ['8769 · V43 live', m.services.polyGap, m.polyGap],
+    ['8769 · V44 live', m.services.polyGap, m.polyGap],
+    ['8770 · multi-market', m.services.multiMarket, m.multiMarket],
   ]
   return (
     <>
       <PageHeading title="Diagnostics" subtitle="服務健康與原始 snapshot 集中在這裡，不再污染主交易畫面。" />
       <Row gutter={[12, 12]}>
         {entries.map(([label, service]) => (
-          <Col xs={24} md={8} key={label}>
+          <Col xs={24} md={12} xl={6} key={label}>
             <Card title={label}>
               <Space direction="vertical">
                 <Badge status={service.ok ? 'success' : 'error'} text={service.ok ? 'ONLINE' : 'OFFLINE'} />
@@ -383,7 +388,7 @@ function DiagnosticsPage() {
       </Row>
       <Row gutter={[12, 12]} className="section-row">
         {entries.map(([label, , data]) => (
-          <Col xs={24} xl={8} key={`${label}-json`}>
+          <Col xs={24} xl={12} key={`${label}-json`}>
             <Card title={`${label} raw`}><RawJson value={data ?? { status: 'no snapshot' }} /></Card>
           </Col>
         ))}
@@ -464,6 +469,7 @@ function Shell() {
             <ServiceTag label="8766" service={services.realtime} />
             <ServiceTag label="8767" service={services.crossOracle} />
             <ServiceTag label="8769" service={services.polyGap} />
+            <ServiceTag label="8770" service={services.multiMarket} />
           </Space>
         </Header>
         <Content className="app-content">
