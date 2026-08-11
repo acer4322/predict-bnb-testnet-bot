@@ -8,7 +8,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = Path(
-    os.environ.get("PREDICT_CROSS_ORACLE_DB", ROOT / "data" / "cross_oracle.db")
+    os.environ.get(
+        "PREDICT_CROSS_ORACLE_STRATEGY_DB",
+        ROOT / "data" / "cross_oracle_strategy.db",
+    )
 )
 ACTIVE_STATUSES = ("PENDING_ATTACH", "ARMED", "EXIT_TRIGGERED")
 
