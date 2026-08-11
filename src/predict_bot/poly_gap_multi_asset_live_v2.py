@@ -45,6 +45,7 @@ class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
             return None
         if self._asset_observer_version != REQUIRED_OBSERVER_VERSION:
             self._ws_generation_blocks += 1
+            self.last_poly = None
             self.last_error = (
                 f"{self.asset} Echtgeld requires {REQUIRED_OBSERVER_VERSION}; "
                 f"received {self._asset_observer_version or 'UNKNOWN'}"
@@ -55,6 +56,7 @@ class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
         poly = state.get("poly") if isinstance(state, dict) else None
         up = poly.get("up") if isinstance(poly, dict) else None
         if not isinstance(up, dict):
+            self.last_poly = None
             return None
         try:
             current_session = int(up.get("wsSession") or 0)
@@ -67,6 +69,7 @@ class LiveGradeMultiAssetPolyGapLiveEngine(MultiAssetPolyGapLiveEngine):
 
         if current_session <= 0 or quote_session <= 0 or current_session != quote_session:
             self._ws_generation_blocks += 1
+            self.last_poly = None
             self.last_error = (
                 f"{self.asset} Poly quote is not from the current WS generation: "
                 f"quoteWsSession={quote_session or None}; wsSession={current_session or None}; "
