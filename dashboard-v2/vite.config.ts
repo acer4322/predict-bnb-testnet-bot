@@ -1,8 +1,49 @@
-import { defineConfig } from 'vite'
+import { randomBytes } from 'node:crypto'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
+function isLoopback(address: string | undefined) {
+  const value = String(address || '').toLowerCase()
+  return value === '127.0.0.1' || value === '::1' || value === '::ffff:127.0.0.1'
+}
+
+function localhostControlGuard(): Plugin {
+  const token = randomBytes(32).toString('hex')
+  return {
+    name: 'btc5m-localhost-control-guard',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = String(req.url || '')
+        if (url === '/control/session' || url.startsWith('/control/session?')) {
+          if (!isLoopback(req.socket.remoteAddress)) {
+            res.statusCode = 403
+            res.setHeader('Content-Type', 'application/json; charset=utf-8')
+            res.end(JSON.stringify({ ok: false, error: 'Echtgeld controls are localhost-only' }))
+            return
+          }
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json; charset=utf-8')
+          res.setHeader('Cache-Control', 'no-store')
+          res.end(JSON.stringify({ ok: true, token }))
+          return
+        }
+        if (url.startsWith('/control/')) {
+          const supplied = String(req.headers['x-btc-lab-control'] || '')
+          if (!isLoopback(req.socket.remoteAddress) || supplied !== token) {
+            res.statusCode = 403
+            res.setHeader('Content-Type', 'application/json; charset=utf-8')
+            res.end(JSON.stringify({ ok: false, error: 'Echtgeld write rejected: localhost session token required' }))
+            return
+          }
+        }
+        next()
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [localhostControlGuard(), react()],
   server: {
     host: '0.0.0.0',
     port: 4320,
@@ -36,6 +77,31 @@ export default defineConfig({
         target: 'http://127.0.0.1:8771',
         changeOrigin: false,
         rewrite: () => '/state',
+      },
+      '/bridge/eth-live': {
+        target: 'http://127.0.0.1:8772',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
+      '/bridge/bnb-live': {
+        target: 'http://127.0.0.1:8773',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
+      '/control/btc-live': {
+        target: 'http://127.0.0.1:8769',
+        changeOrigin: false,
+        rewrite: () => '/settings',
+      },
+      '/control/eth-live': {
+        target: 'http://127.0.0.1:8772',
+        changeOrigin: false,
+        rewrite: () => '/settings',
+      },
+      '/control/bnb-live': {
+        target: 'http://127.0.0.1:8773',
+        changeOrigin: false,
+        rewrite: () => '/settings',
       },
     },
   },
