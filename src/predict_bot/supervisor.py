@@ -5,6 +5,11 @@ import subprocess
 import sys
 import time
 
+from .cross_oracle_strategy_db_split import (
+    bootstrap_strategy_db,
+    strategy_child_environment,
+    strategy_db_path,
+)
 from .pair_arb_live_minimum import install_pair_arb_minimum
 from .poly_confidence_restart_guard import invalidate_unfinished_confidence_shadows
 
@@ -70,8 +75,42 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
         return None
     if not _enabled("PREDICT_CROSS_ORACLE_STRATEGIES_ENABLED", True):
         return None
+
+    strategy_db = strategy_db_path()
     try:
-        excluded = invalidate_unfinished_confidence_shadows()
+        migration = bootstrap_strategy_db()
+        status = str(migration.get("status") or "UNKNOWN")
+        rows = int(migration.get("rows") or 0)
+        tables = migration.get("tables") or []
+        if status == "MIGRATED":
+            print(
+                "API supervisor: split 8768 strategy state out of collector DB: "
+                f"tables={len(tables)} rows={rows} -> {strategy_db}",
+                flush=True,
+            )
+        elif status == "ALREADY_SPLIT":
+            print(
+                f"API supervisor: 8768 strategy DB already split: {strategy_db}",
+                flush=True,
+            )
+        elif status == "NO_LEGACY_SOURCE":
+            print(
+                f"API supervisor: starting a new dedicated 8768 strategy DB: {strategy_db}",
+                flush=True,
+            )
+    except Exception as exc:
+        # Never fall back to the collector DB after the split. If migration of
+        # legacy rows fails, 8768 still starts on its dedicated DB and Live's
+        # leader gate will remain fail-closed until enough fresh evidence exists.
+        print(
+            "API supervisor: strategy DB legacy migration failed; continuing on "
+            f"dedicated DB {strategy_db}: {exc}",
+            file=sys.stderr,
+            flush=True,
+        )
+
+    try:
+        excluded = invalidate_unfinished_confidence_shadows(strategy_db)
         if excluded:
             print(
                 "API supervisor: Poly confidence restart guard excluded "
@@ -86,7 +125,8 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
         )
     print(
         "API supervisor: starting gap-aware Polymarket Paper/leader sidecar with "
-        "R_POLY_GAP_SCALP, rolling stats and lead-lag validation",
+        "R_POLY_GAP_SCALP, rolling stats and lead-lag validation; "
+        f"strategyDb={strategy_db}",
         flush=True,
     )
     return subprocess.Popen(
@@ -94,7 +134,8 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
             sys.executable,
             "-m",
             "predict_bot.cross_oracle_strategy_chop_guard_v7",
-        ]
+        ],
+        env=strategy_child_environment(),
     )
 
 
