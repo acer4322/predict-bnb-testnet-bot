@@ -4,7 +4,6 @@ import argparse
 import sqlite3
 import time
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
@@ -164,21 +163,6 @@ def _copy_small_tables(
     return markets
 
 
-def _latest_chainlink(
-    output: sqlite3.Connection,
-    bucket_ms: int,
-) -> tuple[Any, Any, Any]:
-    row = output.execute(
-        """SELECT price, source_timestamp_ms, received_wall_ns
-             FROM cross_oracle_chainlink_history
-            WHERE received_wall_ns <= ?
-            ORDER BY received_wall_ns DESC
-            LIMIT 1""",
-        (bucket_ms * 1_000_000,),
-    ).fetchone()
-    return tuple(row) if row is not None else (None, None, None)
-
-
 def _export_market(
     source: sqlite3.Connection,
     output: sqlite3.Connection,
@@ -220,9 +204,6 @@ def _export_market(
             )
         ):
             return
-        chain_price, chain_source, chain_received_ns = _latest_chainlink(
-            output, bucket_ms
-        )
         output.execute(
             """INSERT OR REPLACE INTO cross_oracle_history_samples(
                    bucket_ms, market_slug, condition_id, market_start_ms,
@@ -240,11 +221,9 @@ def _export_market(
                 latest_received_ms,
                 up["bid"], up["ask"], up["last"],
                 down["bid"], down["ask"], down["last"],
-                chain_price,
-                chain_source,
-                int(chain_received_ns // 1_000_000)
-                if chain_received_ns is not None
-                else None,
+                None,
+                None,
+                None,
             ),
         )
         rows_written += 1
@@ -317,6 +296,7 @@ def main() -> int:
     print(f"output={output_path}")
     print(f"retentionDays={days:g}; sampleMs={sample_ms}")
     print("raw_json/full depth will NOT be copied")
+    print("Chainlink is retained in cross_oracle_chainlink_history and is not joined per 250ms Poly row during export")
 
     source = _connect_source(source_path)
     output = _connect_output(output_path)
@@ -336,22 +316,18 @@ def main() -> int:
                 f"rawRowsRead={read_count} compactRows={written_count}",
                 flush=True,
             )
-        output.execute(
-            "INSERT OR REPLACE INTO archive_meta(key,value) VALUES (?,?)",
+        for key, value in (
             ("exportedAtMs", str(int(time.time() * 1000))),
-        )
-        output.execute(
-            "INSERT OR REPLACE INTO archive_meta(key,value) VALUES (?,?)",
             ("sourcePath", str(source_path.resolve())),
-        )
-        output.execute(
-            "INSERT OR REPLACE INTO archive_meta(key,value) VALUES (?,?)",
             ("retentionDays", str(days)),
-        )
-        output.execute(
-            "INSERT OR REPLACE INTO archive_meta(key,value) VALUES (?,?)",
             ("sampleMs", str(sample_ms)),
-        )
+            ("polyPayloadMode", "250ms_normalized_top_of_book_no_raw_json"),
+            ("chainlinkMode", "full_recent_rows_separate_table"),
+        ):
+            output.execute(
+                "INSERT OR REPLACE INTO archive_meta(key,value) VALUES (?,?)",
+                (key, value),
+            )
         output.commit()
         print(
             f"done: rawRowsRead={total_read}; compactRows={total_written}; "
