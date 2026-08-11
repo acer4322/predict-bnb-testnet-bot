@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+# Install the optional lightweight observer patch before importing any server
+# wrapper. server.py binds MicrostructureObserver at import time, so doing this
+# first lets POLY_LIVE skip the large microstructure archive cleanly.
+from .microstructure_lightweight_patch import install_microstructure_lightweight_patch
+
+install_microstructure_lightweight_patch()
+
 from . import server_binance_prefetch_v5 as previous
 from .strong_trend_guard_shadows import NORMALIZED_STAKE_USDT, STRATEGIES
 
