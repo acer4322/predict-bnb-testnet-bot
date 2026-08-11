@@ -20,8 +20,49 @@ POLY_HOURS = max(0.25, float(os.environ.get("PREDICT_CROSS_ORACLE_POLY_RAW_RETEN
 CHAIN_HOURS = max(1.0, float(os.environ.get("PREDICT_CROSS_ORACLE_CHAINLINK_RETENTION_HOURS", "72")))
 CLEANUP_SECONDS = max(30.0, float(os.environ.get("PREDICT_CROSS_ORACLE_CLEANUP_INTERVAL_SECONDS", "60")))
 
+_original_base_init = cross.CrossOracleCollector.__init__
 _original_start = Collector.start
 _original_snapshot = Collector.snapshot
+
+
+def _base_init(self: Any) -> None:
+    if PROFILE != "POLY_LIVE":
+        return _original_base_init(self)
+
+    # Same runtime state as the base collector, but deliberately avoid historical
+    # COUNT(*) over a potentially huge raw archive during lightweight startup.
+    self.lock = threading.RLock()
+    self.db_lock = threading.RLock()
+    self.stop_event = threading.Event()
+    self.started_at_ms = int(time.time() * 1000)
+    self.chainlink_ws = None
+    self.polymarket_ws = None
+    self.polymarket_generation = 0
+    self.market = None
+    self.chainlink_ticks = []
+    self.chainlink = {
+        "status": "STARTING", "symbol": cross.CHAINLINK_SYMBOL, "price": None,
+        "sourceTimestampMs": None, "receivedTimestampMs": None, "error": None,
+    }
+    self.polymarket = {
+        "status": "WAITING_MARKET", "receivedTimestampMs": None,
+        "sourceTimestampMs": None, "error": None,
+        "up": {"tokenId": None, "bestBid": None, "bestAsk": None, "lastTrade": None},
+        "down": {"tokenId": None, "bestBid": None, "bestAsk": None, "lastTrade": None},
+        "startPrice": None, "startPriceTimestampMs": None, "startPriceOffsetMs": None,
+    }
+    cross.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    self.db = sqlite3.connect(cross.DB_PATH, check_same_thread=False, timeout=5.0)
+    self.db.row_factory = sqlite3.Row
+    self.db.execute("PRAGMA journal_mode=WAL")
+    self.db.execute("PRAGMA synchronous=NORMAL")
+    self.db.execute("PRAGMA busy_timeout=5000")
+    self._create_schema()
+    self.chainlink_rows = 0
+    self.polymarket_rows = 0
+
+
+cross.CrossOracleCollector.__init__ = _base_init
 
 
 def _install_policy(self: Any) -> None:
@@ -81,7 +122,8 @@ def _start(self: Any) -> None:
 
 def _snapshot(self: Any) -> dict[str, Any]:
     payload = _original_snapshot(self)
-    payload.setdefault("storage", {}).update(
+    storage = payload.setdefault("storage", {})
+    storage.update(
         runtimeProfile=PROFILE,
         polyRawArchiveEnabled=POLY_ARCHIVE,
         polyRawRetentionHours=POLY_HOURS,
@@ -91,7 +133,11 @@ def _snapshot(self: Any) -> dict[str, Any]:
         lastRetentionCleanup=getattr(self, "_retention_last", {}),
         retentionError=getattr(self, "_retention_error", None),
         sqliteDeleteShrinksFileImmediately=False,
+        historicalCountsSkipped=PROFILE == "POLY_LIVE",
     )
+    if PROFILE == "POLY_LIVE":
+        storage["chainlinkRows"] = None
+        storage["polymarketRows"] = None
     return payload
 
 
