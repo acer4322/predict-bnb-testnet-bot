@@ -22,6 +22,11 @@ export default defineConfig({
         changeOrigin: false,
         rewrite: () => '/state',
       },
+      '/bridge/multi-market': {
+        target: 'http://127.0.0.1:8770',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
     },
   },
 })
