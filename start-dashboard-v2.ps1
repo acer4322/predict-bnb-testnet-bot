@@ -16,6 +16,16 @@ function Test-LocalService([string]$Url) {
     catch { return $false }
 }
 
+function Get-ObserverVersion {
+    try {
+        $Payload = Invoke-RestMethod -Uri "http://127.0.0.1:8770/state" -TimeoutSec 2
+        if ($Payload.state -and $Payload.state.version) { return [string]$Payload.state.version }
+        if ($Payload.version) { return [string]$Payload.version }
+    }
+    catch { }
+    return $null
+}
+
 # Import only named user-scoped settings. Secrets remain environment variables;
 # this script never writes credentials into config files or Dashboard storage.
 $UserEnvironment = @(
@@ -59,12 +69,19 @@ else {
     Write-Host "Dashboard V2: existing core API detected; not starting a duplicate."
 }
 
+if (Test-LocalService "http://127.0.0.1:8770/state") {
+    $ExistingObserverVersion = Get-ObserverVersion
+    if ($ExistingObserverVersion -ne "MULTI_PREDICTION_OBSERVER_V2") {
+        throw "Port 8770 is occupied by $ExistingObserverVersion. Stop the old/manual multi_prediction_observer first; ETH/BNB Echtgeld requires MULTI_PREDICTION_OBSERVER_V2 so an old websocket generation can never authorize BUY."
+    }
+}
+
 $MultiOwned = $false
 $MultiReady = (Test-LocalService "http://127.0.0.1:8770/state") -and `
               (Test-LocalService "http://127.0.0.1:8772/state") -and `
               (Test-LocalService "http://127.0.0.1:8773/state")
 if (-not $MultiReady) {
-    Write-Host "Dashboard V2: starting BTC/ETH/BNB observer + isolated ETH/BNB live engines."
+    Write-Host "Dashboard V2: starting BTC/ETH/BNB observer V2 + isolated ETH/BNB live engines."
     $Multi = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.multi_asset_live_supervisor") `
         -WorkingDirectory $Root -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $Data "multi-live.stdout.log") `
@@ -107,6 +124,11 @@ $Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url) })
 if ($Missing.Count -gt 0) {
     $Names = ($Missing | ForEach-Object { $_.Name }) -join ", "
     throw "Dashboard V2 startup incomplete: $Names. Check data\api-v2.stderr.log, data\multi-live.stderr.log, data\web-v2.stderr.log."
+}
+
+$ObserverVersion = Get-ObserverVersion
+if ($ObserverVersion -ne "MULTI_PREDICTION_OBSERVER_V2") {
+    throw "8770 became ready as $ObserverVersion, but ETH/BNB Echtgeld requires MULTI_PREDICTION_OBSERVER_V2."
 }
 
 Write-Host "Dashboard V2 ready: http://localhost:4320"
