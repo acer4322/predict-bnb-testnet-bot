@@ -7,24 +7,26 @@ from .pinned_binance_poly_strategy import ENTRY_MODE_PINNED_DIVERGENCE
 
 
 class PinnedPassiveTelemetryMixin:
-    """Evaluate the detector from read-only snapshots even when POLY_GAP is selected."""
+    """Keep the detector observable from read-only snapshots, including PAUSED runtime."""
 
     def snapshot(self) -> dict[str, Any]:
         payload = super().snapshot()
-        settings = self._settings()
-        if (
-            str(settings.get("entryStrategyMode") or "") != ENTRY_MODE_PINNED_DIVERGENCE
-            and self._current_active_round() is None
-        ):
+        if self._current_active_round() is None:
             last = self._last_pinned_evaluation
             checked = int((last or {}).get("checkedAtMs") or 0) if isinstance(last, dict) else 0
             if base._now_ms() - checked >= 750:
                 try:
-                    # Through this MRO the Pinned mixin sees POLY_GAP mode and
-                    # returns the inherited fresh Poly signal without gating it.
-                    raw_poly = super()._poly_state()
-                    if isinstance(raw_poly, dict):
-                        self._last_pinned_evaluation = self._evaluate_pinned_divergence(raw_poly)
+                    settings = self._settings()
+                    observed_poly = super()._poly_state()
+                    # In PINNED_DIVERGENCE mode the Pinned mixin above already
+                    # evaluates and stores the detector while gating the returned
+                    # direction. In ordinary POLY_GAP mode it returns the raw
+                    # inherited Poly signal, so evaluate passively here.
+                    if (
+                        str(settings.get("entryStrategyMode") or "") != ENTRY_MODE_PINNED_DIVERGENCE
+                        and isinstance(observed_poly, dict)
+                    ):
+                        self._last_pinned_evaluation = self._evaluate_pinned_divergence(observed_poly)
                 except Exception as exc:
                     self._last_pinned_evaluation = {
                         "strategy": "R_PINNED_BINANCE_POLY_DIVERGENCE",
@@ -37,5 +39,5 @@ class PinnedPassiveTelemetryMixin:
             pinned = payload.get("pinnedDivergence")
             if isinstance(pinned, dict):
                 pinned["lastEvaluation"] = self._last_pinned_evaluation
-                pinned["passiveTelemetryWhilePolyGapSelected"] = True
+                pinned["passiveTelemetryWhileRuntimePaused"] = True
         return payload
