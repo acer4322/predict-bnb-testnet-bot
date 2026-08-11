@@ -16,6 +16,11 @@ if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
 from predict_bot.core import BinancePredictionTradingClient  # noqa: E402
+from predict_bot.predict_fun_observer import (  # noqa: E402
+    expected_slug,
+    normalize_predict_category_payload,
+    select_predict_market,
+)
 
 API_BASE = os.environ.get("PREDICT_FUN_API_BASE", "https://api.predict.fun").rstrip("/")
 WEI = 10**18
@@ -30,9 +35,10 @@ def dec(value: Any) -> float | None:
 
 def api_get(path: str, params: dict[str, Any], api_key: str) -> dict[str, Any]:
     query = urlencode({k: v for k, v in params.items() if v is not None})
+    url = f"{API_BASE}{path}" + (f"?{query}" if query else "")
     request = Request(
-        f"{API_BASE}{path}?{query}",
-        headers={"x-api-key": api_key, "Accept": "application/json", "User-Agent": "BTC-5M-Lab-Clone-Reconciliation/1.1"},
+        url,
+        headers={"x-api-key": api_key, "Accept": "application/json", "User-Agent": "BTC-5M-Lab-Clone-Reconciliation/1.2"},
     )
     with urlopen(request, timeout=10) as response:
         payload = json.loads(response.read().decode("utf-8"))
@@ -171,6 +177,35 @@ def position_rows(payload: dict[str, Any], market_id: int) -> list[dict[str, Any
     return out
 
 
+def predict_market_for_pair(asset: str, pair: dict[str, Any], api_key: str) -> dict[str, Any]:
+    """Map Binance W3W 5m market metadata to Predict's own market-id namespace."""
+    end_ms = int(pair.get("market_end_ms") or 0)
+    if end_ms <= 0:
+        raise RuntimeError(f"Binance market {pair.get('market_id')} is missing market_end_ms")
+    bucket = (end_ms // 1000) - 300
+    slug = expected_slug(asset, bucket)
+    payload = api_get(f"/v1/categories/{slug}", {}, api_key)
+    normalized = normalize_predict_category_payload(payload, slug=slug)
+    if not normalized:
+        raise RuntimeError(f"Predict category unavailable for {slug}")
+    selected = select_predict_market(
+        normalized,
+        asset=asset,
+        bucket=bucket,
+        now_ms=bucket * 1000 + 1_000,
+    )
+    if not isinstance(selected, dict) or not selected.get("id"):
+        raise RuntimeError(f"Predict market mapping failed for {asset} Binance market {pair.get('market_id')} slug={slug}")
+    return {
+        "binanceMarketId": int(pair.get("market_id") or 0),
+        "predictMarketId": int(selected["id"]),
+        "bucketStartSec": bucket,
+        "categorySlug": slug,
+        "predictTitle": selected.get("title"),
+        "predictConditionId": selected.get("conditionId"),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Read-only reconciliation of Wallet Maker Clone fills against Predict match/position APIs")
     parser.add_argument("--asset", choices=["ETH", "BNB", "ALL"], default="ALL")
@@ -207,30 +242,42 @@ def main() -> int:
 
     for asset in assets:
         local = local_by_asset[asset]
+        pair_by_market = {int(p["market_id"]): p for p in local["pairs"] if p.get("market_id")}
         market_reports: list[dict[str, Any]] = []
-        for market_id in local["marketIds"]:
-            matches_payload = api_get(
-                "/v1/orders/matches",
-                {"first": 500, "marketId": market_id, "signerAddress": address, "isSignerMaker": "true"},
-                api_key,
-            )
-            matches = matches_payload.get("data") if isinstance(matches_payload.get("data"), list) else []
+        for binance_market_id in local["marketIds"]:
+            pair = pair_by_market.get(binance_market_id) or {}
+            mapping_error = None
+            mapping: dict[str, Any] | None = None
+            try:
+                mapping = predict_market_for_pair(asset, pair, api_key)
+            except Exception as exc:
+                mapping_error = str(exc)
+
+            predict_market_id = int(mapping.get("predictMarketId") or 0) if mapping else 0
+            matches: list[dict[str, Any]] = []
+            if predict_market_id > 0:
+                matches_payload = api_get(
+                    "/v1/orders/matches",
+                    {"first": 500, "marketId": predict_market_id, "signerAddress": address, "isSignerMaker": "true"},
+                    api_key,
+                )
+                matches = matches_payload.get("data") if isinstance(matches_payload.get("data"), list) else []
+
             legs: list[dict[str, Any]] = []
             for match in matches:
                 if isinstance(match, dict):
                     legs.extend(classify_match(match, address))
-            local_orders = [o for o in local["orders"] if int(o.get("market_id") or 0) == market_id]
+            local_orders = [o for o in local["orders"] if int(o.get("market_id") or 0) == binance_market_id]
             by_outcome = {"UP": 0.0, "DOWN": 0.0}
             rebate_by_outcome = {"UP": 0.0, "DOWN": 0.0}
             for leg in legs:
                 side = str(leg.get("makerOutcome") or "").upper()
                 if side in by_outcome:
                     by_outcome[side] += float(leg.get("makerAmountShares") or 0.0)
-                # MINT rebate is paid in the counterparty/taker outcome in the previously observed mechanism.
                 rebate_side = str(leg.get("takerOutcome") or "").upper()
                 if rebate_side in rebate_by_outcome:
                     rebate_by_outcome[rebate_side] += float(leg.get("predicted25PctMakerRebateShares") or 0.0)
-            positions = position_rows(positions_payload, market_id)
+            positions = position_rows(positions_payload, predict_market_id) if predict_market_id > 0 else []
             position_map = {str(p.get("outcome") or "").upper(): p.get("amount") for p in positions}
             residuals = {}
             for side in ("UP", "DOWN"):
@@ -238,7 +285,10 @@ def main() -> int:
                 residuals[side] = None if pos is None else float(pos) - by_outcome[side]
             market_reports.append(
                 {
-                    "marketId": market_id,
+                    "binanceMarketId": binance_market_id,
+                    "predictMarketId": predict_market_id or None,
+                    "marketMapping": mapping,
+                    "marketMappingError": mapping_error,
                     "localOrders": local_orders,
                     "predictMakerLegs": legs,
                     "makerLegCount": len(legs),
@@ -258,12 +308,16 @@ def main() -> int:
     for asset, block in report["assets"].items():
         markets = block["markets"]
         legs = [leg for market in markets for leg in market["predictMakerLegs"]]
+        mapped = sum(1 for market in markets if market.get("predictMarketId"))
         print(
-            f"{asset}: markets={len(markets)} maker_legs={len(legs)} "
+            f"{asset}: mapped={mapped}/{len(markets)} maker_legs={len(legs)} "
             f"MINT={sum(1 for x in legs if x['path']=='MINT')} NORMAL={sum(1 for x in legs if x['path']=='NORMAL')} "
             f"maker_fee={sum(float(x.get('makerFee') or 0) for x in legs):.9f} "
             f"predicted_rebate={sum(float(x.get('predicted25PctMakerRebateShares') or 0) for x in legs):.9f} shares"
         )
+        for market in markets:
+            if market.get("marketMappingError"):
+                print(f"  mapping_error Binance#{market['binanceMarketId']}: {market['marketMappingError']}")
     print(f"wrote {Path(args.output).resolve()}")
     return 0
 
