@@ -17,9 +17,9 @@ def paired_generation_ready(
 ) -> tuple[bool, str]:
     """Return whether the next UP+DOWN generation may be created.
 
-    V7 deliberately refuses unilateral replenishment.  Both latest parents must
+    V7 deliberately refuses unilateral replenishment. Both latest parents must
     belong to the same generation, both must be venue-confirmed FILLED, and the
-    delay is measured from the later terminal timestamp.  This bounds the
+    delay is measured from the later terminal timestamp. This bounds the
     adverse-selection failure observed in the first V6 Echtgeld round where one
     outcome repeatedly refilled while its complement never caught up.
     """
@@ -55,10 +55,10 @@ def paired_generation_ready(
 class PairedCycleWalletMakerCloneEngine(base.SequentialReplenishmentWalletMakerCloneEngine):
     """V7 Echtgeld experiment: replenish only after the pair is complete.
 
-    V6 independently replenished an outcome as soon as that side filled.  In a
+    V6 independently replenished an outcome as soon as that side filled. In a
     live market the side being adversely selected can therefore fill repeatedly
     while the complementary resting order remains untouched, causing inventory
-    imbalance to compound.  V7 changes only this trigger:
+    imbalance to compound. V7 changes only this trigger:
 
     * generation 1 remains V5's neutral 0.50/0.50 concurrent pair;
     * later generations still quote each outcome at its then-current passive bid;
@@ -70,9 +70,9 @@ class PairedCycleWalletMakerCloneEngine(base.SequentialReplenishmentWalletMakerC
       auto-paused instead of allowing a one-sided next generation.
 
     This is intentionally a paired-cycle experiment, not a claim that the target
-    wallet uses this exact rule.  It is designed to test whether the target's
-    many makerHash parents can be reproduced without letting one-sided fills run
-    away during adverse selection.
+    wallet uses this exact rule. It is designed to test whether the target's many
+    makerHash parents can be reproduced without letting one-sided fills run away
+    during adverse selection.
     """
 
     VERSION = "WALLET_MAKER_CLONE_LIVE_V7_PAIRED_CYCLE"
@@ -182,7 +182,7 @@ class PairedCycleWalletMakerCloneEngine(base.SequentialReplenishmentWalletMakerC
             self.status = "PAIRED_REPLENISH_ACTIVE"
             return True
 
-        # A new paired cycle must never degrade into a unilateral cycle.  Cancel
+        # A new paired cycle must never degrade into a unilateral cycle. Cancel
         # whichever leg was successfully recorded and require operator review.
         self._set_setting("runtime_enabled", "0")
         self._event(
@@ -277,7 +277,7 @@ class PairedCycleWalletMakerCloneEngine(base.SequentialReplenishmentWalletMakerC
                 self.status = "WAITING_BOTH_BOOKS"
                 return
             # Generation 1 is still placed concurrently from the neutral anchor.
-            super(base.SequentialReplenishmentWalletMakerCloneEngine, self)._place_pair(pair, market)
+            super()._place_pair(pair, market)
             self.status = "PAIR_ACTIVE"
             return
 
