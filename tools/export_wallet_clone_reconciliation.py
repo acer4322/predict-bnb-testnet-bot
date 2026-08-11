@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import sqlite3
@@ -31,7 +32,7 @@ def api_get(path: str, params: dict[str, Any], api_key: str) -> dict[str, Any]:
     query = urlencode({k: v for k, v in params.items() if v is not None})
     request = Request(
         f"{API_BASE}{path}?{query}",
-        headers={"x-api-key": api_key, "Accept": "application/json", "User-Agent": "BTC-5M-Lab-Clone-Reconciliation/1.0"},
+        headers={"x-api-key": api_key, "Accept": "application/json", "User-Agent": "BTC-5M-Lab-Clone-Reconciliation/1.1"},
     )
     with urlopen(request, timeout=10) as response:
         payload = json.loads(response.read().decode("utf-8"))
@@ -43,12 +44,16 @@ def api_get(path: str, params: dict[str, Any], api_key: str) -> dict[str, Any]:
 def credential_pair() -> tuple[str, str]:
     key = str(os.environ.get("BINANCE_LIVE_API_KEY") or "").strip()
     secret = str(os.environ.get("BINANCE_LIVE_API_SECRET") or "").strip()
+    if not key:
+        key = input("BINANCE_LIVE_API_KEY (read once, not saved): ").strip()
+    if not secret:
+        secret = getpass.getpass("BINANCE_LIVE_API_SECRET (hidden, not saved): ").strip()
     if not key or not secret:
-        raise SystemExit("BINANCE_LIVE_API_KEY / BINANCE_LIVE_API_SECRET are required in this shell")
+        raise SystemExit("Binance LIVE credentials are required unless --wallet-address is supplied")
     return key, secret
 
 
-def wallet_address() -> str:
+def discover_wallet_address() -> str:
     key, secret = credential_pair()
     client = BinancePredictionTradingClient(key, secret)
     try:
@@ -171,12 +176,19 @@ def main() -> int:
     parser.add_argument("--asset", choices=["ETH", "BNB", "ALL"], default="ALL")
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--output", default="wallet_clone_reconciliation.json")
+    parser.add_argument(
+        "--wallet-address",
+        default=None,
+        help="Prediction wallet address. If supplied, Binance LIVE credentials are not needed.",
+    )
     args = parser.parse_args()
 
     api_key = str(os.environ.get("PREDICT_FUN_API_KEY") or "").strip()
     if not api_key:
         raise SystemExit("PREDICT_FUN_API_KEY is required")
-    address = wallet_address()
+    address = str(args.wallet_address or "").strip() or discover_wallet_address()
+    if not address.lower().startswith("0x"):
+        raise SystemExit("--wallet-address must be a 0x... Prediction wallet address")
     assets = ["ETH", "BNB"] if args.asset == "ALL" else [args.asset]
     report: dict[str, Any] = {
         "walletAddress": address,
@@ -184,13 +196,11 @@ def main() -> int:
         "assets": {},
     }
 
-    all_market_ids: set[int] = set()
     local_by_asset: dict[str, dict[str, Any]] = {}
     for asset in assets:
         db = Path(args.data_dir) / f"wallet_maker_clone_{asset.lower()}.db"
         pairs, orders = load_clone_rows(db)
         market_ids = sorted({int(p["market_id"]) for p in pairs if p.get("market_id")})
-        all_market_ids.update(market_ids)
         local_by_asset[asset] = {"database": str(db), "pairs": pairs, "orders": orders, "marketIds": market_ids}
 
     positions_payload = api_get(f"/v1/positions/{address}", {"first": 500}, api_key)
