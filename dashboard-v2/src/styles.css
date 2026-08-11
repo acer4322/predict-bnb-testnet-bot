@@ -115,9 +115,34 @@ body { background: #f3f5f8; }
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
+.trajectory-side-stats {
+  position: relative;
+  padding-left: 34px;
+}
+.trajectory-down-stats { margin-top: 12px; }
+.trajectory-side-label {
+  position: absolute;
+  left: 0;
+  top: 15px;
+  width: 29px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.trajectory-side-label.up { color: #1677ff; }
+.trajectory-side-label.down { color: #722ed1; }
 .trajectory-stats { margin-bottom: 8px; }
-.trajectory-stats .ant-statistic-title { font-size: 11px; margin-bottom: 0; }
-.trajectory-stats .ant-statistic-content { font-size: 17px; font-variant-numeric: tabular-nums; }
+.trajectory-stats .ant-statistic-title { font-size: 10px; margin-bottom: 0; white-space: nowrap; }
+.trajectory-stats .ant-statistic-content { font-size: 16px; font-variant-numeric: tabular-nums; }
+.trajectory-side-block { margin-top: 4px; }
+.trajectory-side-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 4px 2px;
+  font-size: 11px;
+}
+.trajectory-side-heading .ant-typography { font-size: 10px; }
 .trajectory-chart-wrap {
   height: 164px;
   position: relative;
@@ -127,7 +152,9 @@ body { background: #f3f5f8; }
   background: #fbfcfe;
   overflow: hidden;
 }
+.trajectory-chart-wrap-compact { height: 126px; padding-bottom: 8px; }
 .trajectory-chart { width: 100%; height: 150px; display: block; overflow: visible; }
+.trajectory-chart-compact { height: 112px; }
 .trajectory-gridline { stroke: #edf0f3; stroke-width: 1; }
 .trajectory-midline { stroke: #d9dde3; stroke-width: 1; stroke-dasharray: 4 5; }
 .trajectory-poly-line { stroke: #1677ff; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
@@ -141,8 +168,10 @@ body { background: #f3f5f8; }
 }
 .trajectory-axis-top { top: 6px; }
 .trajectory-axis-mid { top: 77px; }
+.trajectory-axis-mid-compact { top: 58px; }
 .trajectory-axis-bottom { bottom: 7px; }
 .trajectory-empty { height: 164px; display: flex; align-items: center; justify-content: center; }
+.trajectory-empty-compact { height: 126px; border: 1px solid #edf0f3; border-radius: 9px; background: #fbfcfe; }
 .trajectory-empty .ant-empty { margin: 0; }
 .trajectory-legend {
   display: flex;
@@ -183,4 +212,6 @@ body { background: #f3f5f8; }
   .metric-card .ant-statistic-content { font-size: 21px; }
   .section-heading-row { align-items: flex-start; flex-direction: column; }
   .trajectory-meta { grid-template-columns: 1fr; }
+  .trajectory-side-stats { padding-left: 30px; }
+  .trajectory-stats .ant-statistic-content { font-size: 14px; }
 }
