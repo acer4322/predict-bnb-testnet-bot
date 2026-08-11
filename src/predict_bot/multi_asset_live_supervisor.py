@@ -109,12 +109,12 @@ def _clone_process(asset: str) -> subprocess.Popen[bytes] | None:
         return None
     master = os.environ.get(f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED", "true")
     print(
-        f"multi-asset live: starting {asset} dual-sided wallet maker clone V5 neutral-anchor on {port}; "
+        f"multi-asset live: starting {asset} wallet maker clone V6 sequential replenishment on {port}; "
         f"master={master}; runtime is force-paused on every process start",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.wallet_maker_clone_live_v5"],
+        [sys.executable, "-m", "predict_bot.wallet_maker_clone_live_v6"],
         env=_clone_environment(asset),
     )
 
