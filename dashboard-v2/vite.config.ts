@@ -32,6 +32,11 @@ export default defineConfig({
         changeOrigin: false,
         rewrite: () => '/state',
       },
+      '/bridge/predict-fun': {
+        target: 'http://127.0.0.1:8771',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
     },
   },
 })
