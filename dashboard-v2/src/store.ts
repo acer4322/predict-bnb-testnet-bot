@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { create } from 'zustand'
 
-export type ServiceKey = 'realtime' | 'polyGap' | 'crossOracle'
+export type ServiceKey = 'realtime' | 'polyGap' | 'crossOracle' | 'multiMarket'
 
 export type ServiceSnapshot = {
   ok: boolean
@@ -32,6 +32,7 @@ const endpoints: Record<ServiceKey, string> = {
   realtime: '/bridge/realtime',
   polyGap: '/bridge/poly-gap',
   crossOracle: '/bridge/cross-oracle',
+  multiMarket: '/bridge/multi-market',
 }
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -345,13 +346,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     realtime: blank(),
     polyGap: blank(),
     crossOracle: blank(),
+    multiMarket: blank(),
   },
   refresh: async () => {
     const previous = get().services
-    const [rawRealtime, rawPolyGap, rawCrossOracle] = await Promise.all([
+    const [rawRealtime, rawPolyGap, rawCrossOracle, rawMultiMarket] = await Promise.all([
       readService('realtime'),
       readService('polyGap'),
       readService('crossOracle'),
+      readService('multiMarket'),
     ])
 
     const realtimeData = rawRealtime.ok
@@ -363,6 +366,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const polyGapData = rawPolyGap.ok
       ? normalizePolyGap(rawPolyGap.data, realtimeData, crossOracleData)
       : previous.polyGap.data
+    const multiMarketData = rawMultiMarket.ok
+      ? unwrapPayload(rawMultiMarket.data)
+      : previous.multiMarket.data
 
     set({
       services: {
@@ -375,6 +381,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         crossOracle: rawCrossOracle.ok
           ? { ...rawCrossOracle, data: crossOracleData }
           : { ...rawCrossOracle, data: previous.crossOracle.data },
+        multiMarket: rawMultiMarket.ok
+          ? { ...rawMultiMarket, data: multiMarketData }
+          : { ...rawMultiMarket, data: previous.multiMarket.data },
       },
     })
   },
