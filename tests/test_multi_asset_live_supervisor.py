@@ -42,6 +42,17 @@ def test_bnb_child_environment_uses_own_master_and_db(monkeypatch) -> None:
     assert eth["PREDICT_POLY_GAP_LIVE_DB"] != bnb["PREDICT_POLY_GAP_LIVE_DB"]
 
 
+def test_asset_master_capability_defaults_on_but_explicit_false_wins(monkeypatch) -> None:
+    monkeypatch.delenv("PREDICT_ETH_POLY_GAP_LIVE_ENABLED", raising=False)
+    monkeypatch.delenv("PREDICT_BNB_POLY_GAP_LIVE_ENABLED", raising=False)
+
+    assert supervisor._asset_environment("ETH")["PREDICT_POLY_GAP_LIVE_ENABLED"] == "true"
+    assert supervisor._asset_environment("BNB")["PREDICT_POLY_GAP_LIVE_ENABLED"] == "true"
+
+    monkeypatch.setenv("PREDICT_ETH_POLY_GAP_LIVE_ENABLED", "false")
+    assert supervisor._asset_environment("ETH")["PREDICT_POLY_GAP_LIVE_ENABLED"] == "false"
+
+
 def test_assets_use_distinct_ports_and_databases() -> None:
     assert supervisor.ASSETS["ETH"]["port"] == 8772
     assert supervisor.ASSETS["BNB"]["port"] == 8773
