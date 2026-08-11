@@ -8,11 +8,26 @@ from . import wallet_maker_clone_live as base
 class SafeWalletMakerCloneEngine(base.WalletMakerCloneEngine):
     """V2 safety patch for the dual-sided real-money clone.
 
-    Normal-live interlock availability is fail-closed, and any incomplete or
-    ambiguous two-leg submission immediately disables further clone placements.
+    Normal-live interlock availability is fail-closed, incomplete or ambiguous
+    two-leg submission stops further placements, and the first live rollout uses
+    a conservative per-side cost cap until the operator explicitly changes it.
     """
 
     VERSION = "WALLET_MAKER_CLONE_LIVE_V2"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        if self._setting("v2_initial_safety_cap_applied", "0") != "1":
+            self._set_setting("maximum_order_usdt", "5.0")
+            self._set_setting("auto_requote", "0")
+            self._set_setting("v2_initial_safety_cap_applied", "1")
+            self._event(
+                "WARN",
+                "V2_INITIAL_SAFETY_CAP",
+                None,
+                None,
+                "first rollout maximumOrderUsdt forced to 5 USDT per side; autoRequote OFF",
+            )
 
     def _normal_live_conflict(self) -> dict[str, Any]:
         result = super()._normal_live_conflict()
@@ -46,6 +61,7 @@ class SafeWalletMakerCloneEngine(base.WalletMakerCloneEngine):
         payload.setdefault("rules", {}).update(
             normalLiveInterlockFailClosed=True,
             incompletePairAutoPause=True,
+            initialMaximumOrderUsdtPerSide=5.0,
         )
         return payload
 
