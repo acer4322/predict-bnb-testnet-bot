@@ -105,8 +105,8 @@ foreach ($Name in $UserEnvironment) {
     if ($Value) { Set-Item -LiteralPath "Env:$Name" -Value $Value }
 }
 
-# ETH/BNB are now first-class Dashboard V2 Echtgeld markets.  Capability is ON
-# by default unless the operator explicitly persisted false.  The V3 engine has
+# ETH/BNB are now first-class Dashboard V2 Echtgeld markets. Capability is ON
+# by default unless the operator explicitly persisted false. The V3 engine has
 # a one-time safe-pause migration, so this never means automatic new BUYs.
 if (-not $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED) { $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED = "true" }
 if (-not $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED) { $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED = "true" }
@@ -132,6 +132,12 @@ if (-not (Test-LocalService "http://127.0.0.1:8766/api/realtime")) {
 }
 else {
     Write-Host "Dashboard V2: existing core API detected; not starting a duplicate."
+    if (Test-LocalService "http://127.0.0.1:8769/state") {
+        $ExistingBtcVersion = Get-ServiceVersion 8769
+        if ($ExistingBtcVersion -ne "POLY_GAP_DEDICATED_LIVE_V45") {
+            throw "Port 8769 is occupied by $ExistingBtcVersion. Stop the old core supervisor before upgrading BTC to POLY_GAP_DEDICATED_LIVE_V45."
+        }
+    }
 }
 
 if (Test-LocalService "http://127.0.0.1:8770/state") {
@@ -228,9 +234,13 @@ if ($BadBridges.Count -gt 0) {
     throw "Dashboard V2 proxy returned non-JSON/unhealthy responses for: $Names. The web server is not running the current vite.config.ts."
 }
 
+$BtcVersion = Get-ServiceVersion 8769
 $ObserverVersion = Get-ServiceVersion 8770
 $EthVersion = Get-ServiceVersion 8772
 $BnbVersion = Get-ServiceVersion 8773
+if ($BtcVersion -ne "POLY_GAP_DEDICATED_LIVE_V45") {
+    throw "BTC 8769 became ready as $BtcVersion; expected POLY_GAP_DEDICATED_LIVE_V45. Stop the stale core supervisor and restart Dashboard V2."
+}
 if ($ObserverVersion -ne "MULTI_PREDICTION_OBSERVER_V2") {
     throw "8770 became ready as $ObserverVersion, but live trading requires MULTI_PREDICTION_OBSERVER_V2."
 }
@@ -245,6 +255,7 @@ Write-Host "BNB live state: http://127.0.0.1:8773/state"
 Write-Host "Dashboard V2 JSON bridges verified: 8766/8767/8768/8769/8770/8772/8773."
 Write-Host "Echtgeld WRITE controls are localhost-only and require the current Vite session token."
 Write-Host "ETH/BNB Echtgeld capability is available; V3 first startup force-pauses new entries until explicit Dashboard Resume."
+Write-Host "Pinned Divergence strategy page: http://localhost:4320/pinned-divergence"
 
 $EthMaster = $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED -match '^(1|true|yes|on)$'
 $BnbMaster = $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED -match '^(1|true|yes|on)$'
