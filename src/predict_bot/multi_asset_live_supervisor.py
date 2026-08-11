@@ -59,6 +59,12 @@ def _asset_environment(asset: str) -> dict[str, str]:
     # _poly_state.  Any inherited diagnostic that consults the base URL sees the
     # same asset observer rather than the BTC-only 8767 collector.
     env["PREDICT_CROSS_ORACLE_STATE_URL"] = f"http://127.0.0.1:{OBSERVER_PORT}/state"
+
+    # Echtgeld execution must not silently fall back to the general/read-only
+    # credential pair.  The inherited credential helper may support that fallback
+    # for legacy BTC compatibility, so remove it in these isolated child processes.
+    env.pop("BINANCE_API_KEY", None)
+    env.pop("BINANCE_API_SECRET", None)
     return env
 
 
