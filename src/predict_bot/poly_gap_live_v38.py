@@ -202,7 +202,13 @@ class PolyLeaderGuardLiveEngine(GuardedShotgunEntryPolyGapLiveEngine):
 
     def _leader_poll_loop(self) -> None:
         while not self.stop_event.is_set():
-            started = time.monotonic()
+            try:
+                mode = _normalize_mode(self._setting("leader_guard_mode", LEADER_GUARD_OFF))
+            except Exception:
+                mode = LEADER_GUARD_OFF
+            if mode == LEADER_GUARD_OFF:
+                self.stop_event.wait(LEADER_POLL_SECONDS)
+                continue
             try:
                 response = self._v38_leader_http.get(
                     LEADER_STATE_URL,
@@ -233,8 +239,7 @@ class PolyLeaderGuardLiveEngine(GuardedShotgunEntryPolyGapLiveEngine):
             except Exception as exc:
                 with self._v38_leader_lock:
                     self._v38_leader_error = str(exc)[:400]
-            elapsed = time.monotonic() - started
-            self.stop_event.wait(max(0.05, LEADER_POLL_SECONDS - elapsed))
+            self.stop_event.wait(LEADER_POLL_SECONDS)
 
     def _leader_state(self) -> dict[str, Any]:
         with self._v38_leader_lock:
@@ -375,6 +380,15 @@ class PolyLeaderGuardLiveEngine(GuardedShotgunEntryPolyGapLiveEngine):
             # actually observed and persisted as a market lock.
             return super()._tick()
 
+        # With no active risk, preserve the parent's paused/master/loss behavior.
+        # In particular, Mode B must not silently lock markets while Live is paused.
+        if (
+            not base.MASTER_ENABLED
+            or not settings.get("runtimeEnabled")
+            or settings.get("lossTripped")
+        ):
+            return super()._tick()
+
         market = self._prime_market()
         market_id = int((market or {}).get("market_id") or 0)
         lock_row = self._market_lock(market_id) if market_id > 0 else None
@@ -390,7 +404,7 @@ class PolyLeaderGuardLiveEngine(GuardedShotgunEntryPolyGapLiveEngine):
             return super()._tick()
 
         if decision == "LOCK_MARKET" and market_id > 0:
-            lock_row = self._lock_market(
+            self._lock_market(
                 market_id,
                 regime,
                 "explicit non-Poly leader regime observed before entry",
