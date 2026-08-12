@@ -131,3 +131,10 @@ rank1_v1_vs_v2_backtest.json
 rank1_v1_vs_v2_decisions.csv
 replay_no_switch_live.py
 validate_microprice_candidates.py
+.predict-fun-v2.pid
+dashboard-v2/package-lock.json
+tools/wallet_chain_forensics.py
+tools/wallet_quant_forensics.py
+wallet_shadow_recent10.json
+wallet_shadow_recent10.md
+.multi-live.pid
