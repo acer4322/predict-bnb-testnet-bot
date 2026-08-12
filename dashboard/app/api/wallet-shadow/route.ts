@@ -18,17 +18,25 @@ const PREDICT_API_KEY_HEADER = process.env.PREDICT_API_KEY_HEADER?.trim() || "x-
 const MATCHES_PATH = process.env.PREDICT_MATCHES_PATH?.trim() || "/v1/orders/matches";
 const POSITIONS_PATH = process.env.PREDICT_POSITIONS_PATH?.trim() || "/v1/positions";
 const REQUEST_TIMEOUT_MS = 3_500;
+const MATCH_PAGE_SIZE = 100;
+const INITIAL_BACKFILL_PAGES_PER_ROLE = 4;
 const POSITION_CACHE_MS = 5_000;
+const BUCKET_CACHE_TTL_MS = 20 * 60_000;
 
 type JsonRecord = Record<string, unknown>;
+type Role = "MAKER" | "TAKER";
+type Side = "UP" | "DOWN" | "UNKNOWN";
+type QuoteType = "BID" | "ASK" | "UNKNOWN";
 
 type WalletParentEvent = {
   id: string;
   marketId: string | null;
   marketTitle: string | null;
-  role: "MAKER" | "TAKER";
-  side: "UP" | "DOWN" | "UNKNOWN";
-  quoteType: "BID" | "ASK" | "UNKNOWN";
+  marketVariantType: string | null;
+  priceFeedSymbol: string | null;
+  role: Role;
+  side: Side;
+  quoteType: QuoteType;
   orderHash: string | null;
   transactionHash: string | null;
   settlementId: string | null;
@@ -41,10 +49,16 @@ type WalletParentEvent = {
   fillLegs: number;
 };
 
-type PositionCacheEntry = {
-  expiresAt: number;
-  value: PositionSummary | null;
-  error: string | null;
+type RoleCache = {
+  events: Map<string, WalletParentEvent>;
+  initialized: boolean;
+  lastPollAtMs: number;
+};
+
+type BucketCache = {
+  maker: RoleCache;
+  taker: RoleCache;
+  lastAccessAtMs: number;
 };
 
 type PositionSummary = {
@@ -55,16 +69,23 @@ type PositionSummary = {
   rows: number;
 };
 
+type PositionCacheEntry = {
+  expiresAt: number;
+  value: PositionSummary | null;
+  error: string | null;
+};
+
+const bucketCaches = new Map<string, BucketCache>();
 const positionCache = new Map<string, PositionCacheEntry>();
+
+function blankRoleCache(): RoleCache {
+  return { events: new Map(), initialized: false, lastPollAtMs: 0 };
+}
 
 function asRecord(value: unknown): JsonRecord | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as JsonRecord
     : null;
-}
-
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
 }
 
 function stringValue(...values: unknown[]) {
@@ -82,6 +103,14 @@ function numeric(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function decimalValue(value: unknown) {
+  const parsed = numeric(value);
+  if (parsed == null || parsed < 0) return null;
+  if (parsed <= 1_000_000) return parsed;
+  if (parsed > 1e12) return parsed / 1e18;
+  return parsed;
+}
+
 function priceValue(value: unknown) {
   const parsed = numeric(value);
   if (parsed == null || parsed < 0) return null;
@@ -90,15 +119,7 @@ function priceValue(value: unknown) {
     const scaled = parsed / 1e18;
     return scaled >= 0 && scaled <= 1.5 ? scaled : null;
   }
-  if (parsed <= 100 && Number.isInteger(parsed)) return parsed / 100;
   return null;
-}
-
-function shareValue(value: unknown) {
-  const parsed = numeric(value);
-  if (parsed == null || parsed < 0) return null;
-  if (parsed > 1e12) return parsed / 1e18;
-  return parsed;
 }
 
 function timestampMs(value: unknown) {
@@ -116,192 +137,83 @@ function timestampMs(value: unknown) {
   return null;
 }
 
-function nested(record: JsonRecord, key: string) {
-  return asRecord(record[key]);
-}
-
-function addressOf(record: JsonRecord | null) {
-  if (!record) return null;
-  const user = nested(record, "user");
-  const wallet = nested(record, "wallet");
-  return stringValue(
-    record.signerAddress,
-    record.signer,
-    record.walletAddress,
-    record.address,
-    record.makerAddress,
-    record.takerAddress,
-    user?.address,
-    user?.walletAddress,
-    wallet?.address,
-  )?.toLowerCase() ?? null;
-}
-
-function normalizeOutcome(...values: unknown[]): "UP" | "DOWN" | "UNKNOWN" {
-  for (const value of values) {
-    let text: string | null = null;
-    if (typeof value === "string") text = value;
-    else if (asRecord(value)) {
-      const row = asRecord(value)!;
-      text = stringValue(row.name, row.label, row.outcome, row.title);
-    }
-    if (!text) continue;
-    const normalized = text.trim().toUpperCase();
-    if (normalized === "UP" || normalized.includes(" UP")) return "UP";
-    if (normalized === "DOWN" || normalized.includes(" DOWN")) return "DOWN";
-  }
-  return "UNKNOWN";
-}
-
-function normalizeQuoteType(...values: unknown[]): "BID" | "ASK" | "UNKNOWN" {
-  for (const value of values) {
-    if (typeof value !== "string") continue;
+function normalizeOutcome(value: unknown): Side {
+  if (typeof value === "string") {
     const normalized = value.trim().toUpperCase();
-    if (normalized === "BID" || normalized === "BUY") return "BID";
-    if (normalized === "ASK" || normalized === "SELL") return "ASK";
+    if (normalized === "UP" || normalized.includes("UP")) return "UP";
+    if (normalized === "DOWN" || normalized.includes("DOWN")) return "DOWN";
+    return "UNKNOWN";
   }
+  const record = asRecord(value);
+  return record ? normalizeOutcome(record.name ?? record.label ?? record.outcome) : "UNKNOWN";
+}
+
+function normalizeQuoteType(value: unknown): QuoteType {
+  if (typeof value !== "string") return "UNKNOWN";
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "BID" || normalized === "BUY") return "BID";
+  if (normalized === "ASK" || normalized === "SELL") return "ASK";
   return "UNKNOWN";
 }
 
-function extractRows(payload: unknown): unknown[] {
-  if (Array.isArray(payload)) return payload;
+function responseRows(payload: unknown) {
   const root = asRecord(payload);
-  if (!root) return [];
-  const data = asRecord(root.data);
-  const candidates = [
-    data?.items,
-    data?.matches,
-    data?.results,
-    root.matches,
-    root.items,
-    root.results,
-    root.data,
-  ];
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) return candidate;
-  }
-  return [];
+  if (!root || !Array.isArray(root.data)) return [] as JsonRecord[];
+  return root.data.map(asRecord).filter((row): row is JsonRecord => Boolean(row));
 }
 
-function marketIdOf(row: JsonRecord) {
-  const market = nested(row, "market");
-  return stringValue(row.marketId, row.market_id, market?.id, market?.marketId);
+function responseCursor(payload: unknown) {
+  const root = asRecord(payload);
+  return root ? stringValue(root.cursor) : null;
 }
 
-function marketTitleOf(row: JsonRecord) {
-  const market = nested(row, "market");
-  return stringValue(
-    row.marketTitle,
-    row.market_title,
-    row.question,
-    market?.title,
-    market?.question,
-    market?.name,
-  );
-}
-
-function eventTimeOf(row: JsonRecord, participant: JsonRecord | null) {
-  return timestampMs(
-    participant?.executedAt ??
-    participant?.executed_at ??
-    participant?.timestamp ??
-    row.executedAt ??
-    row.executed_at ??
-    row.timestamp ??
-    row.createdAt ??
-    row.created_at ??
-    row.blockTimestamp,
-  );
-}
-
-function quantityOf(record: JsonRecord | null, fallback: JsonRecord) {
-  return shareValue(
-    record?.filledAmount ??
-    record?.filled_amount ??
-    record?.shares ??
-    record?.quantity ??
-    record?.size ??
-    record?.amount ??
-    fallback.filledAmount ??
-    fallback.filled_amount ??
-    fallback.shares ??
-    fallback.quantity ??
-    fallback.size ??
-    fallback.amount,
-  );
-}
-
-function priceOf(record: JsonRecord | null, fallback: JsonRecord) {
-  return priceValue(
-    record?.averagePrice ??
-    record?.average_price ??
-    record?.price ??
-    record?.fillPrice ??
-    record?.fill_price ??
-    fallback.averagePrice ??
-    fallback.average_price ??
-    fallback.price ??
-    fallback.fillPrice ??
-    fallback.fill_price,
-  );
-}
-
-function eventFromParticipant(
-  row: JsonRecord,
-  participant: JsonRecord | null,
-  role: "MAKER" | "TAKER",
-  target: string,
-  index: number,
-): WalletParentEvent | null {
-  const eventMs = eventTimeOf(row, participant);
-  if (eventMs == null) return null;
-  const market = nested(row, "market");
-  const token = nested(row, "token");
-  const side = normalizeOutcome(
-    participant?.outcome,
-    participant?.marketOutcome,
-    participant?.tokenOutcome,
-    row.outcome,
-    row.marketOutcome,
-    token?.outcome,
-    token?.name,
-    market?.outcome,
-  );
-  const quoteType = normalizeQuoteType(
-    participant?.quoteType,
-    participant?.orderSide,
-    participant?.side,
-    row.quoteType,
-    row.orderSide,
-    row.side,
-  );
-  const order = participant ? nested(participant, "order") : null;
-  const orderHash = stringValue(
-    participant?.orderHash,
-    participant?.order_hash,
-    order?.hash,
-    row.orderHash,
-    row.order_hash,
-  );
-  const transactionHash = stringValue(
-    participant?.transactionHash,
-    participant?.txHash,
-    row.transactionHash,
-    row.txHash,
-    row.transaction_hash,
-  );
-  const settlementId = stringValue(
-    participant?.settlementId,
-    row.settlementId,
-    row.settlement_id,
-    row.id,
-  );
-  const shares = quantityOf(participant, row);
-  const price = priceOf(participant, row);
+function marketMetadata(row: JsonRecord) {
+  const market = asRecord(row.market);
+  const variant = market ? asRecord(market.variantData) : null;
   return {
-    id: `${role}:${orderHash ?? settlementId ?? transactionHash ?? `${eventMs}:${index}`}:${side}`,
-    marketId: marketIdOf(row),
-    marketTitle: marketTitleOf(row),
+    marketId: market ? stringValue(market.id) : null,
+    marketTitle: market ? stringValue(market.title, market.question) : null,
+    marketVariantType: variant ? stringValue(variant.type) : null,
+    priceFeedSymbol: variant ? stringValue(variant.priceFeedSymbol) : null,
+  };
+}
+
+function participantAddress(participant: JsonRecord | null) {
+  return participant ? stringValue(participant.signer)?.toLowerCase() ?? null : null;
+}
+
+function buildLeg(
+  row: JsonRecord,
+  participant: JsonRecord,
+  role: Role,
+  targetWallet: string,
+  makerIndex: number | null,
+): WalletParentEvent | null {
+  if (participantAddress(participant) !== targetWallet) return null;
+  const eventMs = timestampMs(row.executedAt);
+  if (eventMs == null) return null;
+  const market = marketMetadata(row);
+  const side = normalizeOutcome(participant.outcome);
+  const quoteType = normalizeQuoteType(participant.quoteType);
+  const orderHash = stringValue(participant.hash);
+  const transactionHash = stringValue(row.transactionHash);
+  const settlementId = stringValue(row.settlementId);
+  const shares = decimalValue(participant.amount ?? row.amountFilled);
+  const price = priceValue(participant.price ?? row.priceExecuted);
+  const stableFallback = [
+    transactionHash ?? "no-tx",
+    settlementId ?? "no-settlement",
+    role,
+    makerIndex ?? "taker",
+    side,
+    quoteType,
+    String(participant.amount ?? row.amountFilled ?? ""),
+    String(participant.price ?? row.priceExecuted ?? ""),
+    String(row.executedAt ?? ""),
+  ].join(":");
+  return {
+    id: `${role}:${orderHash ?? stableFallback}`,
+    ...market,
     role,
     side,
     quoteType,
@@ -318,123 +230,63 @@ function eventFromParticipant(
   };
 }
 
-function normalizeMatchRows(payload: unknown, wallet: string) {
+function roleLegs(payload: unknown, wallet: string, role: Role) {
   const target = wallet.toLowerCase();
   const legs: WalletParentEvent[] = [];
-  for (const [index, item] of extractRows(payload).entries()) {
-    const row = asRecord(item);
-    if (!row) continue;
-    const taker = nested(row, "taker");
-    const makers = asArray(row.makers).map(asRecord).filter((value): value is JsonRecord => Boolean(value));
-    let matchedNestedRole = false;
-
-    if (addressOf(taker) === target) {
-      const event = eventFromParticipant(row, taker, "TAKER", target, index);
+  for (const row of responseRows(payload)) {
+    if (role === "TAKER") {
+      const taker = asRecord(row.taker);
+      if (!taker) continue;
+      const event = buildLeg(row, taker, "TAKER", target, null);
       if (event) legs.push(event);
-      matchedNestedRole = true;
-    }
-    for (const maker of makers) {
-      if (addressOf(maker) !== target) continue;
-      const event = eventFromParticipant(row, maker, "MAKER", target, index);
-      if (event) legs.push(event);
-      matchedNestedRole = true;
-    }
-    if (matchedNestedRole) continue;
-
-    const signer = addressOf(row);
-    if (signer !== target) continue;
-    const isMaker = row.isSignerMaker === true || String(row.role ?? "").toUpperCase() === "MAKER";
-    const isTaker = row.isSignerMaker === false || String(row.role ?? "").toUpperCase() === "TAKER";
-    const event = eventFromParticipant(row, row, isMaker && !isTaker ? "MAKER" : "TAKER", target, index);
-    if (event) legs.push(event);
-  }
-
-  const parents = new Map<string, WalletParentEvent>();
-  for (const leg of legs) {
-    const key = `${leg.role}:${leg.orderHash ?? leg.id}:${leg.marketId ?? "?"}:${leg.side}`;
-    const current = parents.get(key);
-    if (!current) {
-      parents.set(key, { ...leg });
       continue;
     }
-    const previousShares = current.shares ?? 0;
-    const nextShares = leg.shares ?? 0;
-    const totalShares = previousShares + nextShares;
-    if (totalShares > 0 && current.price != null && leg.price != null) {
-      current.price = (current.price * previousShares + leg.price * nextShares) / totalShares;
-    } else if (current.price == null && leg.price != null) {
-      current.price = leg.price;
-    }
-    current.shares = totalShares || current.shares || leg.shares;
-    current.costUsdtApprox = current.price != null && current.shares != null
-      ? current.price * current.shares
-      : null;
-    current.eventMs = Math.min(current.eventMs, leg.eventMs);
-    current.lastEventMs = Math.max(current.lastEventMs, leg.lastEventMs);
-    current.eventAt = new Date(current.eventMs).toISOString();
-    current.fillLegs += 1;
-    current.transactionHash ||= leg.transactionHash;
-    current.settlementId ||= leg.settlementId;
-    current.marketTitle ||= leg.marketTitle;
+    const makers = Array.isArray(row.makers) ? row.makers : [];
+    makers.forEach((value, makerIndex) => {
+      const maker = asRecord(value);
+      if (!maker) return;
+      const event = buildLeg(row, maker, "MAKER", target, makerIndex);
+      if (event) legs.push(event);
+    });
   }
-  return Array.from(parents.values()).sort((a, b) => b.eventMs - a.eventMs);
+  return legs;
 }
 
-function isBitcoinTitle(title: string | null) {
-  if (!title) return false;
-  const normalized = title.toLowerCase();
-  return normalized.includes("bitcoin") || /(^|\W)btc(\W|$)/.test(normalized);
+function mergeParent(target: Map<string, WalletParentEvent>, leg: WalletParentEvent) {
+  const current = target.get(leg.id);
+  if (!current) {
+    target.set(leg.id, { ...leg });
+    return;
+  }
+  const previousShares = current.shares ?? 0;
+  const incomingShares = leg.shares ?? 0;
+  const totalShares = previousShares + incomingShares;
+  if (totalShares > 0 && current.price != null && leg.price != null) {
+    current.price = ((current.price * previousShares) + (leg.price * incomingShares)) / totalShares;
+  } else if (current.price == null && leg.price != null) {
+    current.price = leg.price;
+  }
+  current.shares = totalShares > 0 ? totalShares : current.shares ?? leg.shares;
+  current.costUsdtApprox = current.price != null && current.shares != null
+    ? current.price * current.shares
+    : null;
+  current.eventMs = Math.min(current.eventMs, leg.eventMs);
+  current.lastEventMs = Math.max(current.lastEventMs, leg.lastEventMs);
+  current.eventAt = new Date(current.eventMs).toISOString();
+  current.fillLegs += 1;
+  current.transactionHash ||= leg.transactionHash;
+  current.settlementId ||= leg.settlementId;
+  current.marketTitle ||= leg.marketTitle;
+  current.marketVariantType ||= leg.marketVariantType;
+  current.priceFeedSymbol ||= leg.priceFeedSymbol;
 }
 
-function chooseCurrentMarket(
-  events: WalletParentEvent[],
-  bucketStartSec: number,
-  dashboardMarketId: string | null,
-) {
-  const startMs = bucketStartSec * 1000 - 5_000;
-  const endMs = (bucketStartSec + 300) * 1000 + 5_000;
-  const inBucket = events.filter((event) => event.eventMs >= startMs && event.eventMs <= endMs);
-  const btcRows = inBucket.filter((event) => isBitcoinTitle(event.marketTitle));
-  const candidates = btcRows.length ? btcRows : inBucket;
-  const groups = new Map<string, WalletParentEvent[]>();
-  for (const event of candidates) {
-    const key = event.marketId ?? "UNKNOWN";
-    const group = groups.get(key) ?? [];
-    group.push(event);
-    groups.set(key, group);
-  }
-  if (!groups.size) {
-    return {
-      events: [] as WalletParentEvent[],
-      nativeMarketId: null as string | null,
-      mappingMode: "WAITING_TARGET_ACTIVITY",
-      btcVerified: false,
-    };
-  }
-
-  let selectedKey: string | null = null;
-  if (dashboardMarketId && groups.has(dashboardMarketId)) selectedKey = dashboardMarketId;
-  if (!selectedKey) {
-    selectedKey = Array.from(groups.entries())
-      .sort((left, right) => {
-        const leftScore = left[1].reduce((sum, row) => sum + (row.shares ?? 1), 0);
-        const rightScore = right[1].reduce((sum, row) => sum + (row.shares ?? 1), 0);
-        return rightScore - leftScore;
-      })[0]?.[0] ?? null;
-  }
-  const selected = selectedKey ? groups.get(selectedKey) ?? [] : [];
-  const btcVerified = selected.some((event) => isBitcoinTitle(event.marketTitle));
-  return {
-    events: selected.sort((a, b) => b.eventMs - a.eventMs),
-    nativeMarketId: selectedKey === "UNKNOWN" ? null : selectedKey,
-    mappingMode:
-      dashboardMarketId && selectedKey === dashboardMarketId
-        ? "DIRECT_MARKET_ID"
-        : btcVerified
-          ? "BTC_TITLE_PLUS_5M_BUCKET"
-          : "INFERRED_BY_5M_BUCKET_ACTIVITY",
-    btcVerified,
-  };
+function isBtcCryptoMarket(event: WalletParentEvent) {
+  const typeOk = event.marketVariantType?.toUpperCase() === "CRYPTO_UP_DOWN";
+  const symbol = event.priceFeedSymbol?.toUpperCase() ?? "";
+  const title = event.marketTitle?.toUpperCase() ?? "";
+  const btcOk = symbol.includes("BTC") || title.includes("BITCOIN") || /(^|\W)BTC(\W|$)/.test(title);
+  return Boolean(typeOk && btcOk);
 }
 
 async function predictGet(path: string, query: Record<string, string | number | boolean | null | undefined>) {
@@ -448,7 +300,7 @@ async function predictGet(path: string, query: Record<string, string | number | 
   try {
     const headers: Record<string, string> = {
       Accept: "application/json",
-      "User-Agent": "BTC-5M-Wallet-Shadow-Lab/0.1",
+      "User-Agent": "BTC-5M-Wallet-Shadow-Lab/0.2",
     };
     if (PREDICT_API_KEY) headers[PREDICT_API_KEY_HEADER] = PREDICT_API_KEY;
     const response = await fetch(url, {
@@ -463,28 +315,138 @@ async function predictGet(path: string, query: Record<string, string | number | 
     } catch {
       payload = { raw: text.slice(0, 500) };
     }
-    if (!response.ok) {
-      throw new Error(`Predict HTTP ${response.status}: ${text.slice(0, 240)}`);
-    }
+    if (!response.ok) throw new Error(`Predict HTTP ${response.status}: ${text.slice(0, 240)}`);
+    const root = asRecord(payload);
+    if (root?.success === false) throw new Error(`Predict API rejected ${path}`);
     return payload;
   } finally {
     clearTimeout(timeout);
   }
 }
 
+function getBucketCache(wallet: string, bucketStartSec: number) {
+  const now = Date.now();
+  for (const [key, value] of bucketCaches.entries()) {
+    if (now - value.lastAccessAtMs > BUCKET_CACHE_TTL_MS) bucketCaches.delete(key);
+  }
+  const key = `${wallet}:${bucketStartSec}`;
+  let cache = bucketCaches.get(key);
+  if (!cache) {
+    cache = {
+      maker: blankRoleCache(),
+      taker: blankRoleCache(),
+      lastAccessAtMs: now,
+    };
+    bucketCaches.set(key, cache);
+  }
+  cache.lastAccessAtMs = now;
+  return cache;
+}
+
+async function pollRole(
+  cache: RoleCache,
+  wallet: string,
+  role: Role,
+  bucketStartSec: number,
+) {
+  const isMaker = role === "MAKER";
+  const bucketFloorMs = bucketStartSec * 1000 - 5_000;
+  const pages = cache.initialized ? 1 : INITIAL_BACKFILL_PAGES_PER_ROLE;
+  let after: string | null = null;
+  let fetchedRows = 0;
+  let fetchedPages = 0;
+
+  for (let page = 0; page < pages; page += 1) {
+    const payload = await predictGet(MATCHES_PATH, {
+      first: MATCH_PAGE_SIZE,
+      after,
+      signerAddress: wallet,
+      isSignerMaker: isMaker,
+    });
+    fetchedPages += 1;
+    const rows = responseRows(payload);
+    fetchedRows += rows.length;
+    const legs = roleLegs(payload, wallet, role);
+    for (const leg of legs) mergeParent(cache.events, leg);
+
+    const oldest = legs.reduce(
+      (value, item) => Math.min(value, item.eventMs),
+      Number.POSITIVE_INFINITY,
+    );
+    const cursor = responseCursor(payload);
+    if (!cursor || rows.length === 0 || oldest <= bucketFloorMs) break;
+    after = cursor;
+  }
+  cache.initialized = true;
+  cache.lastPollAtMs = Date.now();
+  return { fetchedRows, fetchedPages };
+}
+
+function selectCurrentBtcMarket(
+  events: WalletParentEvent[],
+  bucketStartSec: number,
+  dashboardMarketId: string | null,
+) {
+  const startMs = bucketStartSec * 1000 - 5_000;
+  const endMs = (bucketStartSec + 300) * 1000 + 5_000;
+  const current = events.filter((event) => (
+    event.eventMs >= startMs &&
+    event.eventMs <= endMs &&
+    isBtcCryptoMarket(event)
+  ));
+  const groups = new Map<string, WalletParentEvent[]>();
+  for (const event of current) {
+    const key = event.marketId ?? "UNKNOWN";
+    const group = groups.get(key) ?? [];
+    group.push(event);
+    groups.set(key, group);
+  }
+  if (!groups.size) {
+    return {
+      events: [] as WalletParentEvent[],
+      nativeMarketId: null as string | null,
+      mappingMode: "WAITING_TARGET_BTC5M_ACTIVITY",
+      btcVerified: false,
+      cryptoUpDownVerified: false,
+    };
+  }
+
+  let selectedKey: string | null = null;
+  if (dashboardMarketId && groups.has(dashboardMarketId)) selectedKey = dashboardMarketId;
+  if (!selectedKey) {
+    selectedKey = Array.from(groups.entries())
+      .sort((left, right) => {
+        const leftLatest = Math.max(...left[1].map((row) => row.eventMs));
+        const rightLatest = Math.max(...right[1].map((row) => row.eventMs));
+        if (leftLatest !== rightLatest) return rightLatest - leftLatest;
+        const leftSize = left[1].reduce((sum, row) => sum + (row.shares ?? 0), 0);
+        const rightSize = right[1].reduce((sum, row) => sum + (row.shares ?? 0), 0);
+        return rightSize - leftSize;
+      })[0]?.[0] ?? null;
+  }
+  const selected = selectedKey ? groups.get(selectedKey) ?? [] : [];
+  return {
+    events: selected.sort((a, b) => b.eventMs - a.eventMs),
+    nativeMarketId: selectedKey === "UNKNOWN" ? null : selectedKey,
+    mappingMode: dashboardMarketId && selectedKey === dashboardMarketId
+      ? "DIRECT_MARKET_ID"
+      : "BTC_CRYPTO_UP_DOWN_PLUS_5M_BUCKET",
+    btcVerified: selected.length > 0,
+    cryptoUpDownVerified: selected.every((event) => event.marketVariantType === "CRYPTO_UP_DOWN"),
+  };
+}
+
 function normalizePositions(payload: unknown): PositionSummary | null {
-  const rows = extractRows(payload);
+  const rows = responseRows(payload);
   if (!rows.length) return null;
   let upShares = 0;
   let downShares = 0;
   let upCost = 0;
   let downCost = 0;
-  for (const item of rows) {
-    const row = asRecord(item);
-    if (!row) continue;
-    const side = normalizeOutcome(row.outcome, row.side, row.marketOutcome, nested(row, "token")?.outcome);
-    const shares = shareValue(row.amount ?? row.shares ?? row.quantity ?? row.size) ?? 0;
-    const average = priceValue(row.averageBuyPrice ?? row.averagePrice ?? row.average_price);
+  for (const row of rows) {
+    const side = normalizeOutcome(row.outcome);
+    const shares = decimalValue(row.amount) ?? 0;
+    const average = priceValue(row.averageBuyPriceUsd);
     if (side === "UP") {
       upShares += shares;
       if (average != null) upCost += shares * average;
@@ -508,7 +470,10 @@ async function getPositionSummary(wallet: string, marketId: string | null) {
   const cached = positionCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return { value: cached.value, error: cached.error };
   try {
-    const payload = await predictGet(`${POSITIONS_PATH}/${wallet}`, { marketId });
+    const payload = await predictGet(`${POSITIONS_PATH}/${wallet}`, {
+      first: 100,
+      marketId,
+    });
     const value = normalizePositions(payload);
     positionCache.set(cacheKey, { value, error: null, expiresAt: Date.now() + POSITION_CACHE_MS });
     return { value, error: null };
@@ -525,13 +490,18 @@ export async function GET(request: Request) {
   const wallet = (url.searchParams.get("wallet") ?? "").trim().toLowerCase();
   const bucketStartSec = Math.floor(Number(url.searchParams.get("bucketStartSec")));
   const dashboardMarketId = url.searchParams.get("dashboardMarketId")?.trim() || null;
-  const limit = Math.max(20, Math.min(250, Math.floor(Number(url.searchParams.get("limit")) || 100)));
 
   if (!/^0x[a-f0-9]{40}$/.test(wallet)) {
-    return NextResponse.json({ ok: false, status: "INVALID_WALLET", error: "wallet must be a 0x-prefixed 20-byte address" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, status: "INVALID_WALLET", error: "wallet must be a 0x-prefixed 20-byte address" },
+      { status: 400 },
+    );
   }
   if (!Number.isFinite(bucketStartSec) || bucketStartSec <= 0) {
-    return NextResponse.json({ ok: false, status: "INVALID_BUCKET", error: "bucketStartSec is required" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, status: "INVALID_BUCKET", error: "bucketStartSec is required" },
+      { status: 400 },
+    );
   }
   if (!PREDICT_API_KEY) {
     return NextResponse.json(
@@ -547,12 +517,20 @@ export async function GET(request: Request) {
 
   try {
     const startedAt = performance.now();
-    const payload = await predictGet(MATCHES_PATH, { signerAddress: wallet, limit });
-    const normalized = normalizeMatchRows(payload, wallet);
-    const selected = chooseCurrentMarket(normalized, bucketStartSec, dashboardMarketId);
+    const cache = getBucketCache(wallet, bucketStartSec);
+    const [makerFetch, takerFetch] = await Promise.all([
+      pollRole(cache.maker, wallet, "MAKER", bucketStartSec),
+      pollRole(cache.taker, wallet, "TAKER", bucketStartSec),
+    ]);
+    const allCached = [
+      ...cache.maker.events.values(),
+      ...cache.taker.events.values(),
+    ];
+    const selected = selectCurrentBtcMarket(allCached, bucketStartSec, dashboardMarketId);
     const positions = await getPositionSummary(wallet, selected.nativeMarketId);
     const makerEvents = selected.events.filter((event) => event.role === "MAKER");
     const takerEvents = selected.events.filter((event) => event.role === "TAKER");
+
     return NextResponse.json(
       {
         ok: true,
@@ -566,6 +544,7 @@ export async function GET(request: Request) {
         nativeMarketId: selected.nativeMarketId,
         mappingMode: selected.mappingMode,
         btcVerified: selected.btcVerified,
+        cryptoUpDownVerified: selected.cryptoUpDownVerified,
         executedOnly: true,
         openOrdersAvailable: false,
         events: selected.events,
@@ -579,8 +558,14 @@ export async function GET(request: Request) {
         position: positions.value,
         positionError: positions.error,
         diagnostics: {
-          fetchedParents: normalized.length,
-          requestLimit: limit,
+          cachedMakerOrders: cache.maker.events.size,
+          cachedTakerOrders: cache.taker.events.size,
+          makerFetchedRows: makerFetch.fetchedRows,
+          takerFetchedRows: takerFetch.fetchedRows,
+          makerFetchedPages: makerFetch.fetchedPages,
+          takerFetchedPages: takerFetch.fetchedPages,
+          pageSize: MATCH_PAGE_SIZE,
+          initialBackfillPagesPerRole: INITIAL_BACKFILL_PAGES_PER_ROLE,
           apiBase: PREDICT_API_BASE,
           matchesPath: MATCHES_PATH,
           rttMs: Math.max(0, performance.now() - startedAt),
