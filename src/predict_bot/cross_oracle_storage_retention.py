@@ -290,9 +290,71 @@ def _start(self: Any) -> None:
     ).start()
 
 
+def _storage_metrics(self: Any) -> dict[str, Any]:
+    """Cheap SQLite page telemetry for the Dashboard V2 storage monitor."""
+    try:
+        with self.db_lock:
+            page_size_row = self.db.execute("PRAGMA page_size").fetchone()
+            page_count_row = self.db.execute("PRAGMA page_count").fetchone()
+            freelist_row = self.db.execute("PRAGMA freelist_count").fetchone()
+        page_size = max(0, int(page_size_row[0] or 0)) if page_size_row else 0
+        page_count = max(0, int(page_count_row[0] or 0)) if page_count_row else 0
+        freelist_count = max(0, int(freelist_row[0] or 0)) if freelist_row else 0
+        db_bytes = page_size * page_count
+        reusable_bytes = page_size * freelist_count
+        live_bytes = max(0, db_bytes - reusable_bytes)
+        reusable_fraction = (
+            freelist_count / page_count if page_count > 0 else 0.0
+        )
+        return {
+            "pageSizeBytes": page_size,
+            "pageCount": page_count,
+            "freelistCount": freelist_count,
+            "dbBytes": db_bytes,
+            "reusableBytes": reusable_bytes,
+            "liveBytesApprox": live_bytes,
+            "reusableFraction": reusable_fraction,
+            "storageMetricsError": None,
+        }
+    except Exception as exc:
+        return {
+            "pageSizeBytes": None,
+            "pageCount": None,
+            "freelistCount": None,
+            "dbBytes": None,
+            "reusableBytes": None,
+            "liveBytesApprox": None,
+            "reusableFraction": None,
+            "storageMetricsError": str(exc)[:300],
+        }
+
+
+def _retention_health(self: Any) -> tuple[str, int | None]:
+    error = getattr(self, "_retention_error", None)
+    last_at_ms = getattr(self, "_retention_at_ms", None)
+    if error:
+        return "ERROR", None
+    if DEFER_POLY_BACKLOG_CLEANUP:
+        return "DEFERRED", None
+    if last_at_ms is None:
+        return "STARTING", None
+
+    age_ms = max(0, int(time.time() * 1000) - int(last_at_ms))
+    stale_after_ms = int(max(180.0, CLEANUP_SECONDS * 3.0) * 1000)
+    if age_ms > stale_after_ms:
+        return "STALE", age_ms
+
+    last = getattr(self, "_retention_last", {})
+    remaining = last.get("polyExpiredMarketsRemaining") if isinstance(last, dict) else None
+    if remaining is None:
+        return "UNKNOWN", age_ms
+    return ("HEALTHY" if int(remaining) == 0 else "CATCHING_UP"), age_ms
+
+
 def _snapshot(self: Any) -> dict[str, Any]:
     payload = _original_snapshot(self)
     storage = payload.setdefault("storage", {})
+    retention_status, cleanup_age_ms = _retention_health(self)
     storage.update(
         runtimeProfile=PROFILE,
         polyRawArchiveEnabled=POLY_ARCHIVE,
@@ -303,7 +365,9 @@ def _snapshot(self: Any) -> dict[str, Any]:
         cleanupIntervalSeconds=CLEANUP_SECONDS,
         polyBacklogCleanupDeferred=DEFER_POLY_BACKLOG_CLEANUP,
         lastRetentionCleanupAtMs=getattr(self, "_retention_at_ms", None),
+        lastRetentionCleanupAgeMs=cleanup_age_ms,
         lastRetentionCleanup=getattr(self, "_retention_last", {}),
+        retentionStatus=retention_status,
         retentionError=getattr(self, "_retention_error", None),
         sqliteDeleteShrinksFileImmediately=False,
         historicalCountsSkipped=PROFILE == "POLY_LIVE",
@@ -313,6 +377,7 @@ def _snapshot(self: Any) -> dict[str, Any]:
             if not POLY_ARCHIVE
             else 0
         ),
+        **_storage_metrics(self),
     )
     if PROFILE == "POLY_LIVE":
         storage["chainlinkRows"] = None
