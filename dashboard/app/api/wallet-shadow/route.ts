@@ -30,6 +30,7 @@ type QuoteType = "BID" | "ASK" | "UNKNOWN";
 
 type WalletParentEvent = {
   id: string;
+  sourceLegId: string;
   marketId: string | null;
   marketTitle: string | null;
   marketVariantType: string | null;
@@ -51,6 +52,7 @@ type WalletParentEvent = {
 
 type RoleCache = {
   events: Map<string, WalletParentEvent>;
+  seenLegs: Set<string>;
   initialized: boolean;
   lastPollAtMs: number;
 };
@@ -79,7 +81,7 @@ const bucketCaches = new Map<string, BucketCache>();
 const positionCache = new Map<string, PositionCacheEntry>();
 
 function blankRoleCache(): RoleCache {
-  return { events: new Map(), initialized: false, lastPollAtMs: 0 };
+  return { events: new Map(), seenLegs: new Set(), initialized: false, lastPollAtMs: 0 };
 }
 
 function asRecord(value: unknown): JsonRecord | null {
@@ -106,7 +108,6 @@ function numeric(value: unknown) {
 function decimalValue(value: unknown) {
   const parsed = numeric(value);
   if (parsed == null || parsed < 0) return null;
-  if (parsed <= 1_000_000) return parsed;
   if (parsed > 1e12) return parsed / 1e18;
   return parsed;
 }
@@ -200,10 +201,11 @@ function buildLeg(
   const settlementId = stringValue(row.settlementId);
   const shares = decimalValue(participant.amount ?? row.amountFilled);
   const price = priceValue(participant.price ?? row.priceExecuted);
-  const stableFallback = [
+  const sourceLegId = [
     transactionHash ?? "no-tx",
     settlementId ?? "no-settlement",
     role,
+    orderHash ?? "no-order",
     makerIndex ?? "taker",
     side,
     quoteType,
@@ -211,8 +213,17 @@ function buildLeg(
     String(participant.price ?? row.priceExecuted ?? ""),
     String(row.executedAt ?? ""),
   ].join(":");
+  const parentFallback = [
+    transactionHash ?? "no-tx",
+    settlementId ?? "no-settlement",
+    role,
+    makerIndex ?? "taker",
+    side,
+    quoteType,
+  ].join(":");
   return {
-    id: `${role}:${orderHash ?? stableFallback}`,
+    id: `${role}:${orderHash ?? parentFallback}`,
+    sourceLegId,
     ...market,
     role,
     side,
@@ -355,6 +366,7 @@ async function pollRole(
   let after: string | null = null;
   let fetchedRows = 0;
   let fetchedPages = 0;
+  let newLegs = 0;
 
   for (let page = 0; page < pages; page += 1) {
     const payload = await predictGet(MATCHES_PATH, {
@@ -367,7 +379,12 @@ async function pollRole(
     const rows = responseRows(payload);
     fetchedRows += rows.length;
     const legs = roleLegs(payload, wallet, role);
-    for (const leg of legs) mergeParent(cache.events, leg);
+    for (const leg of legs) {
+      if (cache.seenLegs.has(leg.sourceLegId)) continue;
+      cache.seenLegs.add(leg.sourceLegId);
+      mergeParent(cache.events, leg);
+      newLegs += 1;
+    }
 
     const oldest = legs.reduce(
       (value, item) => Math.min(value, item.eventMs),
@@ -379,7 +396,7 @@ async function pollRole(
   }
   cache.initialized = true;
   cache.lastPollAtMs = Date.now();
-  return { fetchedRows, fetchedPages };
+  return { fetchedRows, fetchedPages, newLegs };
 }
 
 function selectCurrentBtcMarket(
@@ -560,10 +577,14 @@ export async function GET(request: Request) {
         diagnostics: {
           cachedMakerOrders: cache.maker.events.size,
           cachedTakerOrders: cache.taker.events.size,
+          cachedMakerLegs: cache.maker.seenLegs.size,
+          cachedTakerLegs: cache.taker.seenLegs.size,
           makerFetchedRows: makerFetch.fetchedRows,
           takerFetchedRows: takerFetch.fetchedRows,
           makerFetchedPages: makerFetch.fetchedPages,
           takerFetchedPages: takerFetch.fetchedPages,
+          makerNewLegs: makerFetch.newLegs,
+          takerNewLegs: takerFetch.newLegs,
           pageSize: MATCH_PAGE_SIZE,
           initialBackfillPagesPerRole: INITIAL_BACKFILL_PAGES_PER_ROLE,
           apiBase: PREDICT_API_BASE,
