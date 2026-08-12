@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import os
 import threading
 import time
@@ -39,10 +40,8 @@ LEAD_DETAILED_EVENT_MARKETS = max(
 )
 # Raw samples continue to be persisted on every Paper evaluation tick, but the
 # expensive 10/30/50 market analytics are display/research data and do not need
-# to be rebuilt for every 250 ms receipt.  /state uses stale-while-revalidate:
-# it always returns the last completed analysis immediately and rebuilds expired
-# analytics in one background worker.  This keeps the 8768 HTTP path responsive
-# even when multi-day trajectory analysis takes several seconds.
+# to be rebuilt for every 250 ms receipt.  Lead analytics use stale-while-
+# revalidate so their rebuild never occurs in the HTTP request thread.
 LEAD_UI_ANALYTICS_CACHE_MS = max(
     2_000,
     int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_UI_CACHE_MS", "10000")),
@@ -52,6 +51,22 @@ LEAD_UI_ANALYTICS_RETRY_MS = max(
     min(
         30_000,
         int(os.environ.get("PREDICT_POLY_LEAD_VALIDATION_UI_RETRY_MS", "5000")),
+    ),
+)
+
+# /state also contains strategy summaries, rolling-market CTEs, CHOP state and
+# heartbeat reads.  Any one of those SQLite reads can be delayed by a busy DB.
+# Cache the *entire* completed state snapshot and rebuild it in a background
+# worker.  The request path only copies process-local dictionaries/locks.
+STATE_UI_SNAPSHOT_CACHE_MS = max(
+    2_000,
+    int(os.environ.get("PREDICT_CROSS_ORACLE_STATE_UI_CACHE_MS", "10000")),
+)
+STATE_UI_SNAPSHOT_RETRY_MS = max(
+    2_000,
+    min(
+        30_000,
+        int(os.environ.get("PREDICT_CROSS_ORACLE_STATE_UI_RETRY_MS", "5000")),
     ),
 )
 
@@ -71,6 +86,7 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._next_lead_prune_at = 0.0
         super().__init__(*args, **kwargs)
+
         self._lead_ui_refresh_lock = threading.Lock()
         self._lead_ui_refresh_running = False
         self._lead_ui_refresh_error: str | None = None
@@ -79,11 +95,21 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
         self._lead_ui_refresh_duration_ms: int | None = None
         self._lead_ui_refresh_next_allowed_at_ms = 0
 
+        self._state_ui_refresh_lock = threading.Lock()
+        self._state_ui_cache: dict[str, Any] | None = None
+        self._state_ui_cache_at_ms = 0
+        self._state_ui_refresh_running = False
+        self._state_ui_refresh_error: str | None = None
+        self._state_ui_refresh_started_at_ms: int | None = None
+        self._state_ui_refresh_completed_at_ms: int | None = None
+        self._state_ui_refresh_duration_ms: int | None = None
+        self._state_ui_refresh_next_allowed_at_ms = 0
+
     def _evaluate_once(self) -> None:
         # v6 intentionally invalidates its analytics cache whenever it persists a
-        # new raw sample.  Keep the last completed display snapshot regardless of
-        # age; an expired snapshot is replaced asynchronously by /state instead of
-        # making the request thread rebuild tens of thousands of raw rows.
+        # new raw sample. Keep the last completed display snapshot regardless of
+        # age; an expired snapshot is replaced asynchronously instead of making
+        # an HTTP request rebuild tens of thousands of raw rows.
         previous_cache = self._lead_cache
         previous_cache_at_ms = self._lead_cache_at_ms
         super()._evaluate_once()
@@ -145,9 +171,9 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
         started = time.monotonic()
         error: str | None = None
         try:
-            # The v6 builder only reuses a cache younger than its own 2s TTL.
-            # We schedule this worker only after the V7 10s TTL has expired, so
-            # this call performs the expensive rebuild here, never in /state.
+            # v6 only reuses a cache younger than its own short TTL. This worker
+            # is scheduled after the V7 TTL expires, so any expensive rebuild is
+            # paid here rather than in /state.
             super()._lead_validation_snapshot()
         except Exception as exc:
             error = str(exc)[:400]
@@ -250,10 +276,14 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
         payload["eventStatisticsUseCoverageQualifiedMarketsOnly"] = True
         return payload
 
-    def snapshot(self) -> dict[str, Any]:
-        payload = super().snapshot()
-        validation = payload.get("polyBinanceLeadValidation")
-        if isinstance(validation, dict):
+    def _decorate_state_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
+        # Lead snapshots are shallow-copied by v6. Deep-copy only this nested
+        # section before trimming event details so the completed lead cache itself
+        # remains immutable while another request may be reading it.
+        raw_validation = payload.get("polyBinanceLeadValidation")
+        if isinstance(raw_validation, dict):
+            validation = copy.deepcopy(raw_validation)
+            payload["polyBinanceLeadValidation"] = validation
             recent = validation.get("recentMarkets")
             if isinstance(recent, list):
                 for index, market in enumerate(recent):
@@ -272,6 +302,136 @@ class CoverageQualifiedLeadLagPaperEngine(v6.LeadLagValidationPaperEngine):
             validation["eventStatisticsUseCoverageQualifiedMarketsOnly"] = True
             validation["windowStatisticsComputedBeforeEventDetailTrimming"] = True
             validation["version"] = "poly_binance_lead_validation_v2"
+        return payload
+
+    def _build_state_snapshot(self) -> dict[str, Any]:
+        # Important: this calls the parent implementation directly. All SQLite
+        # summaries, rolling CTEs, CHOP reads and lead-cache composition therefore
+        # happen only in the background state worker, never in the HTTP thread.
+        return self._decorate_state_snapshot(super().snapshot())
+
+    def _state_ui_refresh_metadata(self, now_ms: int, cache_age_ms: int | None) -> dict[str, Any]:
+        with self._state_ui_refresh_lock:
+            running = self._state_ui_refresh_running
+            error = self._state_ui_refresh_error
+            started_at_ms = self._state_ui_refresh_started_at_ms
+            completed_at_ms = self._state_ui_refresh_completed_at_ms
+            duration_ms = self._state_ui_refresh_duration_ms
+            retry_at_ms = self._state_ui_refresh_next_allowed_at_ms
+        if self._state_ui_cache is None:
+            status = "BUILDING"
+        elif running:
+            status = "REFRESHING"
+        elif error:
+            status = "STALE_ERROR"
+        elif cache_age_ms is not None and cache_age_ms >= STATE_UI_SNAPSHOT_CACHE_MS:
+            status = "STALE"
+        else:
+            status = "FRESH"
+        return {
+            "status": status,
+            "refreshing": running,
+            "cacheAgeMs": cache_age_ms,
+            "cacheTtlMs": STATE_UI_SNAPSHOT_CACHE_MS,
+            "lastRefreshStartedAtMs": started_at_ms,
+            "lastRefreshCompletedAtMs": completed_at_ms,
+            "lastRefreshDurationMs": duration_ms,
+            "lastRefreshError": error,
+            "retryAtMs": retry_at_ms if error and retry_at_ms > now_ms else None,
+            "requestPathBlocksOnRefresh": False,
+            "databaseReadsOnRequestPath": False,
+        }
+
+    def _refresh_state_ui_snapshot(self) -> None:
+        started_at_ms = int(time.time() * 1000)
+        started = time.monotonic()
+        error: str | None = None
+        payload: dict[str, Any] | None = None
+        try:
+            payload = self._build_state_snapshot()
+        except Exception as exc:
+            error = str(exc)[:400]
+        finally:
+            finished_at_ms = int(time.time() * 1000)
+            duration_ms = int((time.monotonic() - started) * 1000)
+            with self._state_ui_refresh_lock:
+                if payload is not None:
+                    self._state_ui_cache = payload
+                    self._state_ui_cache_at_ms = finished_at_ms
+                self._state_ui_refresh_running = False
+                self._state_ui_refresh_error = error
+                self._state_ui_refresh_started_at_ms = started_at_ms
+                self._state_ui_refresh_completed_at_ms = finished_at_ms
+                self._state_ui_refresh_duration_ms = duration_ms
+                self._state_ui_refresh_next_allowed_at_ms = (
+                    finished_at_ms + STATE_UI_SNAPSHOT_RETRY_MS if error else 0
+                )
+
+    def _schedule_state_ui_refresh(self, now_ms: int) -> bool:
+        with self._state_ui_refresh_lock:
+            if self._state_ui_refresh_running:
+                return False
+            if now_ms < self._state_ui_refresh_next_allowed_at_ms:
+                return False
+            self._state_ui_refresh_running = True
+            self._state_ui_refresh_error = None
+            self._state_ui_refresh_started_at_ms = now_ms
+        threading.Thread(
+            target=self._refresh_state_ui_snapshot,
+            name="cross-oracle-state-ui-snapshot",
+            daemon=True,
+        ).start()
+        return True
+
+    def snapshot(self) -> dict[str, Any]:
+        # HTTP-facing fast path: no SQLite reads and no analytics computation.
+        now_ms = int(time.time() * 1000)
+        with self._state_ui_refresh_lock:
+            cache = self._state_ui_cache
+            cache_at_ms = self._state_ui_cache_at_ms
+        cache_age_ms = max(0, now_ms - cache_at_ms) if cache is not None else None
+        if cache is None or (
+            cache_age_ms is not None and cache_age_ms >= STATE_UI_SNAPSHOT_CACHE_MS
+        ):
+            self._schedule_state_ui_refresh(now_ms)
+
+        with self.lock:
+            runtime = dict(self.runtime)
+            last_flip = dict(self.last_flip) if self.last_flip else None
+        metadata = self._state_ui_refresh_metadata(now_ms, cache_age_ms)
+
+        if cache is None:
+            return {
+                "status": runtime.get("status"),
+                "paperOnly": True,
+                "liveOrdersAffected": False,
+                "feesIncluded": False,
+                "parameters": {},
+                "runtime": runtime,
+                "lastFlip": last_flip,
+                "summaries": {},
+                "openPositions": [],
+                "recentTrades": [],
+                "strategyRules": {},
+                "polyBinanceLeadValidation": {
+                    "version": "poly_binance_lead_validation_v2",
+                    "paperOnly": True,
+                    "liveOrdersAffected": False,
+                    "forwardOnly": True,
+                    "currentRegime": "BUILDING",
+                    "windows": {},
+                    "recentMarkets": [],
+                },
+                "stateSnapshotRefresh": metadata,
+            }
+
+        payload = dict(cache)
+        # Keep the high-frequency runtime indicators fresh even though expensive
+        # DB-backed diagnostics intentionally use a slower snapshot cadence.
+        payload["status"] = runtime.get("status")
+        payload["runtime"] = runtime
+        payload["lastFlip"] = last_flip
+        payload["stateSnapshotRefresh"] = metadata
         return payload
 
 
