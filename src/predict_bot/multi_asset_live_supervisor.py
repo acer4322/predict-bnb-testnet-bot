@@ -14,8 +14,20 @@ ASSETS = {
     "BNB": {"symbol": "BNBUSDT", "port": 8773, "db": "poly_gap_live_bnb.db"},
 }
 CLONES = {
-    "ETH": {"symbol": "ETHUSDT", "port": 8774, "db": "wallet_maker_clone_eth.db", "normalPort": 8772},
-    "BNB": {"symbol": "BNBUSDT", "port": 8775, "db": "wallet_maker_clone_bnb.db", "normalPort": 8773},
+    "ETH": {
+        "symbol": "ETHUSDT",
+        "port": 8774,
+        "binanceDb": "wallet_maker_clone_eth.db",
+        "predictDb": "wallet_maker_clone_predict_direct_eth.db",
+        "normalPort": 8772,
+    },
+    "BNB": {
+        "symbol": "BNBUSDT",
+        "port": 8775,
+        "binanceDb": "wallet_maker_clone_bnb.db",
+        "predictDb": "wallet_maker_clone_predict_direct_bnb.db",
+        "normalPort": 8773,
+    },
 }
 OBSERVER_PORT = 8770
 RESTART_SECONDS = 3.0
@@ -65,7 +77,22 @@ def _asset_environment(asset: str) -> dict[str, str]:
     return env
 
 
-def _clone_environment(asset: str) -> dict[str, str]:
+def _clone_venue(asset: str) -> str:
+    raw = os.environ.get(
+        f"PREDICT_{asset}_WALLET_MAKER_CLONE_VENUE",
+        os.environ.get("PREDICT_WALLET_MAKER_CLONE_VENUE", "BINANCE"),
+    )
+    venue = str(raw or "BINANCE").strip().upper().replace("-", "_")
+    if venue == "PREDICT":
+        venue = "PREDICT_DIRECT"
+    if venue not in {"BINANCE", "PREDICT_DIRECT"}:
+        raise RuntimeError(
+            f"invalid {asset} wallet maker clone venue {raw!r}; expected BINANCE or PREDICT_DIRECT"
+        )
+    return venue
+
+
+def _clone_environment(asset: str, venue: str) -> dict[str, str]:
     config = CLONES[asset]
     env = os.environ.copy()
     master_name = f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED"
@@ -74,7 +101,9 @@ def _clone_environment(asset: str) -> dict[str, str]:
     env["PREDICT_WALLET_MAKER_CLONE_SYMBOL"] = str(config["symbol"])
     env["PREDICT_WALLET_MAKER_CLONE_PORT"] = str(config["port"])
     env["PREDICT_WALLET_MAKER_CLONE_HOST"] = "127.0.0.1"
-    env["PREDICT_WALLET_MAKER_CLONE_DB"] = str(ROOT / "data" / str(config["db"]))
+    env["PREDICT_WALLET_MAKER_CLONE_VENUE"] = venue
+    db_name = str(config["predictDb"] if venue == "PREDICT_DIRECT" else config["binanceDb"])
+    env["PREDICT_WALLET_MAKER_CLONE_DB"] = str(ROOT / "data" / db_name)
     env["PREDICT_WALLET_MAKER_CLONE_NORMAL_LIVE_URL"] = (
         f"http://127.0.0.1:{int(config['normalPort'])}/state"
     )
@@ -108,14 +137,21 @@ def _clone_process(asset: str) -> subprocess.Popen[bytes] | None:
         print(f"multi-asset live: using existing {asset} wallet maker clone on {port}", flush=True)
         return None
     master = os.environ.get(f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED", "true")
+    venue = _clone_venue(asset)
+    if venue == "PREDICT_DIRECT":
+        module = "predict_bot.wallet_maker_clone_predict_direct_v8"
+        label = "V8 Predict-direct bounded paired-risk"
+    else:
+        module = "predict_bot.wallet_maker_clone_live_v8"
+        label = "V8 Binance Prediction bounded paired-risk"
     print(
-        f"multi-asset live: starting {asset} wallet maker clone V8 bounded paired-risk on {port}; "
-        f"master={master}; runtime is force-paused on every process start",
+        f"multi-asset live: starting {asset} wallet maker clone {label} on {port}; "
+        f"venue={venue}; master={master}; runtime is force-paused on every process start",
         flush=True,
     )
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.wallet_maker_clone_live_v8"],
-        env=_clone_environment(asset),
+        [sys.executable, "-m", module],
+        env=_clone_environment(asset, venue),
     )
 
 
