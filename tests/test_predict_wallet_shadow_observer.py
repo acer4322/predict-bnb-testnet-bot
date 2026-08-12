@@ -4,11 +4,16 @@ from predict_bot.predict_wallet_shadow_observer import (
     ShadowEvent,
     aggregate_parent,
     inventory_from_target,
-    normalize_match_leg,
     similarity,
 )
+from predict_bot.predict_wallet_shadow_observer_v2 import normalize_match_leg
 
 WALLET = "0x6da6cb464f92ae7ad4ec3d239c81719cb1d0ae03"
+WEI = 10**18
+
+
+def wei(value: float) -> str:
+    return str(int(round(value * WEI)))
 
 
 def match_row(*, taker_signer="0xabc", maker_signer=WALLET, maker_hash="0xmaker", taker_hash="0xtaker"):
@@ -20,8 +25,8 @@ def match_row(*, taker_signer="0xabc", maker_signer=WALLET, maker_hash="0xmaker"
         },
         "taker": {
             "quoteType": "Bid",
-            "amount": "9",
-            "price": "0.61",
+            "amount": wei(9),
+            "price": wei(0.61),
             "outcome": {"name": "DOWN"},
             "signer": taker_signer,
             "hash": taker_hash,
@@ -29,8 +34,8 @@ def match_row(*, taker_signer="0xabc", maker_signer=WALLET, maker_hash="0xmaker"
         "makers": [
             {
                 "quoteType": "Bid",
-                "amount": "9",
-                "price": "0.41",
+                "amount": wei(9),
+                "price": wei(0.41),
                 "outcome": {"name": "UP"},
                 "signer": maker_signer,
                 "hash": maker_hash,
@@ -42,7 +47,7 @@ def match_row(*, taker_signer="0xabc", maker_signer=WALLET, maker_hash="0xmaker"
     }
 
 
-def test_normalize_match_leg_reads_role_hash_side_and_timestamp():
+def test_normalize_match_leg_reads_wei_role_hash_side_and_timestamp():
     leg = normalize_match_leg(match_row(), wallet=WALLET, role="MAKER", maker_index=0)
     assert leg is not None
     assert leg["marketId"] == 123
@@ -51,7 +56,7 @@ def test_normalize_match_leg_reads_role_hash_side_and_timestamp():
     assert leg["quoteType"] == "BID"
     assert leg["orderHash"] == "0xmaker"
     assert leg["shares"] == 9
-    assert leg["price"] == 0.41
+    assert abs(leg["price"] - 0.41) < 1e-12
     assert leg["eventMs"] == 1786147201500
 
 
@@ -59,8 +64,8 @@ def test_parent_aggregation_combines_partial_fills_by_order_hash():
     first = normalize_match_leg(match_row(), wallet=WALLET, role="MAKER", maker_index=0)
     assert first is not None
     second_raw = match_row()
-    second_raw["makers"][0]["amount"] = "9"
-    second_raw["makers"][0]["price"] = "0.43"
+    second_raw["makers"][0]["amount"] = wei(9)
+    second_raw["makers"][0]["price"] = wei(0.43)
     second_raw["transactionHash"] = "0xtx2"
     second_raw["settlementId"] = "settlement-2"
     second_raw["executedAt"] = "2026-08-08T00:00:02.000Z"
