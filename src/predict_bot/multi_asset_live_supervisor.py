@@ -139,8 +139,8 @@ def _clone_process(asset: str) -> subprocess.Popen[bytes] | None:
     master = os.environ.get(f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED", "true")
     venue = _clone_venue(asset)
     if venue == "PREDICT_DIRECT":
-        module = "predict_bot.wallet_maker_clone_predict_direct_v8"
-        label = "V8 Predict-direct bounded paired-risk"
+        module = "predict_bot.wallet_maker_clone_predict_direct_v8_1"
+        label = "V8.1 Predict-direct bounded paired-risk (fixed discovery)"
     else:
         module = "predict_bot.wallet_maker_clone_live_v8"
         label = "V8 Binance Prediction bounded paired-risk"
