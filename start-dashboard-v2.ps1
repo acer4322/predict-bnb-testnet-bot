@@ -3,39 +3,54 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Dashboard = Join-Path $Root "dashboard-v2"
 $Data = Join-Path $Root "data"
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
 $script:PredictFunEnabled = $false
 
-function Test-LocalService([string]$Url) {
+# Launcher readiness checks must never block on a PowerShell WebResponse body.
+# Windows curl.exe has a hard wall-clock timeout and can discard the body when
+# all we need is an HTTP status.  This also avoids the misleading
+# "Reading web response / response stream" progress UI from Invoke-WebRequest.
+function Test-LocalService([string]$Url, [int]$TimeoutSeconds = 2) {
     try {
-        $Response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
-        return $Response.StatusCode -eq 200
+        $CodeText = & curl.exe --silent --output NUL `
+            --connect-timeout 1 --max-time $TimeoutSeconds `
+            --write-out "%{http_code}" $Url 2>$null
+        $ExitCode = $LASTEXITCODE
+        if ($ExitCode -ne 0) { return $false }
+        $Code = 0
+        if (-not [int]::TryParse(([string]$CodeText).Trim(), [ref]$Code)) { return $false }
+        return $Code -eq 200
     }
     catch { return $false }
 }
 
-function Test-JsonService([string]$Url) {
+function Get-JsonPayload([string]$Url, [int]$TimeoutSeconds = 3) {
     try {
-        $Response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 3
-        if ($Response.StatusCode -ne 200) { return $false }
-        $ContentType = [string]$Response.Headers["Content-Type"]
-        if ($ContentType -notmatch "application/json") { return $false }
-        $null = $Response.Content | ConvertFrom-Json -ErrorAction Stop
-        return $true
+        $Body = & curl.exe --silent --fail `
+            --connect-timeout 1 --max-time $TimeoutSeconds `
+            --header "Accept: application/json" $Url 2>$null
+        $ExitCode = $LASTEXITCODE
+        if ($ExitCode -ne 0) { return $null }
+        $Text = ($Body -join "`n")
+        if ([string]::IsNullOrWhiteSpace($Text)) { return $null }
+        return $Text | ConvertFrom-Json -ErrorAction Stop
     }
-    catch { return $false }
+    catch { return $null }
+}
+
+function Test-JsonService([string]$Url, [int]$TimeoutSeconds = 3) {
+    return $null -ne (Get-JsonPayload $Url $TimeoutSeconds)
 }
 
 function Get-ServiceVersion([int]$Port) {
-    try {
-        $Payload = Invoke-RestMethod -Uri "http://127.0.0.1:${Port}/state" -TimeoutSec 2
-        if ($Payload.state -and $Payload.state.version) { return [string]$Payload.state.version }
-        if ($Payload.version) { return [string]$Payload.version }
-    }
-    catch { }
+    $Payload = Get-JsonPayload "http://127.0.0.1:${Port}/state" 2
+    if ($null -eq $Payload) { return $null }
+    if ($Payload.state -and $Payload.state.version) { return [string]$Payload.state.version }
+    if ($Payload.version) { return [string]$Payload.version }
     return $null
 }
 
@@ -129,9 +144,6 @@ function Stop-StaleMultiAssetSupervisor([int]$Port, [string]$Asset, [string]$Ver
         Remove-Item (Join-Path $Root ".multi-live.pid") -Force -ErrorAction SilentlyContinue
     }
     elseif ($ParentMissing) {
-        # A previous supervisor can exit/crash while its Python child remains alive.
-        # The listener command itself is enough to identify this as our stale asset
-        # engine, so kill only that orphan instead of touching an unrelated process.
         Write-Warning "Dashboard V2: orphaned stale $Asset engine detected ($Version on $Port; listener PID=$ListenerProcessId; missing parent PID=$SupervisorProcessId). Stopping only the verified stale listener."
         & taskkill.exe /PID $ListenerProcessId /F | Out-Null
         if ($LASTEXITCODE -ne 0) {
@@ -150,20 +162,44 @@ function Stop-StaleMultiAssetSupervisor([int]$Port, [string]$Asset, [string]$Ver
     return $false
 }
 
-function Stop-StaleDashboardV2Web {
+function Get-DashboardV2WebStatus {
     $ListeningPid = Get-ListeningProcessId 4320
-    if (-not $ListeningPid) { return $true }
+    if (-not $ListeningPid) {
+        return @{ Status = "MISSING"; Pid = $null; Reason = "no listener" }
+    }
 
     $CommandLine = Get-ProcessCommandLine $ListeningPid
-    $DashboardNeedle = ($Dashboard -replace "\\", "\\").ToLowerInvariant()
-    $CommandNeedle = ($CommandLine -replace "\\", "\\").ToLowerInvariant()
+    $DashboardNeedle = $Dashboard.ToLowerInvariant()
+    $CommandNeedle = $CommandLine.ToLowerInvariant()
     $LooksLikeThisDashboard = $CommandNeedle.Contains($DashboardNeedle) -and $CommandNeedle.Contains("vite")
-
     if (-not $LooksLikeThisDashboard) {
         throw "Port 4320 is occupied by an unknown web process (PID=$ListeningPid; command=$CommandLine). Stop it manually before starting Dashboard V2."
     }
 
-    Write-Warning "Dashboard V2: stale Vite listener detected on 4320 (PID=$ListeningPid); restarting it so the current vite.config.ts proxy is loaded."
+    try {
+        $Process = Get-Process -Id $ListeningPid -ErrorAction Stop
+        $ViteConfig = Get-Item (Join-Path $Dashboard "vite.config.ts") -ErrorAction Stop
+        if ($ViteConfig.LastWriteTimeUtc -gt $Process.StartTime.ToUniversalTime()) {
+            return @{
+                Status = "STALE_CONFIG"
+                Pid = $ListeningPid
+                Reason = "vite.config.ts is newer than the running Vite process"
+            }
+        }
+    }
+    catch {
+        return @{ Status = "CURRENT"; Pid = $ListeningPid; Reason = "listener identity verified" }
+    }
+
+    return @{ Status = "CURRENT"; Pid = $ListeningPid; Reason = "listener identity and config timestamp verified" }
+}
+
+function Stop-DashboardV2Web([string]$Reason) {
+    $ListeningPid = Get-ListeningProcessId 4320
+    if (-not $ListeningPid) { return $true }
+
+    $Status = Get-DashboardV2WebStatus
+    Write-Warning "Dashboard V2: restarting Vite listener on 4320 (PID=$ListeningPid): $Reason"
     Stop-Process -Id $ListeningPid -Force -ErrorAction Stop
     Remove-Item (Join-Path $Root ".web-v2.pid") -Force -ErrorAction SilentlyContinue
     for ($i = 0; $i -lt 30; $i++) {
@@ -171,17 +207,6 @@ function Stop-StaleDashboardV2Web {
         Start-Sleep -Milliseconds 100
     }
     return (-not (Get-ListeningProcessId 4320))
-}
-
-function Test-DashboardV2Proxy {
-    $Ready = (Test-LocalService "http://127.0.0.1:4320") -and `
-             (Test-JsonService "http://127.0.0.1:4320/bridge/realtime") -and `
-             (Test-JsonService "http://127.0.0.1:4320/bridge/multi-market")
-    if (-not $Ready) { return $false }
-    if ($script:PredictFunEnabled) {
-        return Test-JsonService "http://127.0.0.1:4320/bridge/predict-fun"
-    }
-    return $true
 }
 
 # Import only named user-scoped settings. Secrets remain environment variables;
@@ -210,9 +235,6 @@ if (-not $script:PredictFunEnabled) {
     Write-Warning "PREDICT_FUN_API_KEY is not configured; Predict.fun observer 8771 will remain disabled."
 }
 
-# ETH/BNB are now first-class Dashboard V2 Echtgeld markets. Capability is ON
-# by default unless the operator explicitly persisted false. The V3 engine has
-# a one-time safe-pause migration, so this never means automatic new BUYs.
 if (-not $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED) { $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED = "true" }
 if (-not $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED) { $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED = "true" }
 
@@ -225,9 +247,6 @@ if (-not $env:BINANCE_API_KEY -or -not $env:BINANCE_API_SECRET) {
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($SecretPtr) }
 }
 
-# If an older core is still alive from a previous launcher/manual session, only
-# replace it automatically when 8769 is a recognized poly_gap child whose parent
-# is predict_bot.supervisor. Unknown processes are never killed automatically.
 if (Test-LocalService "http://127.0.0.1:8769/state") {
     $ExistingBtcVersion = Get-ServiceVersion 8769
     if ($ExistingBtcVersion -and $ExistingBtcVersion -ne "POLY_GAP_DEDICATED_LIVE_V45") {
@@ -257,9 +276,6 @@ else {
     }
 }
 
-# Upgrade stale ETH/BNB V2 process trees before validating the shared observer.
-# A verified live supervisor is stopped as a tree; a verified orphaned V2/Vx child
-# with no surviving parent is stopped by listener PID only.
 foreach ($AssetCheck in @(
     @{ Asset = "ETH"; Port = 8772 },
     @{ Asset = "BNB"; Port = 8773 }
@@ -330,13 +346,26 @@ if ($script:PredictFunEnabled) {
     }
 }
 
+# A backend bridge timeout does NOT make Vite stale.  Only restart a verified
+# Dashboard V2 Vite listener when its own root is unresponsive or vite.config.ts
+# changed after that process started.
 $WebOwned = $false
+$WebPid = Get-ListeningProcessId 4320
 $WebRootReady = Test-LocalService "http://127.0.0.1:4320"
-if ($WebRootReady -and -not (Test-DashboardV2Proxy)) {
-    if (-not (Stop-StaleDashboardV2Web)) {
-        throw "Dashboard V2 could not stop the stale Vite listener on 4320."
+if ($WebPid) {
+    $WebStatus = Get-DashboardV2WebStatus
+    if ($WebStatus.Status -eq "STALE_CONFIG") {
+        if (-not (Stop-DashboardV2Web $WebStatus.Reason)) {
+            throw "Dashboard V2 could not stop the outdated Vite listener on 4320."
+        }
+        $WebRootReady = $false
     }
-    $WebRootReady = $false
+    elseif (-not $WebRootReady) {
+        if (-not (Stop-DashboardV2Web "the verified Vite listener is not answering its own root endpoint")) {
+            throw "Dashboard V2 could not stop the unresponsive Vite listener on 4320."
+        }
+        $WebRootReady = $false
+    }
 }
 
 if (-not $WebRootReady) {
@@ -348,34 +377,44 @@ if (-not $WebRootReady) {
     $WebOwned = $true
 }
 else {
-    Write-Host "Dashboard V2: existing current web/proxy server detected on 4320."
+    Write-Host "Dashboard V2: existing current web server detected on 4320; backend bridge health is checked separately."
 }
 
 $Deadline = (Get-Date).AddSeconds(120)
 $Required = @(
-    @{ Name = "8766"; Url = "http://127.0.0.1:8766/api/realtime" },
-    @{ Name = "8767 Poly"; Url = "http://127.0.0.1:8767/state" },
-    @{ Name = "8768 Strategies"; Url = "http://127.0.0.1:8768/state" },
-    @{ Name = "8769 BTC"; Url = "http://127.0.0.1:8769/state" },
+    @{ Name = "8766 realtime"; Url = "http://127.0.0.1:8766/api/realtime" },
+    @{ Name = "8767 Poly collector"; Url = "http://127.0.0.1:8767/state" },
+    @{ Name = "8768 Paper strategies"; Url = "http://127.0.0.1:8768/state" },
+    @{ Name = "8769 BTC live"; Url = "http://127.0.0.1:8769/state" },
     @{ Name = "8770 observer"; Url = "http://127.0.0.1:8770/state" },
-    @{ Name = "8772 ETH"; Url = "http://127.0.0.1:8772/state" },
-    @{ Name = "8773 BNB"; Url = "http://127.0.0.1:8773/state" },
+    @{ Name = "8772 ETH live"; Url = "http://127.0.0.1:8772/state" },
+    @{ Name = "8773 BNB live"; Url = "http://127.0.0.1:8773/state" },
     @{ Name = "4320 Dashboard V2"; Url = "http://127.0.0.1:4320" }
 )
 if ($script:PredictFunEnabled) {
     $Required += @{ Name = "8771 Predict.fun"; Url = "http://127.0.0.1:8771/state" }
 }
+
+$LastMissingKey = $null
 while ((Get-Date) -lt $Deadline) {
-    $Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url) })
-    if ($Missing.Count -eq 0 -and (Test-DashboardV2Proxy)) { break }
+    $Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url 2) })
+    if ($Missing.Count -eq 0) { break }
+    $MissingKey = ($Missing | ForEach-Object { $_.Name }) -join ", "
+    if ($MissingKey -ne $LastMissingKey) {
+        Write-Host "Dashboard V2 waiting for: $MissingKey"
+        $LastMissingKey = $MissingKey
+    }
     Start-Sleep -Milliseconds 500
 }
-$Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url) })
+
+$Missing = @($Required | Where-Object { -not (Test-LocalService $_.Url 2) })
 if ($Missing.Count -gt 0) {
     $Names = ($Missing | ForEach-Object { $_.Name }) -join ", "
-    throw "Dashboard V2 startup incomplete: $Names. Check data\api-v2.stderr.log, data\multi-live.stderr.log, data\predict-fun-v2.stderr.log, data\web-v2.stderr.log."
+    throw "Dashboard V2 startup incomplete: $Names. Health checks use hard curl timeouts; check data\api-v2.stderr.log, data\multi-live.stderr.log, data\predict-fun-v2.stderr.log, data\web-v2.stderr.log."
 }
 
+# Only after every direct backend is healthy do we test the Vite proxies.  A
+# failing backend is therefore reported as that backend, never as a stale Vite.
 $BridgeUrls = @(
     @{ Name = "8766"; Url = "http://127.0.0.1:4320/bridge/realtime" },
     @{ Name = "8767"; Url = "http://127.0.0.1:4320/bridge/cross-oracle" },
@@ -388,10 +427,10 @@ $BridgeUrls = @(
 if ($script:PredictFunEnabled) {
     $BridgeUrls += @{ Name = "8771"; Url = "http://127.0.0.1:4320/bridge/predict-fun" }
 }
-$BadBridges = @($BridgeUrls | Where-Object { -not (Test-JsonService $_.Url) })
+$BadBridges = @($BridgeUrls | Where-Object { -not (Test-JsonService $_.Url 3) })
 if ($BadBridges.Count -gt 0) {
     $Names = ($BadBridges | ForEach-Object { $_.Name }) -join ", "
-    throw "Dashboard V2 proxy returned non-JSON/unhealthy responses for: $Names. The web server is not running the current vite.config.ts."
+    throw "Dashboard V2 proxy returned non-JSON/unhealthy responses for: $Names. Direct backends were healthy, so check data\web-v2.stderr.log and vite.config.ts."
 }
 
 $BtcVersion = Get-ServiceVersion 8769
@@ -416,6 +455,7 @@ if ($script:PredictFunEnabled -and $PredictFunVersion -ne "PREDICT_FUN_MULTI_OBS
 }
 
 Write-Host "Dashboard V2 ready: http://localhost:4320"
+Write-Host "8768 Paper/research strategy state: http://127.0.0.1:8768/state"
 Write-Host "BTC live state: http://127.0.0.1:8769/state"
 Write-Host "ETH live state: http://127.0.0.1:8772/state"
 Write-Host "BNB live state: http://127.0.0.1:8773/state"
