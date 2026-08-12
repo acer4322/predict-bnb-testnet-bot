@@ -5,6 +5,7 @@
   },
   "include": [
     "src/wallet-shadow-page.tsx",
+    "src/wallet-shadow-taker-v1-panel.tsx",
     "src/wallet-shadow-store.ts"
   ]
 }
