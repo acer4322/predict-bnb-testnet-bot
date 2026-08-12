@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import os
+
 import pytest
 
-from predict_bot.wallet_maker_clone_pair_locked_edge import apply_equal_share_locked_edge
+os.environ.setdefault("PREDICT_WALLET_MAKER_CLONE_ASSET", "ETH")
+os.environ.setdefault("PREDICT_WALLET_MAKER_CLONE_ENABLED", "false")
+
+from predict_bot.wallet_maker_clone_pair_locked_edge import apply_equal_share_locked_edge  # noqa: E402
 
 
 def _plans(up_price: float, down_price: float, up_shares: float = 2.0, down_shares: float = 2.0):
