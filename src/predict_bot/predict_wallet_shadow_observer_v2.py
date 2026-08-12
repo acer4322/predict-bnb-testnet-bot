@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import json
-from datetime import datetime
 from http.server import ThreadingHTTPServer
 from typing import Any
 
 from . import predict_wallet_shadow_observer as base
 
 WEI = 10**18
-VERSION = "PREDICT_WALLET_SHADOW_V0_1"
+VERSION = "PREDICT_WALLET_SHADOW_V0_2"
 
 
 def dec_wei(value: Any) -> float | None:
@@ -26,13 +24,7 @@ def normalize_match_leg(
     role: str,
     maker_index: int | None = None,
 ) -> dict[str, Any] | None:
-    """Decode Predict MatchData exactly like the existing wallet profiler.
-
-    Predict order participant ``amount`` and ``price`` are fixed-point 1e18
-    strings in the API payloads consumed by this repository.  The first shadow
-    prototype treated them as ordinary decimals; this hardened version uses the
-    same wire decoding as ``profile_predict_wallet_fair_value_execution_v2``.
-    """
+    """Decode Predict MatchData with the repository's canonical 1e18 scaling."""
 
     row = base._record(raw)
     market = base._record(row.get("market"))
@@ -139,6 +131,24 @@ class WalletShadowObserver(base.WalletShadowObserver):
             "amount": "uint256 / 1e18",
             "price": "uint256 / 1e18",
             "source": "same convention as profile_predict_wallet_fair_value_execution_v2",
+        }
+
+        target = sorted(self.parents.values(), key=lambda item: item.first_event_ms, reverse=True)
+        first_shadow_ms = min(
+            (event.at_ms for event in self.shadow_events),
+            default=None,
+        )
+        eligible = [
+            item
+            for item in target
+            if first_shadow_ms is not None and item.first_event_ms >= first_shadow_ms
+        ]
+        payload["similarity"] = base.similarity(eligible, self.shadow_events)
+        payload["similarityWindow"] = {
+            "shadowStartedAtMs": first_shadow_ms,
+            "eligibleTargetParents": len(eligible),
+            "preShadowTargetParentsExcluded": len(target) - len(eligible),
+            "rule": "target parent firstEventMs >= first causal shadow event",
         }
         return payload
 
