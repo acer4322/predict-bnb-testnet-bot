@@ -8,6 +8,7 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   DollarOutlined,
+  ExperimentOutlined,
   MenuOutlined,
   SafetyCertificateOutlined,
   SwapOutlined,
@@ -16,9 +17,11 @@ import type { MenuProps } from 'antd'
 import { type ServiceSnapshot, useDashboardStore } from './store'
 import { useStrategyStore } from './strategy-store'
 import { usePredictFunStore } from './predict-fun-store'
+import { useWalletShadowStore } from './wallet-shadow-store'
 import LiveMarketsPage from './live-markets-page'
 import PinnedDivergencePage from './pinned-divergence-page'
 import WalletClonePage from './wallet-clone-page-v84'
+import WalletShadowPage from './wallet-shadow-page'
 import {
   DiagnosticsPage,
   LivePage,
@@ -41,6 +44,7 @@ function ServiceTag({ label, service }: { label: string; service: ServiceSnapsho
 const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '總覽' },
   { key: '/live-markets', icon: <DollarOutlined />, label: 'Live Markets' },
+  { key: '/wallet-shadow', icon: <ExperimentOutlined />, label: 'Wallet Shadow Lab' },
   { key: '/wallet-clone', icon: <SwapOutlined />, label: 'Wallet Maker Clone' },
   { key: '/pinned-divergence', icon: <AimOutlined />, label: 'Pinned Divergence' },
   { key: '/live', icon: <SafetyCertificateOutlined />, label: 'Echtgeld Monitor' },
@@ -61,6 +65,8 @@ function Shell() {
   const strategyService = useStrategyStore((state) => state.service)
   const refreshPredictFun = usePredictFunStore((state) => state.refresh)
   const predictFunService = usePredictFunStore((state) => state.service)
+  const refreshWalletShadow = useWalletShadowStore((state) => state.refresh)
+  const walletShadowService = useWalletShadowStore((state) => state.service)
   const mobile = !screens.lg
 
   useEffect(() => {
@@ -69,6 +75,7 @@ function Shell() {
       if (!cancelled && document.visibilityState === 'visible') {
         void refreshFast()
         void refreshPredictFun()
+        void refreshWalletShadow()
       }
     }
     tick()
@@ -80,7 +87,7 @@ function Shell() {
       window.clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [refreshFast, refreshPredictFun])
+  }, [refreshFast, refreshPredictFun, refreshWalletShadow])
 
   useEffect(() => {
     let cancelled = false
@@ -139,12 +146,14 @@ function Shell() {
             <ServiceTag label="8769" service={services.polyGap} />
             <ServiceTag label="8770" service={services.multiMarket} />
             <ServiceTag label="8771" service={predictFunService} />
+            <ServiceTag label="8776" service={walletShadowService} />
           </Space>
         </Header>
         <Content className="app-content">
           <Routes>
             <Route path="/" element={<OverviewPage />} />
             <Route path="/live-markets" element={<LiveMarketsPage />} />
+            <Route path="/wallet-shadow" element={<WalletShadowPage />} />
             <Route path="/wallet-clone" element={<WalletClonePage />} />
             <Route path="/pinned-divergence" element={<PinnedDivergencePage />} />
             <Route path="/live" element={<LivePage />} />
