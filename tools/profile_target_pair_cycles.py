@@ -10,9 +10,17 @@ from pathlib import Path
 from typing import Any
 
 
-FIVE_MIN_TITLE = re.compile(
-    r"^(Bitcoin|BTC|Ethereum|ETH|BNB) Up or Down - .+,\s*(\d{1,2})(?::(\d{2}))?(AM|PM)-(\d{1,2})(?::(\d{2}))?(AM|PM) ET$"
+UPDOWN_TITLE = re.compile(
+    r"^(Bitcoin|BTC|Ethereum|ETH|BNB) Up or Down - .+,\s*(\d{1,2})(?::(\d{2}))?(AM|PM)-(\d{1,2})(?::(\d{2}))?(AM|PM) ET$",
+    re.I,
 )
+ASSET_ALIASES = {
+    "BITCOIN": "BTC",
+    "BTC": "BTC",
+    "ETHEREUM": "ETH",
+    "ETH": "ETH",
+    "BNB": "BNB",
+}
 
 
 def parse_iso(value: Any) -> datetime | None:
@@ -32,11 +40,14 @@ def minute_of_day(hour: int, minute: int, ampm: str) -> int:
     return hour * 60 + minute
 
 
-def is_crypto_5m(title: Any) -> bool:
+def market_descriptor(title: Any) -> tuple[str, int] | None:
     text = str(title or "").strip()
-    match = FIVE_MIN_TITLE.match(text)
+    match = UPDOWN_TITLE.match(text)
     if not match:
-        return False
+        return None
+    asset = ASSET_ALIASES.get(str(match.group(1) or "").upper())
+    if not asset:
+        return None
     sh, sm, sap, eh, em, eap = (
         int(match.group(2)),
         int(match.group(3) or 0),
@@ -49,12 +60,33 @@ def is_crypto_5m(title: Any) -> bool:
     end = minute_of_day(eh, em, eap)
     if end < start:
         end += 24 * 60
-    return end - start == 5
+    duration = end - start
+    return asset, duration if duration > 0 else 0
 
 
-# Backward-compatible alias for external callers/tests that imported the old helper.
+def is_crypto_duration(title: Any, assets: set[str], durations: set[int]) -> bool:
+    descriptor = market_descriptor(title)
+    return bool(descriptor and descriptor[0] in assets and descriptor[1] in durations)
+
+
+# Backward-compatible helper retained for callers/tests using the old name.
 def is_eth_bnb_5m(title: Any) -> bool:
-    return is_crypto_5m(title)
+    return is_crypto_duration(title, {"BTC", "ETH", "BNB"}, {5})
+
+
+def parse_assets(value: str) -> set[str]:
+    rows = {str(x).strip().upper() for x in str(value).split(",") if str(x).strip()}
+    aliases = {ASSET_ALIASES.get(x, x) for x in rows}
+    return {x for x in aliases if x in {"BTC", "ETH", "BNB"}}
+
+
+def parse_durations(value: str) -> set[int]:
+    out: set[int] = set()
+    for part in str(value).split(","):
+        text = part.strip().lower().removesuffix("m")
+        if text:
+            out.add(int(text))
+    return {x for x in out if x > 0}
 
 
 def percentile(values: list[float], q: float) -> float | None:
@@ -119,13 +151,22 @@ def nearest_opposite_gap(
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Test whether target BTC/ETH/BNB 5m makerHash fills look like strict paired cycles "
+            "Test whether target crypto Up/Down makerHash fills look like strict paired cycles "
             "or softer inventory-balanced replenishment. Read-only; match history cannot see unfilled/cancelled orders."
         )
     )
     parser.add_argument("--input", default="data/target_maker_hash_profile.json")
     parser.add_argument("--output", default="data/target_pair_cycle_profile.json")
+    parser.add_argument("--assets", default="BTC,ETH,BNB", help="Comma-separated assets; default BTC,ETH,BNB")
+    parser.add_argument("--durations", default="5", help="Comma-separated minute durations; e.g. 5 or 5,15")
     args = parser.parse_args()
+
+    assets = parse_assets(args.assets)
+    durations = parse_durations(args.durations)
+    if not assets:
+        raise SystemExit("--assets must include one or more of BTC,ETH,BNB")
+    if not durations:
+        raise SystemExit("--durations must include at least one positive minute value")
 
     source = Path(args.input)
     report = json.loads(source.read_text(encoding="utf-8"))
@@ -133,11 +174,19 @@ def main() -> int:
     if not isinstance(rows, list):
         raise SystemExit("input does not contain parentOrdersByMakerHash")
 
+    recognized_scope: Counter[str] = Counter()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        descriptor = market_descriptor(row.get("marketTitle"))
+        if descriptor:
+            recognized_scope[f"{descriptor[0]}-{descriptor[1]}m"] += 1
+
     filtered = [
         row
         for row in rows
         if isinstance(row, dict)
-        and is_crypto_5m(row.get("marketTitle"))
+        and is_crypto_duration(row.get("marketTitle"), assets, durations)
         and str(row.get("outcome") or "").upper() in {"UP", "DOWN"}
     ]
     by_market: dict[int, list[dict[str, Any]]] = defaultdict(list)
@@ -188,9 +237,6 @@ def main() -> int:
                     }
                 )
 
-        # Strict one-UP + one-DOWN generations imply completion events should be
-        # largely pairable into opposite-side adjacent pairs. This is only a
-        # proxy because matches do not expose true terminal/cancel timestamps.
         for index in range(0, len(last_sorted) - 1, 2):
             left = str(last_sorted[index].get("outcome") or "").upper()
             right = str(last_sorted[index + 1].get("outcome") or "").upper()
@@ -206,9 +252,6 @@ def main() -> int:
             if gap_last is not None:
                 opposite_gap_last.append(gap_last)
 
-        # Softer inventory-control test. At each observed parent completion, use
-        # cumulative observed filled shares only. If UP inventory exceeds DOWN,
-        # a new DOWN fill reduces residual; another UP fill increases it.
         up_shares = 0.0
         down_shares = 0.0
         for row in last_sorted:
@@ -264,27 +307,21 @@ def main() -> int:
         inventory_decisions["reduced_observed_share_imbalance"]
         + inventory_decisions["increased_observed_share_imbalance"]
     )
+    filter_text = f"assets={','.join(sorted(assets))}; durations={','.join(str(x) for x in sorted(durations))}m target maker parents only"
     summary = {
         "source": str(source),
-        "filter": "BTC/ETH/BNB exact 5-minute target maker parents only",
+        "filter": filter_text,
+        "recognizedSourceScopeParentCounts": dict(sorted(recognized_scope.items())),
         "markets": len(by_market),
         "parentOrdersApprox": len(filtered),
         "strictPairedCycleProxies": {
             "adjacentCompletionPairs": adjacent_completion_pairs,
             "adjacentCompletionPairsOpposite": adjacent_completion_pairs_opposite,
-            "oppositePairShare": (
-                adjacent_completion_pairs_opposite / adjacent_completion_pairs
-                if adjacent_completion_pairs
-                else None
-            ),
+            "oppositePairShare": adjacent_completion_pairs_opposite / adjacent_completion_pairs if adjacent_completion_pairs else None,
             "marketsWithThreeOrMoreSameSideFirstFillRun": triple_run_markets_first,
-            "shareMarketsWithThreeOrMoreSameSideFirstFillRun": (
-                triple_run_markets_first / len(by_market) if by_market else None
-            ),
+            "shareMarketsWithThreeOrMoreSameSideFirstFillRun": triple_run_markets_first / len(by_market) if by_market else None,
             "marketsWithThreeOrMoreSameSideCompletionRun": triple_run_markets_last,
-            "shareMarketsWithThreeOrMoreSameSideCompletionRun": (
-                triple_run_markets_last / len(by_market) if by_market else None
-            ),
+            "shareMarketsWithThreeOrMoreSameSideCompletionRun": triple_run_markets_last / len(by_market) if by_market else None,
             "firstFillRunLengthMedian": statistics.median(first_runs) if first_runs else None,
             "firstFillRunLengthP90": percentile([float(x) for x in first_runs], 0.90),
             "completionRunLengthMedian": statistics.median(last_runs) if last_runs else None,
@@ -296,17 +333,9 @@ def main() -> int:
         },
         "observedShareInventoryResponse": {
             **dict(inventory_decisions),
-            "imbalanceReducingShareAmongDirectionalDecisions": (
-                inventory_decisions["reduced_observed_share_imbalance"] / actionable
-                if actionable
-                else None
-            ),
-            "medianAbsoluteImbalanceBeforeObservedParentCompletion": (
-                statistics.median(inventory_abs_before) if inventory_abs_before else None
-            ),
-            "medianAbsoluteImbalanceAfterObservedParentCompletion": (
-                statistics.median(inventory_abs_after) if inventory_abs_after else None
-            ),
+            "imbalanceReducingShareAmongDirectionalDecisions": inventory_decisions["reduced_observed_share_imbalance"] / actionable if actionable else None,
+            "medianAbsoluteImbalanceBeforeObservedParentCompletion": statistics.median(inventory_abs_before) if inventory_abs_before else None,
+            "medianAbsoluteImbalanceAfterObservedParentCompletion": statistics.median(inventory_abs_after) if inventory_abs_after else None,
         },
     }
 
@@ -315,15 +344,9 @@ def main() -> int:
         "examplesThreePlusSameSideCompletionRun": examples_triple,
         "examplesObservedShareImbalanceIncreased": examples_inventory_increase,
         "interpretation": {
-            "strictCycleSupport": (
-                "High opposite-pair share, very few 3+ same-side completion runs, and tight opposite-side timing are compatible with strict paired generations."
-            ),
-            "strictCycleAgainst": (
-                "Many 3+ same-side completion runs are hard to reconcile with a rule requiring both sides of generation N to fill before generation N+1, unless substantial unobserved cancel/replace behavior exists."
-            ),
-            "inventoryGateSupport": (
-                "A high imbalance-reducing share suggests a softer inventory-aware controller that preferentially replenishes the lagging outcome rather than a strict generation lockstep."
-            ),
+            "strictCycleSupport": "High opposite-pair share, very few 3+ same-side completion runs, and tight opposite-side timing are compatible with strict paired generations.",
+            "strictCycleAgainst": "Many 3+ same-side completion runs are hard to reconcile with a rule requiring both sides of generation N to fill before generation N+1, unless substantial unobserved cancel/replace behavior exists.",
+            "inventoryGateSupport": "A high imbalance-reducing share suggests a softer inventory-aware controller that preferentially replenishes the lagging outcome rather than a strict generation lockstep.",
         },
         "caveats": [
             "Public matches expose only filled maker amounts, not original order size, resting time, cancellation, or true terminal order state.",
