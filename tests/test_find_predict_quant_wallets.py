@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -8,6 +9,7 @@ MODULE_PATH = Path(__file__).resolve().parents[1] / "tools" / "find_predict_quan
 SPEC = importlib.util.spec_from_file_location("find_predict_quant_wallets", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 m = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = m
 SPEC.loader.exec_module(m)
 
 
