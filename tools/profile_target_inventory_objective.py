@@ -11,7 +11,7 @@ from typing import Any
 
 
 FIVE_MIN_TITLE = re.compile(
-    r"^(Ethereum|BNB) Up or Down - .+,\s*(\d{1,2})(?::(\d{2}))?(AM|PM)-(\d{1,2})(?::(\d{2}))?(AM|PM) ET$"
+    r"^(Bitcoin|BTC|Ethereum|ETH|BNB) Up or Down - .+,\s*(\d{1,2})(?::(\d{2}))?(AM|PM)-(\d{1,2})(?::(\d{2}))?(AM|PM) ET$"
 )
 
 
@@ -22,7 +22,7 @@ def minute_of_day(hour: int, minute: int, ampm: str) -> int:
     return hour * 60 + minute
 
 
-def is_eth_bnb_5m(title: Any) -> bool:
+def is_crypto_5m(title: Any) -> bool:
     match = FIVE_MIN_TITLE.match(str(title or "").strip())
     if not match:
         return False
@@ -37,6 +37,11 @@ def is_eth_bnb_5m(title: Any) -> bool:
     return end - start == 5
 
 
+# Backward-compatible alias for external callers/tests that imported the old helper.
+def is_eth_bnb_5m(title: Any) -> bool:
+    return is_crypto_5m(title)
+
+
 def parse_iso(value: Any) -> datetime:
     return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(timezone.utc)
 
@@ -47,7 +52,7 @@ def median(values: list[float]) -> float | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Test which inventory objective best explains 0x9Dd ETH/BNB 5m maker parent completions. Read-only."
+        description="Test which inventory objective best explains BTC/ETH/BNB 5m maker parent completions. Read-only."
     )
     parser.add_argument("--input", default="data/target_maker_hash_profile.json")
     parser.add_argument("--output", default="data/target_inventory_objective_profile.json")
@@ -59,7 +64,7 @@ def main() -> int:
     if not isinstance(rows, list):
         raise SystemExit("input does not contain parentOrdersByMakerHash")
 
-    filtered = [r for r in rows if isinstance(r, dict) and is_eth_bnb_5m(r.get("marketTitle"))]
+    filtered = [r for r in rows if isinstance(r, dict) and is_crypto_5m(r.get("marketTitle"))]
     by_market: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for row in filtered:
         by_market[int(row.get("marketId") or 0)].append(row)
@@ -89,7 +94,6 @@ def main() -> int:
             side = str(row.get("outcome") or "").upper()
             if side not in {"UP", "DOWN"}:
                 continue
-            other = "DOWN" if side == "UP" else "UP"
             qty = float(row.get("totalShares") or 0.0)
             price = float(row.get("price") or 0.0)
             cost = float(row.get("totalCostUsdtApprox") or qty * price)
@@ -169,7 +173,7 @@ def main() -> int:
     total_parents = len(filtered)
     summary = {
         "source": str(source),
-        "filter": "ETH/BNB exact 5-minute target maker parents only",
+        "filter": "BTC/ETH/BNB exact 5-minute target maker parents only",
         "markets": len(by_market),
         "parentOrdersApprox": total_parents,
         "balanceObjectiveTests": {
