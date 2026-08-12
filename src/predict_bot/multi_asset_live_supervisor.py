@@ -74,7 +74,7 @@ def _wallet_shadow_process() -> subprocess.Popen[bytes] | None:
         f"target={target}; no order-write path",
         flush=True,
     )
-    return subprocess.Popen([sys.executable, "-m", "predict_bot.predict_wallet_shadow_observer"])
+    return subprocess.Popen([sys.executable, "-m", "predict_bot.predict_wallet_shadow_observer_v2"])
 
 
 def _asset_environment(asset: str) -> dict[str, str]:
