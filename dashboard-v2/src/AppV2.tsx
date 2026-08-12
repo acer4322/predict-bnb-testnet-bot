@@ -18,7 +18,7 @@ import { useStrategyStore } from './strategy-store'
 import { usePredictFunStore } from './predict-fun-store'
 import LiveMarketsPage from './live-markets-page'
 import PinnedDivergencePage from './pinned-divergence-page'
-import WalletClonePage from './wallet-clone-page'
+import WalletClonePage from './wallet-clone-page-v84'
 import {
   DiagnosticsPage,
   LivePage,
