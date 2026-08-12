@@ -4,15 +4,23 @@ import argparse
 import json
 import re
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
-FIVE_MIN_TITLE = re.compile(
-    r"^(Bitcoin|BTC|Ethereum|ETH|BNB) Up or Down - .+,\s*(\d{1,2})(?::(\d{2}))?(AM|PM)-(\d{1,2})(?::(\d{2}))?(AM|PM) ET$"
+UPDOWN_TITLE = re.compile(
+    r"^(Bitcoin|BTC|Ethereum|ETH|BNB) Up or Down - .+,\s*(\d{1,2})(?::(\d{2}))?(AM|PM)-(\d{1,2})(?::(\d{2}))?(AM|PM) ET$",
+    re.I,
 )
+ASSET_ALIASES = {
+    "BITCOIN": "BTC",
+    "BTC": "BTC",
+    "ETHEREUM": "ETH",
+    "ETH": "ETH",
+    "BNB": "BNB",
+}
 
 
 def minute_of_day(hour: int, minute: int, ampm: str) -> int:
@@ -22,10 +30,13 @@ def minute_of_day(hour: int, minute: int, ampm: str) -> int:
     return hour * 60 + minute
 
 
-def is_crypto_5m(title: Any) -> bool:
-    match = FIVE_MIN_TITLE.match(str(title or "").strip())
+def market_descriptor(title: Any) -> tuple[str, int] | None:
+    match = UPDOWN_TITLE.match(str(title or "").strip())
     if not match:
-        return False
+        return None
+    asset = ASSET_ALIASES.get(str(match.group(1) or "").upper())
+    if not asset:
+        return None
     sh, sm, sap, eh, em, eap = (
         int(match.group(2)), int(match.group(3) or 0), match.group(4),
         int(match.group(5)), int(match.group(6) or 0), match.group(7),
@@ -34,12 +45,33 @@ def is_crypto_5m(title: Any) -> bool:
     end = minute_of_day(eh, em, eap)
     if end < start:
         end += 1440
-    return end - start == 5
+    duration = end - start
+    return asset, duration if duration > 0 else 0
 
 
-# Backward-compatible alias for external callers/tests that imported the old helper.
+def is_crypto_duration(title: Any, assets: set[str], durations: set[int]) -> bool:
+    descriptor = market_descriptor(title)
+    return bool(descriptor and descriptor[0] in assets and descriptor[1] in durations)
+
+
+# Backward-compatible helper retained for callers/tests using the old name.
 def is_eth_bnb_5m(title: Any) -> bool:
-    return is_crypto_5m(title)
+    return is_crypto_duration(title, {"BTC", "ETH", "BNB"}, {5})
+
+
+def parse_assets(value: str) -> set[str]:
+    rows = {str(x).strip().upper() for x in str(value).split(",") if str(x).strip()}
+    aliases = {ASSET_ALIASES.get(x, x) for x in rows}
+    return {x for x in aliases if x in {"BTC", "ETH", "BNB"}}
+
+
+def parse_durations(value: str) -> set[int]:
+    out: set[int] = set()
+    for part in str(value).split(","):
+        text = part.strip().lower().removesuffix("m")
+        if text:
+            out.add(int(text))
+    return {x for x in out if x > 0}
 
 
 def parse_iso(value: Any) -> datetime:
@@ -52,11 +84,20 @@ def median(values: list[float]) -> float | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Test which inventory objective best explains BTC/ETH/BNB 5m maker parent completions. Read-only."
+        description="Test which inventory objective best explains crypto Up/Down maker parent completions. Read-only."
     )
     parser.add_argument("--input", default="data/target_maker_hash_profile.json")
     parser.add_argument("--output", default="data/target_inventory_objective_profile.json")
+    parser.add_argument("--assets", default="BTC,ETH,BNB", help="Comma-separated assets; default BTC,ETH,BNB")
+    parser.add_argument("--durations", default="5", help="Comma-separated minute durations; e.g. 5 or 5,15")
     args = parser.parse_args()
+
+    assets = parse_assets(args.assets)
+    durations = parse_durations(args.durations)
+    if not assets:
+        raise SystemExit("--assets must include one or more of BTC,ETH,BNB")
+    if not durations:
+        raise SystemExit("--durations must include at least one positive minute value")
 
     source = Path(args.input)
     payload = json.loads(source.read_text(encoding="utf-8"))
@@ -64,7 +105,18 @@ def main() -> int:
     if not isinstance(rows, list):
         raise SystemExit("input does not contain parentOrdersByMakerHash")
 
-    filtered = [r for r in rows if isinstance(r, dict) and is_crypto_5m(r.get("marketTitle"))]
+    recognized_scope: Counter[str] = Counter()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        descriptor = market_descriptor(row.get("marketTitle"))
+        if descriptor:
+            recognized_scope[f"{descriptor[0]}-{descriptor[1]}m"] += 1
+
+    filtered = [
+        r for r in rows
+        if isinstance(r, dict) and is_crypto_duration(r.get("marketTitle"), assets, durations)
+    ]
     by_market: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for row in filtered:
         by_market[int(row.get("marketId") or 0)].append(row)
@@ -171,9 +223,11 @@ def main() -> int:
         final_pp_imbalance.append(abs(pps["UP"] - pps["DOWN"]))
 
     total_parents = len(filtered)
+    filter_text = f"assets={','.join(sorted(assets))}; durations={','.join(str(x) for x in sorted(durations))}m target maker parents only"
     summary = {
         "source": str(source),
-        "filter": "BTC/ETH/BNB exact 5-minute target maker parents only",
+        "filter": filter_text,
+        "recognizedSourceScopeParentCounts": dict(sorted(recognized_scope.items())),
         "markets": len(by_market),
         "parentOrdersApprox": total_parents,
         "balanceObjectiveTests": {
@@ -188,9 +242,7 @@ def main() -> int:
             "fullyPairingParents": fully_pairing,
             "partiallyPairingParents": partial_pairing,
             "noImmediatePairingParents": no_pairing,
-            "shareOfObservedParentSharesImmediatelyPaired": (
-                total_immediate_paired_shares / total_parent_shares if total_parent_shares else None
-            ),
+            "shareOfObservedParentSharesImmediatelyPaired": total_immediate_paired_shares / total_parent_shares if total_parent_shares else None,
         },
         "worstCaseSettlementPnlResponse": {
             "improvingParents": wc_improving,
@@ -201,9 +253,7 @@ def main() -> int:
         "marketFinalObservedState": {
             "medianWorstCaseSettlementPnlUsdt": median(final_wc),
             "marketsWithPositiveWorstCaseSettlementPnl": sum(1 for x in final_wc if x > 0),
-            "shareMarketsWithPositiveWorstCaseSettlementPnl": (
-                sum(1 for x in final_wc if x > 0) / len(final_wc) if final_wc else None
-            ),
+            "shareMarketsWithPositiveWorstCaseSettlementPnl": sum(1 for x in final_wc if x > 0) / len(final_wc) if final_wc else None,
             "medianBestCaseSettlementPnlUsdt": median(final_best),
             "medianPairedShareCoverage": median(final_pair_coverage),
             "medianAbsoluteCostImbalanceUsdt": median(final_cost_imbalance),
