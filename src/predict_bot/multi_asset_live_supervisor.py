@@ -139,11 +139,11 @@ def _clone_process(asset: str) -> subprocess.Popen[bytes] | None:
     master = os.environ.get(f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED", "true")
     venue = _clone_venue(asset)
     if venue == "PREDICT_DIRECT":
-        module = "predict_bot.wallet_maker_clone_predict_direct_v8_2"
-        label = "V8.2 Predict-direct bounded paired-risk (discovery + LIMIT payload fixed)"
+        module = "predict_bot.wallet_maker_clone_predict_direct_v8_3"
+        label = "V8.3 Predict-direct pair locked-edge"
     else:
-        module = "predict_bot.wallet_maker_clone_live_v8"
-        label = "V8 Binance Prediction bounded paired-risk"
+        module = "predict_bot.wallet_maker_clone_live_v8_3"
+        label = "V8.3 Binance Prediction pair locked-edge"
     print(
         f"multi-asset live: starting {asset} wallet maker clone {label} on {port}; "
         f"venue={venue}; master={master}; runtime is force-paused on every process start",
