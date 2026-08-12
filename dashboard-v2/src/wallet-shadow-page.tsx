@@ -19,6 +19,7 @@ import {
 } from '@ant-design/icons'
 import type { TableColumnsType } from 'antd'
 import { useWalletShadowStore } from './wallet-shadow-store'
+import WalletShadowTakerV1Panel from './wallet-shadow-taker-v1-panel'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -252,6 +253,8 @@ export default function WalletShadowPage() {
           <Col xs={12} md={6}><Card size="small"><Statistic title="Stored Shadow rows" value={number(storedRows.shadow) ?? 0} /><Text type="secondary">Pending settlement {text(performance.pendingSettlementMarkets, '0')}</Text></Card></Col>
         </Row>
       </Card>
+
+      <WalletShadowTakerV1Panel />
 
       <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
         <Col xs={24} xl={8}>
