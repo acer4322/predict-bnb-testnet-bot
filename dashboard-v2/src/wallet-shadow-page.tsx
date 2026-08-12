@@ -51,6 +51,13 @@ function pct(value: unknown): string {
   return parsed === null ? '—' : `${(parsed * 100).toFixed(1)}%`
 }
 
+function money(value: unknown): string {
+  const parsed = number(value)
+  if (parsed === null) return '—'
+  const sign = parsed > 0 ? '+' : ''
+  return `${sign}$${parsed.toFixed(2)}`
+}
+
 function time(value: unknown): string {
   const parsed = number(value)
   if (parsed === null || parsed <= 0) return '—'
@@ -79,6 +86,15 @@ function sideTag(value: unknown) {
 function roleTag(value: unknown) {
   const role = text(value).toUpperCase()
   return <Tag color={role === 'MAKER' ? 'blue' : role === 'TAKER' ? 'purple' : 'default'}>{role}</Tag>
+}
+
+function resultTag(value: unknown) {
+  const status = text(value).toUpperCase()
+  if (status === 'WIN') return <Tag color="success">WIN</Tag>
+  if (status === 'LOSS') return <Tag color="error">LOSS</Tag>
+  if (status === 'FLAT') return <Tag color="warning">FLAT</Tag>
+  if (status === 'NO_TRADE') return <Tag>NO TRADE</Tag>
+  return <Tag>{status}</Tag>
 }
 
 function statusColor(value: unknown): string {
@@ -124,8 +140,12 @@ export default function WalletShadowPage() {
   const core = row(snapshot.coreSignal)
   const assumptions = row(snapshot.assumptions)
   const similarity = row(snapshot.similarity)
+  const retention = row(snapshot.retention)
+  const performance = row(snapshot.performance)
+  const storedRows = row(performance.storedRows)
   const targetEvents = rows(target.events)
   const shadowEvents = rows(shadow.events)
+  const recentMarkets = rows(performance.recentMarkets)
 
   const targetColumns: TableColumnsType<RowObject> = [
     { title: '時間', key: 'time', width: 105, render: (_, item) => time(item.firstEventMs) },
@@ -147,6 +167,19 @@ export default function WalletShadowPage() {
     { title: 'Core', key: 'core', width: 150, render: (_, item) => <Space size={4}>{sideTag(item.coreSide)}<Text type="secondary">{text(item.coreSource)}</Text></Space> },
     { title: '推定層級', key: 'inference', width: 180, render: (_, item) => <Tag color={text(item.inference) === 'KNOWN_PATTERN' ? 'green' : 'gold'}>{text(item.inference)}</Tag> },
     { title: '原因', key: 'reason', render: (_, item) => text(item.reason) },
+  ]
+
+  const resultColumns: TableColumnsType<RowObject> = [
+    { title: 'Market', key: 'market', width: 90, render: (_, item) => `#${text(item.market_id)}` },
+    { title: 'Winner', key: 'winner', width: 80, render: (_, item) => sideTag(item.winner) },
+    { title: 'Result', key: 'result', width: 95, render: (_, item) => resultTag(item.status) },
+    { title: 'Fills', key: 'fills', width: 65, render: (_, item) => text(item.fill_count) },
+    { title: 'Paper cost', key: 'cost', width: 105, render: (_, item) => `$${fixed(item.cost_usdt, 2)}` },
+    { title: 'Gross PnL', key: 'pnl', width: 105, render: (_, item) => <strong>{money(item.gross_pnl_usdt)}</strong> },
+    { title: 'ROI', key: 'roi', width: 85, render: (_, item) => pct(item.gross_roi) },
+    { title: 'Maker PnL', key: 'maker', width: 105, render: (_, item) => money(item.maker_pnl_usdt) },
+    { title: 'Taker PnL', key: 'taker', width: 105, render: (_, item) => money(item.taker_pnl_usdt) },
+    { title: 'Resolved', key: 'resolved', width: 110, render: (_, item) => time(item.resolved_at_ms) },
   ]
 
   const similarityMetrics = [
@@ -185,8 +218,8 @@ export default function WalletShadowPage() {
         type="info"
         showIcon
         icon={<EyeInvisibleOutlined />}
-        message="看不到目標錢包未成交掛單；這正是此實驗要驗證的部分"
-        description="Target 成交只拿來做事後比對，不會驅動 Shadow。MAKER_QUOTE 是依已知 18-share / cent-grid 模式推定；MAKER_FILL_PROXY 是 book-through / ask-touch 代理；TAKER_INTENT 是我們核心方向與推定 Maker residual 背離時的主動修正假說。"
+        message="Target 只做事後比較；Shadow 的盈虧獨立計算"
+        description="看不到目標錢包未成交掛單。Target 成交不會驅動 Shadow。Paper PnL 將 MAKER_FILL_PROXY 視為在推定掛單價成交、TAKER_INTENT 視為在當時 ask 成交，之後持有到二元市場結算；目前顯示 gross PnL，尚未扣精確 fee / rebate / slippage。"
         style={{ marginBottom: 12 }}
       />
 
@@ -202,6 +235,23 @@ export default function WalletShadowPage() {
         <Col xs={12} md={6} xl={5}><Card size="small"><Statistic title="Target parents" value={number(target.parentCount) ?? 0} /><Text type="secondary">M {text(target.makerParents)} / T {text(target.takerParents)}</Text></Card></Col>
         <Col xs={12} md={6} xl={5}><Card size="small"><Statistic title="Shadow events" value={number(shadow.eventCount) ?? 0} /><Text type="secondary">Paper only · no live writes</Text></Card></Col>
       </Row>
+
+      <Card title={`Shadow Paper Performance · rolling ${text(performance.windowDays, text(retention.days))} days`} style={{ marginTop: 12 }}>
+        <Row gutter={[12, 12]}>
+          <Col xs={12} md={8} xl={4}><Statistic title="Gross PnL" value={money(performance.grossPnlUsdt)} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="Win rate" value={pct(performance.winRate)} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="Gross ROI" value={pct(performance.grossRoi)} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="W / L / Flat" value={`${text(performance.wins, '0')} / ${text(performance.losses, '0')} / ${text(performance.flats, '0')}`} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="Traded / Settled" value={`${text(performance.tradedMarkets, '0')} / ${text(performance.settledMarkets, '0')}`} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="Retention" value={`${text(retention.days, '7')} days`} /></Col>
+        </Row>
+        <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+          <Col xs={12} md={6}><Card size="small"><Statistic title="Maker gross PnL" value={money(performance.makerGrossPnlUsdt)} /><Text type="secondary">cost ${fixed(performance.makerCostUsdt, 2)}</Text></Card></Col>
+          <Col xs={12} md={6}><Card size="small"><Statistic title="Taker gross PnL" value={money(performance.takerGrossPnlUsdt)} /><Text type="secondary">cost ${fixed(performance.takerCostUsdt, 2)}</Text></Card></Col>
+          <Col xs={12} md={6}><Card size="small"><Statistic title="Stored Target rows" value={number(storedRows.target) ?? 0} /><Text type="secondary">自動刪除超過 retention</Text></Card></Col>
+          <Col xs={12} md={6}><Card size="small"><Statistic title="Stored Shadow rows" value={number(storedRows.shadow) ?? 0} /><Text type="secondary">Pending settlement {text(performance.pendingSettlementMarkets, '0')}</Text></Card></Col>
+        </Row>
+      </Card>
 
       <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
         <Col xs={24} xl={8}>
@@ -237,6 +287,18 @@ export default function WalletShadowPage() {
           </Card>
         </Col>
       </Row>
+
+      <Card title={`最近已結算 Shadow 市場 · ${recentMarkets.length}`} style={{ marginTop: 12 }}>
+        <Table
+          rowKey={(item) => text(item.market_id)}
+          dataSource={recentMarkets}
+          columns={resultColumns}
+          size="small"
+          pagination={{ pageSize: 10, hideOnSinglePage: true }}
+          scroll={{ x: 1050 }}
+          locale={{ emptyText: '等待第一個 Shadow 有成交的市場結算' }}
+        />
+      </Card>
 
       <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
         <Col xs={24} xl={12}><InventoryCard title="Target 已成交 Inventory" inventory={targetInventory} /></Col>
