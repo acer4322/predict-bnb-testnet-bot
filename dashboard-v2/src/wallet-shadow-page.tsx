@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import {
   Alert,
   Card,
@@ -55,13 +54,14 @@ function pct(value: unknown): string {
 function time(value: unknown): string {
   const parsed = number(value)
   if (parsed === null || parsed <= 0) return '—'
-  return new Date(parsed).toLocaleTimeString('zh-TW', {
+  const date = new Date(parsed)
+  const clock = date.toLocaleTimeString('zh-TW', {
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    fractionalSecondDigits: 3,
   })
+  return `${clock}.${String(date.getMilliseconds()).padStart(3, '0')}`
 }
 
 function shortAddress(value: unknown): string {
@@ -114,7 +114,6 @@ function InventoryCard({ title, inventory }: { title: string; inventory: RowObje
 
 export default function WalletShadowPage() {
   const service = useWalletShadowStore((state) => state.service)
-  const refresh = useWalletShadowStore((state) => state.refresh)
   const snapshot = row(service.data)
   const market = row(snapshot.market)
   const book = row(market.book)
@@ -127,22 +126,6 @@ export default function WalletShadowPage() {
   const similarity = row(snapshot.similarity)
   const targetEvents = rows(target.events)
   const shadowEvents = rows(shadow.events)
-
-  useEffect(() => {
-    let cancelled = false
-    const tick = () => {
-      if (!cancelled && document.visibilityState === 'visible') void refresh()
-    }
-    tick()
-    const timer = window.setInterval(tick, 1000)
-    const onVisibility = () => tick()
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
-  }, [refresh])
 
   const targetColumns: TableColumnsType<RowObject> = [
     { title: '時間', key: 'time', width: 105, render: (_, item) => time(item.firstEventMs) },
