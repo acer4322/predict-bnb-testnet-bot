@@ -30,6 +30,7 @@ CLONES = {
     },
 }
 OBSERVER_PORT = 8770
+WALLET_SHADOW_PORT = 8776
 RESTART_SECONDS = 3.0
 
 
@@ -58,6 +59,22 @@ def _observer_process() -> subprocess.Popen[bytes] | None:
         return None
     print("multi-asset live: starting live-grade read-only BTC/ETH/BNB observer V2 on 8770", flush=True)
     return subprocess.Popen([sys.executable, "-m", "predict_bot.multi_prediction_observer_v2"])
+
+
+def _wallet_shadow_process() -> subprocess.Popen[bytes] | None:
+    if _ready(WALLET_SHADOW_PORT):
+        print("multi-asset live: using existing read-only wallet shadow observer on 8776", flush=True)
+        return None
+    target = os.environ.get(
+        "PREDICT_WALLET_SHADOW_TARGET_ADDRESS",
+        "0x6da6cb464f92ae7ad4ec3d239c81719cb1d0ae03",
+    )
+    print(
+        f"multi-asset live: starting read-only BTC wallet shadow observer on {WALLET_SHADOW_PORT}; "
+        f"target={target}; no order-write path",
+        flush=True,
+    )
+    return subprocess.Popen([sys.executable, "-m", "predict_bot.predict_wallet_shadow_observer"])
 
 
 def _asset_environment(asset: str) -> dict[str, str]:
@@ -157,6 +174,7 @@ def _clone_process(asset: str) -> subprocess.Popen[bytes] | None:
 
 def main() -> int:
     observer: subprocess.Popen[bytes] | None = _observer_process()
+    wallet_shadow: subprocess.Popen[bytes] | None = _wallet_shadow_process()
     children: dict[str, subprocess.Popen[bytes] | None] = {
         asset: _asset_process(asset) for asset in ASSETS
     }
@@ -165,6 +183,7 @@ def main() -> int:
     }
     next_restart: dict[str, float] = {
         "OBSERVER": 0.0,
+        "WALLET_SHADOW": 0.0,
         **{asset: 0.0 for asset in ASSETS},
         **{f"CLONE_{asset}": 0.0 for asset in CLONES},
     }
@@ -177,6 +196,12 @@ def main() -> int:
                 if dead and now >= next_restart["OBSERVER"]:
                     next_restart["OBSERVER"] = now + RESTART_SECONDS
                     observer = _observer_process()
+
+            if not _ready(WALLET_SHADOW_PORT):
+                dead = wallet_shadow is None or wallet_shadow.poll() is not None
+                if dead and now >= next_restart["WALLET_SHADOW"]:
+                    next_restart["WALLET_SHADOW"] = now + RESTART_SECONDS
+                    wallet_shadow = _wallet_shadow_process()
 
             for asset, config in ASSETS.items():
                 port = int(config["port"])
@@ -206,6 +231,7 @@ def main() -> int:
             _stop(child)
         for child in children.values():
             _stop(child)
+        _stop(wallet_shadow)
         _stop(observer)
 
 
