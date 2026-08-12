@@ -69,12 +69,13 @@ def _wallet_shadow_process() -> subprocess.Popen[bytes] | None:
         "PREDICT_WALLET_SHADOW_TARGET_ADDRESS",
         "0x6da6cb464f92ae7ad4ec3d239c81719cb1d0ae03",
     )
+    retention = os.environ.get("PREDICT_WALLET_SHADOW_RETENTION_DAYS", "7")
     print(
         f"multi-asset live: starting read-only BTC wallet shadow observer on {WALLET_SHADOW_PORT}; "
-        f"target={target}; no order-write path",
+        f"target={target}; retention={retention}d; no order-write path",
         flush=True,
     )
-    return subprocess.Popen([sys.executable, "-m", "predict_bot.predict_wallet_shadow_observer_v2"])
+    return subprocess.Popen([sys.executable, "-m", "predict_bot.predict_wallet_shadow_observer_v3"])
 
 
 def _asset_environment(asset: str) -> dict[str, str]:
