@@ -33,6 +33,24 @@ CLEANUP_SECONDS = max(
     30.0,
     float(os.environ.get("PREDICT_CROSS_ORACLE_CLEANUP_INTERVAL_SECONDS", "60")),
 )
+POLY_DELETE_BATCH_ROWS = max(
+    1_000,
+    min(
+        250_000,
+        int(os.environ.get("PREDICT_CROSS_ORACLE_POLY_DELETE_BATCH_ROWS", "50000")),
+    ),
+)
+POLY_DELETE_BATCHES_PER_CLEANUP = max(
+    1,
+    min(
+        32,
+        int(
+            os.environ.get(
+                "PREDICT_CROSS_ORACLE_POLY_DELETE_BATCHES_PER_CLEANUP", "8"
+            )
+        ),
+    ),
+)
 DEFER_POLY_BACKLOG_CLEANUP = PROFILE == "POLY_LIVE"
 
 _original_base_init = cross.CrossOracleCollector.__init__
@@ -117,28 +135,121 @@ def _install_policy(self: Any) -> None:
     return None
 
 
-def _cleanup_once(self: Any) -> dict[str, int]:
+def _next_expired_poly_market_with_events(
+    self: Any, poly_cutoff: int
+) -> str | None:
+    row = self.db.execute(
+        """
+        SELECT pm.slug
+        FROM polymarket_markets AS pm
+        WHERE pm.window_end_ms < ?
+          AND EXISTS (
+              SELECT 1
+              FROM polymarket_events AS pe
+              WHERE pe.market_slug = pm.slug
+              LIMIT 1
+          )
+        ORDER BY pm.window_end_ms
+        LIMIT 1
+        """,
+        (poly_cutoff,),
+    ).fetchone()
+    if row is None:
+        return None
+    return str(row[0])
+
+
+def _poly_backlog_status(self: Any, poly_cutoff: int) -> tuple[int, str | None]:
+    row = self.db.execute(
+        """
+        SELECT COUNT(*), MIN(pm.window_end_ms)
+        FROM polymarket_markets AS pm
+        WHERE pm.window_end_ms < ?
+          AND EXISTS (
+              SELECT 1
+              FROM polymarket_events AS pe
+              WHERE pe.market_slug = pm.slug
+              LIMIT 1
+          )
+        """,
+        (poly_cutoff,),
+    ).fetchone()
+    remaining = max(0, int(row[0] or 0)) if row is not None else 0
+    if not remaining:
+        return 0, None
+    oldest = self.db.execute(
+        """
+        SELECT pm.slug
+        FROM polymarket_markets AS pm
+        WHERE pm.window_end_ms < ?
+          AND EXISTS (
+              SELECT 1
+              FROM polymarket_events AS pe
+              WHERE pe.market_slug = pm.slug
+              LIMIT 1
+          )
+        ORDER BY pm.window_end_ms
+        LIMIT 1
+        """,
+        (poly_cutoff,),
+    ).fetchone()
+    return remaining, (str(oldest[0]) if oldest is not None else None)
+
+
+def _cleanup_once(self: Any) -> dict[str, Any]:
     now_ms = int(time.time() * 1000)
     poly_cutoff = now_ms - int(POLY_HOURS * 3600 * 1000)
     chain_cutoff_ns = (
         now_ms - int(CHAIN_HOURS * 3600 * 1000)
     ) * 1_000_000
-    deleted = {"polyEvents": 0, "chainlinkTicks": 0}
-    with self.db_lock:
-        # Never chew through a huge historical Poly backlog while real-money
-        # lightweight mode is active. New raw Poly writes are already disabled;
-        # compact/prune the old archive only while Live is stopped.
-        if not DEFER_POLY_BACKLOG_CLEANUP:
-            row = self.db.execute(
-                "SELECT slug FROM polymarket_markets WHERE window_end_ms < ? ORDER BY window_end_ms LIMIT 1",
-                (poly_cutoff,),
-            ).fetchone()
-            if row is not None:
+    deleted: dict[str, Any] = {
+        "polyEvents": 0,
+        "polyBatches": 0,
+        "polyMarketsDrained": 0,
+        "polyExpiredMarketsRemaining": None,
+        "polyOldestPendingMarket": None,
+        "chainlinkTicks": 0,
+    }
+
+    # Do not delete polymarket_markets metadata. Instead, only select an expired
+    # market while it still owns raw events. The previous LIMIT 1 query selected
+    # the same already-empty oldest market forever and permanently stalled
+    # retention for every later market.
+    if not DEFER_POLY_BACKLOG_CLEANUP:
+        for _ in range(POLY_DELETE_BATCHES_PER_CLEANUP):
+            with self.db_lock:
+                slug = _next_expired_poly_market_with_events(self, poly_cutoff)
+                if slug is None:
+                    break
                 cur = self.db.execute(
-                    "DELETE FROM polymarket_events WHERE market_slug=?",
-                    (str(row[0]),),
+                    """
+                    DELETE FROM polymarket_events
+                    WHERE id IN (
+                        SELECT id
+                        FROM polymarket_events
+                        WHERE market_slug = ?
+                        LIMIT ?
+                    )
+                    """,
+                    (slug, POLY_DELETE_BATCH_ROWS),
                 )
-                deleted["polyEvents"] = max(0, int(cur.rowcount or 0))
+                batch_deleted = max(0, int(cur.rowcount or 0))
+                self.db.commit()
+            deleted["polyEvents"] += batch_deleted
+            deleted["polyBatches"] += 1
+            if batch_deleted < POLY_DELETE_BATCH_ROWS:
+                deleted["polyMarketsDrained"] += 1
+            if batch_deleted == 0:
+                # Defensive escape: EXISTS should prevent this, but do not spin
+                # through the batch budget if the database changes concurrently.
+                break
+
+        with self.db_lock:
+            remaining, oldest = _poly_backlog_status(self, poly_cutoff)
+        deleted["polyExpiredMarketsRemaining"] = remaining
+        deleted["polyOldestPendingMarket"] = oldest
+
+    with self.db_lock:
         cur = self.db.execute(
             "DELETE FROM chainlink_ticks WHERE id IN (SELECT id FROM chainlink_ticks WHERE received_wall_ns < ? ORDER BY id LIMIT 50000)",
             (chain_cutoff_ns,),
@@ -153,7 +264,10 @@ def _cleanup_loop(self: Any) -> None:
         return
     while not self.stop_event.is_set():
         try:
-            self._retention_last = _cleanup_once(self)
+            started = time.monotonic()
+            result = _cleanup_once(self)
+            result["durationMs"] = int((time.monotonic() - started) * 1000)
+            self._retention_last = result
             self._retention_at_ms = int(time.time() * 1000)
             self._retention_error = None
         except Exception as exc:
@@ -183,6 +297,8 @@ def _snapshot(self: Any) -> dict[str, Any]:
         runtimeProfile=PROFILE,
         polyRawArchiveEnabled=POLY_ARCHIVE,
         polyRawRetentionHours=POLY_HOURS,
+        polyDeleteBatchRows=POLY_DELETE_BATCH_ROWS,
+        polyDeleteBatchesPerCleanup=POLY_DELETE_BATCHES_PER_CLEANUP,
         chainlinkRetentionHours=CHAIN_HOURS,
         cleanupIntervalSeconds=CLEANUP_SECONDS,
         polyBacklogCleanupDeferred=DEFER_POLY_BACKLOG_CLEANUP,
