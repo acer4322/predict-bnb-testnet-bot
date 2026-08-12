@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import re
 import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
@@ -30,7 +29,6 @@ from predict_sdk import (
 )
 
 from . import wallet_maker_clone_live as core
-from . import wallet_maker_clone_live_v4 as v4base
 from . import wallet_maker_clone_live_v8 as base
 
 
@@ -76,6 +74,18 @@ def _minute_of_day(hour: int, minute: int, ampm: str) -> int:
     if str(ampm).upper() == "PM":
         value += 12
     return value * 60 + int(minute)
+
+
+def _int_exact(value: Any) -> int:
+    if value is None or value == "":
+        return 0
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return 0
 
 
 def parse_exact_5m_window(title: Any, reference_ms: int | None = None) -> DirectMarketWindow | None:
@@ -198,19 +208,12 @@ def derive_outcome_books(
     return {"UP": no_book, "DOWN": yes_book}
 
 
-def _wei_float(value: Any) -> float:
-    try:
-        return max(0.0, float(value) / WEI)
-    except (TypeError, ValueError):
-        return 0.0
-
-
 def normalize_predict_order_update(row: dict[str, Any]) -> dict[str, Any]:
     contract = row.get("order") if isinstance(row.get("order"), dict) else {}
     status = str(row.get("status") or "UNKNOWN").upper()
-    amount_wei = max(0, int(float(row.get("amount") or contract.get("takerAmount") or 0)))
-    filled_wei = max(0, int(float(row.get("amountFilled") or 0)))
-    maker_amount_wei = max(0, int(float(contract.get("makerAmount") or 0)))
+    amount_wei = max(0, _int_exact(row.get("amount") or contract.get("takerAmount")))
+    filled_wei = max(0, _int_exact(row.get("amountFilled")))
+    maker_amount_wei = max(0, _int_exact(contract.get("makerAmount")))
     total_shares = amount_wei / WEI
     filled_shares = min(total_shares, filled_wei / WEI) if total_shares > 0 else filled_wei / WEI
     fill_percentage = min(1.0, filled_shares / total_shares) if total_shares > 0 else 0.0
@@ -868,7 +871,7 @@ class PredictDirectV8WalletMakerCloneEngine(base.BoundedRiskPairedWalletMakerClo
         update["vendor_order_id"] = str((remote.get("order") or {}).get("hash") or local.get("vendor_order_id") or "")
         update["direct_reward_earning_rate"] = core._finite(remote.get("rewardEarningRate"))
         if cancellation_context and update["state"] == "CANCELED":
-            expiration = int(float(((remote.get("order") or {}).get("expiration") or 0)))
+            expiration = _int_exact((remote.get("order") or {}).get("expiration"))
             expired_onchain = expiration > 0 and int(time.time()) >= expiration
             confirmed = bool(int(local.get("direct_cancel_onchain_confirmed") or 0))
             if not confirmed and not expired_onchain:
