@@ -8,6 +8,7 @@ from predict_bot.predict_wallet_shadow_observer_v4 import (
     taker_v1_similarity,
     v1_size_after_limits,
 )
+from predict_bot.predict_wallet_shadow_observer_v4_1 import WalletShadowObserver as WalletShadowObserverV4_1
 
 
 def test_v1_size_is_small_and_net_capped() -> None:
@@ -60,6 +61,37 @@ def test_v1_maker_follow_emits_small_same_side_taker(tmp_path) -> None:
     assert event["side"] == "UP"
     assert event["trigger"] == "MAKER_FOLLOW"
     assert 0 < event["shares"] <= 18
+    observer.stop()
+
+
+def test_v1_delayed_follow_keeps_recent_maker_eligible(tmp_path) -> None:
+    observer = WalletShadowObserverV4_1(tmp_path / "delayed.db")
+    observer.market_id = 124
+    observer._register_v1_market(124)
+    maker = base.ShadowEvent(
+        id="maker-delayed",
+        market_id=124,
+        at_ms=base._now_ms() - 1500,
+        event_type="MAKER_FILL_PROXY",
+        role="MAKER",
+        side="DOWN",
+        price=0.52,
+        shares=18.0,
+        inference="INFERRED_FILL",
+        reason="test",
+        core_side="DOWN",
+        core_source="test",
+        maker_up_shares=0.0,
+        maker_down_shares=18.0,
+        taker_up_shares=0.0,
+        taker_down_shares=0.0,
+    )
+    observer.shadow_events.append(maker)
+    observer._advance_taker_v1([], {"upAsk": 0.47, "downAsk": 0.53}, {"side": "DOWN", "source": "test"})
+    assert len(observer.taker_v1_events) == 1
+    assert observer.taker_v1_events[0]["side"] == "DOWN"
+    assert observer.taker_v1_events[0]["trigger"] == "MAKER_FOLLOW"
+    assert "1.5" in observer.taker_v1_events[0]["reason"]
     observer.stop()
 
 
