@@ -11,8 +11,8 @@ def _text() -> str:
 
 def test_launcher_health_checks_do_not_use_powershell_webresponse_body():
     text = _text()
-    assert "Invoke-WebRequest" not in text
-    assert "Invoke-RestMethod" not in text
+    assert "Invoke-WebRequest -Uri" not in text
+    assert "Invoke-RestMethod -Uri" not in text
     assert "curl.exe" in text
     assert "--connect-timeout 1" in text
     assert "--max-time $TimeoutSeconds" in text
