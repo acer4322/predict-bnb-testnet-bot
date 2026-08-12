@@ -127,3 +127,49 @@ def test_cleanup_respects_batch_budget_and_reports_backlog(monkeypatch) -> None:
         assert result["polyOldestPendingMarket"] == "expired-large"
     finally:
         collector.db.close()
+
+
+def test_storage_metrics_expose_reusable_sqlite_pages() -> None:
+    collector = _collector()
+    try:
+        collector.db.executemany(
+            "INSERT INTO chainlink_ticks(received_wall_ns) VALUES (?)",
+            [(index,) for index in range(5000)],
+        )
+        collector.db.commit()
+        collector.db.execute("DELETE FROM chainlink_ticks")
+        collector.db.commit()
+
+        metrics = retention._storage_metrics(collector)
+
+        assert metrics["pageSizeBytes"] > 0
+        assert metrics["pageCount"] > 0
+        assert metrics["freelistCount"] >= 0
+        assert metrics["dbBytes"] == metrics["pageSizeBytes"] * metrics["pageCount"]
+        assert metrics["reusableBytes"] == metrics["pageSizeBytes"] * metrics["freelistCount"]
+        assert metrics["liveBytesApprox"] == metrics["dbBytes"] - metrics["reusableBytes"]
+        assert 0 <= metrics["reusableFraction"] <= 1
+        assert metrics["storageMetricsError"] is None
+    finally:
+        collector.db.close()
+
+
+def test_retention_health_reports_healthy_and_catching_up(monkeypatch) -> None:
+    collector = _collector()
+    try:
+        _configure(monkeypatch, batch_rows=10, batches=2)
+        monkeypatch.setattr(retention, "CLEANUP_SECONDS", 60.0)
+        collector._retention_error = None
+        collector._retention_at_ms = NOW_MS
+        collector._retention_last = {"polyExpiredMarketsRemaining": 0}
+
+        status, age_ms = retention._retention_health(collector)
+        assert status == "HEALTHY"
+        assert age_ms == 0
+
+        collector._retention_last = {"polyExpiredMarketsRemaining": 5}
+        status, age_ms = retention._retention_health(collector)
+        assert status == "CATCHING_UP"
+        assert age_ms == 0
+    finally:
+        collector.db.close()
