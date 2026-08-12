@@ -35,4 +35,7 @@ Stop-OwnedProcess ".predict-fun-v2.pid" "Predict.fun observer"
 # Stop the verified owned tree so a restart cannot leave stale child listeners
 # that prevent the new clone services from being launched.
 Stop-OwnedProcess ".multi-live.pid" "multi-asset live supervisor" -Tree
-Stop-OwnedProcess ".api-v2.pid" "core API supervisor"
+# The core supervisor owns 8766/8767/8768/8769.  Killing only the parent can
+# leave orphaned Python listeners running old code on those ports, making a later
+# Dashboard V2 restart appear successful while it silently reuses stale services.
+Stop-OwnedProcess ".api-v2.pid" "core API supervisor" -Tree
