@@ -52,6 +52,11 @@ function pct(value: unknown): string {
   return `${normalized.toFixed(1)}%`
 }
 
+function directPct(value: unknown): string {
+  const parsed = num(value)
+  return parsed === null ? '—' : `${parsed.toFixed(2)}%`
+}
+
 function clock(value: unknown): string {
   const parsed = num(value)
   if (parsed === null || parsed <= 0) return '—'
@@ -73,6 +78,8 @@ function settingsFrom(snapshot: RowObject | null) {
     targetPotentialProfitUsdt: num(settings.targetPotentialProfitUsdt) ?? 1,
     maximumEntryCount: num(settings.maximumEntryCount) ?? 3,
     maximumLossUsdt: num(settings.maximumLossUsdt) ?? 5,
+    maximumCombinedPrice: num(settings.maximumCombinedPrice) ?? 0.98,
+    minimumLockedReturnPct: num(settings.minimumLockedReturnPct) ?? 1,
     bidOffsetTicks: num(settings.bidOffsetTicks) ?? 0,
     minimumOrderUsdt: num(settings.minimumOrderUsdt) ?? 1,
     maximumOrderUsdt: num(settings.maximumOrderUsdt) ?? 25,
@@ -125,6 +132,7 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
   const interlock = row(snapshot?.normalLiveInterlock)
   const summary = row(snapshot?.summary)
   const exposure = row(snapshot?.currentMarketExposure)
+  const pairEdge = row(snapshot?.pairLockedEdgePreview)
   const events = Array.isArray(snapshot?.recentEvents) ? snapshot?.recentEvents as RowObject[] : []
   const runtimeEnabled = settings.runtimeEnabled === true
   const masterEnabled = snapshot?.masterEnabled === true
@@ -132,6 +140,8 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
   const entryCount = num(snapshot?.currentMarketEntryCount) ?? 0
   const maximumEntryCount = num(settings.maximumEntryCount) ?? 3
   const maximumLossUsdt = num(settings.maximumLossUsdt) ?? 5
+  const maximumCombinedPrice = num(settings.maximumCombinedPrice) ?? 0.98
+  const minimumLockedReturnPct = num(settings.minimumLockedReturnPct) ?? 1
   const noNewEntrySeconds = num(rules.noNewEntrySecondsBeforeEndV8) ?? 60
   const hardCancelSeconds = num(rules.hardCancelSecondsBeforeEndV8) ?? 30
 
@@ -146,13 +156,15 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
         targetPotentialProfitUsdt: Number(values.targetPotentialProfitUsdt),
         maximumEntryCount: Number(values.maximumEntryCount),
         maximumLossUsdt: Number(values.maximumLossUsdt),
+        maximumCombinedPrice: Number(values.maximumCombinedPrice),
+        minimumLockedReturnPct: Number(values.minimumLockedReturnPct),
         bidOffsetTicks: Number(values.bidOffsetTicks),
         minimumOrderUsdt: Number(values.minimumOrderUsdt),
         maximumOrderUsdt: Number(values.maximumOrderUsdt),
         minimumRemainingSeconds: Number(values.minimumRemainingSeconds),
       })
       form.setFieldsValue(settingsFrom(useWalletCloneStore.getState().assets[asset].snapshot))
-      message.success(`${asset} Clone V8 參數已寫入獨立 SQLite`)
+      message.success(`${asset} Clone V8.3 參數已寫入獨立 SQLite`)
     } catch (error) {
       if (error && typeof error === 'object' && 'errorFields' in error) return
       message.error(error instanceof Error ? error.message : String(error))
@@ -233,10 +245,14 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card size="small" title="V8 Safety / Risk">
+          <Card size="small" title="V8.3 Safety / Pair Edge">
             <Descriptions column={1} size="small">
               <Descriptions.Item label="最大目前虧損">${amount(exposure.worstCaseLossUsdt)} / ${maximumLossUsdt.toFixed(2)}</Descriptions.Item>
               <Descriptions.Item label="最差結算 PnL">${amount(exposure.worstCasePnlUsdt)}</Descriptions.Item>
+              <Descriptions.Item label="目前 Pair 合計價">{price(pairEdge.combinedPrice)} / max {maximumCombinedPrice.toFixed(4)}</Descriptions.Item>
+              <Descriptions.Item label="預估鎖定收益率">{directPct(pairEdge.lockedReturnPct)} / min {minimumLockedReturnPct.toFixed(2)}%</Descriptions.Item>
+              <Descriptions.Item label="等量 shares">{amount(pairEdge.equalShares)}</Descriptions.Item>
+              <Descriptions.Item label="Pair gate">{pairEdge.passes === true ? <Tag color="success">PASS</Tag> : <Tag color="warning">BLOCK / WAIT</Tag>} {text(pairEdge.reason, '')}</Descriptions.Item>
               <Descriptions.Item label="T-60 新單截止">剩餘 ≤ {noNewEntrySeconds.toFixed(0)}s 絕不建立下一輪</Descriptions.Item>
               <Descriptions.Item label="T-30 強制撤單">剩餘 ≤ {hardCancelSeconds.toFixed(0)}s 撤銷所有未完成 Clone orders</Descriptions.Item>
               <Descriptions.Item label="下一輪條件">上一輪 UP + DOWN 都確認 FILLED 才能送下一對</Descriptions.Item>
@@ -251,8 +267,8 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
         type="info"
         showIcon
         style={{ marginTop: 12 }}
-        message={`V8 固定時間規則：T-${noNewEntrySeconds.toFixed(0)} 停止新一輪；T-${hardCancelSeconds.toFixed(0)} 撤銷未完成掛單`}
-        description="T-60 之後如果上一輪剛好互補完成，也不會再建立新 UP/DOWN；T-30 會直接要求撤銷仍在 resting / partial 的 Clone 訂單。CANCEL_REQUEST_ACCEPTED 不視為最終取消，仍會做 final reconciliation。"
+        message={`V8.3：只有等量 UP/DOWN shares 且合計價 ≤ ${maximumCombinedPrice.toFixed(4)}、鎖定收益率 ≥ ${minimumLockedReturnPct.toFixed(2)}% 才送單`}
+        description={`0.50/0.50 這種零 edge pair 會被直接阻擋。固定時間規則仍為 T-${noNewEntrySeconds.toFixed(0)} 停止新一輪、T-${hardCancelSeconds.toFixed(0)} 撤銷未完成掛單；CANCEL_REQUEST_ACCEPTED 不視為最終取消，仍會 final reconciliation。`}
       />
 
       <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
@@ -260,7 +276,7 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
         <Col xs={24} xl={12}><OrderCard side="DOWN" order={downOrder} book={downBook} /></Col>
       </Row>
 
-      <Card size="small" title="Clone V8 參數" style={{ marginTop: 12 }}>
+      <Card size="small" title="Clone V8.3 參數" style={{ marginTop: 12 }}>
         <Form form={form} layout="vertical" initialValues={settingsFrom(snapshot)}>
           <Row gutter={[12, 0]}>
             <Col xs={12} md={6}><Form.Item name="targetPotentialProfitUsdt" label="每側目標潛在獲利 $"><InputNumber min={0.1} max={100} step={0.1} precision={2} style={{ width: '100%' }} /></Form.Item></Col>
@@ -269,8 +285,12 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
             <Col xs={12} md={6}><Form.Item name="maximumOrderUsdt" label="每側最高成本 $"><InputNumber min={1} max={10000} step={1} precision={2} style={{ width: '100%' }} /></Form.Item></Col>
           </Row>
           <Row gutter={[12, 0]}>
+            <Col xs={12} md={6}><Form.Item name="maximumCombinedPrice" label="最大互補合計價格"><InputNumber min={0.01} max={1} step={0.01} precision={4} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col xs={12} md={6}><Form.Item name="minimumLockedReturnPct" label="最低鎖定收益率 %"><InputNumber min={0} max={100} step={0.25} precision={2} style={{ width: '100%' }} /></Form.Item></Col>
             <Col xs={12} md={6}><Form.Item name="minimumOrderUsdt" label="每側最低成本 $（Binance ≥1）"><InputNumber min={1} max={1000} step={0.1} precision={2} style={{ width: '100%' }} /></Form.Item></Col>
             <Col xs={12} md={6}><Form.Item name="bidOffsetTicks" label="Best Bid 下移 ticks"><InputNumber min={0} max={20} step={1} precision={0} style={{ width: '100%' }} /></Form.Item></Col>
+          </Row>
+          <Row gutter={[12, 0]}>
             <Col xs={12} md={6}>
               <Form.Item name="minimumRemainingSeconds" label="額外最少剩餘秒數">
                 <InputNumber min={5} max={299} step={5} precision={0} style={{ width: '100%' }} />
@@ -279,18 +299,18 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
             </Col>
           </Row>
           <Space wrap style={{ marginTop: 8 }}>
-            <Button type="primary" loading={state.saving} onClick={() => void save()}>儲存 {asset} V8 參數</Button>
+            <Button type="primary" loading={state.saving} onClick={() => void save()}>儲存 {asset} V8.3 參數</Button>
             <Popconfirm
               title={runtimeEnabled ? `暫停 ${asset} Clone 並撤銷 resting orders？` : `啟用 ${asset} 雙邊 Echtgeld Clone？`}
               description={runtimeEnabled
                 ? '只撤銷本 Clone DB 記錄的未完成訂單；已成交 shares 保留。'
-                : `最多 ${maximumEntryCount} 輪；T-${noNewEntrySeconds.toFixed(0)} 後不再新進場，T-${hardCancelSeconds.toFixed(0)} 撤未完成單。`}
+                : `Pair gate：合計價 ≤ ${maximumCombinedPrice.toFixed(4)}、鎖定收益率 ≥ ${minimumLockedReturnPct.toFixed(2)}%；最多 ${maximumEntryCount} 輪；T-${noNewEntrySeconds.toFixed(0)} 後不再新進場。`}
               okText="確認"
               cancelText="取消"
               onConfirm={() => void toggle()}
             >
               <Button danger={!runtimeEnabled} disabled={!state.service.ok || interlock.blocked === true || (!runtimeEnabled && riskStopLatched)}>
-                {runtimeEnabled ? 'Pause + Cancel Resting' : 'Resume Bounded Paired Echtgeld'}
+                {runtimeEnabled ? 'Pause + Cancel Resting' : 'Resume Pair Locked-Edge Echtgeld'}
               </Button>
             </Popconfirm>
             {riskStopLatched ? <Button danger onClick={() => void resetRiskStop()}>重設最大虧損鎖</Button> : null}
@@ -335,16 +355,16 @@ export default function WalletClonePage() {
     <>
       <div className="page-heading">
         <div>
-          <Title level={3}>Wallet Maker Clone V8</Title>
-          <Text type="secondary">Bounded paired-cycle Echtgeld · 可設定潛在獲利 / 最大輪數 / 最大虧損 · T-60 停止新單 · T-30 強制撤未完成單</Text>
+          <Title level={3}>Wallet Maker Clone V8.3</Title>
+          <Text type="secondary">Equal-share pair locked-edge Echtgeld · 最大合計價 / 最低鎖定收益率 · 最大輪數 / 最大虧損 · T-60 / T-30</Text>
         </div>
         <Tag color="warning"><SafetyCertificateOutlined /> LOCALHOST WRITE ONLY</Tag>
       </div>
       <Alert
         type="warning"
         showIcon
-        message="V8 是受限互補循環實驗，不是 0x9ddb 完整策略"
-        description="每一輪同時送 UP / DOWN Passive LIMIT/GTC；只有兩側都確認 FILLED 才允許下一輪。最大輪數與最大 worst-case loss 由此頁設定；T-60/T-30 為後端固定安全邊界。"
+        message="V8.3 會阻擋 0.50/0.50 零 edge pair"
+        description="每一輪先把 UP / DOWN 調整成相同 shares，再用實際 planned cost 計算 worst-case locked PnL。只有合計價格與最低鎖定收益率都過關才會同時送出兩張 Passive LIMIT；上一輪兩側都確認 FILLED 才能進下一輪。"
         style={{ marginBottom: 12 }}
       />
       <Row gutter={[12, 12]}>
