@@ -98,6 +98,11 @@ export default defineConfig({
         changeOrigin: false,
         rewrite: () => '/state',
       },
+      '/bridge/wallet-shadow': {
+        target: 'http://127.0.0.1:8776',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
       '/control/btc-live': {
         target: 'http://127.0.0.1:8769',
         changeOrigin: false,
