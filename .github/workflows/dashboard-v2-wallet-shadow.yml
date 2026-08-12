@@ -36,9 +36,13 @@ jobs:
         working-directory: dashboard-v2
         run: npm install --no-audit --no-fund
 
-      - name: Build Dashboard V2
+      - name: Typecheck Wallet Shadow files
         working-directory: dashboard-v2
-        run: npm run build
+        run: npx tsc -p tsconfig.wallet-shadow.json
+
+      - name: Bundle Dashboard V2
+        working-directory: dashboard-v2
+        run: npx vite build
 
       - name: Diff check
         run: git diff --check
