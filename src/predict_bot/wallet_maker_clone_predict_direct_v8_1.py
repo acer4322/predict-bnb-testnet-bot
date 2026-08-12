@@ -223,6 +223,20 @@ class PredictDirectV81WalletMakerCloneEngine(base.PredictDirectV8WalletMakerClon
         self._refresh_approval_state(market)
         return market
 
+    def _tick(self) -> None:
+        # Keep read-only Predict market/book/approval observability alive even when
+        # the normal ETH/BNB live engine interlock is blocking clone execution.
+        # The inherited V8 tick still performs the interlock before any placement,
+        # so this pre-pass cannot submit an order; it only populates current state.
+        if core.MASTER_ENABLED and self._ensure_client():
+            try:
+                market = self._prime_market()
+                if market is not None:
+                    self._poll_books(market)
+            except Exception as exc:
+                self.last_error = f"Predict Direct read-only pre-discovery: {str(exc)[:400]}"
+        super()._tick()
+
     def snapshot(self) -> dict[str, Any]:
         payload = super().snapshot()
         payload["version"] = self.VERSION
@@ -236,6 +250,7 @@ class PredictDirectV81WalletMakerCloneEngine(base.PredictDirectV8WalletMakerClon
         payload.setdefault("rules", {}).update(
             predictDirectDiscoveryV81=True,
             brittleTitleParserUsedForLiveDiscovery=False,
+            readOnlyDiscoveryContinuesWhileNormalLiveInterlockBlocked=True,
         )
         return payload
 
