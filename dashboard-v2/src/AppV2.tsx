@@ -18,6 +18,7 @@ import { type ServiceSnapshot, useDashboardStore } from './store'
 import { useStrategyStore } from './strategy-store'
 import { usePredictFunStore } from './predict-fun-store'
 import { useWalletShadowStore } from './wallet-shadow-store'
+import CrossOracleStorageCard from './cross-oracle-storage-card'
 import LiveMarketsPage from './live-markets-page'
 import PinnedDivergencePage from './pinned-divergence-page'
 import WalletClonePage from './wallet-clone-page-v84'
@@ -151,7 +152,7 @@ function Shell() {
         </Header>
         <Content className="app-content">
           <Routes>
-            <Route path="/" element={<OverviewPage />} />
+            <Route path="/" element={<><OverviewPage /><CrossOracleStorageCard /></>} />
             <Route path="/live-markets" element={<LiveMarketsPage />} />
             <Route path="/wallet-shadow" element={<WalletShadowPage />} />
             <Route path="/wallet-clone" element={<WalletClonePage />} />
