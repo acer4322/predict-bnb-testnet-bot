@@ -11,7 +11,7 @@ from typing import Any
 
 
 FIVE_MIN_TITLE = re.compile(
-    r"^(Ethereum|BNB) Up or Down - .+,\s*(\d{1,2})(?::(\d{2}))?(AM|PM)-(\d{1,2})(?::(\d{2}))?(AM|PM) ET$"
+    r"^(Bitcoin|BTC|Ethereum|ETH|BNB) Up or Down - .+,\s*(\d{1,2})(?::(\d{2}))?(AM|PM)-(\d{1,2})(?::(\d{2}))?(AM|PM) ET$"
 )
 
 
@@ -32,7 +32,7 @@ def minute_of_day(hour: int, minute: int, ampm: str) -> int:
     return hour * 60 + minute
 
 
-def is_eth_bnb_5m(title: Any) -> bool:
+def is_crypto_5m(title: Any) -> bool:
     text = str(title or "").strip()
     match = FIVE_MIN_TITLE.match(text)
     if not match:
@@ -50,6 +50,11 @@ def is_eth_bnb_5m(title: Any) -> bool:
     if end < start:
         end += 24 * 60
     return end - start == 5
+
+
+# Backward-compatible alias for external callers/tests that imported the old helper.
+def is_eth_bnb_5m(title: Any) -> bool:
+    return is_crypto_5m(title)
 
 
 def percentile(values: list[float], q: float) -> float | None:
@@ -114,7 +119,7 @@ def nearest_opposite_gap(
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Test whether target ETH/BNB 5m makerHash fills look like strict paired cycles "
+            "Test whether target BTC/ETH/BNB 5m makerHash fills look like strict paired cycles "
             "or softer inventory-balanced replenishment. Read-only; match history cannot see unfilled/cancelled orders."
         )
     )
@@ -132,7 +137,7 @@ def main() -> int:
         row
         for row in rows
         if isinstance(row, dict)
-        and is_eth_bnb_5m(row.get("marketTitle"))
+        and is_crypto_5m(row.get("marketTitle"))
         and str(row.get("outcome") or "").upper() in {"UP", "DOWN"}
     ]
     by_market: dict[int, list[dict[str, Any]]] = defaultdict(list)
@@ -261,7 +266,7 @@ def main() -> int:
     )
     summary = {
         "source": str(source),
-        "filter": "ETH/BNB exact 5-minute target maker parents only",
+        "filter": "BTC/ETH/BNB exact 5-minute target maker parents only",
         "markets": len(by_market),
         "parentOrdersApprox": len(filtered),
         "strictPairedCycleProxies": {
