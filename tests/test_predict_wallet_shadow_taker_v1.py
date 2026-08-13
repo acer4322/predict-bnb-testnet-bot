@@ -162,3 +162,52 @@ def test_v1_similarity_measures_taker_only() -> None:
     assert result["sideMatchWithin5s"] == 1
     assert result["sameSideTimingWithin3s"] == 1
     assert result["residualSideMatch"] is True
+
+
+def test_target_parent_history_cannot_change_shadow_decisions(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(base, "_now_ms", lambda: 10_000)
+    observers = [
+        WalletShadowObserver(tmp_path / "empty-target.db"),
+        WalletShadowObserver(tmp_path / "populated-target.db"),
+    ]
+    observers[1].parents["target-only"] = base.ParentEvent(
+        id="TAKER:target-only",
+        role="TAKER",
+        market_id=999,
+        side="DOWN",
+        quote_type="BID",
+        order_hash="target-only",
+        first_event_ms=9_900,
+        last_event_ms=9_900,
+        average_price=0.9,
+        shares=999,
+        fill_legs=1,
+    )
+    try:
+        for observer in observers:
+            observer.market_id = 999
+            observer._register_v1_market(999)
+            observer._advance_shadow(
+                {"upBid": 0.50, "upAsk": 0.51, "downBid": 0.49, "downAsk": 0.50},
+                {"side": "UP", "source": "independent"},
+            )
+            observer._advance_shadow(
+                {"upBid": 0.48, "upAsk": 0.49, "downBid": 0.51, "downAsk": 0.52},
+                {"side": "DOWN", "source": "independent"},
+            )
+
+        def decisions(observer: WalletShadowObserver) -> tuple[list[tuple], list[tuple]]:
+            maker = [
+                (event.event_type, event.side, event.price, event.shares, event.reason)
+                for event in observer.shadow_events
+            ]
+            taker = [
+                (event["trigger"], event["side"], event["price"], event["shares"], event["reason"])
+                for event in observer.taker_v1_events
+            ]
+            return maker, taker
+
+        assert decisions(observers[0]) == decisions(observers[1])
+    finally:
+        for observer in observers:
+            observer.stop()
