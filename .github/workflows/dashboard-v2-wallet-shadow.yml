@@ -6,6 +6,7 @@ on:
       - feature/dashboard-v2-wallet-shadow-performance
       - feature/dashboard-v2-wallet-shadow-recent10-analysis
       - feature/dashboard-v2-wallet-shadow-taker-v1
+      - feature/dashboard-v2-spot-strike-forward-panel
   pull_request:
     branches:
       - feature/dashboard-v2-polyhermes
@@ -28,7 +29,7 @@ jobs:
         run: python -m pip install -e ".[dev]"
 
       - name: Wallet shadow backend tests
-        run: python -m pytest tests/test_predict_wallet_shadow_observer.py tests/test_predict_wallet_shadow_performance.py tests/test_predict_wallet_shadow_taker_v1.py tests/test_wallet_shadow_recent_analysis.py tests/test_multi_asset_live_supervisor.py -q
+        run: python -m pytest tests/test_predict_wallet_shadow_observer.py tests/test_predict_wallet_shadow_performance.py tests/test_predict_wallet_shadow_taker_v1.py tests/test_predict_wallet_shadow_spot_strike_forward.py tests/test_predict_wallet_shadow_spot_strike_dashboard.py tests/test_wallet_shadow_recent_analysis.py tests/test_multi_asset_live_supervisor.py -q
 
       - uses: actions/setup-node@v4
         with:
