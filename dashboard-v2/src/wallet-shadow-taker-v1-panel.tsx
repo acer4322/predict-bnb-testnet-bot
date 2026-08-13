@@ -1,6 +1,7 @@
 import { Alert, Card, Col, Descriptions, Row, Space, Statistic, Table, Tag, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { useWalletShadowStore } from './wallet-shadow-store'
+import WalletShadowSpotStrikePanel from './wallet-shadow-spot-strike-panel'
 
 const { Text } = Typography
 
@@ -96,99 +97,103 @@ export default function WalletShadowTakerV1Panel() {
   ]
 
   return (
-    <Card title="Taker A/B · V0 residual correction vs V1 execution switch" style={{ marginTop: 12 }}>
-      <Alert
-        type="info"
-        showIcon
-        message="V1 不覆蓋 V0，兩組同時 PAPER forward-test"
-        description="V1 只從新版實際啟動時間後計分；共用相同 Maker fill proxy，但用獨立 Taker 邏輯。MAKER_FOLLOW 測試被動成交後約 +1~2 tick 轉 aggressive；CORE_FLIP 只在核心方向翻轉時做小額 probe。"
-        style={{ marginBottom: 12 }}
-      />
-
-      <Row gutter={[12, 12]}>
-        <Col xs={24} xl={12}>
-          <Card size="small" title="Taker V0 · 原 residual correction">
-            <Row gutter={[8, 8]}>
-              <Col span={8}><Statistic title="Gross PnL" value={money(v0.grossPnlUsdt)} /></Col>
-              <Col span={8}><Statistic title="Win rate" value={pct(v0.winRate)} /></Col>
-              <Col span={8}><Statistic title="ROI" value={pct(v0.grossRoi)} /></Col>
-              <Col span={8}><Statistic title="Taker PnL" value={money(v0.takerGrossPnlUsdt)} /></Col>
-              <Col span={8}><Statistic title="Taker cost" value={`$${fixed(v0.takerCostUsdt)}`} /></Col>
-              <Col span={8}><Statistic title="Settled" value={number(v0.settledMarkets) ?? 0} /></Col>
-            </Row>
-          </Card>
-        </Col>
-        <Col xs={24} xl={12}>
-          <Card size="small" title="Taker V1 · small bidirectional execution switch">
-            <Row gutter={[8, 8]}>
-              <Col span={8}><Statistic title="Gross PnL" value={money(v1.grossPnlUsdt)} /></Col>
-              <Col span={8}><Statistic title="Win rate" value={pct(v1.winRate)} /></Col>
-              <Col span={8}><Statistic title="ROI" value={pct(v1.grossRoi)} /></Col>
-              <Col span={8}><Statistic title="Taker PnL" value={money(v1.takerGrossPnlUsdt)} /></Col>
-              <Col span={8}><Statistic title="Taker cost" value={`$${fixed(v1.takerCostUsdt)}`} /></Col>
-              <Col span={8}><Statistic title="Settled" value={number(v1.settledMarkets) ?? 0} /></Col>
-            </Row>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
-        <Col xs={24} xl={12}>
-          <Card size="small" title="V1 當輪行為">
-            <Descriptions size="small" column={2}>
-              <Descriptions.Item label="Events">{text(current.eventCount, '0')}</Descriptions.Item>
-              <Descriptions.Item label="UP / DOWN shares">{fixed(inventory.upShares, 1)} / {fixed(inventory.downShares, 1)}</Descriptions.Item>
-              <Descriptions.Item label="Net residual">{sideTag(inventory.residualSide)} {fixed(Math.abs(number(inventory.delta) ?? 0), 1)}</Descriptions.Item>
-              <Descriptions.Item label="Total shares">{fixed(inventory.totalShares, 1)}</Descriptions.Item>
-              <Descriptions.Item label="Target parents">{text(similarity.targetParents, '0')}</Descriptions.Item>
-              <Descriptions.Item label="V1 / Target count">{fixed(similarity.eventCountRatioV1ToTarget, 2)}x</Descriptions.Item>
-              <Descriptions.Item label="Side <=5s">{pct(similarity.sideMatchWithin5s)}</Descriptions.Item>
-              <Descriptions.Item label="Timing <=3s">{pct(similarity.sameSideTimingWithin3s)}</Descriptions.Item>
-              <Descriptions.Item label="Residual target / V1">{sideTag(similarity.targetResidualSide)} / {sideTag(similarity.v1ResidualSide)}</Descriptions.Item>
-              <Descriptions.Item label="Residual match">{similarity.residualSideMatch === true ? <Tag color="success">YES</Tag> : <Tag>NO / WAIT</Tag>}</Descriptions.Item>
-            </Descriptions>
-          </Card>
-        </Col>
-        <Col xs={24} xl={12}>
-          <Card size="small" title="V1 風控／參數">
-            <Descriptions size="small" column={2}>
-              <Descriptions.Item label="Base / flip shares">{fixed(config.baseShares, 0)} / {fixed(config.coreFlipShares, 0)}</Descriptions.Item>
-              <Descriptions.Item label="Max event">{fixed(config.maxEventShares, 0)}</Descriptions.Item>
-              <Descriptions.Item label="Max net">{fixed(config.maxNetShares, 0)}</Descriptions.Item>
-              <Descriptions.Item label="Max total / market">{fixed(config.maxTotalShares, 0)}</Descriptions.Item>
-              <Descriptions.Item label="Maker-follow delta">+{fixed(config.followMaxPriceDelta, 3)}</Descriptions.Item>
-              <Descriptions.Item label="Max ask">{fixed(config.maxAsk, 2)}</Descriptions.Item>
-              <Descriptions.Item label="Cooldown">{fixed((number(config.cooldownMs) ?? 0) / 1000, 1)}s</Descriptions.Item>
-              <Descriptions.Item label="Stored V1 events">{text(v1.storedTakerEvents, '0')}</Descriptions.Item>
-            </Descriptions>
-            <Text type="secondary">Inventory 只限制曝險，不決定方向；因此 V1 可以在同一市場雙向 Taker。</Text>
-          </Card>
-        </Col>
-      </Row>
-
-      <Card size="small" title="V1 最近事件" style={{ marginTop: 12 }}>
-        <Table
-          rowKey={(item) => text(item.id)}
-          dataSource={v1Events}
-          columns={eventColumns}
-          size="small"
-          pagination={{ pageSize: 10, hideOnSinglePage: true }}
-          scroll={{ x: 850 }}
-          locale={{ emptyText: '等待 MAKER_FOLLOW 或 CORE_FLIP' }}
+    <>
+      <Card title="Taker A/B · V0 residual correction vs V1 execution switch" style={{ marginTop: 12 }}>
+        <Alert
+          type="info"
+          showIcon
+          message="V1 不覆蓋 V0，兩組同時 PAPER forward-test"
+          description="V1 只從新版實際啟動時間後計分；共用相同 Maker fill proxy，但用獨立 Taker 邏輯。MAKER_FOLLOW 測試被動成交後約 +1~2 tick 轉 aggressive；CORE_FLIP 只在核心方向翻轉時做小額 probe。"
+          style={{ marginBottom: 12 }}
         />
+
+        <Row gutter={[12, 12]}>
+          <Col xs={24} xl={12}>
+            <Card size="small" title="Taker V0 · 原 residual correction">
+              <Row gutter={[8, 8]}>
+                <Col span={8}><Statistic title="Gross PnL" value={money(v0.grossPnlUsdt)} /></Col>
+                <Col span={8}><Statistic title="Win rate" value={pct(v0.winRate)} /></Col>
+                <Col span={8}><Statistic title="ROI" value={pct(v0.grossRoi)} /></Col>
+                <Col span={8}><Statistic title="Taker PnL" value={money(v0.takerGrossPnlUsdt)} /></Col>
+                <Col span={8}><Statistic title="Taker cost" value={`$${fixed(v0.takerCostUsdt)}`} /></Col>
+                <Col span={8}><Statistic title="Settled" value={number(v0.settledMarkets) ?? 0} /></Col>
+              </Row>
+            </Card>
+          </Col>
+          <Col xs={24} xl={12}>
+            <Card size="small" title="Taker V1 · small bidirectional execution switch">
+              <Row gutter={[8, 8]}>
+                <Col span={8}><Statistic title="Gross PnL" value={money(v1.grossPnlUsdt)} /></Col>
+                <Col span={8}><Statistic title="Win rate" value={pct(v1.winRate)} /></Col>
+                <Col span={8}><Statistic title="ROI" value={pct(v1.grossRoi)} /></Col>
+                <Col span={8}><Statistic title="Taker PnL" value={money(v1.takerGrossPnlUsdt)} /></Col>
+                <Col span={8}><Statistic title="Taker cost" value={`$${fixed(v1.takerCostUsdt)}`} /></Col>
+                <Col span={8}><Statistic title="Settled" value={number(v1.settledMarkets) ?? 0} /></Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+          <Col xs={24} xl={12}>
+            <Card size="small" title="V1 當輪行為">
+              <Descriptions size="small" column={2}>
+                <Descriptions.Item label="Events">{text(current.eventCount, '0')}</Descriptions.Item>
+                <Descriptions.Item label="UP / DOWN shares">{fixed(inventory.upShares, 1)} / {fixed(inventory.downShares, 1)}</Descriptions.Item>
+                <Descriptions.Item label="Net residual">{sideTag(inventory.residualSide)} {fixed(Math.abs(number(inventory.delta) ?? 0), 1)}</Descriptions.Item>
+                <Descriptions.Item label="Total shares">{fixed(inventory.totalShares, 1)}</Descriptions.Item>
+                <Descriptions.Item label="Target parents">{text(similarity.targetParents, '0')}</Descriptions.Item>
+                <Descriptions.Item label="V1 / Target count">{fixed(similarity.eventCountRatioV1ToTarget, 2)}x</Descriptions.Item>
+                <Descriptions.Item label="Side <=5s">{pct(similarity.sideMatchWithin5s)}</Descriptions.Item>
+                <Descriptions.Item label="Timing <=3s">{pct(similarity.sameSideTimingWithin3s)}</Descriptions.Item>
+                <Descriptions.Item label="Residual target / V1">{sideTag(similarity.targetResidualSide)} / {sideTag(similarity.v1ResidualSide)}</Descriptions.Item>
+                <Descriptions.Item label="Residual match">{similarity.residualSideMatch === true ? <Tag color="success">YES</Tag> : <Tag>NO / WAIT</Tag>}</Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </Col>
+          <Col xs={24} xl={12}>
+            <Card size="small" title="V1 風控／參數">
+              <Descriptions size="small" column={2}>
+                <Descriptions.Item label="Base / flip shares">{fixed(config.baseShares, 0)} / {fixed(config.coreFlipShares, 0)}</Descriptions.Item>
+                <Descriptions.Item label="Max event">{fixed(config.maxEventShares, 0)}</Descriptions.Item>
+                <Descriptions.Item label="Max net">{fixed(config.maxNetShares, 0)}</Descriptions.Item>
+                <Descriptions.Item label="Max total / market">{fixed(config.maxTotalShares, 0)}</Descriptions.Item>
+                <Descriptions.Item label="Maker-follow delta">+{fixed(config.followMaxPriceDelta, 3)}</Descriptions.Item>
+                <Descriptions.Item label="Max ask">{fixed(config.maxAsk, 2)}</Descriptions.Item>
+                <Descriptions.Item label="Cooldown">{fixed((number(config.cooldownMs) ?? 0) / 1000, 1)}s</Descriptions.Item>
+                <Descriptions.Item label="Stored V1 events">{text(v1.storedTakerEvents, '0')}</Descriptions.Item>
+              </Descriptions>
+              <Text type="secondary">Inventory 只限制曝險，不決定方向；因此 V1 可以在同一市場雙向 Taker。</Text>
+            </Card>
+          </Col>
+        </Row>
+
+        <Card size="small" title="V1 最近事件" style={{ marginTop: 12 }}>
+          <Table
+            rowKey={(item) => text(item.id)}
+            dataSource={v1Events}
+            columns={eventColumns}
+            size="small"
+            pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            scroll={{ x: 850 }}
+            locale={{ emptyText: '等待 MAKER_FOLLOW 或 CORE_FLIP' }}
+          />
+        </Card>
+
+        <Card size="small" title="V1 最近已結算市場" style={{ marginTop: 12 }}>
+          <Table
+            rowKey={(item) => text(item.market_id)}
+            dataSource={v1Markets}
+            columns={marketColumns}
+            size="small"
+            pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            scroll={{ x: 850 }}
+            locale={{ emptyText: 'V1 從新版啟動後才開始累積結算結果' }}
+          />
+        </Card>
       </Card>
 
-      <Card size="small" title="V1 最近已結算市場" style={{ marginTop: 12 }}>
-        <Table
-          rowKey={(item) => text(item.market_id)}
-          dataSource={v1Markets}
-          columns={marketColumns}
-          size="small"
-          pagination={{ pageSize: 10, hideOnSinglePage: true }}
-          scroll={{ x: 850 }}
-          locale={{ emptyText: 'V1 從新版啟動後才開始累積結算結果' }}
-        />
-      </Card>
-    </Card>
+      <WalletShadowSpotStrikePanel />
+    </>
   )
 }
