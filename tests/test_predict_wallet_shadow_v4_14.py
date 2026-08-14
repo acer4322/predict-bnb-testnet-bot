@@ -3,6 +3,8 @@ from __future__ import annotations
 import threading
 import time
 
+import pytest
+
 from predict_bot import predict_wallet_maker_inventory_taker_strategy as shared_strategy
 from predict_bot.predict_wallet_shadow_observer_v4_14 import (
     TARGET_CORE_V2_COHORT,
@@ -115,7 +117,7 @@ def test_target_core_v2_cuts_maker_slots_without_changing_taker_policy(tmp_path)
 
         policy = shared_strategy.policy(v2)["targetCoreIntegrated"]
         assert policy["maker"]["levelsPerSide"] == 5
-        assert policy["allocationExperiment"]["makerQuoteSlotReduction"] == 2 / 3
+        assert policy["allocationExperiment"]["makerQuoteSlotReduction"] == pytest.approx(2 / 3)
         assert policy["allocationExperiment"]["takerSignalSameAsV1"] is True
         assert policy["allocationExperiment"]["takerSizingSameAsV1"] is True
     finally:
