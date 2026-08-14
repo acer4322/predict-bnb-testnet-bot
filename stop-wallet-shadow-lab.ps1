@@ -53,7 +53,7 @@ function Stop-VerifiedDashboardVite {
 function Stop-VerifiedResearchListeners {
     $ExpectedByPort = @{
         8771 = "predict_bot.predict_fun_observer"
-        8776 = "predict_bot.predict_wallet_shadow_observer_v4_13"
+        8776 = "predict_bot.predict_wallet_shadow_observer_v4_14"
         8777 = "predict_bot.predict_wallet_taker_signal_collector"
         8778 = "predict_bot.predict_wallet_maker_book_inference_collector"
         8779 = "predict_bot.predict_wallet_maker_book_inference_collector_eth5m"
