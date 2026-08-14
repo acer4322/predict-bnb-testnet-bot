@@ -167,17 +167,17 @@ try {
     }
     else { Write-Host "Wallet Shadow Lab: reusing the current read-only 8771 observer." }
 
-    Assert-KnownListener 8778 "predict_bot.predict_wallet_maker_book_inference_collector" "Maker book inference collector"
+    Assert-KnownListener 8778 "predict_bot.predict_wallet_maker_book_inference_collector_v2" "Maker book lifecycle inference collector"
     if (-not (Test-LocalService "http://127.0.0.1:8778/state")) {
-        Write-Host "Wallet Shadow Lab: starting forward-only Maker full-book inference collector on 8778."
+        Write-Host "Wallet Shadow Lab: starting forward-only Maker full-book lifecycle inference collector on 8778."
         $MakerBook = Start-Process -FilePath "python" `
-            -ArgumentList @("-m", "predict_bot.predict_wallet_maker_book_inference_collector") `
+            -ArgumentList @("-m", "predict_bot.predict_wallet_maker_book_inference_collector_v2") `
             -WorkingDirectory $Root -WindowStyle Hidden `
             -RedirectStandardOutput (Join-Path $Data "wallet-shadow-lab-maker-book.stdout.log") `
             -RedirectStandardError (Join-Path $Data "wallet-shadow-lab-maker-book.stderr.log") -PassThru
         $MakerBook.Id | Set-Content (Join-Path $Root ".wallet-shadow-lab-maker-book.pid")
     }
-    else { Write-Host "Wallet Shadow Lab: reusing the current forward-only 8778 Maker book collector." }
+    else { Write-Host "Wallet Shadow Lab: reusing the current forward-only 8778 Maker lifecycle collector." }
 
     Assert-KnownListener 8779 "predict_bot.predict_wallet_maker_book_inference_collector_eth5m" "ETH 5M Maker book inference collector"
     if (-not (Test-LocalService "http://127.0.0.1:8779/state")) {
@@ -261,7 +261,7 @@ try {
     }
 
     Write-Host "Wallet Shadow Lab ready: http://localhost:4320/wallet-shadow"
-    Write-Host "Started only the required research path: 8771 + 8778 BTC book + 8779 ETH book + 8777 + 8776 + 4320."
+    Write-Host "Started only the required research path: 8771 + 8778 BTC lifecycle book + 8779 ETH book + 8777 + 8776 + 4320."
     Write-Host "8776 version=$($ShadowState.version); status=$($ShadowState.status); report=$($ShadowState.reportStatus); paper cohorts do not route live orders."
     if (-not $NoBrowser) { Start-Process "http://localhost:4320/wallet-shadow" }
 }
