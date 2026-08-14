@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_retired_cohort_registry_covers_requested_obsolete_labs() -> None:
-    assert VERSION == "PREDICT_WALLET_SHADOW_V0_20_RETIRED_OBSOLETE_LABS"
+    assert VERSION == "PREDICT_WALLET_SHADOW_V0_21_PERSISTENT_WARM_REPORT_CACHE"
     assert LEGACY_BASE_COHORT in RETIRED_COHORTS
     assert spot.COHORT in RETIRED_COHORTS
     assert {item["cohort"] for item in maker_grid.COHORTS}.issubset(RETIRED_COHORTS)
@@ -46,3 +46,6 @@ def test_launcher_uses_v21_8778_and_v4_16_8776() -> None:
     text = (ROOT / "start-wallet-shadow-lab.ps1").read_text(encoding="utf-8")
     assert "predict_bot.predict_wallet_maker_book_inference_collector_v2_1" in text
     assert "predict_bot.predict_wallet_shadow_observer_v4_16" in text
+    stop_text = (ROOT / "stop-wallet-shadow-lab.ps1").read_text(encoding="utf-8")
+    assert "Save-WalletShadowWarmCache" in stop_text
+    assert "wallet-shadow-last-good-state.json" in stop_text
