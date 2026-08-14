@@ -23,6 +23,15 @@ def _snapshot(**overrides):
     return row
 
 
+def _eligibility(*, maker_side: str = "UP") -> dict:
+    return {
+        "openedAtMs": 10_000,
+        "expiresAtMs": 15_000,
+        "openedSnapshotNs": 10_000_000_000,
+        "makerAnchorSide": maker_side,
+    }
+
+
 def test_public_side_rule_selects_up_from_strong_positive_public_state() -> None:
     decision = strategy.decide_side(_snapshot(), expected_market_id=123, now_ms=10_200)
     assert decision["decision"] == "TRADE"
@@ -60,15 +69,9 @@ def test_runtime_side_feature_contract_contains_no_target_or_chosen_side_leakage
 
 
 def test_hazard_gate_forbids_same_snapshot_as_own_maker_fill() -> None:
-    eligibility = {
-        "openedAtMs": 10_000,
-        "expiresAtMs": 15_000,
-        "openedSnapshotNs": 10_000_000_000,
-    }
     result = strategy.hazard_gate(
         _snapshot(seconds_left=50.0),
-        "UP",
-        eligibility,
+        _eligibility(),
         snapshot_ns=10_000_000_000,
         now_ms=10_100,
     )
@@ -77,38 +80,53 @@ def test_hazard_gate_forbids_same_snapshot_as_own_maker_fill() -> None:
 
 
 def test_hazard_gate_accepts_next_snapshot_in_late_mid_price_state() -> None:
-    eligibility = {
-        "openedAtMs": 10_000,
-        "expiresAtMs": 15_000,
-        "openedSnapshotNs": 10_000_000_000,
-    }
     result = strategy.hazard_gate(
         _snapshot(seconds_left=50.0, predict_up_mid=0.55, predict_down_mid=0.45),
-        "UP",
-        eligibility,
+        _eligibility(maker_side="UP"),
         snapshot_ns=10_250_000_000,
         now_ms=10_250,
     )
     assert result["eligible"] is True
     assert result["reason"] == "HAZARD_TIME_PRICE_MATCH"
+    assert result["makerAnchorSide"] == "UP"
+    assert result["makerSidePredictMid"] == 0.55
     assert result["eligibilityScore"] >= strategy.HAZARD_SCORE_THRESHOLD
 
 
+def test_hazard_gate_uses_maker_side_price_not_taker_candidate_side() -> None:
+    # A DOWN Maker fill must use DOWN mid=.10 even if the public Side engine
+    # happens to prefer UP. This preserves the historical hazard feature meaning.
+    result = strategy.hazard_gate(
+        _snapshot(seconds_left=120.0, predict_up_mid=0.90, predict_down_mid=0.10),
+        _eligibility(maker_side="DOWN"),
+        snapshot_ns=10_250_000_000,
+        now_ms=10_250,
+    )
+    assert result["makerAnchorSide"] == "DOWN"
+    assert result["makerSidePredictMid"] == 0.10
+    assert result["priceRegime"] == "LOW_LT_033"
+
+
 def test_hazard_gate_rejects_early_extreme_price_state() -> None:
-    eligibility = {
-        "openedAtMs": 10_000,
-        "expiresAtMs": 15_000,
-        "openedSnapshotNs": 10_000_000_000,
-    }
     result = strategy.hazard_gate(
         _snapshot(seconds_left=240.0, predict_up_mid=0.90, predict_down_mid=0.10),
-        "UP",
-        eligibility,
+        _eligibility(maker_side="UP"),
         snapshot_ns=10_250_000_000,
         now_ms=10_250,
     )
     assert result["eligible"] is False
     assert result["reason"] == "HAZARD_TIME_PRICE_TOO_WEAK"
+
+
+def test_hazard_gate_rejects_ambiguous_dual_side_maker_fill() -> None:
+    result = strategy.hazard_gate(
+        _snapshot(seconds_left=50.0),
+        _eligibility(maker_side=""),
+        snapshot_ns=10_250_000_000,
+        now_ms=10_250,
+    )
+    assert result["eligible"] is False
+    assert result["reason"] == "AMBIGUOUS_OWN_MAKER_FILL_SIDE"
 
 
 def test_execution_is_fixed_one_dollar_stake_and_fee_adjusted() -> None:
@@ -127,3 +145,4 @@ def test_policy_keeps_side_only_and_hazard_side_separate_and_paper_only() -> Non
     assert policy["targetEventsDriveRuntime"] is False
     assert policy["cohorts"][strategy.SIDE_ONLY_COHORT]["makerAnchorRequired"] is False
     assert policy["cohorts"][strategy.HAZARD_SIDE_COHORT]["makerAnchorRequired"] is True
+    assert "own Maker fill side" in policy["cohorts"][strategy.HAZARD_SIDE_COHORT]["hazardPriceAlignment"]
