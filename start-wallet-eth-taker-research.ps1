@@ -30,11 +30,11 @@ function Get-ProcessCommandLine([int]$ProcessId) {
 }
 
 function Assert-KnownListener([int]$Port, [string]$Needle, [string]$Label) {
-    $Pid = Get-ListeningProcessId $Port
-    if (-not $Pid) { return }
-    $Command = Get-ProcessCommandLine $Pid
+    $ListenerPid = Get-ListeningProcessId $Port
+    if (-not $ListenerPid) { return }
+    $Command = Get-ProcessCommandLine $ListenerPid
     if (-not $Command.ToLowerInvariant().Contains($Needle.ToLowerInvariant())) {
-        throw "Port $Port is occupied by an unrecognized process. $Label was not started. PID=$Pid command=$Command"
+        throw "Port $Port is occupied by an unrecognized process. $Label was not started. PID=$ListenerPid command=$Command"
     }
 }
 
