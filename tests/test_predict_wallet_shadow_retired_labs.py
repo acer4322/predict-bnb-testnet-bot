@@ -42,10 +42,11 @@ def test_retired_dashboard_panels_are_compatibility_stubs() -> None:
         assert "return null" in text
 
 
-def test_launcher_uses_v21_8778_and_v4_16_8776() -> None:
+def test_launcher_uses_v21_8778_and_latest_v4_19_8776() -> None:
     text = (ROOT / "start-wallet-shadow-lab.ps1").read_text(encoding="utf-8")
     assert "predict_bot.predict_wallet_maker_book_inference_collector_v2_1" in text
-    assert "predict_bot.predict_wallet_shadow_observer_v4_16" in text
+    assert "predict_bot.predict_wallet_shadow_observer_v4_19" in text
+    assert "predict_bot.predict_wallet_shadow_observer_v4_16" not in text
     stop_text = (ROOT / "stop-wallet-shadow-lab.ps1").read_text(encoding="utf-8")
     assert "Save-WalletShadowWarmCache" in stop_text
     assert "wallet-shadow-last-good-state.json" in stop_text
