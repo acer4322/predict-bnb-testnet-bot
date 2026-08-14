@@ -31,7 +31,7 @@ def test_v4_14_state_is_nonblocking_and_single_flight(tmp_path, monkeypatch) -> 
         return {"version": "old", "status": "LIVE", "probe": "full", "observerDiagnostics": {}}
 
     monkeypatch.setattr(observer, "_build_full_report", slow_report)
-    observer.latest_public_signal_snapshot = {"seconds_left": 120.0}
+    observer.latest_public_signal_snapshot = {"seconds_left": 180.0}
     try:
         started = time.perf_counter()
         first = observer.snapshot()
