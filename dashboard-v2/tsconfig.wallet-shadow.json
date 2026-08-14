@@ -5,7 +5,15 @@
   },
   "include": [
     "src/wallet-shadow-page.tsx",
-    "src/wallet-shadow-taker-v1-panel.tsx",
-    "src/wallet-shadow-store.ts"
+    "src/wallet-shadow-taker-signal-v2-panel.tsx",
+    "src/wallet-shadow-private-taker-panel.tsx",
+    "src/wallet-shadow-maker-grid-depth-panel.tsx",
+    "src/wallet-shadow-maker-inventory-shared-panel.tsx",
+    "src/wallet-shadow-recentered-pooled-panel.tsx",
+    "src/wallet-shadow-wide-maker-flow-panel.tsx",
+    "src/wallet-shadow-spot-strike-panel.tsx",
+    "src/wallet-shadow-store.ts",
+    "src/wallet-lab-health-store.ts",
+    "src/wallet-lab-service-health-panel.tsx"
   ]
 }

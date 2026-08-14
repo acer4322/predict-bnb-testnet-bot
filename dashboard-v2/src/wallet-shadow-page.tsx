@@ -19,7 +19,19 @@ import {
 } from '@ant-design/icons'
 import type { TableColumnsType } from 'antd'
 import { useWalletShadowStore } from './wallet-shadow-store'
-import WalletShadowTakerV1Panel from './wallet-shadow-taker-v1-panel'
+import WalletShadowTakerSignalV2Panel from './wallet-shadow-taker-signal-v2-panel'
+import WalletShadowPrivateTakerPanel from './wallet-shadow-private-taker-panel'
+import WalletShadowMakerGridDepthPanel from './wallet-shadow-maker-grid-depth-panel'
+import WalletShadowMakerInventorySharedPanel from './wallet-shadow-maker-inventory-shared-panel'
+import WalletShadowRecenteredPooledPanel from './wallet-shadow-recentered-pooled-panel'
+import WalletShadowBalanceFirstPanel from './wallet-shadow-balance-first-panel'
+import WalletShadowTargetTakerMirrorPanel from './wallet-shadow-target-taker-mirror-panel'
+import WalletShadowTargetCoreIntegratedPanel from './wallet-shadow-target-core-integrated-panel'
+import WalletShadowWideMakerFlowPanel from './wallet-shadow-wide-maker-flow-panel'
+import WalletShadowReconstructedMakerPanel from './wallet-shadow-reconstructed-maker-panel'
+import WalletShadowSpotStrikePanel from './wallet-shadow-spot-strike-panel'
+import WalletLabServiceHealthPanel from './wallet-lab-service-health-panel'
+import WalletMakerBookInferencePanel from './wallet-maker-book-inference-panel'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -143,19 +155,25 @@ export default function WalletShadowPage() {
   const similarity = row(snapshot.similarity)
   const retention = row(snapshot.retention)
   const performance = row(snapshot.performance)
+  const targetPerformance = row(snapshot.targetPerformance)
+  const targetOfficialAccuracy = row(targetPerformance.targetOfficialAccuracy)
+  const targetContextCoverage = row(targetPerformance.eventContextCoverage)
   const storedRows = row(performance.storedRows)
   const targetEvents = rows(target.events)
   const shadowEvents = rows(shadow.events)
   const recentMarkets = rows(performance.recentMarkets)
+  const targetRecentMarkets = rows(targetPerformance.recentMarkets)
 
   const targetColumns: TableColumnsType<RowObject> = [
     { title: '時間', key: 'time', width: 105, render: (_, item) => time(item.firstEventMs) },
+    { title: '距結算', key: 'seconds', width: 90, render: (_, item) => item.scheduledSecondsLeft === null || item.scheduledSecondsLeft === undefined ? '—' : `${fixed(item.scheduledSecondsLeft, 1)}s` },
     { title: 'Role', key: 'role', width: 88, render: (_, item) => roleTag(item.role) },
     { title: '方向', key: 'side', width: 80, render: (_, item) => sideTag(item.side) },
     { title: '型態', key: 'quote', width: 80, render: (_, item) => <Tag>{text(item.quoteType)}</Tag> },
     { title: '均價', key: 'price', width: 90, render: (_, item) => fixed(item.averagePrice) },
     { title: 'Shares', key: 'shares', width: 95, render: (_, item) => fixed(item.shares, 2) },
     { title: 'Legs', key: 'legs', width: 65, render: (_, item) => text(item.fillLegs) },
+    { title: '可能動機', key: 'reason', width: 260, render: (_, item) => <Text>{text(item.inferredReason)}</Text> },
     { title: 'Order hash', key: 'hash', render: (_, item) => <Text code copyable={Boolean(item.orderHash)}>{text(item.orderHash)}</Text> },
   ]
 
@@ -180,6 +198,21 @@ export default function WalletShadowPage() {
     { title: 'ROI', key: 'roi', width: 85, render: (_, item) => pct(item.gross_roi) },
     { title: 'Maker PnL', key: 'maker', width: 105, render: (_, item) => money(item.maker_pnl_usdt) },
     { title: 'Taker PnL', key: 'taker', width: 105, render: (_, item) => money(item.taker_pnl_usdt) },
+    { title: 'Resolved', key: 'resolved', width: 110, render: (_, item) => time(item.resolved_at_ms) },
+  ]
+
+  const targetResultColumns: TableColumnsType<RowObject> = [
+    { title: 'Market', key: 'market', width: 90, render: (_, item) => `#${text(item.market_id)}` },
+    { title: 'Winner', key: 'winner', width: 80, render: (_, item) => sideTag(item.winner) },
+    { title: '目標結果', key: 'result', width: 95, render: (_, item) => resultTag(item.status) },
+    { title: '真實 fills', key: 'fills', width: 85, render: (_, item) => text(item.event_count) },
+    { title: '投入', key: 'cost', width: 105, render: (_, item) => `$${fixed(item.buy_notional_usdt, 2)}` },
+    { title: 'Payout', key: 'payout', width: 105, render: (_, item) => `$${fixed(item.payout_usdt, 2)}` },
+    { title: 'Net PnL', key: 'pnl', width: 105, render: (_, item) => <strong>{money(item.net_pnl_usdt)}</strong> },
+    { title: 'ROI', key: 'roi', width: 85, render: (_, item) => pct(item.net_roi) },
+    { title: 'Share 信念', key: 'share', width: 105, render: (_, item) => sideTag(item.share_conviction_side) },
+    { title: 'Capital 信念', key: 'capital', width: 110, render: (_, item) => sideTag(item.capital_conviction_side) },
+    { title: '來源', key: 'source', width: 100, render: (_, item) => item.historical_reconstruction ? <Tag color="gold">回算</Tag> : <Tag color="green">即時</Tag> },
     { title: 'Resolved', key: 'resolved', width: 110, render: (_, item) => time(item.resolved_at_ms) },
   ]
 
@@ -219,10 +252,13 @@ export default function WalletShadowPage() {
         type="info"
         showIcon
         icon={<EyeInvisibleOutlined />}
-        message="Target 只做事後比較；Shadow 的盈虧獨立計算"
-        description="看不到目標錢包未成交掛單。Target 成交不會驅動 Shadow。Paper PnL 將 MAKER_FILL_PROXY 視為在推定掛單價成交、TAKER_INTENT 視為在當時 ask 成交，之後持有到二元市場結算；目前顯示 gross PnL，尚未扣精確 fee / rebate / slippage。"
+        message="Target 真實帳本與 Shadow 模擬帳本完全分開"
+        description="目標帳本以已保留的逐筆成交、實際份額手續費與官方 winner 回算 cash flow + payout；看不到未成交掛單。歷史回算只補目標自身勝敗／收益，絕不混入 forward 策略績效。行為原因仍是結構證據推論，不代表已證明對方私有程式邏輯。"
         style={{ marginBottom: 12 }}
       />
+
+      <WalletLabServiceHealthPanel />
+      <WalletMakerBookInferencePanel />
 
       <Row gutter={[12, 12]}>
         <Col xs={24} md={12} xl={6}>
@@ -236,6 +272,36 @@ export default function WalletShadowPage() {
         <Col xs={12} md={6} xl={5}><Card size="small"><Statistic title="Target parents" value={number(target.parentCount) ?? 0} /><Text type="secondary">M {text(target.makerParents)} / T {text(target.takerParents)}</Text></Card></Col>
         <Col xs={12} md={6} xl={5}><Card size="small"><Statistic title="Shadow events" value={number(shadow.eventCount) ?? 0} /><Text type="secondary">Paper only · no live writes</Text></Card></Col>
       </Row>
+
+      <Card title={`Target Wallet Official Performance · rolling ${text(targetPerformance.windowDays, text(retention.days))} days`} style={{ marginTop: 12 }}>
+        <Row gutter={[12, 12]}>
+          <Col xs={12} md={8} xl={4}><Statistic title="Net PnL" value={money(targetPerformance.netPnlUsdt)} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="Market win rate" value={pct(targetPerformance.winRate)} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="Net ROI" value={pct(targetPerformance.netRoi)} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="W / L / Flat" value={`${text(targetPerformance.wins, '0')} / ${text(targetPerformance.losses, '0')} / ${text(targetPerformance.flats, '0')}`} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="投入 / Payout" value={`$${fixed(targetPerformance.buyNotionalUsdt, 2)} / $${fixed(targetPerformance.payoutUsdt, 2)}`} /></Col>
+          <Col xs={12} md={8} xl={4}><Statistic title="Settled" value={number(targetPerformance.settledMarkets) ?? 0} /></Col>
+        </Row>
+        <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+          <Col xs={12} md={6}><Card size="small"><Statistic title="Maker net PnL" value={money(targetPerformance.makerNetPnlUsdt)} /></Card></Col>
+          <Col xs={12} md={6}><Card size="small"><Statistic title="Taker net PnL" value={money(targetPerformance.takerNetPnlUsdt)} /></Card></Col>
+          <Col xs={12} md={6}><Card size="small"><Statistic title="Share / Capital 官方命中" value={`${pct(targetOfficialAccuracy.shareAccuracy)} / ${pct(targetOfficialAccuracy.capitalAccuracy)}`} /><Text type="secondary">低價保險腿以 capital 欄位降權</Text></Card></Col>
+          <Col xs={12} md={6}><Card size="small"><Statistic title="即時因果 context" value={`${text(targetContextCoverage.causal, '0')} / ${text(targetContextCoverage.captured, '0')}`} /><Text type="secondary">其餘只使用市場排程時間，不冒充即時盤口</Text></Card></Col>
+        </Row>
+        <Alert type="warning" showIcon style={{ marginTop: 12 }} message={`${text(targetPerformance.historicallyReconstructedMarkets, '0')} 個市場為歷史目標帳本回算`} description={text(targetPerformance.accountingCaveat)} />
+      </Card>
+
+      <Card title={`最近已結算 Target 真實市場 · ${targetRecentMarkets.length}`} style={{ marginTop: 12 }}>
+        <Table
+          rowKey={(item) => text(item.market_id)}
+          dataSource={targetRecentMarkets}
+          columns={targetResultColumns}
+          size="small"
+          pagination={{ pageSize: 10, hideOnSinglePage: true }}
+          scroll={{ x: 1250 }}
+          locale={{ emptyText: '等待目標錢包已成交市場取得官方結算' }}
+        />
+      </Card>
 
       <Card title={`Shadow Paper Performance · rolling ${text(performance.windowDays, text(retention.days))} days`} style={{ marginTop: 12 }}>
         <Row gutter={[12, 12]}>
@@ -254,7 +320,17 @@ export default function WalletShadowPage() {
         </Row>
       </Card>
 
-      <WalletShadowTakerV1Panel />
+      <WalletShadowTakerSignalV2Panel />
+      <WalletShadowPrivateTakerPanel />
+      <WalletShadowMakerGridDepthPanel />
+      <WalletShadowMakerInventorySharedPanel />
+      <WalletShadowRecenteredPooledPanel />
+      <WalletShadowBalanceFirstPanel />
+      <WalletShadowTargetTakerMirrorPanel />
+      <WalletShadowTargetCoreIntegratedPanel />
+      <WalletShadowWideMakerFlowPanel />
+      <WalletShadowReconstructedMakerPanel />
+      <WalletShadowSpotStrikePanel />
 
       <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
         <Col xs={24} xl={8}>
@@ -330,7 +406,7 @@ export default function WalletShadowPage() {
               columns={targetColumns}
               size="small"
               pagination={{ pageSize: 15, hideOnSinglePage: true }}
-              scroll={{ x: 900 }}
+              scroll={{ x: 1250 }}
               locale={{ emptyText: '本輪尚未抓到目標錢包 BTC 5M 成交' }}
             />
           </Card>

@@ -188,7 +188,7 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
   const eventColumns = [
     { title: '時間', dataIndex: 'at_ms', width: 88, render: clock },
     { title: '事件', dataIndex: 'event_type', width: 220, render: (value: unknown) => <Tag>{text(value)}</Tag> },
-    { title: '內容', dataIndex: 'message', render: text },
+    { title: '內容', dataIndex: 'message', render: (value: unknown) => text(value) },
   ]
 
   return (
@@ -283,7 +283,7 @@ function CloneAssetPanel({ asset }: { asset: CloneAsset }) {
       </Card>
 
       <Card size="small" title="最近 Order Lifecycle" style={{ marginTop: 12 }}>
-        <Table size="small" rowKey={(event) => String(event.id ?? `${event.at_ms}-${event.event_type}`)} dataSource={events.slice(0, 12)} columns={eventColumns} pagination={false} scroll={{ x: 720 }} />
+        <Table<RowObject> size="small" rowKey={(event) => String(event.id ?? `${event.at_ms}-${event.event_type}`)} dataSource={events.slice(0, 12)} columns={eventColumns} pagination={false} scroll={{ x: 720 }} />
       </Card>
     </Card>
   )

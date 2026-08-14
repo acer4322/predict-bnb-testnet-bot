@@ -98,6 +98,26 @@ export default defineConfig({
         changeOrigin: false,
         rewrite: () => '/state',
       },
+      '/bridge/wallet-shadow-health': {
+        target: 'http://127.0.0.1:8776',
+        changeOrigin: false,
+        rewrite: () => '/health',
+      },
+      '/bridge/wallet-taker-signals': {
+        target: 'http://127.0.0.1:8777',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
+      '/bridge/wallet-maker-book-inference-eth5m': {
+        target: 'http://127.0.0.1:8779',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
+      '/bridge/wallet-maker-book-inference': {
+        target: 'http://127.0.0.1:8778',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
       '/bridge/wallet-shadow': {
         target: 'http://127.0.0.1:8776',
         changeOrigin: false,

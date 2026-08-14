@@ -18,6 +18,7 @@ import { type ServiceSnapshot, useDashboardStore } from './store'
 import { useStrategyStore } from './strategy-store'
 import { usePredictFunStore } from './predict-fun-store'
 import { useWalletShadowStore } from './wallet-shadow-store'
+import { useWalletLabHealthStore } from './wallet-lab-health-store'
 import CrossOracleStorageCard from './cross-oracle-storage-card'
 import LiveMarketsPage from './live-markets-page'
 import PinnedDivergencePage from './pinned-divergence-page'
@@ -67,7 +68,9 @@ function Shell() {
   const refreshPredictFun = usePredictFunStore((state) => state.refresh)
   const predictFunService = usePredictFunStore((state) => state.service)
   const refreshWalletShadow = useWalletShadowStore((state) => state.refresh)
-  const walletShadowService = useWalletShadowStore((state) => state.service)
+  const refreshWalletLabHealth = useWalletLabHealthStore((state) => state.refresh)
+  const walletShadowHealth = useWalletLabHealthStore((state) => state.observer8776)
+  const walletTakerSignalHealth = useWalletLabHealthStore((state) => state.collector8777)
   const mobile = !screens.lg
 
   useEffect(() => {
@@ -76,7 +79,6 @@ function Shell() {
       if (!cancelled && document.visibilityState === 'visible') {
         void refreshFast()
         void refreshPredictFun()
-        void refreshWalletShadow()
       }
     }
     tick()
@@ -88,7 +90,40 @@ function Shell() {
       window.clearInterval(timer)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [refreshFast, refreshPredictFun, refreshWalletShadow])
+  }, [refreshFast, refreshPredictFun])
+
+  useEffect(() => {
+    let cancelled = false
+    const tick = () => {
+      if (!cancelled && document.visibilityState === 'visible') void refreshWalletLabHealth()
+    }
+    tick()
+    const timer = window.setInterval(tick, 1000)
+    const onVisibility = () => tick()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [refreshWalletLabHealth])
+
+  useEffect(() => {
+    if (location.pathname !== '/wallet-shadow') return
+    let cancelled = false
+    const tick = () => {
+      if (!cancelled && document.visibilityState === 'visible') void refreshWalletShadow()
+    }
+    tick()
+    const timer = window.setInterval(tick, 3000)
+    const onVisibility = () => tick()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [location.pathname, refreshWalletShadow])
 
   useEffect(() => {
     let cancelled = false
@@ -147,7 +182,8 @@ function Shell() {
             <ServiceTag label="8769" service={services.polyGap} />
             <ServiceTag label="8770" service={services.multiMarket} />
             <ServiceTag label="8771" service={predictFunService} />
-            <ServiceTag label="8776" service={walletShadowService} />
+            <ServiceTag label="8776" service={walletShadowHealth} />
+            <ServiceTag label="8777" service={walletTakerSignalHealth} />
           </Space>
         </Header>
         <Content className="app-content">

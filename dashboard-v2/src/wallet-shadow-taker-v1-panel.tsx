@@ -2,6 +2,7 @@ import { Alert, Card, Col, Descriptions, Row, Space, Statistic, Table, Tag, Typo
 import type { TableColumnsType } from 'antd'
 import { useWalletShadowStore } from './wallet-shadow-store'
 import WalletShadowSpotStrikePanel from './wallet-shadow-spot-strike-panel'
+import WalletShadowCapitalS1Panel from './wallet-shadow-capital-s1-panel'
 
 const { Text } = Typography
 
@@ -193,6 +194,7 @@ export default function WalletShadowTakerV1Panel() {
         </Card>
       </Card>
 
+      <WalletShadowCapitalS1Panel />
       <WalletShadowSpotStrikePanel />
     </>
   )

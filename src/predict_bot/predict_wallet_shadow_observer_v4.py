@@ -8,6 +8,9 @@ from . import predict_wallet_shadow_observer as base
 from . import predict_wallet_shadow_observer_v3 as v3
 
 VERSION = "PREDICT_WALLET_SHADOW_V0_4_TAKER_V1"
+LEGACY_TAKER_V1_ENABLED = os.environ.get(
+    "PREDICT_WALLET_SHADOW_LEGACY_COHORTS_ENABLED", "true"
+).strip().lower() in {"1", "true", "yes", "on"}
 V1_BASE_SHARES = max(1.0, min(18.0, float(os.environ.get("PREDICT_WALLET_SHADOW_TAKER_V1_BASE_SHARES", "12"))))
 V1_CORE_FLIP_SHARES = max(1.0, min(18.0, float(os.environ.get("PREDICT_WALLET_SHADOW_TAKER_V1_CORE_FLIP_SHARES", "10"))))
 V1_MAX_EVENT_SHARES = max(1.0, min(25.0, float(os.environ.get("PREDICT_WALLET_SHADOW_TAKER_V1_MAX_EVENT_SHARES", "18"))))
@@ -143,6 +146,8 @@ class WalletShadowObserver(v3.WalletShadowObserver):
         self.pending_settlement_ids.update(int(row[0]) for row in rows)
 
     def _register_v1_market(self, market_id: int) -> None:
+        if not LEGACY_TAKER_V1_ENABLED:
+            return
         now_ms = base._now_ms()
         with self.db_lock:
             self.db.execute(
@@ -232,6 +237,8 @@ class WalletShadowObserver(v3.WalletShadowObserver):
             self.db.commit()
 
     def _advance_taker_v1(self, new_common_events: list[base.ShadowEvent], book: dict[str, Any], core: dict[str, Any]) -> None:
+        if not LEGACY_TAKER_V1_ENABLED:
+            return
         for event in new_common_events:
             if event.event_type != "MAKER_FILL_PROXY" or event.id in self.taker_v1_processed_maker_fills:
                 continue
