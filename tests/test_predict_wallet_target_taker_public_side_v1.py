@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from predict_bot import predict_wallet_target_taker_public_side_strategy_v1 as strategy
 
 
@@ -117,8 +119,8 @@ def test_side_model_feature_contract_contains_no_target_or_chosen_side_leakage()
 def test_forward_feature_row_derives_spreads_and_signal_age_without_target_data() -> None:
     signal = strategy.public_side_score(_snapshot(), _bundle(), now_ms=10_200)
     features = signal["features"]
-    assert features["predict_up_spread"] == 0.02
-    assert features["predict_down_spread"] == 0.02
+    assert features["predict_up_spread"] == pytest.approx(0.02)
+    assert features["predict_down_spread"] == pytest.approx(0.02)
     assert features["signal_age_ms"] == 200.0
     assert set(features) == set(strategy.SIDE_EBM_EXPECTED_FEATURES)
 
