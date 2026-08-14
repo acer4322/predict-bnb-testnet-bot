@@ -16,6 +16,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+research = [
+    "interpret>=0.7,<1",
+    "pandas>=2.2,<4",
+    "scikit-learn>=1.5,<2",
+]
 
 [project.scripts]
 predict-bot = "predict_bot.cli:main"
