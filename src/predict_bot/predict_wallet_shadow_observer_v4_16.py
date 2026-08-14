@@ -8,9 +8,12 @@ from . import predict_wallet_shadow_observer as base
 from . import predict_wallet_shadow_observer_v3 as v3
 from . import predict_wallet_shadow_observer_v4_2 as spot
 from . import predict_wallet_shadow_observer_v4_15 as v4_15
+from . import predict_wallet_shadow_persistent_cache as persistent_cache
 from . import predict_wallet_wide_maker_flow_strategy as wide
 
-VERSION = "PREDICT_WALLET_SHADOW_V0_20_RETIRED_OBSOLETE_LABS"
+persistent_cache.install()
+
+VERSION = "PREDICT_WALLET_SHADOW_V0_21_PERSISTENT_WARM_REPORT_CACHE"
 LEGACY_BASE_COHORT = "LEGACY_SHADOW_PAPER_V0"
 RETIRED_COHORTS = (
     LEGACY_BASE_COHORT,
@@ -255,7 +258,7 @@ def main() -> int:
     server = ThreadingHTTPServer((base.HOST, base.PORT), handler)
     print(
         f"Predict wallet shadow {VERSION} listening on http://{base.HOST}:{base.PORT}/state; "
-        "obsoleteLabsRetired=true; historicalAuditPreserved=true; paperOnly=true; liveOrdersAffected=false",
+        "obsoleteLabsRetired=true; persistentLastGoodReport=true; historicalAuditPreserved=true; paperOnly=true; liveOrdersAffected=false",
         flush=True,
     )
     try:
