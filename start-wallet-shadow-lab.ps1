@@ -167,17 +167,17 @@ try {
     }
     else { Write-Host "Wallet Shadow Lab: reusing the current read-only 8771 observer." }
 
-    Assert-KnownListener 8778 "predict_bot.predict_wallet_maker_book_inference_collector_v2" "Maker book lifecycle inference collector"
+    Assert-KnownListener 8778 "predict_bot.predict_wallet_maker_book_inference_collector_v2_1" "Maker book consumable lifecycle inference collector"
     if (-not (Test-LocalService "http://127.0.0.1:8778/state")) {
-        Write-Host "Wallet Shadow Lab: starting forward-only Maker full-book lifecycle inference collector on 8778."
+        Write-Host "Wallet Shadow Lab: starting consumable-quantity Maker lifecycle inference collector on 8778."
         $MakerBook = Start-Process -FilePath "python" `
-            -ArgumentList @("-m", "predict_bot.predict_wallet_maker_book_inference_collector_v2") `
+            -ArgumentList @("-m", "predict_bot.predict_wallet_maker_book_inference_collector_v2_1") `
             -WorkingDirectory $Root -WindowStyle Hidden `
             -RedirectStandardOutput (Join-Path $Data "wallet-shadow-lab-maker-book.stdout.log") `
             -RedirectStandardError (Join-Path $Data "wallet-shadow-lab-maker-book.stderr.log") -PassThru
         $MakerBook.Id | Set-Content (Join-Path $Root ".wallet-shadow-lab-maker-book.pid")
     }
-    else { Write-Host "Wallet Shadow Lab: reusing the current forward-only 8778 Maker lifecycle collector." }
+    else { Write-Host "Wallet Shadow Lab: reusing the current 8778 consumable lifecycle collector." }
 
     Assert-KnownListener 8779 "predict_bot.predict_wallet_maker_book_inference_collector_eth5m" "ETH 5M Maker book inference collector"
     if (-not (Test-LocalService "http://127.0.0.1:8779/state")) {
@@ -203,11 +203,11 @@ try {
     }
     else { Write-Host "Wallet Shadow Lab: reusing the current paper-only 8777 Taker signal collector." }
 
-    Assert-KnownListener 8776 "predict_bot.predict_wallet_shadow_observer_v4_15" "Wallet Shadow observer"
+    Assert-KnownListener 8776 "predict_bot.predict_wallet_shadow_observer_v4_16" "Wallet Shadow observer"
     if (-not (Test-LocalService "http://127.0.0.1:8776/health" 5)) {
         Write-Host "Wallet Shadow Lab: starting non-blocking paper-only Wallet Shadow observer on 8776."
         $Shadow = Start-Process -FilePath "python" `
-            -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_15") `
+            -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_16") `
             -WorkingDirectory $Root -WindowStyle Hidden `
             -RedirectStandardOutput (Join-Path $Data "wallet-shadow-lab-observer.stdout.log") `
             -RedirectStandardError (Join-Path $Data "wallet-shadow-lab-observer.stderr.log") -PassThru
@@ -261,8 +261,8 @@ try {
     }
 
     Write-Host "Wallet Shadow Lab ready: http://localhost:4320/wallet-shadow"
-    Write-Host "Started only the required research path: 8771 + 8778 BTC lifecycle book + 8779 ETH book + 8777 + 8776 + 4320."
-    Write-Host "8776 version=$($ShadowState.version); status=$($ShadowState.status); report=$($ShadowState.reportStatus); paper cohorts do not route live orders."
+    Write-Host "Started only the required research path: 8771 + 8778 BTC consumable lifecycle + 8779 ETH book + 8777 + 8776 + 4320."
+    Write-Host "8776 version=$($ShadowState.version); status=$($ShadowState.status); report=$($ShadowState.reportStatus); retired legacy labs do not create new forward data."
     if (-not $NoBrowser) { Start-Process "http://localhost:4320/wallet-shadow" }
 }
 catch {
