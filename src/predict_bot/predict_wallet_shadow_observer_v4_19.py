@@ -13,20 +13,22 @@ VERSION = "PREDICT_WALLET_SHADOW_V0_24_TARGET_TAKER_PUBLIC_SIDE_V1"
 
 
 class WalletShadowObserver(v4_18.WalletShadowObserver):
-    """V4.18 plus two isolated public-side Target Taker forward paper cohorts.
-
-    SIDE_ONLY asks whether the newly discovered public direction edge has forward
-    PnL value without imitating Target timing. HAZARD_SIDE uses the exact same
-    side rule but requires a five-second eligibility opened by Lifecycle V3's own
-    paper Maker fill plus the simple time/price hazard gate. Target-wallet events
-    are never runtime inputs for either cohort.
-    """
+    """V4.18 plus two isolated frozen-EBM Target Taker forward paper cohorts."""
 
     def __init__(self, db_path=base.DB_PATH, simulation_db_path=None) -> None:
         self.public_side_schema_ready = False
         self.public_side_sequence = 0
         self.public_side_states: dict[str, dict[str, Any]] = {}
+        self.public_side_model: dict[str, Any] | None = None
+        self.public_side_model_error: str | None = None
         super().__init__(db_path, simulation_db_path)
+        try:
+            self.public_side_model = public_side.load_side_model()
+        except Exception as exc:
+            # Fail closed: the observer stays healthy for legacy paper labs, but
+            # both new cohorts remain SKIP until the exact research artifact exists.
+            self.public_side_model = None
+            self.public_side_model_error = str(exc)[:1000]
         with self.db_lock:
             self.db.executescript(
                 """
@@ -204,8 +206,6 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
         up_filled_shares: float,
         down_filled_shares: float,
     ) -> None:
-        # Preserve V4's own state-Taker experiment, then mirror only the causal
-        # eligibility boundary into the new HAZARD_SIDE A/B cohort.
         super()._open_state_taker_eligibility(
             snapshot_ns=snapshot_ns,
             now_ms=now_ms,
@@ -268,7 +268,8 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
                 (
                     decision_id, cohort, int(self.market_id), int(snapshot_ns), int(now_ms),
                     decision["decision"], decision["reason"], decision.get("side"),
-                    signal.get("score"), signal.get("confidence"), signal.get("availableFeatures"),
+                    signal.get("score"), signal.get("confidence"),
+                    len(public_side.SIDE_EBM_EXPECTED_FEATURES) - len(signal.get("missingFeatures") or []),
                     hazard.get("eligibilityScore") if isinstance(hazard, dict) else None,
                     hazard.get("reason") if isinstance(hazard, dict) else None,
                     decision.get("secondsLeft"), json.dumps(payload, separators=(",", ":"), default=str),
@@ -305,6 +306,8 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
             "side": decision["side"],
             **fill,
             "sideScore": signal.get("score"),
+            "sideProbabilityUp": signal.get("probabilityUp"),
+            "sideSelectedProbability": signal.get("selectedProbability"),
             "sideSignal": signal,
             "hazard": hazard,
             "paperOnly": True,
@@ -343,7 +346,12 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
         state = self.public_side_states[cohort]
         if not state.get("active") or state.get("event") is not None or self.market_id is None:
             return
-        decision = public_side.decide_side(snapshot, expected_market_id=int(self.market_id), now_ms=now_ms)
+        decision = public_side.decide_side(
+            snapshot,
+            self.public_side_model,
+            expected_market_id=int(self.market_id),
+            now_ms=now_ms,
+        )
         hazard: dict[str, Any] | None = None
         if cohort == public_side.HAZARD_SIDE_COHORT:
             eligibility = state.get("eligibility")
@@ -356,7 +364,7 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
             if not hazard["eligible"]:
                 decision = {**decision, "decision": "SKIP", "reason": str(hazard["reason"])}
             elif decision["decision"] == "TRADE":
-                decision = {**decision, "reason": "PUBLIC_SIDE_PLUS_HAZARD_MATCH"}
+                decision = {**decision, "reason": "PUBLIC_SIDE_EBM_PLUS_HAZARD_MATCH"}
         self._record_public_side_decision(
             cohort, decision, hazard, snapshot_ns=snapshot_ns, now_ms=now_ms,
             force=decision["decision"] == "TRADE",
@@ -559,14 +567,21 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
             "targetEventsDriveStrategy": False,
             "liveOrdersAffected": False,
             "fixedSizing": True,
+            "sideModel": {
+                "loaded": self.public_side_model is not None,
+                "path": self.public_side_model.get("path") if self.public_side_model else str(public_side.DEFAULT_SIDE_MODEL_PATH),
+                "reportVersion": self.public_side_model.get("reportVersion") if self.public_side_model else None,
+                "features": self.public_side_model.get("features") if self.public_side_model else list(public_side.SIDE_EBM_EXPECTED_FEATURES),
+                "error": self.public_side_model_error,
+            },
             "policy": public_side.policy(),
             "cohorts": cohorts,
             "abTest": {
                 "sideOnly": public_side.SIDE_ONLY_COHORT,
                 "hazardSide": public_side.HAZARD_SIDE_COHORT,
-                "question": "Does own-Maker-fill five-second time/price gating improve forward PnL over the same public side rule alone?",
+                "question": "Does own-Maker-fill five-second time/price gating improve forward PnL over the exact same frozen compact-side EBM?",
             },
-            "evidenceBoundary": "Side uses public BTC spot/strike, Prediction, futures/spot queue/return and direction state only. HAZARD_SIDE eligibility comes only from Lifecycle V3's own paper Maker fills, and its price regime is aligned to that fill side. The entire Target wallet is observational and cannot trigger this strategy.",
+            "evidenceBoundary": "Side is direct inference from the frozen compact_side EBM trained only on strict-pre-event raw public features. HAZARD_SIDE eligibility comes only from Lifecycle V3's own paper Maker fills, with price aligned to that fill side. Target wallet observations cannot trigger either cohort.",
             "promotion": "research-only cohorts absent from every live allowlist; no automatic promotion",
         }
         return payload
@@ -575,6 +590,8 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
         payload = super().health_snapshot()
         payload["version"] = VERSION
         payload["targetTakerPublicSideV1"] = list(public_side.COHORTS)
+        payload["targetTakerPublicSideModelLoaded"] = self.public_side_model is not None
+        payload["targetTakerPublicSideModelError"] = self.public_side_model_error
         payload["paperOnly"] = True
         payload["liveOrdersAffected"] = False
         return payload
@@ -592,6 +609,7 @@ def main() -> int:
     print(
         f"Predict wallet shadow {VERSION} listening on http://{base.HOST}:{base.PORT}/state; "
         f"{public_side.SIDE_ONLY_COHORT} + {public_side.HAZARD_SIDE_COHORT} active; "
+        f"sideModelLoaded={observer.public_side_model is not None}; "
         "paperOnly=true; targetEventsDriveStrategy=false; liveOrdersAffected=false",
         flush=True,
     )
