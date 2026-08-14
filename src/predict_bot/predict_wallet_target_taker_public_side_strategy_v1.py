@@ -1,36 +1,47 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Any
 
 
-VERSION = "TARGET_TAKER_PUBLIC_SIDE_V1_EXPLICIT_RULES"
+ROOT = Path(__file__).resolve().parents[2]
+VERSION = "TARGET_TAKER_PUBLIC_SIDE_V1_EBM_FORWARD"
 SIDE_ONLY_COHORT = "TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY"
 HAZARD_SIDE_COHORT = "TARGET_TAKER_PUBLIC_SIDE_V1_HAZARD_SIDE"
 COHORTS = (SIDE_ONLY_COHORT, HAZARD_SIDE_COHORT)
+DEFAULT_SIDE_MODEL_PATH = ROOT / "data" / "research" / "target_taker_behavior_models_v1" / "side_up.joblib"
+EXPECTED_REPORT_VERSION = "TARGET_TAKER_BEHAVIOR_V1_HAZARD_SIDE_SIZE_WALK_FORWARD"
 
-# This is a forward paper policy distilled from the BTC direct-Taker EBM study.
-# It deliberately does not load the EBM artifact at runtime. Target-wallet events,
-# target side, target execution price and target size are forbidden inputs.
+# Forward paper execution policy. Size EBM was weak, so stake remains fixed.
 STAKE_USDT = 1.0
 FEE_RATE_BPS = 200
 MAX_ASK = 0.95
 MIN_SECONDS_LEFT = 10.0
 MAX_SAMPLE_AGE_MS = 2_000
 MAX_PREDICT_RECEIPT_AGE_MS = 2_500
-MIN_AVAILABLE_FEATURES = 5
-SIDE_SCORE_THRESHOLD = 0.38
+SIDE_PROBABILITY_THRESHOLD = 0.60
 HAZARD_SCORE_THRESHOLD = 0.55
 
-# Relative importance follows the stable compact-side EBM ranking, but these are
-# transparent research weights rather than fitted EBM coefficients/probabilities.
-SIDE_FEATURES = (
-    ("spot_minus_strike_bps", 1.00, 6.0, "TANH"),
-    ("predict_up_mid", 0.90, 0.15, "CENTER_050"),
-    ("futures_queue_imbalance", 0.80, 0.35, "LINEAR"),
-    ("futures_return_1s_bps", 0.50, 1.50, "TANH"),
-    ("spot_queue_imbalance", 0.50, 0.35, "LINEAR"),
-    ("direction_score", 0.30, 0.50, "LINEAR"),
+# Exact compact_side feature family used by the winning BTC Side EBM. These are
+# raw public, pre-event variables only. No Target-side alignment is legal here.
+SIDE_EBM_EXPECTED_FEATURES = (
+    "seconds_left",
+    "predict_up_mid",
+    "predict_up_spread",
+    "predict_down_spread",
+    "spot_minus_strike_bps",
+    "chainlink_minus_strike_bps",
+    "direction_score",
+    "spot_queue_imbalance",
+    "spot_taker_imbalance_1s",
+    "spot_return_1s_bps",
+    "spot_return_3s_bps",
+    "futures_queue_imbalance",
+    "futures_taker_imbalance_1s",
+    "futures_return_1s_bps",
+    "futures_return_3s_bps",
+    "signal_age_ms",
 )
 
 FORBIDDEN_RUNTIME_FEATURE_PREFIXES = (
@@ -56,72 +67,126 @@ def _value(snapshot: dict[str, Any], snake: str, camel: str | None = None) -> fl
     return value
 
 
-def _normalize(raw: float, scale: float, mode: str) -> float:
-    if mode == "TANH":
-        return math.tanh(raw / scale)
-    if mode == "CENTER_050":
-        return max(-1.0, min(1.0, (raw - 0.50) / scale))
-    return max(-1.0, min(1.0, raw / scale))
+def load_side_model(path: Path = DEFAULT_SIDE_MODEL_PATH) -> dict[str, Any]:
+    """Load and validate the frozen full-data compact_side EBM research artifact."""
+    try:
+        import joblib
+    except ImportError as exc:  # pragma: no cover - deployment dependency guard
+        raise RuntimeError('Side EBM dependency missing. Run: pip install -e ".[research]"') from exc
+    model_path = Path(path).expanduser().resolve()
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"Side EBM model missing: {model_path}. Run tools/train_target_taker_behavior_v1.py first."
+        )
+    bundle = joblib.load(model_path)
+    if not isinstance(bundle, dict):
+        raise RuntimeError("Side EBM artifact is not a model bundle")
+    if bundle.get("reportVersion") != EXPECTED_REPORT_VERSION:
+        raise RuntimeError(
+            f"Side EBM report version mismatch: {bundle.get('reportVersion')} != {EXPECTED_REPORT_VERSION}"
+        )
+    if bundle.get("task") != "side_up":
+        raise RuntimeError(f"Side EBM task mismatch: {bundle.get('task')}")
+    if bundle.get("researchOnly") is not True or bundle.get("automaticStrategyPromotion") is not False:
+        raise RuntimeError("Side EBM artifact lacks the required research-only safety metadata")
+    features = tuple(str(value) for value in bundle.get("features") or ())
+    if features != SIDE_EBM_EXPECTED_FEATURES:
+        raise RuntimeError(
+            "Side EBM feature contract mismatch. "
+            f"expected={SIDE_EBM_EXPECTED_FEATURES} actual={features}"
+        )
+    for feature in features:
+        if feature.startswith(FORBIDDEN_RUNTIME_FEATURE_PREFIXES):
+            raise RuntimeError(f"Forbidden runtime feature in Side EBM: {feature}")
+    model = bundle.get("model")
+    if model is None or not hasattr(model, "predict_proba"):
+        raise RuntimeError("Side EBM artifact has no classifier model")
+    return {**bundle, "path": str(model_path)}
 
 
-def public_side_score(snapshot: dict[str, Any]) -> dict[str, Any]:
-    aliases = {
-        "spot_minus_strike_bps": "spotMinusStrikeBps",
-        "predict_up_mid": "predictUpMid",
-        "futures_queue_imbalance": "futuresQueueImbalance",
-        "futures_return_1s_bps": "futuresReturn1sBps",
-        "spot_queue_imbalance": "spotQueueImbalance",
-        "direction_score": "directionScore",
-    }
-    weighted = 0.0
-    available_weight = 0.0
-    contributions: dict[str, Any] = {}
-    normalized: dict[str, float] = {}
-    for feature, weight, scale, mode in SIDE_FEATURES:
-        raw = _value(snapshot, feature, aliases[feature])
-        if raw is None:
-            contributions[feature] = {"raw": None, "normalized": None, "weight": weight}
-            continue
-        score = _normalize(raw, scale, mode)
-        weighted += weight * score
-        available_weight += weight
-        normalized[feature] = score
-        contributions[feature] = {"raw": raw, "normalized": score, "weight": weight}
-
-    base_score = weighted / available_weight if available_weight else 0.0
-
-    # The strongest EBM interactions involved Prediction mid with futures queue,
-    # spot-vs-strike, and time. Keep only small, explicit agreement bonuses so
-    # the paper strategy tests the same hypothesis without pretending to replay
-    # the fitted EBM exactly.
-    interaction = 0.0
-    p = normalized.get("predict_up_mid")
-    fq = normalized.get("futures_queue_imbalance")
-    ss = normalized.get("spot_minus_strike_bps")
-    seconds_left = _value(snapshot, "seconds_left", "secondsLeft")
-    if p is not None and fq is not None and p * fq > 0:
-        interaction += math.copysign(0.08 * min(abs(p), abs(fq)), p)
-    if p is not None and ss is not None and p * ss > 0:
-        interaction += math.copysign(0.06 * min(abs(p), abs(ss)), p)
-    if p is not None and seconds_left is not None and seconds_left <= 60:
-        interaction += 0.04 * p
-
-    score = max(-1.0, min(1.0, base_score + interaction))
-    side = "UP" if score > 0 else "DOWN" if score < 0 else None
+def _side_feature_row(snapshot: dict[str, Any], *, now_ms: int) -> dict[str, float | None]:
+    up_bid = _value(snapshot, "predict_up_bid", "predictUpBid")
+    up_ask = _value(snapshot, "predict_up_ask", "predictUpAsk")
+    down_bid = _value(snapshot, "predict_down_bid", "predictDownBid")
+    down_ask = _value(snapshot, "predict_down_ask", "predictDownAsk")
+    sampled_at_ms = int(_value(snapshot, "sampled_at_ms", "sampledAtMs") or 0)
     return {
-        "score": score,
-        "baseScore": base_score,
-        "interactionAdjustment": interaction,
-        "confidence": abs(score),
+        "seconds_left": _value(snapshot, "seconds_left", "secondsLeft"),
+        "predict_up_mid": _value(snapshot, "predict_up_mid", "predictUpMid"),
+        "predict_up_spread": up_ask - up_bid if up_ask is not None and up_bid is not None else None,
+        "predict_down_spread": down_ask - down_bid if down_ask is not None and down_bid is not None else None,
+        "spot_minus_strike_bps": _value(snapshot, "spot_minus_strike_bps", "spotMinusStrikeBps"),
+        "chainlink_minus_strike_bps": _value(snapshot, "chainlink_minus_strike_bps", "chainlinkMinusStrikeBps"),
+        "direction_score": _value(snapshot, "direction_score", "directionScore"),
+        "spot_queue_imbalance": _value(snapshot, "spot_queue_imbalance", "spotQueueImbalance"),
+        "spot_taker_imbalance_1s": _value(snapshot, "spot_taker_imbalance_1s", "spotTakerImbalance1s"),
+        "spot_return_1s_bps": _value(snapshot, "spot_return_1s_bps", "spotReturn1sBps"),
+        "spot_return_3s_bps": _value(snapshot, "spot_return_3s_bps", "spotReturn3sBps"),
+        "futures_queue_imbalance": _value(snapshot, "futures_queue_imbalance", "futuresQueueImbalance"),
+        "futures_taker_imbalance_1s": _value(snapshot, "futures_taker_imbalance_1s", "futuresTakerImbalance1s"),
+        "futures_return_1s_bps": _value(snapshot, "futures_return_1s_bps", "futuresReturn1sBps"),
+        "futures_return_3s_bps": _value(snapshot, "futures_return_3s_bps", "futuresReturn3sBps"),
+        # Historical signal_age_ms measured strict-pre-event snapshot staleness.
+        # Forward inference uses the age of the public snapshot at decision time.
+        "signal_age_ms": max(0.0, float(now_ms - sampled_at_ms)) if sampled_at_ms else None,
+    }
+
+
+def public_side_score(
+    snapshot: dict[str, Any],
+    model_bundle: dict[str, Any] | None,
+    *,
+    now_ms: int,
+) -> dict[str, Any]:
+    row = _side_feature_row(snapshot, now_ms=now_ms)
+    missing = [name for name, value in row.items() if value is None]
+    if not isinstance(model_bundle, dict) or model_bundle.get("model") is None:
+        return {
+            "status": "MODEL_UNAVAILABLE",
+            "side": None,
+            "probabilityUp": None,
+            "selectedProbability": None,
+            "score": None,
+            "confidence": None,
+            "features": row,
+            "missingFeatures": missing,
+        }
+    try:
+        import pandas as pd
+    except ImportError as exc:  # pragma: no cover - deployment dependency guard
+        raise RuntimeError('Side EBM dependency missing. Run: pip install -e ".[research]"') from exc
+    features = [str(value) for value in model_bundle["features"]]
+    model = model_bundle["model"]
+    frame = pd.DataFrame([{name: row.get(name) for name in features}], columns=features)
+    probabilities = model.predict_proba(frame)[0]
+    classes = [int(value) for value in model.classes_]
+    if 1 not in classes:
+        raise RuntimeError(f"Side EBM has no positive class: {classes}")
+    p_up = float(probabilities[classes.index(1)])
+    p_up = max(0.0, min(1.0, p_up))
+    side = "UP" if p_up >= 0.5 else "DOWN"
+    selected_probability = p_up if side == "UP" else 1.0 - p_up
+    return {
+        "status": "OK",
         "side": side,
-        "availableFeatures": len(normalized),
-        "availableWeight": available_weight,
-        "contributions": contributions,
+        "probabilityUp": p_up,
+        "selectedProbability": selected_probability,
+        # Signed score is convenient for forward diagnostics; it is not claimed
+        # to be a calibrated edge because the EBM was trained with class weights.
+        "score": 2.0 * p_up - 1.0,
+        "confidence": selected_probability,
+        "threshold": SIDE_PROBABILITY_THRESHOLD,
+        "features": row,
+        "missingFeatures": missing,
+        "modelPath": model_bundle.get("path"),
+        "reportVersion": model_bundle.get("reportVersion"),
+        "modelProbabilityCalibrationClaim": False,
     }
 
 
 def decide_side(
     snapshot: dict[str, Any],
+    model_bundle: dict[str, Any] | None,
     *,
     expected_market_id: int,
     now_ms: int,
@@ -131,7 +196,7 @@ def decide_side(
     sample_age_ms = max(0, now_ms - sampled_at_ms) if sampled_at_ms else None
     predict_age_ms = _value(snapshot, "predict_receipt_age_ms", "predictReceiptAgeMs")
     seconds_left = _value(snapshot, "seconds_left", "secondsLeft")
-    signal = public_side_score(snapshot)
+    signal = public_side_score(snapshot, model_bundle, now_ms=now_ms)
     side = signal["side"]
     ask = None
     if side == "UP":
@@ -139,8 +204,10 @@ def decide_side(
     elif side == "DOWN":
         ask = _value(snapshot, "predict_down_ask", "predictDownAsk")
 
-    reason = "PUBLIC_SIDE_RULE_MATCH"
-    if market_id != int(expected_market_id):
+    reason = "PUBLIC_SIDE_EBM_MATCH"
+    if signal["status"] != "OK":
+        reason = "SIDE_EBM_MODEL_UNAVAILABLE"
+    elif market_id != int(expected_market_id):
         reason = "MARKET_MISMATCH"
     elif sample_age_ms is None or sample_age_ms > MAX_SAMPLE_AGE_MS:
         reason = "STALE_PUBLIC_SNAPSHOT"
@@ -148,15 +215,13 @@ def decide_side(
         reason = "STALE_PREDICT_BOOK"
     elif seconds_left is None or seconds_left <= MIN_SECONDS_LEFT:
         reason = "TOO_LATE"
-    elif int(signal["availableFeatures"]) < MIN_AVAILABLE_FEATURES:
-        reason = "INSUFFICIENT_PUBLIC_FEATURES"
-    elif side not in {"UP", "DOWN"} or float(signal["confidence"]) < SIDE_SCORE_THRESHOLD:
-        reason = "PUBLIC_SIDE_SCORE_TOO_WEAK"
+    elif side not in {"UP", "DOWN"} or float(signal["selectedProbability"] or 0.0) < SIDE_PROBABILITY_THRESHOLD:
+        reason = "PUBLIC_SIDE_EBM_TOO_WEAK"
     elif ask is None or not 0 < ask <= MAX_ASK:
         reason = "ASK_UNEXECUTABLE"
 
     return {
-        "decision": "TRADE" if reason == "PUBLIC_SIDE_RULE_MATCH" else "SKIP",
+        "decision": "TRADE" if reason == "PUBLIC_SIDE_EBM_MATCH" else "SKIP",
         "reason": reason,
         "side": side,
         "ask": ask,
@@ -197,9 +262,8 @@ def hazard_gate(
     if seconds_left is None or maker_side_mid is None:
         return {"eligible": False, "reason": "HAZARD_STATE_MISSING", "eligibilityScore": None}
 
-    # The historical hazard model was aligned to the Maker-fill side. Keep that
-    # exact causal semantics here: public Side may later choose either direction,
-    # but the hazard price regime is always the side of our own paper Maker fill.
+    # The best 5s hazard family was time+price. Keep it as a transparent ordinal
+    # gate instead of deploying the inferior fixed time_price_micro research model.
     if seconds_left <= 60:
         time_score = 0.70
         time_regime = "LATE_LE_60S"
@@ -265,21 +329,23 @@ def policy() -> dict[str, Any]:
         "forwardOnly": True,
         "automaticStrategyPromotion": False,
         "targetEventsDriveRuntime": False,
+        "sideModelPath": str(DEFAULT_SIDE_MODEL_PATH),
+        "sideModelReportVersion": EXPECTED_REPORT_VERSION,
+        "sideProbabilityThreshold": SIDE_PROBABILITY_THRESHOLD,
+        "probabilityCalibrationClaim": False,
         "fixedStakeUsdt": STAKE_USDT,
         "feeRateBps": FEE_RATE_BPS,
         "maxAsk": MAX_ASK,
-        "sideScoreThreshold": SIDE_SCORE_THRESHOLD,
-        "minimumAvailablePublicFeatures": MIN_AVAILABLE_FEATURES,
-        "sidePublicFeatures": [item[0] for item in SIDE_FEATURES],
-        "sideRuleInterpretation": "explicit weighted public-state rule distilled from stable compact-side EBM feature families; not a replay of fitted EBM probabilities",
+        "sidePublicFeatures": list(SIDE_EBM_EXPECTED_FEATURES),
+        "sideRuleInterpretation": "direct frozen compact_side EBM inference from the completed BTC Target Taker study; class-weighted probability is used only as a ranking/confidence score, not claimed calibrated",
         "cohorts": {
             SIDE_ONLY_COHORT: {
-                "entry": "first strong public-side state per complete forward market",
+                "entry": "first public state per complete forward market where frozen compact_side EBM selected-side score >= threshold",
                 "oneEntryPerMarket": True,
                 "makerAnchorRequired": False,
             },
             HAZARD_SIDE_COHORT: {
-                "entry": "first strong public-side state that also passes the 5s own-paper-Maker time+price hazard gate",
+                "entry": "same frozen compact_side EBM side rule plus the 5s own-paper-Maker time+price hazard gate",
                 "oneEntryPerMarket": True,
                 "makerAnchorRequired": True,
                 "makerAnchorSource": "Lifecycle V3 own strict paper Maker fill only",
