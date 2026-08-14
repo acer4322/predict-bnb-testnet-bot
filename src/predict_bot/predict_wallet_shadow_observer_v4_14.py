@@ -12,7 +12,8 @@ from . import predict_wallet_shadow_observer_v4_13 as v4_13
 
 VERSION = "PREDICT_WALLET_SHADOW_V0_17_NONBLOCKING_REPORT_CACHE"
 REPORT_REFRESH_MS = 60_000
-REPORT_BUILD_MIN_SECONDS_LEFT = 60.0
+REPORT_ERROR_RETRY_MS = 300_000
+REPORT_BUILD_MIN_SECONDS_LEFT = 150.0
 REPORT_BUILD_MAX_SECONDS_LEFT = 240.0
 
 
@@ -60,15 +61,20 @@ class WalletShadowObserver(v4_13.WalletShadowObserver):
         age_ms = now_ms - completed if completed is not None else None
         safe, seconds_left = self._report_safe_window()
         stale = age_ms is not None and age_ms >= REPORT_REFRESH_MS
+        error_backoff = bool(error and started is not None and now_ms - started < REPORT_ERROR_RETRY_MS)
         if not has_cache:
             if building:
                 status = "BUILDING_FIRST_REPORT"
+            elif error_backoff:
+                status = "ERROR_BACKOFF"
             elif error:
                 status = "ERROR_WAITING_SAFE_WINDOW" if not safe else "ERROR_RETRY_READY"
             else:
                 status = "WAITING_SAFE_WINDOW" if not safe else "BUILD_READY"
         elif building:
             status = "REFRESHING"
+        elif error_backoff:
+            status = "STALE_ERROR_BACKOFF" if stale else "READY_WITH_REPORT_ERROR"
         elif stale:
             status = "STALE_WAITING_SAFE_WINDOW" if not safe else "STALE_REFRESH_READY"
         else:
@@ -82,6 +88,7 @@ class WalletShadowObserver(v4_13.WalletShadowObserver):
             "reportBuildCount": build_count,
             "reportError": error,
             "reportRefreshMs": REPORT_REFRESH_MS,
+            "reportErrorRetryMs": REPORT_ERROR_RETRY_MS,
             "reportBuildSafeWindowSecondsLeft": [REPORT_BUILD_MIN_SECONDS_LEFT, REPORT_BUILD_MAX_SECONDS_LEFT],
             "reportBuildSafeNow": safe,
             "secondsLeftAtCheck": seconds_left,
@@ -117,6 +124,12 @@ class WalletShadowObserver(v4_13.WalletShadowObserver):
             if self._report_building:
                 return
             if (
+                self._report_error
+                and self._report_last_started_ms is not None
+                and now_ms - self._report_last_started_ms < REPORT_ERROR_RETRY_MS
+            ):
+                return
+            if (
                 self._report_cache is not None
                 and self._report_last_completed_ms is not None
                 and now_ms - self._report_last_completed_ms < REPORT_REFRESH_MS
@@ -127,6 +140,12 @@ class WalletShadowObserver(v4_13.WalletShadowObserver):
             return
         with self._report_lock:
             if self._report_building:
+                return
+            if (
+                self._report_error
+                and self._report_last_started_ms is not None
+                and now_ms - self._report_last_started_ms < REPORT_ERROR_RETRY_MS
+            ):
                 return
             if (
                 self._report_cache is not None
