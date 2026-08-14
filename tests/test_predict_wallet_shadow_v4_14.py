@@ -3,7 +3,12 @@ from __future__ import annotations
 import threading
 import time
 
-from predict_bot.predict_wallet_shadow_observer_v4_14 import VERSION, WalletShadowObserver
+from predict_bot import predict_wallet_maker_inventory_taker_strategy as shared_strategy
+from predict_bot.predict_wallet_shadow_observer_v4_14 import (
+    TARGET_CORE_V2_COHORT,
+    VERSION,
+    WalletShadowObserver,
+)
 
 
 def close_observer(observer: WalletShadowObserver) -> None:
@@ -86,5 +91,49 @@ def test_v4_14_defers_heavy_report_near_market_open(tmp_path, monkeypatch) -> No
         assert calls == 0
         assert state["reportStatus"] == "WAITING_SAFE_WINDOW"
         assert state["observerDiagnostics"]["reportBuildSafeNow"] is False
+    finally:
+        close_observer(observer)
+
+
+def test_target_core_v2_cuts_maker_slots_without_changing_taker_policy(tmp_path) -> None:
+    observer = WalletShadowObserver(tmp_path / "shadow.db", tmp_path / "missing.db")
+    try:
+        assert TARGET_CORE_V2_COHORT in observer.shared_states
+        v1 = next(item for item in shared_strategy.COHORTS if item["cohort"] == "TARGET_CORE_INTEGRATED_V1")
+        v2 = next(item for item in shared_strategy.COHORTS if item["cohort"] == TARGET_CORE_V2_COHORT)
+
+        balanced = shared_strategy.inventory_state(maker_up_shares=180, maker_down_shares=180)
+        sample = {"seconds_left": 180.0}
+        v1_plan = shared_strategy.depth_plan(v1, sample, balanced)
+        v2_plan = shared_strategy.depth_plan(v2, sample, balanced)
+        assert (v1_plan["upLevels"], v1_plan["downLevels"]) == (15, 15)
+        assert (v2_plan["upLevels"], v2_plan["downLevels"]) == (5, 5)
+
+        soft = shared_strategy.inventory_state(maker_up_shares=234, maker_down_shares=180)
+        v2_soft = shared_strategy.depth_plan(v2, sample, soft)
+        assert (v2_soft["upLevels"], v2_soft["downLevels"]) == (2, 5)
+
+        policy = shared_strategy.policy(v2)["targetCoreIntegrated"]
+        assert policy["maker"]["levelsPerSide"] == 5
+        assert policy["allocationExperiment"]["makerQuoteSlotReduction"] == 2 / 3
+        assert policy["allocationExperiment"]["takerSignalSameAsV1"] is True
+        assert policy["allocationExperiment"]["takerSizingSameAsV1"] is True
+    finally:
+        close_observer(observer)
+
+
+def test_cold_state_exposes_target_core_v1_and_v2_before_full_report(tmp_path) -> None:
+    observer = WalletShadowObserver(tmp_path / "shadow.db", tmp_path / "missing.db")
+    observer.latest_public_signal_snapshot = {"seconds_left": 295.0}
+    try:
+        state = observer.snapshot()
+        variants = state["makerInventoryTakerSharedLab"]["variants"]
+        cohorts = {item["cohort"] for item in variants}
+        assert "TARGET_CORE_INTEGRATED_V1" in cohorts
+        assert TARGET_CORE_V2_COHORT in cohorts
+        v2 = next(item for item in variants if item["cohort"] == TARGET_CORE_V2_COHORT)
+        assert v2["performance"] == {}
+        assert v2["policy"]["targetCoreIntegrated"]["maker"]["levelsPerSide"] == 5
+        assert state["reportStatus"] == "WAITING_SAFE_WINDOW"
     finally:
         close_observer(observer)
