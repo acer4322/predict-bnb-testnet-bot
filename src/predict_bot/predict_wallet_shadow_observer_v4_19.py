@@ -217,10 +217,16 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
         state = self.public_side_states.get(public_side.HAZARD_SIDE_COHORT)
         if not isinstance(state, dict) or not state.get("active") or state.get("event") is not None:
             return
+        maker_anchor_side = None
+        if up_filled_shares > 1e-9 and down_filled_shares <= 1e-9:
+            maker_anchor_side = "UP"
+        elif down_filled_shares > 1e-9 and up_filled_shares <= 1e-9:
+            maker_anchor_side = "DOWN"
         state["eligibility"] = {
             "openedAtMs": int(now_ms),
             "expiresAtMs": int(now_ms + 5_000),
             "openedSnapshotNs": int(snapshot_ns),
+            "makerAnchorSide": maker_anchor_side,
             "sourceMakerUpFilledShares": float(up_filled_shares),
             "sourceMakerDownFilledShares": float(down_filled_shares),
             "source": "LIFECYCLE_V3_OWN_PAPER_MAKER_FILL",
@@ -343,7 +349,6 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
             eligibility = state.get("eligibility")
             hazard = public_side.hazard_gate(
                 snapshot,
-                decision.get("side"),
                 eligibility if isinstance(eligibility, dict) else None,
                 snapshot_ns=int(snapshot_ns),
                 now_ms=int(now_ms),
@@ -561,7 +566,7 @@ class WalletShadowObserver(v4_18.WalletShadowObserver):
                 "hazardSide": public_side.HAZARD_SIDE_COHORT,
                 "question": "Does own-Maker-fill five-second time/price gating improve forward PnL over the same public side rule alone?",
             },
-            "evidenceBoundary": "Side uses public BTC spot/strike, Prediction, futures/spot queue/return and direction state only. HAZARD_SIDE eligibility comes only from Lifecycle V3's own paper Maker fills; the entire Target wallet is observational and cannot trigger this strategy.",
+            "evidenceBoundary": "Side uses public BTC spot/strike, Prediction, futures/spot queue/return and direction state only. HAZARD_SIDE eligibility comes only from Lifecycle V3's own paper Maker fills, and its price regime is aligned to that fill side. The entire Target wallet is observational and cannot trigger this strategy.",
             "promotion": "research-only cohorts absent from every live allowlist; no automatic promotion",
         }
         return payload
