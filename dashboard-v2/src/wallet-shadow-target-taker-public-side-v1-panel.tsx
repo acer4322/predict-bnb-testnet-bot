@@ -73,7 +73,7 @@ function resultTag(value: unknown) {
 function decisionTag(value: unknown) {
   const decision = text(value).toUpperCase()
   if (decision === 'TRADE') return <Tag color="success">TRADE</Tag>
-  if (decision === 'SKIP') return <Tag color="default">SKIP</Tag>
+  if (decision === 'SKIP') return <Tag>SKIP</Tag>
   return <Tag>{decision}</Tag>
 }
 
@@ -105,6 +105,7 @@ function CohortCard({ cohort, title, color, hazard }: { cohort: RowObject; title
   const eligibilityThreshold = num(hazardDecision.threshold) ?? 0.55
   const expiresAt = num(eligibility.expiresAtMs)
   const remainingMs = expiresAt === null ? null : Math.max(0, expiresAt - Date.now())
+  const confidencePercent = selectedProbability === null ? 0 : Math.max(0, Math.min(100, selectedProbability * 100))
 
   return (
     <Card
@@ -115,10 +116,10 @@ function CohortCard({ cohort, title, color, hazard }: { cohort: RowObject; title
       <Row gutter={[10, 10]}>
         <Col xs={12} md={8}><Statistic title="Traded / Settled" value={`${text(performance.tradedMarkets, '0')} / ${text(performance.settledMarkets, '0')}`} /></Col>
         <Col xs={12} md={8}><Statistic title="Win rate" value={pct(performance.winRate)} /></Col>
+        <Col xs={12} md={8}><Statistic title="Trade rate" value={pct(performance.tradeRate)} /></Col>
         <Col xs={12} md={8}><Statistic title="Net PnL" value={money(performance.netPnlUsdt)} /></Col>
         <Col xs={12} md={8}><Statistic title="Net ROI" value={pct(performance.netRoi)} /></Col>
         <Col xs={12} md={8}><Statistic title="Max drawdown" value={money(performance.maxDrawdownUsdt)} /></Col>
-        <Col xs={12} md={8}><Statistic title="Longest loss streak" value={text(performance.longestLossStreak, '0')} /></Col>
       </Row>
 
       <Descriptions size="small" column={2} style={{ marginTop: 10 }}>
@@ -134,6 +135,8 @@ function CohortCard({ cohort, title, color, hazard }: { cohort: RowObject; title
         <Descriptions.Item label="Predict receipt age">{fixed(decision.predictReceiptAgeMs, 0)} ms</Descriptions.Item>
         <Descriptions.Item label="目前已進場">{Object.keys(event).length > 0 ? <Tag color="purple">YES</Tag> : <Tag>NO</Tag>}</Descriptions.Item>
         <Descriptions.Item label="目前 entry">{Object.keys(event).length > 0 ? <>{sideTag(event.side)} @ {fixed(event.ask)}</> : '—'}</Descriptions.Item>
+        <Descriptions.Item label="Pending markets">{text(performance.pendingMarkets, '0')}</Descriptions.Item>
+        <Descriptions.Item label="Longest loss streak">{text(performance.longestLossStreak, '0')}</Descriptions.Item>
         {hazard ? (
           <>
             <Descriptions.Item label="Hazard score">{eligibilityScore === null ? '—' : `${pct(eligibilityScore, 1)} / ${pct(eligibilityThreshold, 1)}`}</Descriptions.Item>
@@ -148,10 +151,10 @@ function CohortCard({ cohort, title, color, hazard }: { cohort: RowObject; title
       </Descriptions>
 
       <div style={{ marginTop: 8 }}>
-        <Text type="secondary">EBM confidence gate</Text>
+        <Text type="secondary">EBM confidence · gate {pct(threshold, 1)}</Text>
         <Progress
-          percent={selectedProbability === null ? 0 : Math.max(0, Math.min(100, selectedProbability * 100))}
-          success={{ percent: Math.max(0, Math.min(100, threshold * 100)) }}
+          percent={confidencePercent}
+          status={selectedProbability !== null && selectedProbability >= threshold ? 'success' : 'normal'}
           showInfo={false}
           size="small"
         />
@@ -180,7 +183,16 @@ export default function WalletShadowTargetTakerPublicSideV1Panel() {
   const sideOnly = row(cohorts.TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY)
   const hazardSide = row(cohorts.TARGET_TAKER_PUBLIC_SIDE_V1_HAZARD_SIDE)
 
-  if (!Object.keys(lab).length) return null
+  if (!Object.keys(lab).length) {
+    return (
+      <Alert
+        type="warning"
+        showIcon
+        message="Target Taker Public Side V1 尚未出現在 8776 state"
+        description="確認 8776 已升級到 PREDICT_WALLET_SHADOW_V0_24_TARGET_TAKER_PUBLIC_SIDE_V1，並使用 start-target-taker-public-side-v1.ps1 啟動。"
+      />
+    )
+  }
 
   return (
     <Card title="Target Taker Public Side V1 · Frozen EBM Forward A/B" style={{ marginTop: 12 }}>
@@ -197,7 +209,7 @@ export default function WalletShadowTargetTakerPublicSideV1Panel() {
       <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
         <Col xs={12} md={6}><Statistic title="Version" value={text(lab.version)} /></Col>
         <Col xs={12} md={6}><Statistic title="Model" value={model.loaded === true ? 'LOADED' : 'OFFLINE'} /></Col>
-        <Col xs={12} md={6}><Statistic title="Fixed stake" value={`$${fixed(policy.stakeUsdt, 2)}`} /></Col>
+        <Col xs={12} md={6}><Statistic title="Fixed stake" value={`$${fixed(policy.fixedStakeUsdt, 2)}`} /></Col>
         <Col xs={12} md={6}><Statistic title="Side threshold" value={pct(policy.sideProbabilityThreshold, 1)} /></Col>
       </Row>
 
