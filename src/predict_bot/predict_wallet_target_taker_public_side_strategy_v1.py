@@ -170,7 +170,6 @@ def decide_side(
 
 def hazard_gate(
     snapshot: dict[str, Any],
-    side: str | None,
     maker_eligibility: dict[str, Any] | None,
     *,
     snapshot_ns: int,
@@ -184,21 +183,23 @@ def hazard_gate(
         return {"eligible": False, "reason": "SAME_MAKER_FILL_SNAPSHOT_FORBIDDEN", "eligibilityScore": None}
     if expires_ms <= 0 or now_ms > expires_ms:
         return {"eligible": False, "reason": "OWN_MAKER_FILL_ELIGIBILITY_EXPIRED", "eligibilityScore": None}
-    if side not in {"UP", "DOWN"}:
-        return {"eligible": False, "reason": "NO_PUBLIC_SIDE", "eligibilityScore": None}
+
+    maker_side = str(maker_eligibility.get("makerAnchorSide") or "").upper()
+    if maker_side not in {"UP", "DOWN"}:
+        return {"eligible": False, "reason": "AMBIGUOUS_OWN_MAKER_FILL_SIDE", "eligibilityScore": None}
 
     seconds_left = _value(snapshot, "seconds_left", "secondsLeft")
     up_mid = _value(snapshot, "predict_up_mid", "predictUpMid")
     down_mid = _value(snapshot, "predict_down_mid", "predictDownMid")
     if down_mid is None and up_mid is not None:
         down_mid = 1.0 - up_mid
-    chosen_mid = up_mid if side == "UP" else down_mid
-    if seconds_left is None or chosen_mid is None:
+    maker_side_mid = up_mid if maker_side == "UP" else down_mid
+    if seconds_left is None or maker_side_mid is None:
         return {"eligible": False, "reason": "HAZARD_STATE_MISSING", "eligibilityScore": None}
 
-    # Empirical Maker-anchored BTC 5s hazard: early ~28.8%, mid ~34.7%,
-    # late <=60s ~50.3%; mid-price anchors were strongest. These are ordinal
-    # research scores, not probabilities.
+    # The historical hazard model was aligned to the Maker-fill side. Keep that
+    # exact causal semantics here: public Side may later choose either direction,
+    # but the hazard price regime is always the side of our own paper Maker fill.
     if seconds_left <= 60:
         time_score = 0.70
         time_regime = "LATE_LE_60S"
@@ -209,10 +210,10 @@ def hazard_gate(
         time_score = 0.30
         time_regime = "EARLY_GT_200S"
 
-    if 0.33 <= chosen_mid <= 0.67:
+    if 0.33 <= maker_side_mid <= 0.67:
         price_score = 0.65
         price_regime = "MID_033_067"
-    elif chosen_mid < 0.33:
+    elif maker_side_mid < 0.33:
         price_score = 0.45
         price_regime = "LOW_LT_033"
     else:
@@ -228,7 +229,8 @@ def hazard_gate(
         "threshold": HAZARD_SCORE_THRESHOLD,
         "timeRegime": time_regime,
         "priceRegime": price_regime,
-        "chosenPredictMid": chosen_mid,
+        "makerAnchorSide": maker_side,
+        "makerSidePredictMid": maker_side_mid,
         "eligibilityOpenedAtMs": maker_eligibility.get("openedAtMs"),
         "eligibilityExpiresAtMs": expires_ms,
         "openedSnapshotNs": opened_ns,
@@ -281,6 +283,7 @@ def policy() -> dict[str, Any]:
                 "oneEntryPerMarket": True,
                 "makerAnchorRequired": True,
                 "makerAnchorSource": "Lifecycle V3 own strict paper Maker fill only",
+                "hazardPriceAlignment": "own Maker fill side, matching historical time_price hazard features; independent of chosen Taker side",
                 "sameFillSnapshotForbidden": True,
                 "eligibilityWindowMs": 5_000,
                 "hazardScoreThreshold": HAZARD_SCORE_THRESHOLD,
