@@ -3,6 +3,7 @@ name: Dashboard V2 Wallet Shadow
 on:
   push:
     branches:
+      - feature/dashboard-v2-polyhermes
       - feature/dashboard-v2-wallet-shadow-performance
       - feature/dashboard-v2-wallet-shadow-recent10-analysis
       - feature/dashboard-v2-wallet-shadow-taker-v1
