@@ -203,17 +203,17 @@ try {
     }
     else { Write-Host "Wallet Shadow Lab: reusing the current paper-only 8777 Taker signal collector." }
 
-    Assert-KnownListener 8776 "predict_bot.predict_wallet_shadow_observer_v4_16" "Wallet Shadow observer"
+    Assert-KnownListener 8776 "predict_bot.predict_wallet_shadow_observer_v4_19" "Wallet Shadow observer"
     if (-not (Test-LocalService "http://127.0.0.1:8776/health" 5)) {
-        Write-Host "Wallet Shadow Lab: starting non-blocking paper-only Wallet Shadow observer on 8776."
+        Write-Host "Wallet Shadow Lab: starting latest paper-only Wallet Shadow observer v4.19 on 8776."
         $Shadow = Start-Process -FilePath "python" `
-            -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_16") `
+            -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_19") `
             -WorkingDirectory $Root -WindowStyle Hidden `
             -RedirectStandardOutput (Join-Path $Data "wallet-shadow-lab-observer.stdout.log") `
             -RedirectStandardError (Join-Path $Data "wallet-shadow-lab-observer.stderr.log") -PassThru
         $Shadow.Id | Set-Content (Join-Path $Root ".wallet-shadow-lab-observer.pid")
     }
-    else { Write-Host "Wallet Shadow Lab: reusing the current non-blocking paper-only 8776 observer." }
+    else { Write-Host "Wallet Shadow Lab: reusing the latest paper-only 8776 observer." }
 
     $WebPid = Get-ListeningProcessId 4320
     if ($WebPid) {
@@ -261,8 +261,8 @@ try {
     }
 
     Write-Host "Wallet Shadow Lab ready: http://localhost:4320/wallet-shadow"
-    Write-Host "Started only the required research path: 8771 + 8778 BTC consumable lifecycle + 8779 ETH book + 8777 + 8776 + 4320."
-    Write-Host "8776 version=$($ShadowState.version); status=$($ShadowState.status); report=$($ShadowState.reportStatus); retired legacy labs do not create new forward data."
+    Write-Host "Started research path: 8771 + 8778 BTC lifecycle inference + 8779 ETH book + 8777 public Taker signals + 8776 v4.19 + 4320."
+    Write-Host "8776 version=$($ShadowState.version); status=$($ShadowState.status); report=$($ShadowState.reportStatus); public-side Taker A/B is paper-only."
     if (-not $NoBrowser) { Start-Process "http://localhost:4320/wallet-shadow" }
 }
 catch {
