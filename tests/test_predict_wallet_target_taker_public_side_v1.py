@@ -3,21 +3,50 @@ from __future__ import annotations
 from predict_bot import predict_wallet_target_taker_public_side_strategy_v1 as strategy
 
 
+class _FakeSideModel:
+    classes_ = [0, 1]
+
+    def predict_proba(self, frame):
+        spot = float(frame.iloc[0]["spot_minus_strike_bps"])
+        p_up = 0.80 if spot >= 0 else 0.20
+        return [[1.0 - p_up, p_up]]
+
+
+def _bundle():
+    return {
+        "reportVersion": strategy.EXPECTED_REPORT_VERSION,
+        "task": "side_up",
+        "features": list(strategy.SIDE_EBM_EXPECTED_FEATURES),
+        "model": _FakeSideModel(),
+        "researchOnly": True,
+        "automaticStrategyPromotion": False,
+        "path": "fake-side-up.joblib",
+    }
+
+
 def _snapshot(**overrides):
     row = {
         "market_id": 123,
         "sampled_at_ms": 10_000,
         "predict_receipt_age_ms": 100.0,
         "seconds_left": 120.0,
+        "predict_up_bid": 0.53,
         "predict_up_ask": 0.55,
-        "predict_down_ask": 0.47,
         "predict_up_mid": 0.54,
+        "predict_down_bid": 0.45,
+        "predict_down_ask": 0.47,
         "predict_down_mid": 0.46,
         "spot_minus_strike_bps": 4.0,
-        "futures_queue_imbalance": 0.30,
-        "futures_return_1s_bps": 1.2,
-        "spot_queue_imbalance": 0.25,
+        "chainlink_minus_strike_bps": 3.0,
         "direction_score": 0.35,
+        "spot_queue_imbalance": 0.25,
+        "spot_taker_imbalance_1s": 0.20,
+        "spot_return_1s_bps": 1.0,
+        "spot_return_3s_bps": 2.0,
+        "futures_queue_imbalance": 0.30,
+        "futures_taker_imbalance_1s": 0.22,
+        "futures_return_1s_bps": 1.2,
+        "futures_return_3s_bps": 2.2,
     }
     row.update(overrides)
     return row
@@ -32,40 +61,66 @@ def _eligibility(*, maker_side: str = "UP") -> dict:
     }
 
 
-def test_public_side_rule_selects_up_from_strong_positive_public_state() -> None:
-    decision = strategy.decide_side(_snapshot(), expected_market_id=123, now_ms=10_200)
+def test_public_side_uses_frozen_model_probability_for_up() -> None:
+    decision = strategy.decide_side(
+        _snapshot(), _bundle(), expected_market_id=123, now_ms=10_200
+    )
     assert decision["decision"] == "TRADE"
     assert decision["side"] == "UP"
-    assert decision["signal"]["confidence"] >= strategy.SIDE_SCORE_THRESHOLD
+    assert decision["signal"]["probabilityUp"] == 0.80
+    assert decision["signal"]["selectedProbability"] >= strategy.SIDE_PROBABILITY_THRESHOLD
 
 
-def test_public_side_rule_selects_down_from_strong_negative_public_state() -> None:
+def test_public_side_uses_frozen_model_probability_for_down() -> None:
     decision = strategy.decide_side(
-        _snapshot(
-            predict_up_ask=0.43,
-            predict_down_ask=0.59,
-            predict_up_mid=0.42,
-            predict_down_mid=0.58,
-            spot_minus_strike_bps=-5.0,
-            futures_queue_imbalance=-0.35,
-            futures_return_1s_bps=-1.5,
-            spot_queue_imbalance=-0.30,
-            direction_score=-0.40,
-        ),
+        _snapshot(spot_minus_strike_bps=-4.0),
+        _bundle(),
         expected_market_id=123,
         now_ms=10_200,
     )
     assert decision["decision"] == "TRADE"
     assert decision["side"] == "DOWN"
+    assert decision["signal"]["probabilityUp"] == 0.20
 
 
-def test_runtime_side_feature_contract_contains_no_target_or_chosen_side_leakage() -> None:
-    features = [item[0] for item in strategy.SIDE_FEATURES]
-    for feature in features:
+def test_missing_side_model_fails_closed() -> None:
+    decision = strategy.decide_side(
+        _snapshot(), None, expected_market_id=123, now_ms=10_200
+    )
+    assert decision["decision"] == "SKIP"
+    assert decision["reason"] == "SIDE_EBM_MODEL_UNAVAILABLE"
+
+
+def test_side_model_feature_contract_contains_no_target_or_chosen_side_leakage() -> None:
+    assert tuple(strategy.SIDE_EBM_EXPECTED_FEATURES) == (
+        "seconds_left",
+        "predict_up_mid",
+        "predict_up_spread",
+        "predict_down_spread",
+        "spot_minus_strike_bps",
+        "chainlink_minus_strike_bps",
+        "direction_score",
+        "spot_queue_imbalance",
+        "spot_taker_imbalance_1s",
+        "spot_return_1s_bps",
+        "spot_return_3s_bps",
+        "futures_queue_imbalance",
+        "futures_taker_imbalance_1s",
+        "futures_return_1s_bps",
+        "futures_return_3s_bps",
+        "signal_age_ms",
+    )
+    for feature in strategy.SIDE_EBM_EXPECTED_FEATURES:
         assert not feature.startswith(strategy.FORBIDDEN_RUNTIME_FEATURE_PREFIXES)
-    assert "predict_up_mid" in features
-    assert "spot_minus_strike_bps" in features
-    assert "futures_queue_imbalance" in features
+
+
+def test_forward_feature_row_derives_spreads_and_signal_age_without_target_data() -> None:
+    signal = strategy.public_side_score(_snapshot(), _bundle(), now_ms=10_200)
+    features = signal["features"]
+    assert features["predict_up_spread"] == 0.02
+    assert features["predict_down_spread"] == 0.02
+    assert features["signal_age_ms"] == 200.0
+    assert set(features) == set(strategy.SIDE_EBM_EXPECTED_FEATURES)
 
 
 def test_hazard_gate_forbids_same_snapshot_as_own_maker_fill() -> None:
@@ -94,8 +149,6 @@ def test_hazard_gate_accepts_next_snapshot_in_late_mid_price_state() -> None:
 
 
 def test_hazard_gate_uses_maker_side_price_not_taker_candidate_side() -> None:
-    # A DOWN Maker fill must use DOWN mid=.10 even if the public Side engine
-    # happens to prefer UP. This preserves the historical hazard feature meaning.
     result = strategy.hazard_gate(
         _snapshot(seconds_left=120.0, predict_up_mid=0.90, predict_down_mid=0.10),
         _eligibility(maker_side="DOWN"),
@@ -130,7 +183,9 @@ def test_hazard_gate_rejects_ambiguous_dual_side_maker_fill() -> None:
 
 
 def test_execution_is_fixed_one_dollar_stake_and_fee_adjusted() -> None:
-    decision = strategy.decide_side(_snapshot(), expected_market_id=123, now_ms=10_200)
+    decision = strategy.decide_side(
+        _snapshot(), _bundle(), expected_market_id=123, now_ms=10_200
+    )
     fill = strategy.execution(decision)
     assert fill is not None
     assert fill["stakeUsdt"] == strategy.STAKE_USDT == 1.0
@@ -143,6 +198,7 @@ def test_policy_keeps_side_only_and_hazard_side_separate_and_paper_only() -> Non
     assert policy["paperOnly"] is True
     assert policy["automaticStrategyPromotion"] is False
     assert policy["targetEventsDriveRuntime"] is False
+    assert policy["sideModelReportVersion"] == strategy.EXPECTED_REPORT_VERSION
     assert policy["cohorts"][strategy.SIDE_ONLY_COHORT]["makerAnchorRequired"] is False
     assert policy["cohorts"][strategy.HAZARD_SIDE_COHORT]["makerAnchorRequired"] is True
     assert "own Maker fill side" in policy["cohorts"][strategy.HAZARD_SIDE_COHORT]["hazardPriceAlignment"]
