@@ -19,7 +19,14 @@ REPORT_CACHE_PATH = Path(
 REPORT_CACHE_MAX_BYTES = 64 * 1024 * 1024
 
 
+def _unwrap(payload: Any) -> Any:
+    if isinstance(payload, dict) and isinstance(payload.get("state"), dict):
+        return payload["state"]
+    return payload
+
+
 def _substantial(payload: Any) -> bool:
+    payload = _unwrap(payload)
     if not isinstance(payload, dict) or payload.get("reportOnlyState") is True:
         return False
     return any(
@@ -52,7 +59,7 @@ def install() -> None:
             if stat.st_size <= 0 or stat.st_size > REPORT_CACHE_MAX_BYTES:
                 self._persistent_cache_error = f"cache size rejected: {stat.st_size} bytes"
                 return
-            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload = _unwrap(json.loads(path.read_text(encoding="utf-8")))
             if not _substantial(payload):
                 self._persistent_cache_error = "cache did not contain a substantial full-state payload"
                 return
@@ -68,6 +75,7 @@ def install() -> None:
             self._persistent_cache_error = f"load failed: {exc}"[:500]
 
     def persist_cache(self: Any, payload: dict[str, Any]) -> None:
+        payload = _unwrap(payload)
         if not _substantial(payload):
             return
         path = REPORT_CACHE_PATH
