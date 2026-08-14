@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Data = Join-Path $Root "data"
+$SideModel = Join-Path $Root "data\research\target_taker_behavior_models_v1\side_up.joblib"
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
 
 function Test-LocalService([string]$Url, [int]$TimeoutSeconds = 2) {
@@ -57,6 +58,9 @@ $UserPredictKey = [Environment]::GetEnvironmentVariable("PREDICT_FUN_API_KEY", "
 if ($UserPredictKey) { $env:PREDICT_FUN_API_KEY = $UserPredictKey }
 if ([string]::IsNullOrWhiteSpace($env:PREDICT_FUN_API_KEY)) {
     throw "PREDICT_FUN_API_KEY is required. Configure it as a User environment variable first."
+}
+if (-not (Test-Path $SideModel)) {
+    throw "Frozen compact-side EBM is missing: $SideModel. Run: python tools/train_target_taker_behavior_v1.py"
 }
 
 # Paper research children must never inherit an enabled live runtime.
@@ -155,10 +159,14 @@ $State = if ($Health.state) { $Health.state } else { $Health }
 if (-not ([string]$State.version).Contains("V0_24_TARGET_TAKER_PUBLIC_SIDE_V1")) {
     throw "8776 is healthy but did not report the expected public-side V1 version. version=$($State.version)"
 }
+if (-not [bool]$State.targetTakerPublicSideModelLoaded) {
+    throw "8776 v4.19 started but the frozen compact-side EBM did not load: $($State.targetTakerPublicSideModelError)"
+}
 
 Write-Host "TARGET_TAKER_PUBLIC_SIDE_V1 paper simulation is running."
-Write-Host "  SIDE_ONLY  = public direction rule, one fixed `$1 entry max per market"
-Write-Host "  HAZARD_SIDE = same side rule + Lifecycle V3 own-Maker-fill 5s time/price gate"
+Write-Host "  SIDE_ONLY   = frozen compact-side EBM, selected-side score >= 0.60, fixed `$1 max one entry per market"
+Write-Host "  HAZARD_SIDE = same frozen EBM + Lifecycle V3 own-Maker-fill 5s time/price gate"
+Write-Host "  Side artifact = data/research/target_taker_behavior_models_v1/side_up.joblib"
 Write-Host "  8771/8777 are public-data dependencies; 8778 is intentionally NOT required."
 Write-Host "  ETH 8779/8780 are untouched and can continue collecting."
 Write-Host "No live trading runtime was enabled."
