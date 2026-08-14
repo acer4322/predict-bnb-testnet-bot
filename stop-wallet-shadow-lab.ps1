@@ -2,6 +2,8 @@ param([switch]$Quiet)
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Data = Join-Path $Root "data"
+New-Item -ItemType Directory -Force -Path $Data | Out-Null
 
 function Stop-OwnedTree([string]$PidFile, [string]$Label) {
     $Path = Join-Path $Root $PidFile
@@ -29,6 +31,45 @@ function Get-ListeningProcessId([int]$Port) {
     }
     catch { }
     return $null
+}
+
+function Save-WalletShadowWarmCache {
+    $ListenerPid = Get-ListeningProcessId 8776
+    if (-not $ListenerPid) { return }
+    try {
+        $CommandLine = [string](Get-CimInstance Win32_Process -Filter "ProcessId=$ListenerPid" -ErrorAction Stop).CommandLine
+    }
+    catch { return }
+    if (-not $CommandLine.ToLowerInvariant().Contains("predict_bot.predict_wallet_shadow_observer_v4_")) { return }
+
+    $CachePath = Join-Path $Data "wallet-shadow-last-good-state.json"
+    $TempPath = Join-Path $Data "wallet-shadow-last-good-state.stop.tmp"
+    Remove-Item $TempPath -Force -ErrorAction SilentlyContinue
+    try {
+        & curl.exe --silent --fail --connect-timeout 1 --max-time 12 `
+            --header "Accept: application/json" `
+            --output $TempPath "http://127.0.0.1:8776/state" 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $TempPath)) { return }
+        $Info = Get-Item $TempPath
+        if ($Info.Length -lt 1024 -or $Info.Length -gt 67108864) { return }
+        $Raw = Get-Content $TempPath -Raw
+        if ($Raw -match '"reportOnlyState"\s*:\s*true') { return }
+        $HasSubstantialState = (
+            $Raw -match '"makerInventoryTakerSharedLab"\s*:' -or
+            $Raw -match '"targetTakerMirrorAudit"\s*:' -or
+            $Raw -match '"targetAccounting"\s*:' -or
+            $Raw -match '"reconstructedMakerRulesLab"\s*:'
+        )
+        if (-not $HasSubstantialState) { return }
+        Move-Item $TempPath $CachePath -Force
+        if (-not $Quiet) { Write-Host "Saved Wallet Shadow last-good state for warm restart." }
+    }
+    catch {
+        if (-not $Quiet) { Write-Warning "Could not save Wallet Shadow warm cache: $_" }
+    }
+    finally {
+        Remove-Item $TempPath -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Stop-VerifiedDashboardVite {
@@ -79,6 +120,7 @@ function Stop-VerifiedResearchListeners {
     }
 }
 
+Save-WalletShadowWarmCache
 Stop-OwnedTree ".wallet-shadow-lab-web.pid" "Wallet Shadow Dashboard"
 Stop-VerifiedDashboardVite
 Stop-OwnedTree ".wallet-shadow-lab-observer.pid" "Wallet Shadow observer"
