@@ -14,6 +14,7 @@
     "src/wallet-shadow-spot-strike-panel.tsx",
     "src/wallet-shadow-store.ts",
     "src/wallet-lab-health-store.ts",
-    "src/wallet-lab-service-health-panel.tsx"
+    "src/wallet-lab-service-health-panel.tsx",
+    "src/wallet-research-export-panel.tsx"
   ]
 }
