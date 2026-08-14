@@ -24,6 +24,7 @@ import LiveMarketsPage from './live-markets-page'
 import PinnedDivergencePage from './pinned-divergence-page'
 import WalletClonePage from './wallet-clone-page-v84'
 import WalletShadowPage from './wallet-shadow-page'
+import WalletShadowTargetTakerPublicSideV1Panel from './wallet-shadow-target-taker-public-side-v1-panel'
 import {
   DiagnosticsPage,
   LivePage,
@@ -46,6 +47,7 @@ function ServiceTag({ label, service }: { label: string; service: ServiceSnapsho
 const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '總覽' },
   { key: '/live-markets', icon: <DollarOutlined />, label: 'Live Markets' },
+  { key: '/target-taker-v1', icon: <ExperimentOutlined />, label: 'Target Taker V1' },
   { key: '/wallet-shadow', icon: <ExperimentOutlined />, label: 'Wallet Shadow Lab' },
   { key: '/wallet-clone', icon: <SwapOutlined />, label: 'Wallet Maker Clone' },
   { key: '/pinned-divergence', icon: <AimOutlined />, label: 'Pinned Divergence' },
@@ -109,7 +111,7 @@ function Shell() {
   }, [refreshWalletLabHealth])
 
   useEffect(() => {
-    if (location.pathname !== '/wallet-shadow') return
+    if (!['/wallet-shadow', '/target-taker-v1'].includes(location.pathname)) return
     let cancelled = false
     const tick = () => {
       if (!cancelled && document.visibilityState === 'visible') void refreshWalletShadow()
@@ -190,6 +192,7 @@ function Shell() {
           <Routes>
             <Route path="/" element={<><OverviewPage /><CrossOracleStorageCard /></>} />
             <Route path="/live-markets" element={<LiveMarketsPage />} />
+            <Route path="/target-taker-v1" element={<WalletShadowTargetTakerPublicSideV1Panel />} />
             <Route path="/wallet-shadow" element={<WalletShadowPage />} />
             <Route path="/wallet-clone" element={<WalletClonePage />} />
             <Route path="/pinned-divergence" element={<PinnedDivergencePage />} />
