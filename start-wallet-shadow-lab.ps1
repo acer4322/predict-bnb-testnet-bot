@@ -203,11 +203,11 @@ try {
     }
     else { Write-Host "Wallet Shadow Lab: reusing the current paper-only 8777 Taker signal collector." }
 
-    Assert-KnownListener 8776 "predict_bot.predict_wallet_shadow_observer_v4_14" "Wallet Shadow observer"
+    Assert-KnownListener 8776 "predict_bot.predict_wallet_shadow_observer_v4_15" "Wallet Shadow observer"
     if (-not (Test-LocalService "http://127.0.0.1:8776/health" 5)) {
         Write-Host "Wallet Shadow Lab: starting non-blocking paper-only Wallet Shadow observer on 8776."
         $Shadow = Start-Process -FilePath "python" `
-            -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_14") `
+            -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_15") `
             -WorkingDirectory $Root -WindowStyle Hidden `
             -RedirectStandardOutput (Join-Path $Data "wallet-shadow-lab-observer.stdout.log") `
             -RedirectStandardError (Join-Path $Data "wallet-shadow-lab-observer.stderr.log") -PassThru
