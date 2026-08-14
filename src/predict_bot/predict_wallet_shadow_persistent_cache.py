@@ -41,6 +41,18 @@ def _substantial(payload: Any) -> bool:
     )
 
 
+def _source_ms(payload: dict[str, Any], file_mtime_ms: int) -> int:
+    diagnostics = payload.get("observerDiagnostics")
+    if isinstance(diagnostics, dict):
+        try:
+            value = int(diagnostics.get("lastReportCompletedMs") or 0)
+        except (TypeError, ValueError, OverflowError):
+            value = 0
+        if value > 0:
+            return value
+    return int(file_mtime_ms)
+
+
 def install() -> None:
     cls = v4_14.WalletShadowObserver
     if getattr(cls, "_persistent_cache_patch_installed", False):
@@ -63,7 +75,7 @@ def install() -> None:
             if not _substantial(payload):
                 self._persistent_cache_error = "cache did not contain a substantial full-state payload"
                 return
-            source_ms = int(stat.st_mtime * 1_000)
+            source_ms = _source_ms(payload, int(stat.st_mtime * 1_000))
             with self._report_lock:
                 self._report_cache = payload
                 self._report_last_completed_ms = source_ms
@@ -88,7 +100,7 @@ def install() -> None:
                 return
             temp.write_text(text, encoding="utf-8")
             temp.replace(path)
-            self._persistent_cache_source_ms = int(path.stat().st_mtime * 1_000)
+            self._persistent_cache_source_ms = int(self._report_last_completed_ms or path.stat().st_mtime * 1_000)
             self._persistent_cache_error = None
         except Exception as exc:
             self._persistent_cache_error = f"persist failed: {exc}"[:500]
