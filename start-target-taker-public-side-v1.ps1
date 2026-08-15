@@ -112,6 +112,12 @@ if ($TakerMode -eq "live" -and $ExecutionVenue -eq "binance") {
         [string]::IsNullOrWhiteSpace($env:PREDICT_TARGET_TAKER_BINANCE_WALLET_ID)) {
         throw "Binance live mode requires PREDICT_TARGET_TAKER_BINANCE_WALLET_ADDRESS and PREDICT_TARGET_TAKER_BINANCE_WALLET_ID. Wallet selection is never guessed for real-money orders."
     }
+    if (-not [string]::IsNullOrWhiteSpace($env:PREDICT_TARGET_TAKER_BINANCE_ACCOUNT_TYPE)) {
+        $BinanceAccountType = $env:PREDICT_TARGET_TAKER_BINANCE_ACCOUNT_TYPE.Trim().ToUpperInvariant()
+        if ($BinanceAccountType -notin @("SPOT", "FUNDING")) {
+            throw "PREDICT_TARGET_TAKER_BINANCE_ACCOUNT_TYPE must be SPOT or FUNDING. MPC is the funding source, not accountType."
+        }
+    }
 }
 
 # Keep every legacy/global live path disabled. Target Taker V1 has its own
@@ -181,6 +187,18 @@ $ShadowPid = Get-ListeningProcessId 8776
 if ($ShadowPid) {
     $Command = Get-ProcessCommandLine $ShadowPid
     $Lower = $Command.ToLowerInvariant()
+    $KnownWalletShadow = (
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_16") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_17") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_18") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_19") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_20") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_21")
+    )
+    if (-not $KnownWalletShadow) {
+        throw "Port 8776 is occupied by an unrecognized process. Refusing to terminate it. PID=$ShadowPid command=$Command"
+    }
+
     $CanReuse = $false
     if ($Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_21")) {
         $ExistingHealth = Get-JsonPayload "http://127.0.0.1:8776/health" 5
@@ -199,7 +217,7 @@ if ($ShadowPid) {
         Write-Host "Public-side Taker V1: reusing Wallet Shadow v4.21 PID=$ShadowPid with matching execution config."
     }
     else {
-        Write-Host "Public-side Taker V1: replacing 8776 observer PID=$ShadowPid so v4.21 execution config is applied."
+        Write-Host "Public-side Taker V1: replacing known Wallet Shadow PID=$ShadowPid so v4.21 execution config is applied."
         & taskkill.exe /PID $ShadowPid /T /F | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "Failed to stop 8776 Wallet Shadow observer PID=$ShadowPid." }
         Start-Sleep -Milliseconds 500
