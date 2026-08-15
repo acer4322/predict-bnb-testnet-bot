@@ -5,6 +5,9 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Data = Join-Path $Root "data"
+$SideModel = Join-Path $Root "data\research\target_taker_behavior_models_v1\side_up.joblib"
+$EnginePort = 8781
+$EngineBase = "http://127.0.0.1:$EnginePort"
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
 
 function Test-LocalService([string]$Url, [int]$TimeoutSeconds = 2) {
@@ -24,6 +27,12 @@ function Get-JsonPayload([string]$Url, [int]$TimeoutSeconds = 3) {
         return $Text | ConvertFrom-Json -ErrorAction Stop
     }
     catch { return $null }
+}
+
+function Unwrap-State($Payload) {
+    if ($null -eq $Payload) { return $null }
+    if ($null -ne $Payload.state) { return $Payload.state }
+    return $Payload
 }
 
 function Get-ListeningProcessId([int]$Port) {
@@ -53,55 +62,115 @@ function Wait-LocalService([string]$Name, [string]$Url, [int]$Seconds, [string]$
     throw "$Name did not become healthy at $Url. Check $ErrorLog."
 }
 
-$Existing = Get-ListeningProcessId 8776
-if ($Existing) {
-    $Command = Get-ProcessCommandLine $Existing
-    $Lower = $Command.ToLowerInvariant()
-    if ($Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_23") -and (Test-LocalService "http://127.0.0.1:8776/health" 5)) {
-        Write-Host "Target Taker producer: reusing healthy v4.23 PID=$Existing."
-        $Health = Get-JsonPayload "http://127.0.0.1:8776/health" 5
-        if (-not $Health.targetTakerEchtgeldProducerV1) {
-            throw "8776 v4.23 is healthy but producer diagnostics are missing."
-        }
-        Write-Host "  Engine handoff = http://127.0.0.1:8780/intent"
-        Write-Host "  Embedded Echtgeld = disabled"
-        return
-    }
-    if ($Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_23")) {
-        Write-Host "Target Taker producer: stopping recognized unhealthy v4.23 PID=$Existing."
-        & taskkill.exe /PID $Existing /T /F | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "Failed to stop unhealthy v4.23 PID=$Existing." }
-        Start-Sleep -Milliseconds 500
+function Import-UserEnvironment([string]$Name) {
+    $Value = [Environment]::GetEnvironmentVariable($Name, "User")
+    if (-not [string]::IsNullOrWhiteSpace($Value)) {
+        Set-Item -Path "Env:$Name" -Value $Value
     }
 }
 
-# Bootstrap the exact same paper research dependencies and v4.22 schema chain.
-# This script is deliberately paper-only and never starts/stops port 8780.
-& (Join-Path $Root "start-target-taker-multi-entry-paper-v1.ps1") -NoBrowser
-
-$ShadowPid = Get-ListeningProcessId 8776
-if (-not $ShadowPid) {
-    throw "Paper bootstrap completed but 8776 is not listening."
+Import-UserEnvironment "PREDICT_FUN_API_KEY"
+if ([string]::IsNullOrWhiteSpace($env:PREDICT_FUN_API_KEY)) {
+    throw "PREDICT_FUN_API_KEY is required for the public Predict.fun observer."
 }
-$Command = Get-ProcessCommandLine $ShadowPid
-$Lower = $Command.ToLowerInvariant()
-if (-not $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_22")) {
-    throw "Expected paper v4.22 bootstrap on 8776 before producer swap. PID=$ShadowPid command=$Command"
+if (-not (Test-Path $SideModel)) {
+    throw "Frozen compact-side EBM is missing: $SideModel. Run: python tools/train_target_taker_behavior_v1.py"
 }
 
-Write-Host "Target Taker producer: replacing paper v4.22 with v4.23 intent producer."
-& taskkill.exe /PID $ShadowPid /T /F | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "Failed to stop v4.22 PID=$ShadowPid." }
-Start-Sleep -Milliseconds 500
-
-# Keep every embedded/global live path disabled. Real orders belong only to 8780.
+# Producer/research process is permanently paper-only. All venue writes belong to the independent engine.
 $env:PREDICT_LIVE_ENABLED = "false"
 $env:PREDICT_POLY_GAP_LIVE_ENABLED = "false"
 $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED = "false"
 $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED = "false"
+$env:PREDICT_WALLET_SHADOW_LEGACY_COHORTS_ENABLED = "false"
 $env:PREDICT_TARGET_TAKER_LIVE_MODE = "paper"
-$env:PREDICT_ECHTGELD_ENGINE_URL = "http://127.0.0.1:8780"
+$env:PREDICT_TARGET_TAKER_LIVE_VENUE = "predictfun"
+$env:PREDICT_TARGET_TAKER_LIVE_NOTIONAL_USDT = "1"
+$env:PREDICT_TARGET_TAKER_LIVE_MAX_PRICE_DRIFT = "0.02"
+$env:PREDICT_TARGET_TAKER_LIVE_COHORT = "TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY"
+$env:PREDICT_ECHTGELD_ENGINE_URL = $EngineBase
+$env:PREDICT_MICRO_RAW_RETENTION_HOURS = "6"
+$env:PREDICT_MICRO_SNAPSHOT_RETENTION_HOURS = "72"
+$env:PREDICT_MICRO_LIQUIDITY_RETENTION_HOURS = "72"
+$env:PREDICT_MICRO_SNAPSHOT_INTERVAL_MS = "250"
 
+# Start/reuse only the read-only dependencies needed by v4.23. Do not bootstrap v4.22 first.
+if (-not (Test-LocalService "http://127.0.0.1:8771/state")) {
+    $Pid8771 = Get-ListeningProcessId 8771
+    if ($Pid8771) {
+        $Command = Get-ProcessCommandLine $Pid8771
+        if (-not $Command.ToLowerInvariant().Contains("predict_bot.predict_fun_observer")) {
+            throw "Port 8771 is occupied by an unrecognized process. PID=$Pid8771 command=$Command"
+        }
+    }
+    else {
+        Write-Host "Target Taker producer: starting read-only Predict.fun observer on 8771."
+        $Process = Start-Process -FilePath "python" `
+            -ArgumentList @("-m", "predict_bot.predict_fun_observer") `
+            -WorkingDirectory $Root -WindowStyle Hidden `
+            -RedirectStandardOutput (Join-Path $Data "target-taker-echtgeld-predict.stdout.log") `
+            -RedirectStandardError (Join-Path $Data "target-taker-echtgeld-predict.stderr.log") -PassThru
+        $Process.Id | Set-Content (Join-Path $Root ".target-taker-echtgeld-predict.pid")
+    }
+    Wait-LocalService "8771 Predict.fun observer" "http://127.0.0.1:8771/state" 45 (Join-Path $Data "target-taker-echtgeld-predict.stderr.log")
+}
+
+if (-not (Test-LocalService "http://127.0.0.1:8777/state")) {
+    $Pid8777 = Get-ListeningProcessId 8777
+    if ($Pid8777) {
+        $Command = Get-ProcessCommandLine $Pid8777
+        if (-not $Command.ToLowerInvariant().Contains("predict_bot.predict_wallet_taker_signal_collector")) {
+            throw "Port 8777 is occupied by an unrecognized process. PID=$Pid8777 command=$Command"
+        }
+    }
+    else {
+        Write-Host "Target Taker producer: starting BTC public Taker signal collector on 8777."
+        $Process = Start-Process -FilePath "python" `
+            -ArgumentList @("-m", "predict_bot.predict_wallet_taker_signal_collector") `
+            -WorkingDirectory $Root -WindowStyle Hidden `
+            -RedirectStandardOutput (Join-Path $Data "target-taker-echtgeld-signal.stdout.log") `
+            -RedirectStandardError (Join-Path $Data "target-taker-echtgeld-signal.stderr.log") -PassThru
+        $Process.Id | Set-Content (Join-Path $Root ".target-taker-echtgeld-signal.pid")
+    }
+    Wait-LocalService "8777 BTC public signal collector" "http://127.0.0.1:8777/state" 45 (Join-Path $Data "target-taker-echtgeld-signal.stderr.log")
+}
+
+$Existing = Get-ListeningProcessId 8776
+if ($Existing) {
+    $Command = Get-ProcessCommandLine $Existing
+    $Lower = $Command.ToLowerInvariant()
+    $IsV423 = $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_23")
+    $KnownWalletShadow = (
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_16") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_17") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_18") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_19") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_20") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_21") -or
+        $Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_22") -or
+        $IsV423
+    )
+    if (-not $KnownWalletShadow) {
+        throw "Port 8776 is occupied by an unrecognized process. Refusing to terminate it. PID=$Existing command=$Command"
+    }
+
+    if ($IsV423 -and (Test-LocalService "http://127.0.0.1:8776/health" 5)) {
+        $Health = Unwrap-State (Get-JsonPayload "http://127.0.0.1:8776/health" 5)
+        if ($Health -and ([string]$Health.version).Contains("V0_28_ECHTGELD_INTENT_PRODUCER_V1") -and $Health.targetTakerEchtgeldProducerV1) {
+            Write-Host "Target Taker producer: reusing healthy v4.23 PID=$Existing."
+            Write-Host "  Engine handoff = $EngineBase/intent"
+            Write-Host "  Embedded Echtgeld = disabled"
+            return
+        }
+    }
+
+    Write-Host "Target Taker producer: replacing recognized Wallet Shadow PID=$Existing with v4.23 intent producer."
+    & taskkill.exe /PID $Existing /T /F | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Failed to stop Wallet Shadow PID=$Existing." }
+    Start-Sleep -Milliseconds 500
+}
+
+Write-Host "Target Taker producer: starting v4.23 intent producer on 8776."
 $Process = Start-Process -FilePath "python" `
     -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_23") `
     -WorkingDirectory $Root -WindowStyle Hidden `
@@ -110,7 +179,7 @@ $Process = Start-Process -FilePath "python" `
 $Process.Id | Set-Content (Join-Path $Root ".target-taker-echtgeld-producer.pid")
 
 Wait-LocalService "8776 Target Taker Echtgeld producer" "http://127.0.0.1:8776/health" 60 (Join-Path $Data "target-taker-echtgeld-producer.stderr.log")
-$Health = Get-JsonPayload "http://127.0.0.1:8776/health" 5
+$Health = Unwrap-State (Get-JsonPayload "http://127.0.0.1:8776/health" 5)
 $Version = [string]$Health.version
 if (-not $Version.Contains("V0_28_ECHTGELD_INTENT_PRODUCER_V1")) {
     throw "8776 is healthy but is not the v4.23 Echtgeld producer. version=$Version"
@@ -122,13 +191,13 @@ if (-not $Health.targetTakerEchtgeldProducerV1 -or -not [bool]$Health.targetTake
     throw "v4.23 did not confirm embedded-live isolation."
 }
 
-$EngineOnline = Test-LocalService "http://127.0.0.1:8780/health" 3
+$EngineOnline = Test-LocalService "$EngineBase/health" 3
 Write-Host "Target Taker v4.23 producer is running."
 Write-Host "  Research/Paper = 8776 (safe to restart independently)"
-Write-Host "  Echtgeld Engine = 8780 ($(if ($EngineOnline) { 'ONLINE' } else { 'OFFLINE' }))"
+Write-Host "  Echtgeld Engine = $EnginePort ($(if ($EngineOnline) { 'ONLINE' } else { 'OFFLINE' }))"
 Write-Host "  Embedded Echtgeld = disabled"
 Write-Host "  Handoff = new SIDE_ONLY/HAZARD_SIDE paper event -> one localhost TradeIntent"
 Write-Host "  Handoff retry = none; stale/lost signals are never replayed"
 if (-not $EngineOnline) {
-    Write-Warning "8780 Echtgeld Engine is offline. Paper research continues normally; live intents cannot execute until the independent engine is started."
+    Write-Warning "$EnginePort Echtgeld Engine is offline. Paper research continues normally; live intents cannot execute until the independent engine is started."
 }
