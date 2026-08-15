@@ -132,6 +132,26 @@ def _side_feature_row(snapshot: dict[str, Any], *, now_ms: int) -> dict[str, flo
     }
 
 
+def _score_base(row: dict[str, float | None], missing: list[str]) -> dict[str, Any]:
+    required = len(SIDE_EBM_EXPECTED_FEATURES)
+    available = required - len(missing)
+    return {
+        "side": None,
+        "probabilityUp": None,
+        "probabilityDown": None,
+        "selectedProbability": None,
+        "score": None,
+        "confidence": None,
+        "threshold": SIDE_PROBABILITY_THRESHOLD,
+        "features": row,
+        "missingFeatures": missing,
+        "requiredFeatureCount": required,
+        "availableFeatureCount": available,
+        "featureInputComplete": not missing,
+        "modelProbabilityCalibrationClaim": False,
+    }
+
+
 def public_side_score(
     snapshot: dict[str, Any],
     model_bundle: dict[str, Any] | None,
@@ -139,18 +159,23 @@ def public_side_score(
     now_ms: int,
 ) -> dict[str, Any]:
     row = _side_feature_row(snapshot, now_ms=now_ms)
-    missing = [name for name, value in row.items() if value is None]
+    missing = [name for name in SIDE_EBM_EXPECTED_FEATURES if row.get(name) is None]
+    base = _score_base(row, missing)
     if not isinstance(model_bundle, dict) or model_bundle.get("model") is None:
+        return {**base, "status": "MODEL_UNAVAILABLE"}
+
+    # Fail closed before calling the EBM. InterpretML can legitimately route
+    # missing values through a model, but this forward strategy was validated on
+    # a strict 16-feature public-data contract. A blank feed therefore means
+    # NO INFERENCE, not "let the model guess around the missing value".
+    if missing:
         return {
-            "status": "MODEL_UNAVAILABLE",
-            "side": None,
-            "probabilityUp": None,
-            "selectedProbability": None,
-            "score": None,
-            "confidence": None,
-            "features": row,
-            "missingFeatures": missing,
+            **base,
+            "status": "FEATURES_INCOMPLETE",
+            "modelPath": model_bundle.get("path"),
+            "reportVersion": model_bundle.get("reportVersion"),
         }
+
     try:
         import pandas as pd
     except ImportError as exc:  # pragma: no cover - deployment dependency guard
@@ -164,23 +189,22 @@ def public_side_score(
         raise RuntimeError(f"Side EBM has no positive class: {classes}")
     p_up = float(probabilities[classes.index(1)])
     p_up = max(0.0, min(1.0, p_up))
+    p_down = 1.0 - p_up
     side = "UP" if p_up >= 0.5 else "DOWN"
-    selected_probability = p_up if side == "UP" else 1.0 - p_up
+    selected_probability = p_up if side == "UP" else p_down
     return {
+        **base,
         "status": "OK",
         "side": side,
         "probabilityUp": p_up,
+        "probabilityDown": p_down,
         "selectedProbability": selected_probability,
         # Signed score is convenient for forward diagnostics; it is not claimed
         # to be a calibrated edge because the EBM was trained with class weights.
         "score": 2.0 * p_up - 1.0,
         "confidence": selected_probability,
-        "threshold": SIDE_PROBABILITY_THRESHOLD,
-        "features": row,
-        "missingFeatures": missing,
         "modelPath": model_bundle.get("path"),
         "reportVersion": model_bundle.get("reportVersion"),
-        "modelProbabilityCalibrationClaim": False,
     }
 
 
@@ -204,21 +228,80 @@ def decide_side(
     elif side == "DOWN":
         ask = _value(snapshot, "predict_down_ask", "predictDownAsk")
 
+    model_pass = signal["status"] != "MODEL_UNAVAILABLE"
+    features_pass = signal.get("featureInputComplete") is True
+    market_pass = market_id == int(expected_market_id)
+    sample_pass = sample_age_ms is not None and sample_age_ms <= MAX_SAMPLE_AGE_MS
+    predict_pass = predict_age_ms is not None and predict_age_ms <= MAX_PREDICT_RECEIPT_AGE_MS
+    time_pass = seconds_left is not None and seconds_left > MIN_SECONDS_LEFT
+    probability = _number(signal.get("selectedProbability"))
+    probability_pass = side in {"UP", "DOWN"} and probability is not None and probability >= SIDE_PROBABILITY_THRESHOLD
+    ask_pass = ask is not None and 0 < ask <= MAX_ASK
+
     reason = "PUBLIC_SIDE_EBM_MATCH"
-    if signal["status"] != "OK":
+    if signal["status"] == "MODEL_UNAVAILABLE":
         reason = "SIDE_EBM_MODEL_UNAVAILABLE"
-    elif market_id != int(expected_market_id):
+    elif signal["status"] == "FEATURES_INCOMPLETE":
+        reason = "PUBLIC_FEATURES_INCOMPLETE"
+    elif signal["status"] != "OK":
+        reason = "SIDE_EBM_NOT_READY"
+    elif not market_pass:
         reason = "MARKET_MISMATCH"
-    elif sample_age_ms is None or sample_age_ms > MAX_SAMPLE_AGE_MS:
+    elif not sample_pass:
         reason = "STALE_PUBLIC_SNAPSHOT"
-    elif predict_age_ms is None or predict_age_ms > MAX_PREDICT_RECEIPT_AGE_MS:
+    elif not predict_pass:
         reason = "STALE_PREDICT_BOOK"
-    elif seconds_left is None or seconds_left <= MIN_SECONDS_LEFT:
+    elif not time_pass:
         reason = "TOO_LATE"
-    elif side not in {"UP", "DOWN"} or float(signal["selectedProbability"] or 0.0) < SIDE_PROBABILITY_THRESHOLD:
+    elif not probability_pass:
         reason = "PUBLIC_SIDE_EBM_TOO_WEAK"
-    elif ask is None or not 0 < ask <= MAX_ASK:
+    elif not ask_pass:
         reason = "ASK_UNEXECUTABLE"
+
+    gates = {
+        "model": {
+            "pass": model_pass,
+            "status": signal.get("status"),
+        },
+        "features": {
+            "pass": features_pass,
+            "available": signal.get("availableFeatureCount"),
+            "required": signal.get("requiredFeatureCount"),
+            "missing": list(signal.get("missingFeatures") or []),
+            "rule": "all frozen EBM inputs must be finite",
+        },
+        "market": {
+            "pass": market_pass,
+            "actual": market_id or None,
+            "expected": int(expected_market_id),
+        },
+        "sampleFreshness": {
+            "pass": sample_pass,
+            "actualMs": sample_age_ms,
+            "maxMs": MAX_SAMPLE_AGE_MS,
+        },
+        "predictFreshness": {
+            "pass": predict_pass,
+            "actualMs": predict_age_ms,
+            "maxMs": MAX_PREDICT_RECEIPT_AGE_MS,
+        },
+        "timeRemaining": {
+            "pass": time_pass,
+            "actualSeconds": seconds_left,
+            "minExclusiveSeconds": MIN_SECONDS_LEFT,
+        },
+        "selectedProbability": {
+            "pass": probability_pass,
+            "actual": probability,
+            "minInclusive": SIDE_PROBABILITY_THRESHOLD,
+        },
+        "ask": {
+            "pass": ask_pass,
+            "actual": ask,
+            "minExclusive": 0.0,
+            "maxInclusive": MAX_ASK,
+        },
+    }
 
     return {
         "decision": "TRADE" if reason == "PUBLIC_SIDE_EBM_MATCH" else "SKIP",
@@ -229,6 +312,8 @@ def decide_side(
         "sampledAtMs": sampled_at_ms or None,
         "sampleAgeMs": sample_age_ms,
         "predictReceiptAgeMs": predict_age_ms,
+        "dataIntegrityPass": features_pass,
+        "gates": gates,
         "signal": signal,
     }
 
@@ -307,7 +392,14 @@ def effective_unit_cost(ask: float, fee_rate_bps: int = FEE_RATE_BPS) -> float:
 
 
 def execution(decision: dict[str, Any]) -> dict[str, float] | None:
+    signal = decision.get("signal") if isinstance(decision.get("signal"), dict) else {}
     if decision.get("decision") != "TRADE" or decision.get("side") not in {"UP", "DOWN"}:
+        return None
+    # Defense in depth: even a malformed caller cannot execute a TRADE payload
+    # when the frozen feature contract was incomplete.
+    if signal.get("status") != "OK" or signal.get("featureInputComplete") is not True:
+        return None
+    if signal.get("missingFeatures"):
         return None
     ask = _number(decision.get("ask"))
     if ask is None or not 0 < ask <= MAX_ASK:
@@ -336,6 +428,8 @@ def policy() -> dict[str, Any]:
         "fixedStakeUsdt": STAKE_USDT,
         "feeRateBps": FEE_RATE_BPS,
         "maxAsk": MAX_ASK,
+        "requiredFeatureCount": len(SIDE_EBM_EXPECTED_FEATURES),
+        "missingFeaturePolicy": "FAIL_CLOSED_NO_INFERENCE_NO_TRADE",
         "sidePublicFeatures": list(SIDE_EBM_EXPECTED_FEATURES),
         "sideRuleInterpretation": "direct frozen compact_side EBM inference from the completed BTC Target Taker study; class-weighted probability is used only as a ranking/confidence score, not claimed calibrated",
         "cohorts": {
