@@ -25,6 +25,7 @@ import LiveMarketsPage from './live-markets-page'
 import PinnedDivergencePage from './pinned-divergence-page'
 import WalletClonePage from './wallet-clone-page-v84'
 import WalletShadowPage from './wallet-shadow-page'
+import EbmStrategyTestPage from './ebm-strategy-test-page'
 import TargetTakerEchtgeldPage from './target-taker-echtgeld-page'
 import DiagnosticsServiceControlPage from './diagnostics-service-control-page'
 import {
@@ -48,6 +49,7 @@ const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '總覽' },
   { key: '/live-markets', icon: <DollarOutlined />, label: 'Live Markets' },
   { key: '/wallet-shadow', icon: <ExperimentOutlined />, label: 'Target Wallet Research' },
+  { key: '/ebm-strategy-test', icon: <ExperimentOutlined />, label: 'EBM 策略測試' },
   { key: '/wallet-clone', icon: <SwapOutlined />, label: 'Wallet Maker Clone' },
   { key: '/pinned-divergence', icon: <AimOutlined />, label: 'Pinned Divergence' },
   { key: '/live', icon: <SafetyCertificateOutlined />, label: 'Echtgeld Engine' },
@@ -192,6 +194,7 @@ function Shell() {
             <Route path="/" element={<><OverviewPage /><CrossOracleStorageCard /></>} />
             <Route path="/live-markets" element={<LiveMarketsPage />} />
             <Route path="/wallet-shadow" element={<WalletShadowPage />} />
+            <Route path="/ebm-strategy-test" element={<EbmStrategyTestPage />} />
             <Route path="/wallet-clone" element={<WalletClonePage />} />
             <Route path="/pinned-divergence" element={<PinnedDivergencePage />} />
             <Route path="/live" element={<TargetTakerEchtgeldPage />} />
