@@ -100,7 +100,6 @@ export default function EbmStrategyTestPage() {
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    if (loading) return
     setLoading(true)
     try {
       const response = await fetch('/bridge/ebm-strategy-test', {
@@ -118,7 +117,7 @@ export default function EbmStrategyTestPage() {
     } finally {
       setLoading(false)
     }
-  }, [loading])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
