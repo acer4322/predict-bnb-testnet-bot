@@ -135,12 +135,12 @@ export default defineConfig({
         rewrite: () => '/state',
       },
       '/bridge/ebm-strategy-test-health': {
-        target: 'http://127.0.0.1:8780',
+        target: 'http://127.0.0.1:8782',
         changeOrigin: false,
         rewrite: () => '/health',
       },
       '/bridge/ebm-strategy-test': {
-        target: 'http://127.0.0.1:8780',
+        target: 'http://127.0.0.1:8782',
         changeOrigin: false,
         rewrite: () => '/state',
       },
