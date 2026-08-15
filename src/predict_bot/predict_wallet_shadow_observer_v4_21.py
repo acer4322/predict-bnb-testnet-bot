@@ -12,7 +12,7 @@ from .target_taker_auto_bankroll_v1 import AutoBankrollMixin
 from .target_taker_live_execution_v4 import TargetTakerLiveConfig, TargetTakerLiveExecutor
 
 
-VERSION = "PREDICT_WALLET_SHADOW_V0_27_TARGET_TAKER_DASHBOARD_CONTROL_V1"
+VERSION = "PREDICT_WALLET_SHADOW_V0_26_TARGET_TAKER_LIVE_V1_AUTO_BANKROLL_V1_DASHBOARD_CONTROL_V1"
 
 
 class WalletShadowObserver(AutoBankrollMixin, v4_20.WalletShadowObserver):
@@ -110,8 +110,6 @@ class WalletShadowObserver(AutoBankrollMixin, v4_20.WalletShadowObserver):
             except (TypeError, ValueError) as exc:
                 raise ValueError("Target Taker numeric setting is invalid") from exc
 
-            # Reuse the executor's strict config validation contract. Runtime
-            # Pause maps to paper mode so the paper cohorts remain untouched.
             config = TargetTakerLiveConfig(
                 mode="live" if enabled else "paper",
                 venue=venue,
@@ -153,8 +151,6 @@ class WalletShadowObserver(AutoBankrollMixin, v4_20.WalletShadowObserver):
         if before_event is not None or not isinstance(event, dict):
             return
 
-        # Hold this lock through the at-most-once write so a dashboard venue
-        # switch cannot close/replace the executor during a live submission.
         with self.target_taker_live_runtime_lock:
             config = self.target_taker_live_config
             executor = self.target_taker_live_executor
