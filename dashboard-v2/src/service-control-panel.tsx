@@ -160,6 +160,13 @@ export default function ServiceControlPanel() {
       render: (_, service) => {
         if (!service.controllable) return <Text type="secondary">External launcher only</Text>
         const busy = actionKeys.some((key) => key.startsWith(`${service.id}:`) || key.startsWith('group:'))
+        // The verified stop controller re-inspects netstat + command line on every
+        // click, so an ONLINE/PARTIAL/CONFLICT service can safely attempt Stop even
+        // when the older ownership registry is missing or stale. Unknown processes
+        // are still rejected by the backend before taskkill is called.
+        const verifiedStopCandidate = !['OFFLINE', 'CRASHED'].includes(service.state)
+        const canStop = service.canStop || verifiedStopCandidate
+        const canRestart = service.canRestart || verifiedStopCandidate
         return (
           <Space size={4} wrap>
             <Button
@@ -174,23 +181,25 @@ export default function ServiceControlPanel() {
             </Button>
             <Popconfirm
               title={`停止 ${service.label}?`}
-              description={service.id === 'echtgeld' ? '如果 Engine 已 ARMED 或有未結算訂單，後端會拒絕停止。' : '只會停止 Dashboard 驗證為自己管理的 PID。'}
+              description={service.id === 'echtgeld'
+                ? '如果 Engine 已 ARMED 或有未結算訂單，後端會拒絕停止。'
+                : '後端會重新用 netstat + process command line 驗證 listener；不認得的 PID 絕不終止。'}
               okText="Stop"
               cancelText="取消"
               onConfirm={() => runService(service.id, 'stop')}
             >
-              <Button size="small" danger icon={<StopOutlined />} disabled={!service.canStop || busy} loading={actionKeys.includes(`${service.id}:stop`)}>
+              <Button size="small" danger icon={<StopOutlined />} disabled={!canStop || busy} loading={actionKeys.includes(`${service.id}:stop`)}>
                 Stop
               </Button>
             </Popconfirm>
             <Popconfirm
               title={`重啟 ${service.label}?`}
-              description="External/unowned process 不會被終止。"
+              description="先驗證並關閉實際 listener port，再透過 Dashboard 正常 Start。"
               okText="Restart"
               cancelText="取消"
               onConfirm={() => runService(service.id, 'restart')}
             >
-              <Button size="small" icon={<ReloadOutlined />} disabled={!service.canRestart || busy} loading={actionKeys.includes(`${service.id}:restart`)}>
+              <Button size="small" icon={<ReloadOutlined />} disabled={!canRestart || busy} loading={actionKeys.includes(`${service.id}:restart`)}>
                 Restart
               </Button>
             </Popconfirm>
@@ -213,8 +222,8 @@ export default function ServiceControlPanel() {
         <Alert
           type="info"
           showIcon
-          message="Dashboard V2 現在是服務生命週期控制中心"
-          description="控制 API 僅允許 localhost + 當前 Vite session token。8766–8769 與 8770/8772/8773 以 supervisor 群組操作；8778/8779 可獨立啟停研究 collector；8781 啟動後仍維持 PAUSED/DISARMED。4320 不會從頁面內自我重啟。"
+          message="Dashboard V2 服務生命週期控制"
+          description="Stop/Restart 現在以實際 TCP listener PID 為準：先驗證 module identity，再終止 supervisor/root + listener，最後重新用 netstat 確認 port 已關閉。8781 仍保留 ARMED / unresolved-order fail-closed。"
         />
         {error ? <Alert type={localhostBlocked ? 'warning' : 'error'} showIcon message={localhostBlocked ? 'Service Control 只允許本機操作' : 'Service Control error'} description={error} /> : null}
 
@@ -226,17 +235,14 @@ export default function ServiceControlPanel() {
             啟動 Market Stack
           </Button>
           <Button icon={<PlayCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:research:start')} onClick={() => void runGroup('research', 'start')}>
-            啟動 Maker Research
-          </Button>
-          <Button type="primary" icon={<PlayCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:ebm:start')} onClick={() => void runGroup('ebm', 'start')}>
-            啟動 EBM Echtgeld
+            啟動 Target Wallet Research
           </Button>
           <Button type="primary" icon={<PlayCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:all:start')} onClick={() => void runGroup('all', 'start')}>
             啟動全部
           </Button>
           <Popconfirm
             title="停止所有 Dashboard-managed services?"
-            description="8781 若仍 ARMED、有未結算訂單，或安全狀態無法確認，整組停止會在動任何 managed process 前被拒絕。EXTERNAL 服務會保留，Dashboard 4320 本身不會停止。"
+            description="8781 若仍 ARMED、有未結算訂單，或安全狀態無法確認，停止會被拒絕。Dashboard 4320 本身不會停止。"
             okText="Stop managed services"
             cancelText="取消"
             onConfirm={() => runGroup('all', 'stop')}
@@ -258,7 +264,7 @@ export default function ServiceControlPanel() {
         />
 
         <Text type="secondary">
-          EXTERNAL 表示 port 雖然在線，但沒有 Dashboard registry 或可信 launcher PID ownership；此頁故意不提供 Stop/Restart，避免誤殺其他 Python process。舊版 launcher 留下的可信 PID file 會顯示 LEGACY_MANAGED，仍可安全接管生命週期操作。
+          Ownership 欄仍用來顯示 registry / legacy PID 狀態，但不再是唯一的 Stop 判定。按 Stop/Restart 時會重新掃實際 listener；只有 command line 符合該服務已知 module，或可驗證為可信 supervisor 子程序時才會終止。停止成功還必須通過「port 確實消失」驗證。
         </Text>
       </Space>
     </Card>
