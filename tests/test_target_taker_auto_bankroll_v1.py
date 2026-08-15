@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import sqlite3
+import threading
+import time
+
 import pytest
 
+from predict_bot import predict_wallet_target_taker_public_side_strategy_v1 as public_side
 from predict_bot import target_taker_auto_bankroll_v1 as bankroll
 
 
@@ -121,3 +126,101 @@ def test_policy_keeps_target_wallet_observations_out_of_sizing() -> None:
     assert policy["sameTradeSignalsAsControl"] is True
     assert policy["targetEventsDriveSizing"] is False
     assert policy["initialEquityUsdt"] == pytest.approx(100.0)
+
+
+class _DummyObserverBase:
+    def __init__(self) -> None:
+        self.db_lock = threading.RLock()
+        self.db = sqlite3.connect(":memory:")
+        self.db.row_factory = sqlite3.Row
+        self.market_id = 123
+        self.public_side_states = {bankroll.SOURCE_COHORT: {"event": None}}
+        self.db.execute(
+            """CREATE TABLE wallet_target_taker_public_side_v1_results(
+                   cohort TEXT NOT NULL, market_id INTEGER NOT NULL, winner TEXT NOT NULL,
+                   resolved_at_ms INTEGER NOT NULL, PRIMARY KEY(cohort,market_id))"""
+        )
+        self.db.commit()
+
+    def _execute_public_side(
+        self,
+        cohort: str,
+        decision: dict,
+        hazard: dict | None,
+        *,
+        snapshot_ns: int,
+        now_ms: int,
+    ) -> None:
+        del hazard
+        state = self.public_side_states[cohort]
+        if state["event"] is not None:
+            return
+        ask = float(decision["ask"])
+        confidence = float(decision["signal"]["selectedProbability"])
+        state["event"] = {
+            "id": f"{cohort}:{self.market_id}:TAKER:{snapshot_ns}",
+            "cohort": cohort,
+            "marketId": self.market_id,
+            "decisionAtMs": now_ms,
+            "side": decision["side"],
+            "ask": ask,
+            "effectiveUnitCost": public_side.effective_unit_cost(ask),
+            "sideSelectedProbability": confidence,
+        }
+
+    def _store_market_result(self, market_id: int, market: dict, winner: str) -> None:
+        del market
+        resolved_at_ms = int(time.time() * 1000)
+        with self.db:
+            self.db.execute(
+                "INSERT OR REPLACE INTO wallet_target_taker_public_side_v1_results VALUES (?,?,?,?)",
+                (bankroll.SOURCE_COHORT, market_id, winner, resolved_at_ms),
+            )
+
+    def snapshot(self) -> dict:
+        return {}
+
+    def health_snapshot(self) -> dict:
+        return {}
+
+
+class _DummyObserver(bankroll.AutoBankrollMixin, _DummyObserverBase):
+    pass
+
+
+def test_mixin_mirrors_same_event_and_settles_wallet_lifecycle() -> None:
+    observer = _DummyObserver()
+    now_ms = int(time.time() * 1000) + 1
+    observer._execute_public_side(
+        bankroll.SOURCE_COHORT,
+        {
+            "decision": "TRADE",
+            "side": "UP",
+            "ask": 0.50,
+            "signal": {"selectedProbability": 0.70},
+        },
+        None,
+        snapshot_ns=123456,
+        now_ms=now_ms,
+    )
+    trade = observer.db.execute(
+        "SELECT * FROM wallet_target_taker_auto_bankroll_v1_trades WHERE market_id=123"
+    ).fetchone()
+    assert trade is not None
+    assert trade["status"] == "OPEN"
+    assert trade["stake_usdt"] == pytest.approx(1.0)
+    assert trade["equity_before_usdt"] == pytest.approx(100.0)
+
+    observer._store_market_result(123, {}, "DOWN")
+    settled = observer.db.execute(
+        "SELECT * FROM wallet_target_taker_auto_bankroll_v1_trades WHERE market_id=123"
+    ).fetchone()
+    assert settled["status"] == "LOSS"
+    assert settled["net_pnl_usdt"] == pytest.approx(-1.0)
+    assert settled["equity_after_usdt"] == pytest.approx(99.0)
+    assert settled["surprise_loss"] == 1
+
+    snapshot = observer.snapshot()["targetTakerAutoBankrollV1"]
+    assert snapshot["equityUsdt"] == pytest.approx(99.0)
+    assert snapshot["performance"]["settledTrades"] == 1
+    observer.db.close()
