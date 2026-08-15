@@ -25,8 +25,6 @@ import LiveMarketsPage from './live-markets-page'
 import PinnedDivergencePage from './pinned-divergence-page'
 import WalletClonePage from './wallet-clone-page-v84'
 import WalletShadowPage from './wallet-shadow-page'
-import WalletShadowTargetTakerPublicSideV1Panel from './wallet-shadow-target-taker-public-side-v1-panel'
-import WalletShadowMakerEbmV1Panel from './wallet-shadow-maker-ebm-v1-panel'
 import TargetTakerEchtgeldPage from './target-taker-echtgeld-page'
 import DiagnosticsServiceControlPage from './diagnostics-service-control-page'
 import {
@@ -49,12 +47,10 @@ function ServiceTag({ label, service }: { label: string; service: ServiceSnapsho
 const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '總覽' },
   { key: '/live-markets', icon: <DollarOutlined />, label: 'Live Markets' },
-  { key: '/target-taker-v1', icon: <ExperimentOutlined />, label: 'Target Taker V1' },
-  { key: '/maker-ebm-v1', icon: <ExperimentOutlined />, label: 'Maker EBM V1' },
-  { key: '/wallet-shadow', icon: <ExperimentOutlined />, label: 'Wallet Shadow Lab' },
+  { key: '/wallet-shadow', icon: <ExperimentOutlined />, label: 'Target Wallet Research' },
   { key: '/wallet-clone', icon: <SwapOutlined />, label: 'Wallet Maker Clone' },
   { key: '/pinned-divergence', icon: <AimOutlined />, label: 'Pinned Divergence' },
-  { key: '/live', icon: <SafetyCertificateOutlined />, label: 'EBM Echtgeld' },
+  { key: '/live', icon: <SafetyCertificateOutlined />, label: 'Echtgeld Engine' },
   { key: '/poly-gap', icon: <SwapOutlined />, label: 'Poly Gap' },
   { key: '/strategies', icon: <BarChartOutlined />, label: 'Strategies' },
   { key: '/trades', icon: <DatabaseOutlined />, label: 'Trades' },
@@ -75,7 +71,6 @@ function Shell() {
   const refreshWalletShadow = useWalletShadowStore((state) => state.refresh)
   const refreshWalletLabHealth = useWalletLabHealthStore((state) => state.refresh)
   const walletShadowHealth = useWalletLabHealthStore((state) => state.observer8776)
-  const walletTakerSignalHealth = useWalletLabHealthStore((state) => state.collector8777)
   const echtgeldService = useEchtgeldStore((state) => state.service)
   const mobile = !screens.lg
 
@@ -115,7 +110,7 @@ function Shell() {
   }, [refreshWalletLabHealth])
 
   useEffect(() => {
-    if (!['/wallet-shadow', '/target-taker-v1', '/maker-ebm-v1', '/live'].includes(location.pathname)) return
+    if (location.pathname !== '/wallet-shadow') return
     let cancelled = false
     const tick = () => {
       if (!cancelled && document.visibilityState === 'visible') void refreshWalletShadow()
@@ -189,7 +184,6 @@ function Shell() {
             <ServiceTag label="8770" service={services.multiMarket} />
             <ServiceTag label="8771" service={predictFunService} />
             <ServiceTag label="8776" service={walletShadowHealth} />
-            <ServiceTag label="8777" service={walletTakerSignalHealth} />
             {location.pathname === '/live' || echtgeldService.updatedAt !== null ? <ServiceTag label="8781" service={echtgeldService} /> : null}
           </Space>
         </Header>
@@ -197,8 +191,6 @@ function Shell() {
           <Routes>
             <Route path="/" element={<><OverviewPage /><CrossOracleStorageCard /></>} />
             <Route path="/live-markets" element={<LiveMarketsPage />} />
-            <Route path="/target-taker-v1" element={<WalletShadowTargetTakerPublicSideV1Panel />} />
-            <Route path="/maker-ebm-v1" element={<WalletShadowMakerEbmV1Panel />} />
             <Route path="/wallet-shadow" element={<WalletShadowPage />} />
             <Route path="/wallet-clone" element={<WalletClonePage />} />
             <Route path="/pinned-divergence" element={<PinnedDivergencePage />} />
