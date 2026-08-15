@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { verifiedServiceControlPlugin } from './verified-service-control'
 import { makerServiceControlPlugin } from './maker-service-control'
 import { serviceManagerV2Plugin } from './service-manager-v2'
 
@@ -48,7 +49,13 @@ function localhostControlGuard(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [localhostControlGuard(), makerServiceControlPlugin(repoRoot), serviceManagerV2Plugin(repoRoot), react()],
+  plugins: [
+    localhostControlGuard(),
+    verifiedServiceControlPlugin(repoRoot),
+    makerServiceControlPlugin(repoRoot),
+    serviceManagerV2Plugin(repoRoot),
+    react(),
+  ],
   server: {
     host: '0.0.0.0',
     port: 4320,
