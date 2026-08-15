@@ -35,6 +35,20 @@ async function runAction(action: Action) {
   return payload
 }
 
+async function fetchStatus() {
+  const token = await getControlToken()
+  const response = await fetch('/control/strategy-test/status', {
+    cache: 'no-store',
+    headers: { Accept: 'application/json', 'X-BTC-Lab-Control': token },
+  })
+  const payload = await response.json().catch(() => null) as AnyRecord | null
+  if (!response.ok) {
+    if (response.status === 403) controlSessionToken = null
+    throw new Error(String(payload?.error || `HTTP ${response.status}`))
+  }
+  return payload
+}
+
 export default function EbmStrategyTestServiceCard() {
   const [status, setStatus] = useState<AnyRecord | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -42,9 +56,7 @@ export default function EbmStrategyTestServiceCard() {
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch('/control/strategy-test/status', { cache: 'no-store', headers: { Accept: 'application/json' } })
-      const payload = await response.json().catch(() => null) as AnyRecord | null
-      if (!response.ok) throw new Error(String(payload?.error || `HTTP ${response.status}`))
+      const payload = await fetchStatus()
       setStatus(payload)
       setError(null)
     } catch (err) {
