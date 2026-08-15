@@ -19,6 +19,7 @@ function rows(value: unknown): RowObject[] {
 }
 
 function num(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
 }
@@ -51,6 +52,18 @@ function dateTime(value: unknown): string {
 function sideTag(value: unknown) {
   const valueText = text(value)
   return <Tag color={valueText === 'UP' ? 'success' : valueText === 'DOWN' ? 'error' : 'default'}>{valueText}</Tag>
+}
+
+function resultTag(value: unknown) {
+  const status = text(value)
+  return <Tag color={status === 'WIN' ? 'success' : status === 'LOSS' ? 'error' : status === 'FLAT' ? 'warning' : 'default'}>{status}</Tag>
+}
+
+function sourceTag(value: unknown) {
+  const source = text(value)
+  if (source === 'LEGACY_WALLET_SHADOW_TARGET_ACCOUNTING') return <Tag color="purple">舊帳本 / 回算</Tag>
+  if (source === 'TARGET_WALLET_OFFICIAL_V2') return <Tag color="blue">Official V2</Tag>
+  return <Tag>{source}</Tag>
 }
 
 function InventoryCard({ asset, data }: { asset: string; data: RowObject }) {
@@ -100,12 +113,34 @@ const resultColumns: TableColumnsType<RowObject> = [
   { title: 'Resolved', dataIndex: 'resolved_at_ms', width: 175, render: dateTime },
 ]
 
+const historicalColumns: TableColumnsType<RowObject> = [
+  { title: 'Asset', dataIndex: 'asset', width: 70, render: (value) => <Tag>{text(value, 'BTC')}</Tag> },
+  { title: 'Market', dataIndex: 'market_id', width: 90, render: (value) => `#${text(value)}` },
+  { title: 'Winner', dataIndex: 'winner', width: 75, render: sideTag },
+  { title: '目標結果', dataIndex: 'status', width: 90, render: resultTag },
+  {
+    title: '真實 fills', key: 'fills', width: 85,
+    render: (_, item) => text(item.event_count ?? item.fill_count, '0'),
+  },
+  { title: '投入', dataIndex: 'buy_notional_usdt', width: 90, render: money },
+  { title: 'Payout', dataIndex: 'payout_usdt', width: 90, render: money },
+  { title: 'Net PnL', dataIndex: 'net_pnl_usdt', width: 100, render: money },
+  { title: 'ROI', dataIndex: 'net_roi', width: 80, render: pct },
+  { title: 'Share 信念', dataIndex: 'share_conviction_side', width: 105, render: sideTag },
+  { title: 'Capital 信念', dataIndex: 'capital_conviction_side', width: 110, render: sideTag },
+  { title: '來源', dataIndex: 'source', width: 120, render: sourceTag },
+  { title: 'Resolved', dataIndex: 'resolved_at_ms', width: 175, render: dateTime },
+]
+
 export default function WalletShadowPage() {
   const service = useWalletShadowStore((state) => state.service)
   const snapshot = row(service.data)
   const health = row(snapshot.health)
   const storage = row(snapshot.storage)
   const performance = row(snapshot.targetPerformance)
+  const historical = row(snapshot.targetHistoricalPerformance)
+  const historicalSources = row(historical.sources)
+  const legacySource = row(historicalSources.legacy)
   const assets = row(snapshot.assets)
   const btc = row(assets.BTC)
   const eth = row(assets.ETH)
@@ -115,7 +150,9 @@ export default function WalletShadowPage() {
   const ethInventory = row(eth.inventory)
   const targetEvents = rows(snapshot.targetEvents)
   const recentMarkets = rows(snapshot.targetRecentMarkets)
+  const historicalMarkets = rows(snapshot.targetHistoricalRecentMarkets)
   const dbBytes = num(storage.databaseBytes)
+  const historyRestored = snapshot.historicalTargetResultsRestored === true
 
   return (
     <>
@@ -125,20 +162,14 @@ export default function WalletShadowPage() {
       </div>
 
       {!service.ok && !service.data ? (
-        <Alert
-          type="warning"
-          showIcon
-          message="8776 Target Wallet Official 尚未連線"
-          description={service.error ?? '等待 TARGET_WALLET_OFFICIAL_V1'}
-          style={{ marginBottom: 12 }}
-        />
+        <Alert type="warning" showIcon message="8776 Target Wallet Official 尚未連線" description={service.error ?? '等待 TARGET_WALLET_OFFICIAL_V2_LEGACY_HISTORY'} style={{ marginBottom: 12 }} />
       ) : null}
 
       <Alert
         type="success"
         showIcon
-        message="8776 已改為單一職責 Official collector"
-        description="只收集 BTC5M / ETH5M 目標錢包真實成交、Parent Orders、Inventory 與官方結算績效；不再包含 Shadow、EBM、TradeIntent 或 Echtgeld 邏輯。成交原始資料永久保留，舊 predict_wallet_shadow.db 不再作為 8776 runtime DB。"
+        message="8776 維持單一職責 Official collector；舊 Target 勝敗帳本只讀恢復"
+        description="8776 runtime 仍只收集 BTC5M / ETH5M 目標錢包真實成交、Parent Orders、Inventory 與官方結算，不含 Shadow、EBM、TradeIntent 或 Echtgeld 邏輯。舊 predict_wallet_shadow.db 現在只以 SQLite read-only 模式提供重建前已存在的 Target 歷史勝敗/會計結果，不會寫入，也不會成為策略輸入。"
         style={{ marginBottom: 12 }}
       />
 
@@ -160,12 +191,46 @@ export default function WalletShadowPage() {
           <Col xs={12} md={8} xl={3}><Statistic title="Maker PnL" value={money(performance.makerNetPnlUsdt)} /></Col>
           <Col xs={12} md={8} xl={3}><Statistic title="Taker PnL" value={money(performance.takerNetPnlUsdt)} /></Col>
         </Row>
-        <Alert
-          type="info"
-          showIcon
+        <Alert type="info" showIcon style={{ marginTop: 10 }} message={text(performance.accounting)} description={`Fee accounting: ${text(performance.feeAccounting)}. Raw fills are retained so fee handling can be refined later without losing source data.`} />
+      </Card>
+
+      <Card title="Target · 歷史勝敗（重建前 + Official V2）" style={{ marginTop: 12 }}>
+        <Row gutter={[12, 12]}>
+          <Col xs={12} md={6} xl={3}><Statistic title="Settled" value={num(historical.settledMarkets) ?? 0} /></Col>
+          <Col xs={12} md={6} xl={3}><Statistic title="W / L / Flat" value={`${text(historical.wins, '0')} / ${text(historical.losses, '0')} / ${text(historical.flats, '0')}`} /></Col>
+          <Col xs={12} md={6} xl={3}><Statistic title="Win rate" value={pct(historical.winRate)} /></Col>
+          <Col xs={12} md={6} xl={3}><Statistic title="Net PnL" value={money(historical.netPnlUsdt)} /></Col>
+          <Col xs={12} md={6} xl={3}><Statistic title="Net ROI" value={pct(historical.netRoi)} /></Col>
+          <Col xs={12} md={6} xl={3}><Statistic title="舊帳本 markets" value={num(historical.legacyMarkets) ?? 0} /></Col>
+          <Col xs={12} md={6} xl={3}><Statistic title="Official V2 markets" value={num(historical.currentOfficialMarkets) ?? 0} /></Col>
+          <Col xs={12} md={6} xl={3}><Statistic title="歷史回算 markets" value={num(historical.historicallyReconstructedMarkets) ?? 0} /></Col>
+        </Row>
+        {historyRestored && legacySource.available === true ? (
+          <Alert
+            type="success"
+            showIcon
+            style={{ marginTop: 10 }}
+            message={`舊 Target 歷史勝敗已恢復 · ${text(legacySource.rows, '0')} rows · READ ONLY`}
+            description={`${text(historical.dedupeRule)}。${text(historical.accountingCaveat)}`}
+          />
+        ) : (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginTop: 10 }}
+            message="舊 Target 歷史帳本目前不可讀"
+            description={`${text(legacySource.error, '尚未從 8776 收到 historical source 狀態')}。新 Official 結算仍可正常累積，舊資料不會被猜測或偽造。`}
+          />
+        )}
+        <Table
+          rowKey={(item) => `${text(item.market_id)}-${text(item.source)}`}
+          dataSource={historicalMarkets}
+          columns={historicalColumns}
+          size="small"
+          pagination={{ pageSize: 20, hideOnSinglePage: true }}
+          scroll={{ x: 1350 }}
           style={{ marginTop: 10 }}
-          message={text(performance.accounting)}
-          description={`Fee accounting: ${text(performance.feeAccounting)}. Raw fills are retained so fee handling can be refined later without losing source data.`}
+          locale={{ emptyText: '等待讀取舊 Target 歷史帳本或新 Official 結算' }}
         />
       </Card>
 
@@ -184,27 +249,11 @@ export default function WalletShadowPage() {
       </Card>
 
       <Card title="Target · 真實已成交 Parent Orders" style={{ marginTop: 12 }}>
-        <Table
-          rowKey={(item) => text(item.id)}
-          dataSource={targetEvents}
-          columns={parentColumns}
-          size="small"
-          pagination={{ pageSize: 20, hideOnSinglePage: true }}
-          scroll={{ x: 1350 }}
-          locale={{ emptyText: '等待 BTC / ETH 5M 目標錢包真實成交' }}
-        />
+        <Table rowKey={(item) => text(item.id)} dataSource={targetEvents} columns={parentColumns} size="small" pagination={{ pageSize: 20, hideOnSinglePage: true }} scroll={{ x: 1350 }} locale={{ emptyText: '等待 BTC / ETH 5M 目標錢包真實成交' }} />
       </Card>
 
-      <Card title="Target Wallet Official · 最近已結算市場" style={{ marginTop: 12 }}>
-        <Table
-          rowKey={(item) => text(item.market_id)}
-          dataSource={recentMarkets}
-          columns={resultColumns}
-          size="small"
-          pagination={{ pageSize: 15, hideOnSinglePage: true }}
-          scroll={{ x: 1350 }}
-          locale={{ emptyText: '等待新 Official ledger 的第一批市場結算' }}
-        />
+      <Card title="Target Wallet Official · 最近已結算市場（新帳本）" style={{ marginTop: 12 }}>
+        <Table rowKey={(item) => text(item.market_id)} dataSource={recentMarkets} columns={resultColumns} size="small" pagination={{ pageSize: 15, hideOnSinglePage: true }} scroll={{ x: 1350 }} locale={{ emptyText: '等待新 Official ledger 的第一批市場結算' }} />
       </Card>
 
       <WalletMakerBookInferencePanel />
