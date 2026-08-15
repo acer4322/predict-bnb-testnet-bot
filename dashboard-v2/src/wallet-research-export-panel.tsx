@@ -103,6 +103,36 @@ function discoverStrategies(snapshot: RowObject): { items: ExportItem[]; topLeve
       continue
     }
 
+    // Newer forward labs (for example Target Taker Public Side V1 and Maker EBM V1)
+    // expose isolated paper cohorts as an object keyed by cohort name instead of a
+    // variants[] array. Split those entries too so each A/B arm can be exported and
+    // reviewed independently rather than hiding the whole lab inside one large JSON.
+    const cohortMap = row(container.cohorts)
+    if (hasFields(cohortMap)) {
+      topLevelKeys.add(key)
+      const context = strategyContainerContext(container)
+      for (const [cohortKey, cohortValue] of Object.entries(cohortMap)) {
+        const cohortRow = row(cohortValue)
+        if (!hasFields(cohortRow)) continue
+        const cohort = String(cohortRow.cohort ?? cohortRow.label ?? cohortKey)
+        items.push({
+          id: `strategy:${key}:${cohort}`,
+          label: cohort,
+          filenameStem: `strategy-${safeName(cohort)}`,
+          group: 'strategy',
+          source: `8776/state.${key}.cohorts.${cohortKey}`,
+          payload: {
+            strategy: cohortRow,
+            containerContext: context,
+            labVersion: container.version ?? null,
+            policy: container.policy ?? null,
+            model: container.sideModel ?? container.models ?? null,
+          },
+        })
+      }
+      continue
+    }
+
     const cohort = typeof container.cohort === 'string' && container.cohort.trim() ? container.cohort.trim() : null
     const strategyLikeKey = /(lab$|inference|audit|consensus|strategy)/i.test(key)
     if (!cohort && !strategyLikeKey) continue
@@ -311,7 +341,7 @@ export default function WalletResearchExportPanel() {
         type="info"
         showIcon
         message="資料層與策略 cohort 分檔，不把整個 Research Lab 混成單一大型 JSON"
-        description="8776 core、8776 health、8777、8778、8779 各自獨立；8776 內具有 variants 的研究 Lab 會再依 cohort 拆成單獨策略檔。匯出只使用 Dashboard 已載入的 current state / recent performance，不掃描整個 SQLite 歷史庫；常見 token / API key / secret 欄位會自動遮蔽。"
+        description="8776 core、8776 health、8777、8778、8779 各自獨立；8776 內具有 variants[] 或 cohorts{} 的研究 Lab 會再依 cohort 拆成單獨策略檔。匯出只使用 Dashboard 已載入的 current state / recent performance，不掃描整個 SQLite 歷史庫；常見 token / API key / secret 欄位會自動遮蔽。"
       />
 
       <Space wrap style={{ marginTop: 12 }}>
@@ -340,7 +370,7 @@ export default function WalletResearchExportPanel() {
       </div>
 
       <Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
-        要分享給 ChatGPT 時，直接上傳你要分析的幾個 JSON 即可。例如比較 Target Core V1/V2，建議傳 V1、V2、8777 Taker signals 與 8778 BTC Maker book；不需要上傳整個 DB。若瀏覽器阻擋多檔自動下載，可使用每列右側的 JSON 按鈕逐個下載。
+        要分享給 ChatGPT 時，直接上傳你要分析的幾個 JSON 即可。例如比較 Target Taker V1 A/B，可直接匯出各自 cohort，再搭配 8777 Taker signals；不需要上傳整個 DB。若瀏覽器阻擋多檔自動下載，可使用每列右側的 JSON 按鈕逐個下載。
       </Text>
     </Card>
   )
