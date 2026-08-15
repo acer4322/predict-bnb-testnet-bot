@@ -124,27 +124,27 @@ export default defineConfig({
         rewrite: () => '/state',
       },
       '/bridge/echtgeld-health': {
-        target: 'http://127.0.0.1:8780',
+        target: 'http://127.0.0.1:8781',
         changeOrigin: false,
         rewrite: () => '/health',
       },
       '/bridge/echtgeld': {
-        target: 'http://127.0.0.1:8780',
+        target: 'http://127.0.0.1:8781',
         changeOrigin: false,
         rewrite: () => '/state',
       },
       '/control/echtgeld/pause': {
-        target: 'http://127.0.0.1:8780',
+        target: 'http://127.0.0.1:8781',
         changeOrigin: false,
         rewrite: () => '/control/pause',
       },
       '/control/echtgeld/resume': {
-        target: 'http://127.0.0.1:8780',
+        target: 'http://127.0.0.1:8781',
         changeOrigin: false,
         rewrite: () => '/control/resume',
       },
       '/control/echtgeld/settings': {
-        target: 'http://127.0.0.1:8780',
+        target: 'http://127.0.0.1:8781',
         changeOrigin: false,
         rewrite: () => '/control/settings',
       },
