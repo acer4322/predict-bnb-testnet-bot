@@ -261,7 +261,7 @@ function LiveControl({ live, market, sideOnly }: { live: RowObject; market: RowO
         maxPriceDrift: Number(values.maxPriceDrift),
         cohort: values.cohort,
       })
-      form.resetFields()
+      form.setFieldsValue(values)
       message.success('Target Taker runtime 設定已套用到下一次新進場')
     } catch (error) {
       if (error && typeof error === 'object' && 'errorFields' in error) return
@@ -314,7 +314,7 @@ function LiveControl({ live, market, sideOnly }: { live: RowObject; market: RowO
 
         <Col xs={24} xl={7}>
           <Card title={<Space><DollarOutlined /> 選定 Venue 可用餘額</Space>} style={{ height: '100%' }}>
-            <Statistic title={`${text(balance.venue, live.venue).toUpperCase()} available USDT`} value={balanceMoney(balance.availableUsdt)} />
+            <Statistic title={`${text(balance.venue, text(live.venue)).toUpperCase()} available USDT`} value={balanceMoney(balance.availableUsdt)} />
             <Descriptions column={1} size="small" style={{ marginTop: 10 }}>
               <Descriptions.Item label="Status">{text(balance.status)}</Descriptions.Item>
               <Descriptions.Item label="Market round">#{text(balance.marketId)}</Descriptions.Item>
@@ -493,7 +493,7 @@ export default function WalletShadowTargetTakerPublicSideV1Panel() {
       {Object.keys(live).length ? (
         <LiveControl live={live} market={market} sideOnly={sideOnly} />
       ) : (
-        <Alert type="warning" showIcon message="targetTakerLiveV1 尚未載入" description="需要最新 8776 V0_27 observer 才有 Echtgeld status/settings/balance panel。" />
+        <Alert type="warning" showIcon message="targetTakerLiveV1 尚未載入" description="需要最新 8776 observer 才有 Echtgeld status/settings/balance panel。" />
       )}
 
       {Object.keys(bankroll).length ? (
