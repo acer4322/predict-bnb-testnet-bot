@@ -8,17 +8,27 @@ from .target_taker_live_execution_v1 import (
     BINANCE_WALLET_ID_ENV,
     TargetTakerLiveError,
     TargetTakerLiveExecutor as _V1TargetTakerLiveExecutor,
+    _market_id,
 )
 
 
 class TargetTakerLiveExecutor(_V1TargetTakerLiveExecutor):
-    """V1 executor with Binance accountType/fundingSource kept distinct.
+    """Harden V1 venue metadata without changing the frozen EBM signal path.
 
     Binance Prediction Trading uses accountType=SPOT|FUNDING while MPC is the
-    fundingSource passed separately to get-quote/place-order-bundle. Keeping
-    this correction in a tiny compatibility layer avoids destabilizing the
-    already-reviewed venue logic in V1.
+    fundingSource passed separately to get-quote/place-order-bundle. Predict.fun
+    is resolved by the exact signal market ID instead of scanning a bounded
+    market list before any real-money order is signed.
     """
+
+    def _predict_market(self, client, market_id: int) -> dict:
+        payload = client._request("GET", f"/v1/markets/{int(market_id)}")
+        data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+        if not isinstance(data, dict) or _market_id(data) != int(market_id):
+            raise TargetTakerLiveError(
+                f"Predict.fun exact market lookup did not return market {int(market_id)}"
+            )
+        return data
 
     def _binance_wallet(self) -> tuple[str, str, str]:
         address = str(os.environ.get(BINANCE_WALLET_ADDRESS_ENV) or "").strip()
