@@ -28,8 +28,8 @@ import WalletShadowPage from './wallet-shadow-page'
 import WalletShadowTargetTakerPublicSideV1Panel from './wallet-shadow-target-taker-public-side-v1-panel'
 import WalletShadowMakerEbmV1Panel from './wallet-shadow-maker-ebm-v1-panel'
 import TargetTakerEchtgeldPage from './target-taker-echtgeld-page'
+import DiagnosticsServiceControlPage from './diagnostics-service-control-page'
 import {
-  DiagnosticsPage,
   OverviewPage,
   PolyGapPage,
   StrategiesPage,
@@ -58,7 +58,7 @@ const menuItems: MenuProps['items'] = [
   { key: '/poly-gap', icon: <SwapOutlined />, label: 'Poly Gap' },
   { key: '/strategies', icon: <BarChartOutlined />, label: 'Strategies' },
   { key: '/trades', icon: <DatabaseOutlined />, label: 'Trades' },
-  { key: '/diagnostics', icon: <ApiOutlined />, label: 'Diagnostics' },
+  { key: '/diagnostics', icon: <ApiOutlined />, label: 'Diagnostics / Services' },
 ]
 
 function Shell() {
@@ -206,7 +206,7 @@ function Shell() {
             <Route path="/poly-gap" element={<PolyGapPage />} />
             <Route path="/strategies" element={<StrategiesPage />} />
             <Route path="/trades" element={<TradesPage />} />
-            <Route path="/diagnostics" element={<DiagnosticsPage />} />
+            <Route path="/diagnostics" element={<DiagnosticsServiceControlPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Content>
