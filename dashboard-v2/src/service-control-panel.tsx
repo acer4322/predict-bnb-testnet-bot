@@ -56,7 +56,7 @@ export default function ServiceControlPanel() {
   const snapshot = useServiceControlStore((state) => state.snapshot)
   const loading = useServiceControlStore((state) => state.loading)
   const error = useServiceControlStore((state) => state.error)
-  const actionKey = useServiceControlStore((state) => state.actionKey)
+  const actionKeys = useServiceControlStore((state) => state.actionKeys)
   const refresh = useServiceControlStore((state) => state.refresh)
   const serviceAction = useServiceControlStore((state) => state.serviceAction)
   const groupAction = useServiceControlStore((state) => state.groupAction)
@@ -159,7 +159,7 @@ export default function ServiceControlPanel() {
       fixed: 'right',
       render: (_, service) => {
         if (!service.controllable) return <Text type="secondary">External launcher only</Text>
-        const busy = Boolean(actionKey?.startsWith(`${service.id}:`) || actionKey?.startsWith('group:'))
+        const busy = actionKeys.some((key) => key.startsWith(`${service.id}:`) || key.startsWith('group:'))
         return (
           <Space size={4} wrap>
             <Button
@@ -167,7 +167,7 @@ export default function ServiceControlPanel() {
               type="primary"
               icon={<PlayCircleOutlined />}
               disabled={!service.canStart || busy}
-              loading={actionKey === `${service.id}:start`}
+              loading={actionKeys.includes(`${service.id}:start`)}
               onClick={() => void runService(service.id, 'start')}
             >
               Start
@@ -179,7 +179,7 @@ export default function ServiceControlPanel() {
               cancelText="取消"
               onConfirm={() => runService(service.id, 'stop')}
             >
-              <Button size="small" danger icon={<StopOutlined />} disabled={!service.canStop || busy} loading={actionKey === `${service.id}:stop`}>
+              <Button size="small" danger icon={<StopOutlined />} disabled={!service.canStop || busy} loading={actionKeys.includes(`${service.id}:stop`)}>
                 Stop
               </Button>
             </Popconfirm>
@@ -190,7 +190,7 @@ export default function ServiceControlPanel() {
               cancelText="取消"
               onConfirm={() => runService(service.id, 'restart')}
             >
-              <Button size="small" icon={<ReloadOutlined />} disabled={!service.canRestart || busy} loading={actionKey === `${service.id}:restart`}>
+              <Button size="small" icon={<ReloadOutlined />} disabled={!service.canRestart || busy} loading={actionKeys.includes(`${service.id}:restart`)}>
                 Restart
               </Button>
             </Popconfirm>
@@ -201,6 +201,7 @@ export default function ServiceControlPanel() {
   ]
 
   const localhostBlocked = Boolean(error && /localhost|session|403/i.test(error))
+  const anyAction = actionKeys.length > 0
 
   return (
     <Card
@@ -218,19 +219,19 @@ export default function ServiceControlPanel() {
         {error ? <Alert type={localhostBlocked ? 'warning' : 'error'} showIcon message={localhostBlocked ? 'Service Control 只允許本機操作' : 'Service Control error'} description={error} /> : null}
 
         <Space wrap>
-          <Button icon={<PlayCircleOutlined />} disabled={Boolean(actionKey)} loading={actionKey === 'group:core:start'} onClick={() => void runGroup('core', 'start')}>
+          <Button icon={<PlayCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:core:start')} onClick={() => void runGroup('core', 'start')}>
             啟動 Core
           </Button>
-          <Button icon={<PlayCircleOutlined />} disabled={Boolean(actionKey)} loading={actionKey === 'group:market:start'} onClick={() => void runGroup('market', 'start')}>
+          <Button icon={<PlayCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:market:start')} onClick={() => void runGroup('market', 'start')}>
             啟動 Market Stack
           </Button>
-          <Button icon={<PlayCircleOutlined />} disabled={Boolean(actionKey)} loading={actionKey === 'group:research:start'} onClick={() => void runGroup('research', 'start')}>
+          <Button icon={<PlayCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:research:start')} onClick={() => void runGroup('research', 'start')}>
             啟動 Maker Research
           </Button>
-          <Button type="primary" icon={<PlayCircleOutlined />} disabled={Boolean(actionKey)} loading={actionKey === 'group:ebm:start'} onClick={() => void runGroup('ebm', 'start')}>
+          <Button type="primary" icon={<PlayCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:ebm:start')} onClick={() => void runGroup('ebm', 'start')}>
             啟動 EBM Echtgeld
           </Button>
-          <Button type="primary" icon={<PlayCircleOutlined />} disabled={Boolean(actionKey)} loading={actionKey === 'group:all:start'} onClick={() => void runGroup('all', 'start')}>
+          <Button type="primary" icon={<PlayCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:all:start')} onClick={() => void runGroup('all', 'start')}>
             啟動全部
           </Button>
           <Popconfirm
@@ -240,7 +241,7 @@ export default function ServiceControlPanel() {
             cancelText="取消"
             onConfirm={() => runGroup('all', 'stop')}
           >
-            <Button danger icon={<PauseCircleOutlined />} disabled={Boolean(actionKey)} loading={actionKey === 'group:all:stop'}>
+            <Button danger icon={<PauseCircleOutlined />} disabled={anyAction} loading={actionKeys.includes('group:all:stop')}>
               停止所有 Managed
             </Button>
           </Popconfirm>
