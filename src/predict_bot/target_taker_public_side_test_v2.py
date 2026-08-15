@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from http.server import ThreadingHTTPServer
 from typing import Any
 
@@ -7,6 +8,10 @@ from . import target_taker_public_side_test_v1 as v1
 
 
 VERSION = "TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY_TEST_V2_DATA_INTEGRITY"
+# 8780 is permanently reserved for the ETH Taker public-signal collector.
+# Keep the EBM forward test isolated on its own port unless explicitly overridden.
+PORT = int(os.environ.get("PREDICT_TARGET_TAKER_PUBLIC_SIDE_TEST_PORT", "8782"))
+v1.PORT = PORT
 
 
 def _record(value: Any) -> dict[str, Any]:
@@ -115,6 +120,7 @@ class TargetTakerPublicSideTest(v1.TargetTakerPublicSideTest):
         payload = super().health_snapshot()
         diagnostics = self._calculation_diagnostics()
         payload["version"] = VERSION
+        payload["port"] = PORT
         payload["strategyInputReady"] = diagnostics["ready"]
         payload["strategyFailClosed"] = diagnostics["failClosed"]
         payload["inferenceAttempted"] = diagnostics["inferenceAttempted"]
@@ -132,6 +138,7 @@ class TargetTakerPublicSideTest(v1.TargetTakerPublicSideTest):
         payload = super().snapshot()
         diagnostics = self._calculation_diagnostics()
         payload["version"] = VERSION
+        payload["port"] = PORT
         payload["calculationDiagnostics"] = diagnostics
         payload["dataIntegrity"] = {
             "ready": diagnostics["ready"],
@@ -152,11 +159,11 @@ def main() -> int:
     collector = TargetTakerPublicSideTest()
     collector.start()
     handler = type("TargetTakerPublicSideTestV2Handler", (Handler,), {"collector": collector})
-    server = ThreadingHTTPServer((v1.HOST, v1.PORT), handler)
+    server = ThreadingHTTPServer((v1.HOST, PORT), handler)
     print(
-        f"{VERSION} listening on http://{v1.HOST}:{v1.PORT}/state; "
+        f"{VERSION} listening on http://{v1.HOST}:{PORT}/state; "
         f"strategy={v1.STRATEGY}; all16FeaturesRequired=true; failClosed=true; "
-        "paperOnly=true; targetEventsUsed=false; liveOrdersAffected=false",
+        "paperOnly=true; targetEventsUsed=false; liveOrdersAffected=false; reserved8780=false",
         flush=True,
     )
     try:
