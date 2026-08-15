@@ -56,6 +56,19 @@ type ServiceControlStore = {
   groupAction: (id: string, action: ServiceAction) => Promise<void>
 }
 
+const GROUPS: Record<string, { stop: string[]; start: string[] }> = {
+  core: { stop: ['core'], start: ['core'] },
+  market: { stop: ['predict', 'multi', 'core'], start: ['core', 'multi', 'predict'] },
+  research: {
+    stop: ['makerInferenceEth', 'makerInference', 'targetTaker', 'predict'],
+    start: ['predict', 'targetTaker', 'makerInference', 'makerInferenceEth'],
+  },
+  all: {
+    stop: ['echtgeld', 'makerInferenceEth', 'makerInference', 'targetTaker', 'predict', 'multi', 'core'],
+    start: ['core', 'multi', 'predict', 'targetTaker', 'makerInference', 'makerInferenceEth', 'echtgeld'],
+  },
+}
+
 let token: string | null = null
 let refreshPromise: Promise<void> | null = null
 
@@ -94,6 +107,27 @@ function addActionKey(keys: string[], key: string) {
 
 function removeActionKey(keys: string[], key: string) {
   return keys.filter((value) => value !== key)
+}
+
+async function verifiedGroupAction(id: string, action: ServiceAction) {
+  const group = GROUPS[id]
+  if (!group || action === 'start') {
+    await request(`/control/service-groups/${encodeURIComponent(id)}/${action}`, 'POST')
+    return
+  }
+
+  // Stop/restart is intentionally decomposed into individual service calls so
+  // every service goes through verified-service-control.ts and must prove that
+  // its actual TCP listeners disappeared. For "all", Echtgeld is first so an
+  // ARMED/unresolved engine fails closed before any other service is changed.
+  for (const serviceId of group.stop) {
+    await request(`/control/services/${encodeURIComponent(serviceId)}/stop`, 'POST')
+  }
+  if (action === 'restart') {
+    for (const serviceId of group.start) {
+      await request(`/control/services/${encodeURIComponent(serviceId)}/start`, 'POST')
+    }
+  }
 }
 
 export const useServiceControlStore = create<ServiceControlStore>((set, get) => ({
@@ -140,7 +174,7 @@ export const useServiceControlStore = create<ServiceControlStore>((set, get) => 
     const key = `group:${id}:${action}`
     set((state) => ({ actionKeys: addActionKey(state.actionKeys, key), error: null }))
     try {
-      await request(`/control/service-groups/${encodeURIComponent(id)}/${action}`, 'POST')
+      await verifiedGroupAction(id, action)
       set((state) => ({ actionKeys: removeActionKey(state.actionKeys, key) }))
       await get().refresh()
     } catch (error) {
