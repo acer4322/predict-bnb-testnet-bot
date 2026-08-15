@@ -5,6 +5,8 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Data = Join-Path $Root "data"
+$EnginePort = 8781
+$EngineBase = "http://127.0.0.1:$EnginePort"
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
 
 function Test-LocalService([string]$Url, [int]$TimeoutSeconds = 2) {
@@ -78,17 +80,17 @@ function Import-UserEnvironment([string]$Name) {
 ) | ForEach-Object { Import-UserEnvironment $_ }
 
 $env:PREDICT_ECHTGELD_ENGINE_HOST = "127.0.0.1"
-$env:PREDICT_ECHTGELD_ENGINE_PORT = "8780"
+$env:PREDICT_ECHTGELD_ENGINE_PORT = "$EnginePort"
 $ReusedExistingEngine = $false
 
-$EnginePid = Get-ListeningProcessId 8780
+$EnginePid = Get-ListeningProcessId $EnginePort
 if ($EnginePid) {
     $Command = Get-ProcessCommandLine $EnginePid
     $Lower = $Command.ToLowerInvariant()
     if (-not $Lower.Contains("predict_bot.echtgeld_engine_v1")) {
-        throw "Port 8780 is occupied by an unrecognized process. Refusing to terminate it. PID=$EnginePid command=$Command"
+        throw "Port $EnginePort is occupied by an unrecognized process. Refusing to terminate it. PID=$EnginePid command=$Command"
     }
-    if (Test-LocalService "http://127.0.0.1:8780/health" 5) {
+    if (Test-LocalService "$EngineBase/health" 5) {
         $ReusedExistingEngine = $true
         Write-Host "Echtgeld Engine V1: reusing healthy always-on process PID=$EnginePid without changing runtime state."
     }
@@ -102,7 +104,7 @@ if ($EnginePid) {
 }
 
 if (-not $EnginePid) {
-    Write-Host "Echtgeld Engine V1: starting independent service on 127.0.0.1:8780."
+    Write-Host "Echtgeld Engine V1: starting independent service on 127.0.0.1:$EnginePort."
     $Process = Start-Process -FilePath "python" `
         -ArgumentList @("-m", "predict_bot.echtgeld_engine_v1") `
         -WorkingDirectory $Root -WindowStyle Hidden `
@@ -111,13 +113,13 @@ if (-not $EnginePid) {
     $Process.Id | Set-Content (Join-Path $Root ".echtgeld-engine-v1.pid")
 }
 
-Wait-LocalService "8780 Echtgeld Engine" "http://127.0.0.1:8780/health" 45 (Join-Path $Data "echtgeld-engine-v1.stderr.log")
-$Health = Get-JsonPayload "http://127.0.0.1:8780/health" 5
+Wait-LocalService "$EnginePort Echtgeld Engine" "$EngineBase/health" 45 (Join-Path $Data "echtgeld-engine-v1.stderr.log")
+$Health = Get-JsonPayload "$EngineBase/health" 5
 if (-not $Health -or -not [bool]$Health.ok) {
-    throw "8780 responded but did not report a healthy Echtgeld Engine."
+    throw "$EnginePort responded but did not report a healthy Echtgeld Engine."
 }
 if (-not ([string]$Health.version).Contains("ECHTGELD_ENGINE_V1")) {
-    throw "8780 is healthy but version is not Echtgeld Engine V1: $($Health.version)"
+    throw "$EnginePort is healthy but version is not Echtgeld Engine V1: $($Health.version)"
 }
 if ([bool]$Health.armed -and -not $ReusedExistingEngine) {
     throw "A newly started Echtgeld Engine unexpectedly reports ARMED. Refusing to continue."
@@ -128,8 +130,8 @@ if ([bool]$Health.armed -and $ReusedExistingEngine) {
 
 Write-Host "Echtgeld Engine V1 is running independently."
 Write-Host "  Runtime: $($Health.runtimeStatus)"
-Write-Host "  Health : http://127.0.0.1:8780/health"
-Write-Host "  State  : http://127.0.0.1:8780/state"
+Write-Host "  Health : $EngineBase/health"
+Write-Host "  State  : $EngineBase/state"
 Write-Host "  DB     : data/echtgeld_engine_v1.db"
 Write-Host "  Safety : a new engine starts PAUSED; queued/ambiguous orders are never replayed after restart"
 Write-Host "  Note   : restarting strategy observers does NOT stop this process"
