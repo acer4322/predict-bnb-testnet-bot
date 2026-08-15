@@ -20,13 +20,40 @@ function unwrap(value: unknown): unknown {
 
 type WalletShadowStore = {
   service: ServiceSnapshot
+  targetTakerSaving: boolean
+  targetTakerSaveError: string | null
   refresh: () => Promise<void>
+  updateTargetTakerSettings: (values: Record<string, unknown>) => Promise<void>
 }
 
 let refreshInFlight: Promise<void> | null = null
+let controlToken: string | null = null
+
+async function getControlToken(): Promise<string> {
+  if (controlToken) return controlToken
+  const response = await fetch('/control/session', {
+    method: 'GET',
+    cache: 'no-store',
+    headers: { Accept: 'application/json' },
+  })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || !payload || typeof payload !== 'object') {
+    const message = payload && typeof payload === 'object' && 'error' in payload
+      ? String((payload as Record<string, unknown>).error)
+      : `control session unavailable (HTTP ${response.status})`
+    throw new Error(message)
+  }
+  const token = String((payload as Record<string, unknown>).token || '')
+  if (!token) throw new Error('control session returned no token')
+  controlToken = token
+  return token
+}
 
 export const useWalletShadowStore = create<WalletShadowStore>((set, get) => ({
   service: blank(),
+  targetTakerSaving: false,
+  targetTakerSaveError: null,
+
   refresh: async () => {
     if (refreshInFlight) return refreshInFlight
     refreshInFlight = (async () => {
@@ -71,6 +98,52 @@ export const useWalletShadowStore = create<WalletShadowStore>((set, get) => ({
       await refreshInFlight
     } finally {
       refreshInFlight = null
+    }
+  },
+
+  updateTargetTakerSettings: async (values) => {
+    set({ targetTakerSaving: true, targetTakerSaveError: null })
+    try {
+      const token = await getControlToken()
+      const response = await fetch('/control/target-taker-v1', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-BTC-Lab-Control': token,
+        },
+        body: JSON.stringify(values),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) {
+        if (response.status === 403) controlToken = null
+        const message = payload && typeof payload === 'object' && 'error' in payload
+          ? String((payload as Record<string, unknown>).error)
+          : `HTTP ${response.status}`
+        throw new Error(message)
+      }
+      const state = unwrap(payload)
+      if (!state || typeof state !== 'object' || Array.isArray(state)) {
+        throw new Error('Target Taker settings update returned no state object')
+      }
+      const previous = get().service
+      set({
+        service: {
+          ...previous,
+          ok: true,
+          loading: false,
+          data: state,
+          error: null,
+          updatedAt: Date.now(),
+        },
+        targetTakerSaving: false,
+        targetTakerSaveError: null,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      set({ targetTakerSaving: false, targetTakerSaveError: message })
+      throw error
     }
   },
 }))
