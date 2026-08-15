@@ -190,7 +190,7 @@ def test_restart_abandons_queued_intent_and_never_auto_replays(tmp_path: Path) -
 
 
 def test_settings_require_pause_and_survive_restart_without_arming(tmp_path: Path) -> None:
-    db_path = tmp_path / "settings.db"
+    db_path = tmp_path / "engine.db"
     engine, _factory = _make(tmp_path)
     try:
         engine.update_settings({
