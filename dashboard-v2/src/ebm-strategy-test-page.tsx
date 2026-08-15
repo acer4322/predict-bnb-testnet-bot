@@ -130,7 +130,7 @@ export default function EbmStrategyTestPage() {
         cache: 'no-store',
         headers: { Accept: 'application/json' },
       })
-      if (!response.ok) throw new Error(`8780 HTTP ${response.status}`)
+      if (!response.ok) throw new Error(`8782 HTTP ${response.status}`)
       const payload = await response.json() as AnyRecord
       setState(payload)
       setOnline(true)
@@ -269,17 +269,17 @@ export default function EbmStrategyTestPage() {
           <Space wrap>
             <ExperimentOutlined />
             <Title level={3} style={{ margin: 0 }}>EBM 策略測試</Title>
-            <Tag color={online ? 'success' : 'error'}>8780 {online ? 'ONLINE' : 'OFFLINE'}</Tag>
+            <Tag color={online ? 'success' : 'error'}>8782 {online ? 'ONLINE' : 'OFFLINE'}</Tag>
             <Tag color="blue">TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY</Tag>
             <Tag color="gold">PAPER ONLY</Tag>
             <Tag color={model.loaded ? 'success' : 'error'}>EBM {model.loaded ? 'LOADED' : 'NOT LOADED'}</Tag>
             {online ? <Tag color={integrityReady ? 'success' : 'error'}>INPUT {integrityReady ? 'READY' : 'FAIL-CLOSED'}</Tag> : null}
           </Space>
           <Text type="secondary">
-            獨立 8780 forward test。8776 只透過 HTTP 提供 market identity 與官方 settlement；Target fills / Inventory / Parent Orders 不進入 EBM 特徵，也不會寫回 8776。
+            獨立 8782 forward test。8780 保留給 ETH Taker collector；8776 只透過 HTTP 提供 market identity 與官方 settlement。Target fills / Inventory / Parent Orders 不進入 EBM 特徵，也不會寫回 8776。
           </Text>
           <Space wrap>
-            <Button type="primary" icon={<PlayCircleOutlined />} disabled={online || action !== null} loading={action === 'start'} onClick={() => void run('start')}>Start 8780</Button>
+            <Button type="primary" icon={<PlayCircleOutlined />} disabled={online || action !== null} loading={action === 'start'} onClick={() => void run('start')}>Start 8782</Button>
             <Button danger icon={<StopOutlined />} disabled={!online || action !== null} loading={action === 'stop'} onClick={() => void run('stop')}>Stop</Button>
             <Button icon={<ReloadOutlined />} disabled={!online || action !== null} loading={action === 'restart'} onClick={() => void run('restart')}>Restart</Button>
             <Button icon={<ReloadOutlined />} loading={loading} onClick={() => void refresh()}>刷新</Button>
@@ -287,7 +287,7 @@ export default function EbmStrategyTestPage() {
         </Space>
       </Card>
 
-      {error && !online ? <Alert type="warning" showIcon message="8780 尚未提供策略測試狀態" description={`${error}。如果舊 V1 還佔用 8780，請按 Restart；啟動失敗可查看 data/service-manager-strategyTest.stderr.log。`} /> : null}
+      {error && !online ? <Alert type="warning" showIcon message="8782 尚未提供策略測試狀態" description={`${error}。可以直接按 Start 8782；如果啟動失敗，查看 data/service-manager-strategyTest.stderr.log。`} /> : null}
 
       {online ? (
         <>
@@ -300,7 +300,7 @@ export default function EbmStrategyTestPage() {
               : `缺失：${missingFeatures.length ? missingFeatures.join(', ') : '尚未形成完整 signal'}。缺任何一項時不呼叫 predict_proba，也不允許 TRADE。Process 保持在線只為等待資料恢復。`}
           />
 
-          <Alert type={sourceOk ? 'success' : 'error'} showIcon message={sourceOk ? '策略與 8776 已隔離' : '資料邊界異常，請停止 8780 檢查'} description={state?.evidenceBoundary || '—'} />
+          <Alert type={sourceOk ? 'success' : 'error'} showIcon message={sourceOk ? '策略與 8776 已隔離' : '資料邊界異常，請停止 8782 檢查'} description={state?.evidenceBoundary || '—'} />
 
           <Row gutter={[12, 12]}>
             <Col xs={12} md={6}><Card><Statistic title="Net PnL" value={number(performance.netPnlUsdt) ?? 0} precision={3} prefix="$" /></Card></Col>
