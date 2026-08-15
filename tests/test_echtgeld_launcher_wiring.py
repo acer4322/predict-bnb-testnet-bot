@@ -32,6 +32,14 @@ def test_producer_launcher_does_not_bootstrap_v422_and_unwraps_health_state() ->
     assert "predict_bot.predict_wallet_shadow_observer_v4_23" in producer_launcher
 
 
+def test_existing_v423_is_reused_only_when_engine_url_matches() -> None:
+    producer_launcher = _text("start-target-taker-echtgeld-producer-v1.ps1")
+
+    assert "$ReportedEngineUrl.TrimEnd('/') -eq $EngineBase" in producer_launcher
+    assert "existing v4.23 points to stale engine URL" in producer_launcher
+    assert "points to the wrong Echtgeld Engine URL" in producer_launcher
+
+
 def test_v423_default_handoff_points_to_8781() -> None:
     producer = _text("src/predict_bot/predict_wallet_shadow_observer_v4_23.py")
     assert 'http://127.0.0.1:8781' in producer
