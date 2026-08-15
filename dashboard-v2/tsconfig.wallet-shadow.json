@@ -13,6 +13,7 @@
     "src/wallet-shadow-wide-maker-flow-panel.tsx",
     "src/wallet-shadow-spot-strike-panel.tsx",
     "src/wallet-shadow-target-taker-public-side-v1-panel.tsx",
+    "src/wallet-shadow-maker-ebm-v1-panel.tsx",
     "src/wallet-shadow-store.ts",
     "src/wallet-lab-health-store.ts",
     "src/wallet-lab-service-health-panel.tsx",
