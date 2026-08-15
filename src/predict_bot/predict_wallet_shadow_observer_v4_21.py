@@ -7,8 +7,7 @@ from typing import Any
 from . import predict_wallet_shadow_observer as base
 from . import predict_wallet_shadow_observer_v4_20 as v4_20
 from . import predict_wallet_target_taker_public_side_strategy_v1 as public_side
-from .target_taker_live_execution_v1 import TargetTakerLiveConfig
-from .target_taker_live_execution_v2 import TargetTakerLiveExecutor
+from .target_taker_live_execution_v3 import TargetTakerLiveConfig, TargetTakerLiveExecutor
 
 
 VERSION = "PREDICT_WALLET_SHADOW_V0_26_TARGET_TAKER_LIVE_V1"
@@ -73,8 +72,6 @@ class WalletShadowObserver(v4_20.WalletShadowObserver):
         snapshot_ns: int,
         now_ms: int,
     ) -> None:
-        # Preserve the exact V4.19/V4.20 forward paper event first. Live mode is
-        # an additional execution leg, not a replacement for research evidence.
         state = self.public_side_states[cohort]
         before_event = state.get("event")
         super()._execute_public_side(
@@ -90,8 +87,6 @@ class WalletShadowObserver(v4_20.WalletShadowObserver):
         signal_id = str(event.get("id") or f"{cohort}:{self.market_id}:{snapshot_ns}")
         side = str(decision.get("side") or "").upper()
         signal_ask = float(decision.get("ask") or 0.0)
-        # Durable at-most-once fence. If this insert loses a race or a previous
-        # process already attempted the market, never call the venue again.
         with self.db_lock:
             cursor = self.db.execute(
                 """INSERT OR IGNORE INTO wallet_target_taker_public_side_v1_live_orders(
@@ -182,8 +177,6 @@ class WalletShadowObserver(v4_20.WalletShadowObserver):
                     (max(1, min(100, int(limit))),),
                 )
             ]
-        # Order IDs are useful for reconciliation; token IDs, wallet addresses,
-        # signatures, quote IDs and credentials are never persisted here.
         return rows
 
     def snapshot(self) -> dict[str, Any]:
