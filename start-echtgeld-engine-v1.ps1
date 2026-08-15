@@ -74,11 +74,12 @@ function Import-UserEnvironment([string]$Name) {
     "PREDICT_TARGET_TAKER_BINANCE_ACCOUNT_TYPE",
     "PREDICT_TARGET_TAKER_BINANCE_SYMBOL",
     "PREDICT_TARGET_TAKER_BINANCE_BSC_RPC_URL",
-    "PREDICT_TARGET_TAKER_BINANCE_USDT_CONTRACT"
+    "PREDICT_TARGET_TAKER_BINANCE_USDT_ADDRESS"
 ) | ForEach-Object { Import-UserEnvironment $_ }
 
 $env:PREDICT_ECHTGELD_ENGINE_HOST = "127.0.0.1"
 $env:PREDICT_ECHTGELD_ENGINE_PORT = "8780"
+$ReusedExistingEngine = $false
 
 $EnginePid = Get-ListeningProcessId 8780
 if ($EnginePid) {
@@ -88,7 +89,8 @@ if ($EnginePid) {
         throw "Port 8780 is occupied by an unrecognized process. Refusing to terminate it. PID=$EnginePid command=$Command"
     }
     if (Test-LocalService "http://127.0.0.1:8780/health" 5) {
-        Write-Host "Echtgeld Engine V1: reusing healthy always-on process PID=$EnginePid."
+        $ReusedExistingEngine = $true
+        Write-Host "Echtgeld Engine V1: reusing healthy always-on process PID=$EnginePid without changing runtime state."
     }
     else {
         Write-Host "Echtgeld Engine V1: replacing recognized but unhealthy process PID=$EnginePid."
@@ -117,17 +119,21 @@ if (-not $Health -or -not [bool]$Health.ok) {
 if (-not ([string]$Health.version).Contains("ECHTGELD_ENGINE_V1")) {
     throw "8780 is healthy but version is not Echtgeld Engine V1: $($Health.version)"
 }
-if ([bool]$Health.armed) {
-    throw "Fresh/reused Echtgeld Engine unexpectedly reports ARMED. Open the control page and inspect it before continuing."
+if ([bool]$Health.armed -and -not $ReusedExistingEngine) {
+    throw "A newly started Echtgeld Engine unexpectedly reports ARMED. Refusing to continue."
+}
+if ([bool]$Health.armed -and $ReusedExistingEngine) {
+    Write-Warning "Existing Echtgeld Engine is currently LIVE ARMED. It was left completely untouched. Use the dedicated control page to Pause if needed."
 }
 
-Write-Host "Echtgeld Engine V1 is running independently and PAUSED."
+Write-Host "Echtgeld Engine V1 is running independently."
+Write-Host "  Runtime: $($Health.runtimeStatus)"
 Write-Host "  Health : http://127.0.0.1:8780/health"
 Write-Host "  State  : http://127.0.0.1:8780/state"
 Write-Host "  DB     : data/echtgeld_engine_v1.db"
-Write-Host "  Safety : engine restart never auto-arms or replays queued/ambiguous orders"
+Write-Host "  Safety : a new engine starts PAUSED; queued/ambiguous orders are never replayed after restart"
 Write-Host "  Note   : restarting strategy observers does NOT stop this process"
 
 if (-not $NoBrowser) {
-    Write-Host "Open Dashboard V2 /echtgeld after the V2 frontend is running."
+    Write-Host "Dashboard control page: http://127.0.0.1:4320/echtgeld.html"
 }
