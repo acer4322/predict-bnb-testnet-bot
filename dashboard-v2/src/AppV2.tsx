@@ -190,7 +190,7 @@ function Shell() {
             <ServiceTag label="8771" service={predictFunService} />
             <ServiceTag label="8776" service={walletShadowHealth} />
             <ServiceTag label="8777" service={walletTakerSignalHealth} />
-            <ServiceTag label="8781" service={echtgeldService} />
+            {location.pathname === '/live' || echtgeldService.updatedAt !== null ? <ServiceTag label="8781" service={echtgeldService} /> : null}
           </Space>
         </Header>
         <Content className="app-content">
