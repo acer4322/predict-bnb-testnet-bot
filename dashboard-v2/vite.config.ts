@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { legacySupervisorRecoveryPlugin } from './legacy-supervisor-recovery'
 import { verifiedServiceControlPlugin } from './verified-service-control'
 import { makerServiceControlPlugin } from './maker-service-control'
 import { serviceManagerV2Plugin } from './service-manager-v2'
@@ -51,6 +52,7 @@ function localhostControlGuard(): Plugin {
 export default defineConfig({
   plugins: [
     localhostControlGuard(),
+    legacySupervisorRecoveryPlugin(),
     verifiedServiceControlPlugin(repoRoot),
     makerServiceControlPlugin(repoRoot),
     serviceManagerV2Plugin(repoRoot),
