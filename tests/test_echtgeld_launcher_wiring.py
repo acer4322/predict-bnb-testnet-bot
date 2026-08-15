@@ -44,3 +44,21 @@ def test_v423_default_handoff_points_to_8781() -> None:
     producer = _text("src/predict_bot/predict_wallet_shadow_observer_v4_23.py")
     assert 'http://127.0.0.1:8781' in producer
     assert 'Use the standalone Echtgeld Engine on port 8781.' in producer
+
+
+def test_echtgeld_launcher_upgrades_paused_v1_to_v2_but_never_kills_armed_v1() -> None:
+    launcher = _text("start-echtgeld-engine-v1.ps1")
+    assert 'predict_bot.echtgeld_engine_v2' in launcher
+    assert 'legacy Echtgeld Engine V1 is LIVE ARMED' in launcher
+    assert 'Pause it from the control page' in launcher
+    assert 'ECHTGELD_ENGINE_V2' in launcher
+
+
+def test_echtgeld_page_contains_4310_balance_and_pnl_monitor() -> None:
+    page = _text("dashboard-v2/public/echtgeld.html")
+    assert "Binance Prediction API 可用餘額" in page
+    assert "MPC Wallet 安全餘額" in page
+    assert "Echtgeld 勝敗 / PNL / ROI" in page
+    assert 'id="pnlNet"' in page
+    assert 'id="pnlDd"' in page
+    assert "winner" in page
