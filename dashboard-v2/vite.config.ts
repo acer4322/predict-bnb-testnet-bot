@@ -1,6 +1,10 @@
 import { randomBytes } from 'node:crypto'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { serviceManagerPlugin } from './service-manager'
+
+const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 
 function isLoopback(address: string | undefined) {
   const value = String(address || '').toLowerCase()
@@ -18,7 +22,7 @@ function localhostControlGuard(): Plugin {
           if (!isLoopback(req.socket.remoteAddress)) {
             res.statusCode = 403
             res.setHeader('Content-Type', 'application/json; charset=utf-8')
-            res.end(JSON.stringify({ ok: false, error: 'Echtgeld controls are localhost-only' }))
+            res.end(JSON.stringify({ ok: false, error: 'Dashboard write controls are localhost-only' }))
             return
           }
           res.statusCode = 200
@@ -32,7 +36,7 @@ function localhostControlGuard(): Plugin {
           if (!isLoopback(req.socket.remoteAddress) || supplied !== token) {
             res.statusCode = 403
             res.setHeader('Content-Type', 'application/json; charset=utf-8')
-            res.end(JSON.stringify({ ok: false, error: 'Echtgeld write rejected: localhost session token required' }))
+            res.end(JSON.stringify({ ok: false, error: 'Dashboard write rejected: localhost session token required' }))
             return
           }
         }
@@ -43,7 +47,7 @@ function localhostControlGuard(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [localhostControlGuard(), react()],
+  plugins: [localhostControlGuard(), serviceManagerPlugin(repoRoot), react()],
   server: {
     host: '0.0.0.0',
     port: 4320,
