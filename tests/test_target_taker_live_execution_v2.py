@@ -38,3 +38,32 @@ def test_binance_account_type_rejects_mpc(monkeypatch: pytest.MonkeyPatch) -> No
     )
     with pytest.raises(v1.TargetTakerLiveError, match="SPOT or FUNDING"):
         executor._binance_wallet()
+
+
+class _FakePredictClient:
+    def __init__(self, payload: dict) -> None:
+        self.payload = payload
+        self.calls: list[tuple[str, str]] = []
+
+    def _request(self, method: str, path: str) -> dict:
+        self.calls.append((method, path))
+        return self.payload
+
+
+def test_predict_market_uses_exact_id_endpoint() -> None:
+    executor = v2.TargetTakerLiveExecutor(
+        v1.TargetTakerLiveConfig(mode="live", venue="predictfun", notional_usdt=1.0)
+    )
+    client = _FakePredictClient({"success": True, "data": {"id": 6827001}})
+    market = executor._predict_market(client, 6827001)
+    assert market["id"] == 6827001
+    assert client.calls == [("GET", "/v1/markets/6827001")]
+
+
+def test_predict_market_rejects_wrong_exact_id() -> None:
+    executor = v2.TargetTakerLiveExecutor(
+        v1.TargetTakerLiveConfig(mode="live", venue="predictfun", notional_usdt=1.0)
+    )
+    client = _FakePredictClient({"success": True, "data": {"id": 6827002}})
+    with pytest.raises(v1.TargetTakerLiveError, match="did not return market 6827001"):
+        executor._predict_market(client, 6827001)
