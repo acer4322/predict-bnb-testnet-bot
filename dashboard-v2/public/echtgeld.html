@@ -5,56 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BTC 5M Lab · Echtgeld Engine</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#07111f; color:#e5edf7; }
+    :root { color-scheme:dark; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#07111f; color:#e5edf7; }
     * { box-sizing:border-box; }
     body { margin:0; background:linear-gradient(180deg,#07111f 0,#0b1626 45%,#08111d 100%); min-height:100vh; }
-    main { max-width:1520px; margin:0 auto; padding:24px; }
+    main { max-width:1580px; margin:0 auto; padding:24px; }
     header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:18px; }
-    h1,h2,h3,p { margin-top:0; }
-    h1 { font-size:30px; margin-bottom:6px; }
-    h2 { font-size:18px; margin-bottom:12px; }
+    h1,h2,h3,p { margin-top:0; } h1 { font-size:30px; margin-bottom:6px; } h2 { font-size:18px; margin-bottom:12px; }
     .eyebrow { color:#7dd3fc; font-size:12px; font-weight:800; letter-spacing:.12em; }
-    .muted { color:#91a4b8; }
+    .muted { color:#91a4b8; } .positive { color:#6ee7b7!important; } .negative { color:#fda4af!important; }
     .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
+    .pnl-grid { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:10px; }
     .two { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
     .card { background:rgba(15,28,46,.92); border:1px solid #243c59; border-radius:12px; padding:16px; box-shadow:0 14px 40px rgba(0,0,0,.18); }
     .metric span { display:block; color:#91a4b8; font-size:12px; margin-bottom:6px; }
     .metric strong { display:block; font-size:21px; overflow-wrap:anywhere; }
-    .metric small { display:block; color:#7890a9; margin-top:6px; min-height:16px; }
+    .metric small { display:block; color:#7890a9; margin-top:6px; min-height:16px; overflow-wrap:anywhere; }
     .pill { display:inline-flex; align-items:center; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:800; background:#25354a; color:#ced9e6; }
-    .ok { background:#123d34; color:#6ee7b7; }
-    .warn { background:#473410; color:#fcd34d; }
-    .bad { background:#4a2028; color:#fda4af; }
-    .info { background:#123557; color:#93c5fd; }
+    .ok { background:#123d34; color:#6ee7b7; } .warn { background:#473410; color:#fcd34d; } .bad { background:#4a2028; color:#fda4af; } .info { background:#123557; color:#93c5fd; }
     .hero-status { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
     .alert { border-left:4px solid #f59e0b; background:#35290f; padding:12px 14px; border-radius:8px; margin-bottom:12px; }
-    .error-alert { border-left-color:#fb7185; background:#361822; }
-    .alert strong { display:block; margin-bottom:4px; }
+    .error-alert { border-left-color:#fb7185; background:#361822; } .alert strong { display:block; margin-bottom:4px; }
     .toolbar { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:10px; align-items:end; }
     label { display:flex; flex-direction:column; gap:5px; color:#9fb1c4; font-size:12px; }
     input,select { width:100%; background:#081321; color:#e5edf7; border:1px solid #34506f; border-radius:8px; padding:9px 10px; outline:none; }
     input:focus,select:focus { border-color:#38bdf8; }
     button,a.button { border:0; border-radius:8px; padding:10px 14px; font-weight:800; cursor:pointer; text-decoration:none; text-align:center; }
-    button:disabled { opacity:.38; cursor:not-allowed; }
-    .primary { background:#2563eb; color:white; }
-    .danger { background:#be123c; color:white; }
-    .secondary { background:#29405a; color:#edf6ff; }
+    button:disabled { opacity:.38; cursor:not-allowed; } .primary { background:#2563eb; color:white; } .danger { background:#be123c; color:white; } .secondary { background:#29405a; color:#edf6ff; }
     .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
-    .table-wrap { overflow:auto; max-height:520px; border:1px solid #203751; border-radius:9px; }
-    table { border-collapse:collapse; width:100%; min-width:1050px; font-size:12px; }
+    .table-wrap { overflow:auto; max-height:540px; border:1px solid #203751; border-radius:9px; }
+    table { border-collapse:collapse; width:100%; min-width:1250px; font-size:12px; }
     th { position:sticky; top:0; z-index:1; background:#12243a; color:#9fb6ce; text-align:left; padding:9px; border-bottom:1px solid #34506f; }
-    td { padding:9px; border-bottom:1px solid #1d3148; vertical-align:top; }
-    tr:hover td { background:#102238; }
-    .message { max-width:440px; white-space:pre-wrap; overflow-wrap:anywhere; }
-    .error-text { color:#fda4af; }
-    .warn-text { color:#fcd34d; }
-    details summary { cursor:pointer; color:#7dd3fc; }
-    pre { max-width:720px; overflow:auto; white-space:pre-wrap; color:#a7c4df; font-size:11px; }
-    .section-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:10px; }
-    .section-head h2 { margin:0; }
+    td { padding:9px; border-bottom:1px solid #1d3148; vertical-align:top; } tr:hover td { background:#102238; }
+    .message { max-width:440px; white-space:pre-wrap; overflow-wrap:anywhere; } .error-text { color:#fda4af; } .warn-text { color:#fcd34d; }
+    details summary { cursor:pointer; color:#7dd3fc; } pre { max-width:720px; overflow:auto; white-space:pre-wrap; color:#a7c4df; font-size:11px; }
+    .section-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:10px; } .section-head h2 { margin:0; }
     .offline { opacity:.58; }
+    @media (max-width:1300px) { .pnl-grid { grid-template-columns:repeat(4,1fr); } }
     @media (max-width:1100px) { .grid { grid-template-columns:repeat(2,1fr); } .two { grid-template-columns:1fr; } .toolbar { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:650px) { main { padding:14px; } header { flex-direction:column; } .grid,.toolbar { grid-template-columns:1fr; } .hero-status { justify-content:flex-start; } }
+    @media (max-width:650px) { main { padding:14px; } header { flex-direction:column; } .grid,.toolbar,.pnl-grid { grid-template-columns:1fr; } .hero-status { justify-content:flex-start; } }
   </style>
 </head>
 <body>
@@ -62,8 +50,8 @@
   <header>
     <div>
       <div class="eyebrow">BTC 5M LAB · STANDALONE ECHTGELD ENGINE</div>
-      <h1>實單控制與永久訊息紀錄</h1>
-      <p class="muted">參考舊版實單監控：錯誤、警告、送單階段與當下市場上下文都保留在 Echtgeld Engine SQLite，不會被下一個訊息覆蓋。</p>
+      <h1>實單控制、餘額、PNL 與永久訊息</h1>
+      <p class="muted">沿用舊 4310 實單控制的可用餘額與 PNL 思路；錯誤、警告、送單階段與當下市場上下文持久保留。</p>
     </div>
     <div class="hero-status">
       <a class="button secondary" href="/">返回 Dashboard</a>
@@ -78,8 +66,26 @@
   <section class="grid">
     <article class="card metric"><span>Engine</span><strong id="runtime">—</strong><small id="restartPolicy">—</small></article>
     <article class="card metric"><span>Venue / Cohort</span><strong id="venue">—</strong><small id="cohort">—</small></article>
-    <article class="card metric"><span>Prediction 可用 USDT</span><strong id="balance">—</strong><small id="wallet">—</small></article>
-    <article class="card metric"><span>最後 Echtgeld 結果</span><strong id="lastResult">—</strong><small id="lastResultDetail">—</small></article>
+    <article class="card metric"><span>Binance Prediction API 可用餘額</span><strong id="balance">—</strong><small id="balanceSource">—</small></article>
+    <article class="card metric"><span>MPC Wallet 安全餘額</span><strong id="mpcBalance">—</strong><small id="wallet">—</small></article>
+  </section>
+
+  <section class="card" style="margin-bottom:12px">
+    <div class="section-head">
+      <div><div class="eyebrow">4310-STYLE TRACKED LIVE ACCOUNTING</div><h2>Echtgeld 勝敗 / PNL / ROI</h2></div>
+      <span id="settlementPill" class="pill">SETTLEMENT…</span>
+    </div>
+    <div class="pnl-grid">
+      <div class="metric"><span>Attempts</span><strong id="pnlAttempts">0</strong><small>durable orders</small></div>
+      <div class="metric"><span>Submitted</span><strong id="pnlSubmitted">0</strong><small>reconciled fills</small></div>
+      <div class="metric"><span>W / L</span><strong id="pnlWL">0 / 0</strong><small id="pnlSettled">0 settled</small></div>
+      <div class="metric"><span>Win rate</span><strong id="pnlWinRate">—</strong><small>已結算實單</small></div>
+      <div class="metric"><span>Net PNL</span><strong id="pnlNet">$0.00</strong><small id="pnlStake">stake $0.00</small></div>
+      <div class="metric"><span>Net ROI</span><strong id="pnlRoi">—</strong><small>PNL / settled stake</small></div>
+      <div class="metric"><span>Max Drawdown</span><strong id="pnlDd">$0.00</strong><small>tracked equity curve</small></div>
+      <div class="metric"><span>Loss streak</span><strong id="pnlStreak">0</strong><small id="pnlLongest">longest 0</small></div>
+    </div>
+    <p id="accountingBasis" class="muted" style="margin:12px 0 0">—</p>
   </section>
 
   <section class="two">
@@ -92,8 +98,9 @@
       </div>
     </article>
     <article class="card">
-      <div class="section-head"><h2>Runtime 計數</h2><span class="pill">DURABLE</span></div>
-      <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:0">
+      <div class="section-head"><h2>最後 Echtgeld / Runtime</h2><span class="pill">DURABLE</span></div>
+      <div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin:0">
+        <div class="metric"><span>Last</span><strong id="lastResult">—</strong><small id="lastResultDetail">—</small></div>
         <div class="metric"><span>SUBMITTED</span><strong id="submitted">0</strong><small>已送出／確認</small></div>
         <div class="metric"><span>REJECTED</span><strong id="rejected">0</strong><small>安全拒絕</small></div>
         <div class="metric"><span>AMBIGUOUS</span><strong id="ambiguous">0</strong><small>永不自動補送</small></div>
@@ -102,207 +109,74 @@
   </section>
 
   <section class="card" style="margin-bottom:12px">
-    <div class="section-head">
-      <div><div class="eyebrow">LOCALHOST ONLY</div><h2>實單設定與控制</h2></div>
-      <span class="muted">設定只在 PAUSED 可改；Engine 自己重啟永遠回到 PAUSED。</span>
-    </div>
+    <div class="section-head"><div><div class="eyebrow">LOCALHOST ONLY</div><h2>實單設定與控制</h2></div><span class="muted">設定只在 PAUSED 可改；Engine 自己重啟永遠回到 PAUSED。</span></div>
     <div class="toolbar">
       <label>Venue<select id="settingVenue"><option value="binance">Binance Prediction</option><option value="predictfun">Predict.fun</option></select></label>
       <label>Live Cohort<select id="settingCohort"><option value="TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY">SIDE_ONLY</option><option value="TARGET_TAKER_PUBLIC_SIDE_V1_HAZARD_SIDE">HAZARD_SIDE</option></select></label>
       <label>Notional USDT<input id="settingNotional" type="number" min="0.01" max="100" step="0.01" /></label>
       <label>Max price drift<input id="settingDrift" type="number" min="0" max="0.10" step="0.001" /></label>
     </div>
-    <div class="controls">
-      <button id="applyBtn" class="secondary">套用設定</button>
-      <button id="pauseBtn" class="danger">PAUSE NEW ENTRY</button>
-      <button id="resumeBtn" class="primary">RESUME ECHTGELD</button>
-      <span id="actionState" class="muted"></span>
-    </div>
+    <div class="controls"><button id="applyBtn" class="secondary">套用設定</button><button id="pauseBtn" class="danger">PAUSE NEW ENTRY</button><button id="resumeBtn" class="primary">RESUME ECHTGELD</button><span id="actionState" class="muted"></span></div>
   </section>
 
   <section class="card" style="margin-bottom:12px">
-    <div class="section-head">
-      <div><div class="eyebrow">PERSISTENT SQLITE EVENT LOG</div><h2>實單訊息／錯誤／市場狀況</h2></div>
-      <span class="muted">最近 80 筆 · ERROR / WARN 不會被新狀態覆蓋</span>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>時間</th><th>Level</th><th>事件 / Phase</th><th>Market</th><th>Side</th><th>訊息</th><th>當時 Context</th></tr></thead>
-        <tbody id="eventRows"><tr><td colspan="7">等待 Engine…</td></tr></tbody>
-      </table>
-    </div>
+    <div class="section-head"><div><div class="eyebrow">PERSISTENT SQLITE EVENT LOG</div><h2>實單訊息／錯誤／市場狀況</h2></div><span class="muted">最近 80 筆 · ERROR / WARN 不會被新狀態覆蓋</span></div>
+    <div class="table-wrap"><table><thead><tr><th>時間</th><th>Level</th><th>事件 / Phase</th><th>Market</th><th>Side</th><th>訊息</th><th>當時 Context</th></tr></thead><tbody id="eventRows"><tr><td colspan="7">等待 Engine…</td></tr></tbody></table></div>
   </section>
 
   <section class="card">
-    <div class="section-head">
-      <div><div class="eyebrow">DURABLE ORDER LEDGER</div><h2>最近 Echtgeld 嘗試</h2></div>
-      <span class="muted">ATTEMPTING fence 會在任何 venue write 前 commit</span>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>時間</th><th>Market</th><th>策略 / Cohort</th><th>Venue</th><th>Side</th><th>Signal → Exec</th><th>Notional / Fill</th><th>Status</th><th>Order ID / Error</th></tr></thead>
-        <tbody id="orderRows"><tr><td colspan="9">等待 Engine…</td></tr></tbody>
-      </table>
-    </div>
+    <div class="section-head"><div><div class="eyebrow">DURABLE ORDER LEDGER</div><h2>最近 Echtgeld 嘗試</h2></div><span class="muted">實際 fill + 官方 winner → tracked PNL</span></div>
+    <div class="table-wrap"><table><thead><tr><th>時間</th><th>Market</th><th>Venue</th><th>Side</th><th>Signal → Exec</th><th>Notional / Fill</th><th>Order</th><th>Result</th><th>PNL / ROI</th><th>Order ID / Error</th></tr></thead><tbody id="orderRows"><tr><td colspan="10">等待 Engine…</td></tr></tbody></table></div>
   </section>
 </main>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  let state = null;
-  let controlToken = null;
-  let formInitialized = false;
+  let state=null, controlToken=null, formInitialized=false;
+  const esc=value=>String(value??'—').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const num=(value,digits=3)=>Number.isFinite(Number(value))?Number(value).toFixed(digits):'—';
+  const money=(value,digits=2)=>Number.isFinite(Number(value))?`${Number(value)>=0?'+':''}$${Number(value).toFixed(digits)}`:'—';
+  const pct=value=>Number.isFinite(Number(value))?`${(Number(value)*100).toFixed(1)}%`:'—';
+  const when=ms=>Number(ms)>0?new Date(Number(ms)).toLocaleString('zh-TW',{hour12:false}):'—';
+  const short=(value,max=60)=>{const text=String(value??'—');return text.length>max?text.slice(0,max-1)+'…':text;};
+  const pnlClass=value=>Number(value)>1e-9?'positive':Number(value)<-1e-9?'negative':'';
+  const pillClass=status=>{const s=String(status||'').toUpperCase();if(s.includes('SUBMITTED')||s.includes('LIVE_ARMED')||s==='INFO'||s==='WIN'||s==='OK')return'pill ok';if(s.includes('AMBIGUOUS')||s.includes('ERROR')||s==='LOSS')return'pill bad';if(s.includes('REJECT')||s.includes('WARN')||s.includes('PAUSED')||s.includes('ATTEMPT')||s==='PENDING')return'pill warn';return'pill';};
 
-  const esc = value => String(value ?? '—').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const num = (value, digits=3) => Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : '—';
-  const when = ms => Number(ms) > 0 ? new Date(Number(ms)).toLocaleString('zh-TW', {hour12:false}) : '—';
-  const short = (value, max=60) => { const text=String(value ?? '—'); return text.length>max ? text.slice(0,max-1)+'…' : text; };
-  const pillClass = status => {
-    const s=String(status||'').toUpperCase();
-    if (s.includes('SUBMITTED') || s.includes('LIVE_ARMED') || s==='INFO') return 'pill ok';
-    if (s.includes('AMBIGUOUS') || s.includes('ERROR')) return 'pill bad';
-    if (s.includes('REJECT') || s.includes('WARN') || s.includes('PAUSED') || s.includes('ATTEMPT')) return 'pill warn';
-    return 'pill';
-  };
+  async function loadControlToken(){try{const res=await fetch('/control/session',{cache:'no-store'});const body=await res.json();if(!res.ok||!body.token)throw new Error(body.error||'control session unavailable');controlToken=body.token;$('controlPill').className='pill ok';$('controlPill').textContent='LOCAL CONTROL READY';}catch{controlToken=null;$('controlPill').className='pill warn';$('controlPill').textContent='VIEW ONLY';}syncButtons();}
+  async function refresh(){try{const res=await fetch('/bridge/echtgeld',{cache:'no-store'});const body=await res.json();if(!res.ok)throw new Error(body.error||`HTTP ${res.status}`);state=body;$('apiPill').className=body.armed?'pill warn':'pill ok';$('apiPill').textContent=body.armed?'LIVE ARMED':'ENGINE PAUSED';render(body);}catch{$('apiPill').className='pill bad';$('apiPill').textContent='ENGINE OFFLINE';$('runtime').textContent='OFFLINE';document.body.classList.add('offline');}}
 
-  async function loadControlToken() {
-    try {
-      const res = await fetch('/control/session', {cache:'no-store'});
-      const body = await res.json();
-      if (!res.ok || !body.token) throw new Error(body.error || 'control session unavailable');
-      controlToken = body.token;
-      $('controlPill').className='pill ok'; $('controlPill').textContent='LOCAL CONTROL READY';
-    } catch (error) {
-      controlToken = null;
-      $('controlPill').className='pill warn'; $('controlPill').textContent='VIEW ONLY';
-    }
-    syncButtons();
-  }
-
-  async function refresh() {
-    try {
-      const res = await fetch('/bridge/echtgeld', {cache:'no-store'});
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
-      state = body;
-      $('apiPill').className = body.armed ? 'pill warn' : 'pill ok';
-      $('apiPill').textContent = body.armed ? 'LIVE ARMED' : 'ENGINE PAUSED';
-      render(body);
-    } catch (error) {
-      $('apiPill').className='pill bad'; $('apiPill').textContent='ENGINE OFFLINE';
-      $('runtime').textContent='OFFLINE';
-      document.body.classList.add('offline');
-    }
-  }
-
-  function render(s) {
+  function render(s){
     document.body.classList.remove('offline');
-    $('runtime').textContent=s.runtimeStatus || '—';
-    $('restartPolicy').textContent=s.restartPolicy || '—';
-    $('venue').textContent=String(s.config?.venue || '—').toUpperCase();
-    $('cohort').textContent=short(s.config?.cohort,46);
-    $('balance').textContent=s.balance?.availableUsdt == null ? '—' : `$${num(s.balance.availableUsdt,2)}`;
-    $('wallet').textContent=[s.balance?.status,s.balance?.predictionWalletAddress].filter(Boolean).join(' · ') || '—';
-    $('lastResult').textContent=s.lastResult?.status || '—';
-    $('lastResultDetail').textContent=[s.lastResult?.venue,s.lastResult?.vendorOrderId,s.lastResult?.error].filter(Boolean).map(x=>short(x,70)).join(' · ') || '—';
+    $('runtime').textContent=s.runtimeStatus||'—'; $('restartPolicy').textContent=s.restartPolicy||'—';
+    $('venue').textContent=String(s.config?.venue||'—').toUpperCase(); $('cohort').textContent=short(s.config?.cohort,46);
+    const b=s.balance||{};
+    $('balance').textContent=b.availableUsdt==null?'—':`$${num(b.availableUsdt,2)}`;
+    $('balanceSource').textContent=[b.accountType,b.paymentSourceStatus,b.source].filter(Boolean).join(' · ')||'—';
+    $('mpcBalance').textContent=b.mpcWalletAvailableUsdt==null?(b.source?.includes('balanceOf')&&b.availableUsdt!=null?`$${num(b.availableUsdt,2)}`:'—'):`$${num(b.mpcWalletAvailableUsdt,2)}`;
+    $('wallet').textContent=[b.mpcWalletBalanceStatus||b.status,b.predictionWalletAddress].filter(Boolean).join(' · ')||'—';
+    $('lastResult').textContent=s.lastResult?.status||'—'; $('lastResultDetail').textContent=[s.lastResult?.venue,s.lastResult?.vendorOrderId,s.lastResult?.error].filter(Boolean).map(x=>short(x,60)).join(' · ')||'—';
 
-    const i=s.lastIntent || {};
-    $('marketId').textContent=i.marketId ? `#${i.marketId}` : '—';
-    $('window').textContent=i.windowEndMs ? `結束 ${when(i.windowEndMs)}` : '—';
-    $('sideAsk').textContent=i.side ? `${i.side} @ ${num(i.signalAsk,3)}` : '—';
-    $('signalId').textContent=short(i.signalId,55);
-    $('secondsLeft').textContent=i.secondsLeft == null ? '—' : `${num(i.secondsLeft,1)}s`;
-    $('sampledAt').textContent=i.sampledAtMs ? `sample ${when(i.sampledAtMs)}` : '—';
+    const p=s.performance||{};
+    $('pnlAttempts').textContent=p.attempts??0; $('pnlSubmitted').textContent=p.submitted??0; $('pnlWL').textContent=`${p.wins??0} / ${p.losses??0}`; $('pnlSettled').textContent=`${p.settledCounted??0} settled`;
+    $('pnlWinRate').textContent=pct(p.winRate); $('pnlNet').textContent=money(p.netPnlUsdt??0); $('pnlNet').className=pnlClass(p.netPnlUsdt); $('pnlStake').textContent=`stake $${num(p.stakeUsdt??0,2)}`;
+    $('pnlRoi').textContent=pct(p.netRoi); $('pnlRoi').className=pnlClass(p.netRoi); $('pnlDd').textContent=`$${num(p.maxDrawdownUsdt??0,2)}`; $('pnlStreak').textContent=p.currentLossStreak??0; $('pnlLongest').textContent=`longest ${p.longestLossStreak??0}`;
+    $('accountingBasis').textContent=p.accountingBasis||'PNL waiting for Echtgeld Engine V2.';
+    const sync=p.settlementSync||s.settlementSync||{}; $('settlementPill').className=sync.status==='OK'?'pill ok':'pill warn'; $('settlementPill').textContent=`SETTLEMENT ${sync.status||'WAITING'} · ${sync.rows??0}`;
 
-    const counts=s.orderCounts || {};
-    $('submitted').textContent=counts.SUBMITTED || 0;
-    $('rejected').textContent=Object.entries(counts).filter(([k])=>String(k).includes('REJECT')).reduce((a,[,v])=>a+Number(v||0),0);
-    $('ambiguous').textContent=counts.AMBIGUOUS || 0;
-
-    renderAlert('latestError',s.latestError,'最新保留錯誤');
-    renderAlert('latestWarning',s.latestWarning,'最新警告');
-    renderEvents(s.recentEvents || []);
-    renderOrders(s.recentOrders || []);
-
-    if (!formInitialized && s.config) {
-      $('settingVenue').value=s.config.venue || 'binance';
-      $('settingCohort').value=s.config.cohort || 'TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY';
-      $('settingNotional').value=s.config.notionalUsdt ?? 1.5;
-      $('settingDrift').value=s.config.maxPriceDrift ?? 0.02;
-      formInitialized=true;
-    }
-    syncButtons();
+    const i=s.lastIntent||{}; $('marketId').textContent=i.marketId?`#${i.marketId}`:'—'; $('window').textContent=i.windowEndMs?`結束 ${when(i.windowEndMs)}`:'—'; $('sideAsk').textContent=i.side?`${i.side} @ ${num(i.signalAsk,3)}`:'—'; $('signalId').textContent=short(i.signalId,55); $('secondsLeft').textContent=i.secondsLeft==null?'—':`${num(i.secondsLeft,1)}s`; $('sampledAt').textContent=i.sampledAtMs?`sample ${when(i.sampledAtMs)}`:'—';
+    const counts=s.orderCounts||{}; $('submitted').textContent=counts.SUBMITTED||0; $('rejected').textContent=Object.entries(counts).filter(([k])=>String(k).includes('REJECT')).reduce((a,[,v])=>a+Number(v||0),0); $('ambiguous').textContent=counts.AMBIGUOUS||0;
+    renderAlert('latestError',s.latestError,'最新保留錯誤'); renderAlert('latestWarning',s.latestWarning,'最新警告'); renderEvents(s.recentEvents||[]); renderOrders(s.recentOrders||[]);
+    if(!formInitialized&&s.config){$('settingVenue').value=s.config.venue||'binance';$('settingCohort').value=s.config.cohort||'TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY';$('settingNotional').value=s.config.notionalUsdt??1.5;$('settingDrift').value=s.config.maxPriceDrift??0.02;formInitialized=true;} syncButtons();
   }
-
-  function renderAlert(id,row,title) {
-    const box=$(id);
-    if (!row) { box.hidden=true; return; }
-    box.hidden=false;
-    box.innerHTML=`<strong>${esc(title)} · ${esc(row.event_type)} · ${esc(when(row.occurred_at_ms))}</strong><div>${esc(row.message)}</div><small>Market ${esc(row.market_id)} · ${esc(row.side)} · ${esc(row.phase)}</small>`;
-  }
-
-  function renderEvents(rows) {
-    $('eventRows').innerHTML=rows.length ? rows.map(row=>{
-      const cls=row.level==='ERROR'?'error-text':row.level==='WARN'?'warn-text':'';
-      return `<tr><td>${esc(when(row.occurred_at_ms))}</td><td><span class="${pillClass(row.level)}">${esc(row.level)}</span></td><td>${esc(row.event_type)}<br><span class="muted">${esc(row.phase)}</span></td><td>${row.market_id?`#${esc(row.market_id)}`:'—'}</td><td>${esc(row.side)}</td><td class="message ${cls}">${esc(row.message)}</td><td><details><summary>查看</summary><pre>${esc(JSON.stringify(row.context||{},null,2))}</pre></details></td></tr>`;
-    }).join('') : '<tr><td colspan="7">尚無事件</td></tr>';
-  }
-
-  function renderOrders(rows) {
-    $('orderRows').innerHTML=rows.length ? rows.map(row=>{
-      const err=row.error_message ? `<div class="error-text">${esc(short(row.error_message,180))}</div>` : '';
-      return `<tr><td>${esc(when(row.attempted_at_ms))}</td><td>#${esc(row.market_id)}</td><td>${esc(short(row.strategy,34))}<br><span class="muted">${esc(short(row.cohort,32))}</span></td><td>${esc(row.venue)}</td><td>${esc(row.side)}</td><td>${num(row.signal_ask,3)} → ${num(row.execution_price,3)}</td><td>$${num(row.target_notional_usdt,2)}<br><span class="muted">sent $${num(row.submitted_usdt,3)} · ${num(row.shares,3)} sh</span></td><td><span class="${pillClass(row.status)}">${esc(row.status)}</span></td><td>${esc(row.vendor_order_id || '—')}${err}</td></tr>`;
-    }).join('') : '<tr><td colspan="9">尚無 Echtgeld 嘗試</td></tr>';
-  }
-
-  function syncButtons() {
-    const armed=Boolean(state?.armed);
-    const writable=Boolean(controlToken);
-    $('resumeBtn').disabled=!writable || armed;
-    $('pauseBtn').disabled=!writable || !armed;
-    $('applyBtn').disabled=!writable || armed;
-    for (const id of ['settingVenue','settingCohort','settingNotional','settingDrift']) $(id).disabled=!writable || armed;
-  }
-
-  async function post(path,payload) {
-    if (!controlToken) throw new Error('這個瀏覽器不是 localhost 控制端');
-    const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-BTC-LAB-CONTROL':controlToken},body:JSON.stringify(payload||{})});
-    const body=await res.json();
-    if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
-    return body;
-  }
-
-  $('applyBtn').addEventListener('click',async()=>{
-    $('actionState').textContent='套用中…';
-    try {
-      await post('/control/echtgeld/settings',{
-        venue:$('settingVenue').value,
-        cohort:$('settingCohort').value,
-        notionalUsdt:Number($('settingNotional').value),
-        maxPriceDrift:Number($('settingDrift').value),
-      });
-      $('actionState').textContent='設定已保存；Engine 仍為 PAUSED'; formInitialized=false; await refresh();
-    } catch(e){$('actionState').textContent=String(e.message||e);}
-  });
-
-  $('pauseBtn').addEventListener('click',async()=>{
-    if (!confirm('停止接受新的 Echtgeld 進場？若目前已有 venue write 正在進行，Pause 會等該次處理結束。')) return;
-    $('actionState').textContent='暫停中…';
-    try { await post('/control/echtgeld/pause',{reason:'dashboard operator'}); $('actionState').textContent='已 PAUSED'; await refresh(); }
-    catch(e){$('actionState').textContent=String(e.message||e);}
-  });
-
-  $('resumeBtn').addEventListener('click',async()=>{
-    const summary=`Venue: ${$('settingVenue').value}\nCohort: ${$('settingCohort').value}\nNotional: ${$('settingNotional').value} USDT\nMax drift: ${$('settingDrift').value}`;
-    if (!confirm(`RESUME 後，未來符合條件的 Strategy Intent 可以送 Echtgeld。\n\n${summary}\n\n確定啟用？`)) return;
-    $('actionState').textContent='啟用中…';
-    try { await post('/control/echtgeld/resume',{}); $('actionState').textContent='LIVE ARMED'; await refresh(); }
-    catch(e){$('actionState').textContent=String(e.message||e);}
-  });
-
-  void loadControlToken();
-  void refresh();
-  setInterval(()=>void refresh(),1000);
+  function renderAlert(id,row,title){const box=$(id);if(!row){box.hidden=true;return;}box.hidden=false;box.innerHTML=`<strong>${esc(title)} · ${esc(row.event_type)} · ${esc(when(row.occurred_at_ms))}</strong><div>${esc(row.message)}</div><small>Market ${esc(row.market_id)} · ${esc(row.side)} · ${esc(row.phase)}</small>`;}
+  function renderEvents(rows){$('eventRows').innerHTML=rows.length?rows.map(row=>{const cls=row.level==='ERROR'?'error-text':row.level==='WARN'?'warn-text':'';return`<tr><td>${esc(when(row.occurred_at_ms))}</td><td><span class="${pillClass(row.level)}">${esc(row.level)}</span></td><td>${esc(row.event_type)}<br><span class="muted">${esc(row.phase)}</span></td><td>${row.market_id?`#${esc(row.market_id)}`:'—'}</td><td>${esc(row.side)}</td><td class="message ${cls}">${esc(row.message)}</td><td><details><summary>查看</summary><pre>${esc(JSON.stringify(row.context||{},null,2))}</pre></details></td></tr>`;}).join(''):'<tr><td colspan="7">尚無事件</td></tr>';}
+  function renderOrders(rows){$('orderRows').innerHTML=rows.length?rows.map(row=>{const err=row.error_message?`<div class="error-text">${esc(short(row.error_message,180))}</div>`:'';const result=row.resultStatus||'PENDING';const pnl=row.netPnlUsdt;return`<tr><td>${esc(when(row.attempted_at_ms))}</td><td>#${esc(row.market_id)}<br><span class="muted">winner ${esc(row.winner||'—')}</span></td><td>${esc(row.venue)}</td><td>${esc(row.side)}</td><td>${num(row.signal_ask,3)} → ${num(row.execution_price,3)}</td><td>$${num(row.target_notional_usdt,2)}<br><span class="muted">filled $${num(row.submitted_usdt,3)} · ${num(row.shares,3)} sh</span></td><td><span class="${pillClass(row.status)}">${esc(row.status)}</span></td><td><span class="${pillClass(result)}">${esc(result)}</span></td><td class="${pnlClass(pnl)}">${pnl==null?'—':money(pnl,3)}<br><span>${pct(row.netRoi)}</span></td><td>${esc(row.vendor_order_id||'—')}${err}</td></tr>`;}).join(''):'<tr><td colspan="10">尚無 Echtgeld 嘗試</td></tr>';}
+  function syncButtons(){const armed=Boolean(state?.armed),writable=Boolean(controlToken);$('resumeBtn').disabled=!writable||armed;$('pauseBtn').disabled=!writable||!armed;$('applyBtn').disabled=!writable||armed;for(const id of['settingVenue','settingCohort','settingNotional','settingDrift'])$(id).disabled=!writable||armed;}
+  async function post(path,payload){if(!controlToken)throw new Error('這個瀏覽器不是 localhost 控制端');const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-BTC-LAB-CONTROL':controlToken},body:JSON.stringify(payload||{})});const body=await res.json();if(!res.ok)throw new Error(body.error||`HTTP ${res.status}`);return body;}
+  $('applyBtn').addEventListener('click',async()=>{$('actionState').textContent='套用中…';try{await post('/control/echtgeld/settings',{venue:$('settingVenue').value,cohort:$('settingCohort').value,notionalUsdt:Number($('settingNotional').value),maxPriceDrift:Number($('settingDrift').value)});$('actionState').textContent='設定已保存；Engine 仍為 PAUSED';formInitialized=false;await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
+  $('pauseBtn').addEventListener('click',async()=>{if(!confirm('停止接受新的 Echtgeld 進場？若目前已有 venue write 正在進行，Pause 會等該次處理結束。'))return;$('actionState').textContent='暫停中…';try{await post('/control/echtgeld/pause',{reason:'dashboard operator'});$('actionState').textContent='已 PAUSED';await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
+  $('resumeBtn').addEventListener('click',async()=>{const summary=`Venue: ${$('settingVenue').value}\nCohort: ${$('settingCohort').value}\nNotional: ${$('settingNotional').value} USDT\nMax drift: ${$('settingDrift').value}`;if(!confirm(`RESUME 後，未來符合條件的 Strategy Intent 可以送 Echtgeld。\n\n${summary}\n\n確定啟用？`))return;$('actionState').textContent='啟用中…';try{await post('/control/echtgeld/resume',{});$('actionState').textContent='LIVE ARMED';await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
+  void loadControlToken(); void refresh(); setInterval(()=>void refresh(),1000);
 })();
 </script>
 </body>
