@@ -7,7 +7,8 @@ from typing import Any
 from . import predict_wallet_shadow_observer as base
 from . import predict_wallet_shadow_observer_v4_20 as v4_20
 from . import predict_wallet_target_taker_public_side_strategy_v1 as public_side
-from .target_taker_live_execution_v1 import TargetTakerLiveConfig, TargetTakerLiveExecutor
+from .target_taker_live_execution_v1 import TargetTakerLiveConfig
+from .target_taker_live_execution_v2 import TargetTakerLiveExecutor
 
 
 VERSION = "PREDICT_WALLET_SHADOW_V0_26_TARGET_TAKER_LIVE_V1"
