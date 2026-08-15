@@ -15,7 +15,9 @@ def test_research_exporter_splits_layers_and_strategy_cohorts() -> None:
     assert "layer:8778-maker-book-btc" in text
     assert "layer:8779-maker-book-eth" in text
     assert "container.variants" in text
+    assert "container.cohorts" in text
     assert "strategy:${key}:${cohort}" in text
+    assert "8776/state.${key}.cohorts.${cohortKey}" in text
     assert "TARGET_CORE_INTEGRATED_V1" in text
     assert "TARGET_CORE_INTEGRATED_V2_TAKER_HEAVY" in text
 
