@@ -156,11 +156,22 @@ if ($Existing) {
 
     if ($IsV423 -and (Test-LocalService "http://127.0.0.1:8776/health" 5)) {
         $Health = Unwrap-State (Get-JsonPayload "http://127.0.0.1:8776/health" 5)
-        if ($Health -and ([string]$Health.version).Contains("V0_28_ECHTGELD_INTENT_PRODUCER_V1") -and $Health.targetTakerEchtgeldProducerV1) {
+        $Producer = $Health.targetTakerEchtgeldProducerV1
+        $ReportedEngineUrl = if ($Producer) { [string]$Producer.engineUrl } else { "" }
+        if (
+            $Health -and
+            ([string]$Health.version).Contains("V0_28_ECHTGELD_INTENT_PRODUCER_V1") -and
+            $Producer -and
+            [bool]$Producer.embeddedLiveDisabled -and
+            $ReportedEngineUrl.TrimEnd('/') -eq $EngineBase
+        ) {
             Write-Host "Target Taker producer: reusing healthy v4.23 PID=$Existing."
             Write-Host "  Engine handoff = $EngineBase/intent"
             Write-Host "  Embedded Echtgeld = disabled"
             return
+        }
+        if ($ReportedEngineUrl -and $ReportedEngineUrl.TrimEnd('/') -ne $EngineBase) {
+            Write-Host "Target Taker producer: existing v4.23 points to stale engine URL $ReportedEngineUrl; replacing it."
         }
     }
 
@@ -187,8 +198,12 @@ if (-not $Version.Contains("V0_28_ECHTGELD_INTENT_PRODUCER_V1")) {
 if (-not [bool]$Health.paperOnly -or [bool]$Health.liveOrdersAffected) {
     throw "v4.23 unexpectedly reports embedded live execution. Refusing to continue."
 }
-if (-not $Health.targetTakerEchtgeldProducerV1 -or -not [bool]$Health.targetTakerEchtgeldProducerV1.embeddedLiveDisabled) {
+$Producer = $Health.targetTakerEchtgeldProducerV1
+if (-not $Producer -or -not [bool]$Producer.embeddedLiveDisabled) {
     throw "v4.23 did not confirm embedded-live isolation."
+}
+if (([string]$Producer.engineUrl).TrimEnd('/') -ne $EngineBase) {
+    throw "v4.23 is healthy but points to the wrong Echtgeld Engine URL: $($Producer.engineUrl)"
 }
 
 $EngineOnline = Test-LocalService "$EngineBase/health" 3
