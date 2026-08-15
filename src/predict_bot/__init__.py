@@ -1,2 +1,207 @@
 """Predict.fun BNB Testnet research bot."""
 
+from .research_strategy_registry_patch import (
+    install_research_strategy_registry_patch as _install_research_strategy_registry_patch,
+)
+
+# Install the canonical PRIMARY/SHADOW split before importing modules such as
+# server or m_realtime that bind research functions and registry values locally.
+_install_research_strategy_registry_patch()
+del _install_research_strategy_registry_patch
+
+from .calibrated_value_confirm_v2_live_patch import (
+    install_calibrated_value_confirm_v2_live_patch as _install_calibrated_value_confirm_v2_live_patch,
+)
+from .calibrated_value_confirmation_filters import (
+    install_calibrated_value_confirmation_filters as _install_calibrated_value_confirmation_filters,
+)
+from .calibrated_value_confirmation_variants import (
+    install_calibrated_value_confirmation_variants as _install_calibrated_value_confirmation_variants,
+)
+from .confirmation_add_sources_patch import (
+    install_confirmation_add_sources_patch as _install_confirmation_add_sources_patch,
+)
+from .decision_snapshot_diagnostics import (
+    install_decision_snapshot_diagnostics as _install_decision_snapshot_diagnostics,
+)
+from .decision_snapshot_state import (
+    install_decision_snapshot_state as _install_decision_snapshot_state,
+)
+from .decision_strategy_live_v2 import (
+    install_decision_strategy_live_v2 as _install_decision_strategy_live_v2,
+)
+from .decision_strategy_native_v2 import (
+    install_decision_strategy_native_v2 as _install_decision_strategy_native_v2,
+)
+from .direct_outcome_guard import (
+    install_direct_outcome_guard as _install_direct_outcome_guard,
+)
+from .live_rules_async_preflight_patch import (
+    install_live_rules_async_preflight_patch as _install_live_rules_async_preflight_patch,
+)
+from .live_strong_trend_guard_patch import (
+    install_live_strong_trend_guard_patch as _install_live_strong_trend_guard_patch,
+)
+from .loss_streak_guard_hotfix import (
+    install_loss_streak_guard_hotfix as _install_loss_streak_guard_hotfix,
+)
+from .loss_streak_guard_patch import (
+    install_loss_streak_guard_patch as _install_loss_streak_guard_patch,
+)
+from .loss_streak_minimum_stake_patch import (
+    install_loss_streak_minimum_stake_patch as _install_loss_streak_minimum_stake_patch,
+)
+from .maximum_net_loss_guard_patch import (
+    install_maximum_net_loss_guard_patch as _install_maximum_net_loss_guard_patch,
+)
+from .maximum_net_loss_guard_v2_patch import (
+    install_maximum_net_loss_guard_v2_patch as _install_maximum_net_loss_guard_v2_patch,
+)
+from .microprice_c3_mid_confirm import (
+    install_microprice_c3_mid_confirm as _install_microprice_c3_mid_confirm,
+)
+from .microprice_confirm_exit_098_entry_guard_patch import (
+    install_microprice_confirm_exit_098_entry_guard_patch as _install_microprice_confirm_exit_098_entry_guard_patch,
+)
+from .microprice_confirm_exit_098_horizon_patch import (
+    install_microprice_confirm_exit_098_horizon_patch as _install_microprice_confirm_exit_098_horizon_patch,
+)
+from .microprice_confirm_exit_098_live_patch import (
+    install_microprice_confirm_exit_098_live_patch as _install_microprice_confirm_exit_098_live_patch,
+)
+from .microprice_confirm_exit_098_live_v2_patch import (
+    install_microprice_confirm_exit_098_live_v2_patch as _install_microprice_confirm_exit_098_live_v2_patch,
+)
+from .microprice_confirm_exit_098_live_v3_patch import (
+    install_microprice_confirm_exit_098_live_v3_patch as _install_microprice_confirm_exit_098_live_v3_patch,
+)
+from .microprice_confirm_exit_098_live_v4_patch import (
+    install_microprice_confirm_exit_098_live_v4_patch as _install_microprice_confirm_exit_098_live_v4_patch,
+)
+from .microprice_confirm_live_patch import (
+    install_microprice_confirm_live_patch as _install_microprice_confirm_live_patch,
+)
+from .microprice_confirm_loss_streak_guard import (
+    install_microprice_confirm_loss_streak_guard as _install_microprice_confirm_loss_streak_guard,
+)
+from .microprice_confirm_observer_guard_patch import (
+    install_microprice_confirm_observer_guard_patch as _install_microprice_confirm_observer_guard_patch,
+)
+from .microprice_confirm_observer_guard_realtime_patch import (
+    install_microprice_confirm_observer_guard_realtime_patch as _install_microprice_confirm_observer_guard_realtime_patch,
+)
+from .microprice_confirm_optimization_shadows import (
+    install_microprice_confirm_optimization_shadows as _install_microprice_confirm_optimization_shadows,
+)
+from .microprice_confirm_price_side_guard_live_patch import (
+    install_microprice_confirm_price_side_guard_live_patch as _install_microprice_confirm_price_side_guard_live_patch,
+)
+from .microprice_confirm_stable_consensus_dashboard_patch import (
+    install_microprice_confirm_stable_consensus_dashboard_patch as _install_microprice_confirm_stable_consensus_dashboard_patch,
+)
+from .microprice_confirm_stable_consensus_guard import (
+    install_microprice_confirm_stable_consensus_guard as _install_microprice_confirm_stable_consensus_guard,
+)
+from .microprice_confirm_stable_direction_shadow import (
+    install_microprice_confirm_stable_direction_shadow as _install_microprice_confirm_stable_direction_shadow,
+)
+from .microprice_confirm_stale_exhausted_guard import (
+    install_microprice_confirm_stale_exhausted_guard as _install_microprice_confirm_stale_exhausted_guard,
+)
+from .microprice_dashboard_patch import (
+    install_microprice_dashboard_patch as _install_microprice_dashboard_patch,
+)
+from .microprice_feature_shadows import (
+    install_microprice_feature_shadows as _install_microprice_feature_shadows,
+)
+from .microprice_variant_relaxation import (
+    install_microprice_variant_relaxation as _install_microprice_variant_relaxation,
+)
+from .microprice_variants import (
+    install_microprice_variants as _install_microprice_variants,
+)
+from .pair_arb_initial_capacity_patch import (
+    install_pair_arb_initial_capacity_patch as _install_pair_arb_initial_capacity_patch,
+)
+from .regime_reverse_prediction_age_patch import (
+    install_regime_reverse_prediction_age_patch as _install_regime_reverse_prediction_age_patch,
+)
+
+_install_decision_snapshot_diagnostics()
+_install_decision_snapshot_state()
+_install_direct_outcome_guard()
+_install_microprice_variant_relaxation()
+_install_microprice_variants()
+_install_microprice_dashboard_patch()
+_install_microprice_feature_shadows()
+_install_microprice_c3_mid_confirm()
+_install_microprice_confirm_optimization_shadows()
+_install_microprice_confirm_stale_exhausted_guard()
+_install_microprice_confirm_loss_streak_guard()
+_install_calibrated_value_confirmation_variants()
+_install_calibrated_value_confirmation_filters()
+_install_microprice_confirm_live_patch()
+_install_microprice_confirm_exit_098_live_patch()
+_install_microprice_confirm_exit_098_live_v2_patch()
+_install_microprice_confirm_exit_098_live_v3_patch()
+_install_microprice_confirm_exit_098_live_v4_patch()
+_install_microprice_confirm_exit_098_entry_guard_patch()
+_install_microprice_confirm_exit_098_horizon_patch()
+_install_microprice_confirm_price_side_guard_live_patch()
+_install_microprice_confirm_observer_guard_patch()
+_install_microprice_confirm_observer_guard_realtime_patch()
+_install_microprice_confirm_stable_consensus_guard()
+_install_microprice_confirm_stable_direction_shadow()
+_install_microprice_confirm_stable_consensus_dashboard_patch()
+_install_confirmation_add_sources_patch()
+_install_calibrated_value_confirm_v2_live_patch()
+_install_pair_arb_initial_capacity_patch()
+_install_loss_streak_guard_patch()
+_install_loss_streak_guard_hotfix()
+_install_loss_streak_minimum_stake_patch()
+_install_maximum_net_loss_guard_patch()
+_install_maximum_net_loss_guard_v2_patch()
+_install_live_rules_async_preflight_patch()
+_install_live_strong_trend_guard_patch()
+_install_regime_reverse_prediction_age_patch()
+_install_decision_strategy_native_v2()
+_install_decision_strategy_live_v2()
+del _install_calibrated_value_confirm_v2_live_patch
+del _install_calibrated_value_confirmation_filters
+del _install_calibrated_value_confirmation_variants
+del _install_confirmation_add_sources_patch
+del _install_decision_snapshot_diagnostics
+del _install_decision_snapshot_state
+del _install_decision_strategy_live_v2
+del _install_decision_strategy_native_v2
+del _install_direct_outcome_guard
+del _install_live_rules_async_preflight_patch
+del _install_live_strong_trend_guard_patch
+del _install_loss_streak_guard_hotfix
+del _install_loss_streak_guard_patch
+del _install_loss_streak_minimum_stake_patch
+del _install_maximum_net_loss_guard_patch
+del _install_maximum_net_loss_guard_v2_patch
+del _install_microprice_c3_mid_confirm
+del _install_microprice_confirm_exit_098_entry_guard_patch
+del _install_microprice_confirm_exit_098_horizon_patch
+del _install_microprice_confirm_exit_098_live_patch
+del _install_microprice_confirm_exit_098_live_v2_patch
+del _install_microprice_confirm_exit_098_live_v3_patch
+del _install_microprice_confirm_exit_098_live_v4_patch
+del _install_microprice_confirm_live_patch
+del _install_microprice_confirm_loss_streak_guard
+del _install_microprice_confirm_observer_guard_patch
+del _install_microprice_confirm_observer_guard_realtime_patch
+del _install_microprice_confirm_optimization_shadows
+del _install_microprice_confirm_price_side_guard_live_patch
+del _install_microprice_confirm_stable_consensus_dashboard_patch
+del _install_microprice_confirm_stable_consensus_guard
+del _install_microprice_confirm_stable_direction_shadow
+del _install_microprice_confirm_stale_exhausted_guard
+del _install_microprice_dashboard_patch
+del _install_microprice_feature_shadows
+del _install_microprice_variant_relaxation
+del _install_microprice_variants
+del _install_pair_arb_initial_capacity_patch
+del _install_regime_reverse_prediction_age_patch

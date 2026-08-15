@@ -8,14 +8,23 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from .live_trading import LIVE_OBSERVER_STRATEGIES, LIVE_RESEARCH_STRATEGIES
-from .research_forward import FUTURES_LEAD_LIVE_OBSERVER_STRATEGIES
+from .live_trading import (
+    LIVE_MAX_PREDICTION_BOOK_AGE_MS,
+    LIVE_OBSERVER_STRATEGIES,
+    LIVE_RESEARCH_STRATEGIES,
+)
+from .research_forward import (
+    FUTURES_LEAD_LIVE_OBSERVER_STRATEGIES,
+    RESEARCH_PARAMETERS,
+)
 
 M_REALTIME_QUEUE_MAX = 50_000
 M_SCHEDULER_TICK_SECONDS = 0.001
 M7_DEADLINES_SECONDS = (1.0, 2.0, 3.0, 5.0)
 M7_EVENT_REORDER_GRACE_SECONDS = 0.010
 M6_CANONICAL_CAPTURE_SECONDS = 10.0
+SPOT_DATA_MAX_AGE_MS = 4_000.0
+MAX_DIRECT_REST_PREDICTION_BOOK_SKEW_MS = 500.0
 LIVE_FORWARDABLE_OBSERVER_STRATEGIES = {"M01O_F1"}
 LIVE_FORWARDABLE_PAPER_STRATEGIES = (
     LIVE_FORWARDABLE_OBSERVER_STRATEGIES | set(LIVE_RESEARCH_STRATEGIES)
@@ -38,6 +47,105 @@ def _utc_iso_from_ns(value: int) -> str:
     return datetime.fromtimestamp(value / 1_000_000_000, timezone.utc).isoformat(
         timespec="microseconds"
     )
+
+
+def _book_levels(book: dict[str, Any], key: str, *, reverse: bool) -> list[list[float]]:
+    levels: list[list[float]] = []
+    for raw in book.get(key) or []:
+        if isinstance(raw, dict):
+            price = _finite(raw.get("price"))
+            size = _finite(raw.get("size", raw.get("quantity")))
+        elif isinstance(raw, (list, tuple)) and len(raw) >= 2:
+            price = _finite(raw[0])
+            size = _finite(raw[1])
+        else:
+            continue
+        if price is None or size is None or not 0 < price < 1 or size <= 0:
+            continue
+        levels.append([price, size])
+    return sorted(levels, key=lambda level: level[0], reverse=reverse)
+
+
+def direct_rest_prediction_event(
+    *,
+    market_id: int,
+    up_book: dict[str, Any],
+    down_book: dict[str, Any],
+    received_wall_ns: int,
+    received_monotonic_ns: int,
+    current_timestamp_ms: int,
+) -> dict[str, Any]:
+    """Build one current, direction-explicit Prediction event from REST books."""
+    up_bids = _book_levels(up_book, "bids", reverse=True)
+    up_asks = _book_levels(up_book, "asks", reverse=False)
+    down_bids = _book_levels(down_book, "bids", reverse=True)
+    down_asks = _book_levels(down_book, "asks", reverse=False)
+    try:
+        up_version = int(up_book.get("updateTimestampMs", up_book.get("timestamp")))
+        down_version = int(
+            down_book.get("updateTimestampMs", down_book.get("timestamp"))
+        )
+        version_ms = min(up_version, down_version)
+        book_skew_ms = abs(up_version - down_version)
+        up_book_content_age_ms = max(
+            0.0, float(current_timestamp_ms - up_version)
+        )
+        down_book_content_age_ms = max(
+            0.0, float(current_timestamp_ms - down_version)
+        )
+        book_age_ms = max(
+            up_book_content_age_ms,
+            down_book_content_age_ms,
+        )
+    except (TypeError, ValueError):
+        up_version = down_version = version_ms = None
+        book_skew_ms = book_age_ms = None
+        up_book_content_age_ms = down_book_content_age_ms = None
+    top_levels_valid = bool(up_bids and up_asks and down_bids and down_asks)
+    return {
+        "source": "prediction",
+        "stream": "orderbook",
+        "market_id": int(market_id),
+        "received_wall_ns": int(received_wall_ns),
+        "received_monotonic_ns": int(received_monotonic_ns),
+        "session_id": f"dual-rest-market-{int(market_id)}",
+        "update_id": version_ms,
+        "exchange_event_ms": version_ms,
+        "prediction_book_version_ms": version_ms,
+        "prediction_book_version_age_ms": book_age_ms,
+        "prediction_orientation": "DIRECT_UP_VERIFIED",
+        "prediction_data_source": "dual_token_rest",
+        "prediction_sampling_mode": "periodic_snapshot",
+        "direct_outcome_books": True,
+        "market_observer_already_updated": True,
+        "feature_eligible": bool(
+            top_levels_valid
+            and book_age_ms is not None
+            and book_age_ms <= LIVE_MAX_PREDICTION_BOOK_AGE_MS
+            and book_skew_ms is not None
+            and book_skew_ms <= MAX_DIRECT_REST_PREDICTION_BOOK_SKEW_MS
+        ),
+        "best_bid": up_bids[0][0] if up_bids else None,
+        "best_bid_qty": up_bids[0][1] if up_bids else None,
+        "best_ask": up_asks[0][0] if up_asks else None,
+        "best_ask_qty": up_asks[0][1] if up_asks else None,
+        "direct_down_bid": down_bids[0][0] if down_bids else None,
+        "direct_down_bid_qty": down_bids[0][1] if down_bids else None,
+        "direct_down_ask": down_asks[0][0] if down_asks else None,
+        "direct_down_ask_qty": down_asks[0][1] if down_asks else None,
+        "bids": up_bids,
+        "asks": up_asks,
+        "down_bids": down_bids,
+        "down_asks": down_asks,
+        "up_book_timestamp_ms": up_version,
+        "down_book_timestamp_ms": down_version,
+        "book_skew_ms": book_skew_ms,
+        "book_age_ms": book_age_ms,
+        "content_version_age_ms": book_age_ms,
+        "up_book_content_age_ms": up_book_content_age_ms,
+        "down_book_content_age_ms": down_book_content_age_ms,
+        "transport_receipt_age_ms": 0.0,
+    }
 
 
 class MSeriesRealtimeEngine:
@@ -85,8 +193,15 @@ class MSeriesRealtimeEngine:
         self.market_clock_mapped_monotonic_ns: int | None = None
         self.market_clock_offset_ms: float | None = None
         self.spot_event: dict[str, Any] | None = None
+        self.spot_book_event: dict[str, Any] | None = None
+        self.spot_trade_ingress_received_ns = 0
+        self.spot_trade_processed_received_ns = 0
         self.futures_event: dict[str, Any] | None = None
         self.prediction_event: dict[str, Any] | None = None
+        # Telemetry only: retain the newest matching Prediction snapshot even
+        # when the strategy freshness gate rejects it.  It must never replace
+        # prediction_event, which remains the last strategy-eligible book.
+        self.latest_rest_prediction_observation: dict[str, Any] | None = None
         self.accepted_prediction_events = 0
         self.rejected_unverified_prediction_events = 0
         self.last_accepted_prediction_at: str | None = None
@@ -139,11 +254,19 @@ class MSeriesRealtimeEngine:
         stream = str(event.get("stream") or "")
         if not (
             (source == "spot" and stream == "trade")
+            or (source == "spot" and stream == "bookTicker")
             or (source == "futures" and stream == "aggTrade")
             or (source == "prediction" and stream == "orderbook")
         ):
             return
-        self._update_market_observer(event)
+        if source == "spot" and stream == "trade":
+            received_ns = int(event.get("received_monotonic_ns") or 0)
+            if received_ns > 0:
+                # Capture ingress before the bounded strategy queue.  This is
+                # intentionally independent of processed-event age.
+                self.spot_trade_ingress_received_ns = received_ns
+        if event.get("market_observer_already_updated") is not True:
+            self._update_market_observer(event)
         try:
             self.events.put_nowait(dict(event))
         except queue.Full:
@@ -160,6 +283,7 @@ class MSeriesRealtimeEngine:
         stream = str(event.get("stream") or "")
         if not (
             (source == "spot" and stream == "trade")
+            or (source == "spot" and stream == "bookTicker")
             or (source == "prediction" and stream == "orderbook")
         ):
             return
@@ -206,6 +330,19 @@ class MSeriesRealtimeEngine:
                     else None
                 ),
                 market_id=market_id,
+                book_age_seconds=(
+                    float(event["prediction_book_version_age_ms"]) / 1000.0
+                    if source == "prediction"
+                    and _finite(event.get("prediction_book_version_age_ms"))
+                    is not None
+                    else None
+                ),
+                book_skew_ms=(
+                    _finite(event.get("book_skew_ms")) or 0.0
+                    if source == "prediction"
+                    else None
+                ),
+                require_verified_book_freshness=(source == "prediction"),
             )
         except Exception:
             # Observer telemetry must never take a market-data socket down.
@@ -238,8 +375,10 @@ class MSeriesRealtimeEngine:
         # new five-minute round.  Prediction is also invalid until its dynamic
         # subscription has produced a verified snapshot for this market.
         self.spot_event = None
+        self.spot_book_event = None
         self.futures_event = None
         self.prediction_event = None
+        self.latest_rest_prediction_observation = None
         self.prediction_history.clear()
         # Spot is a continuous public stream and remains timestamp-valid across
         # Prediction market rollovers.  Retain its bounded history so a market
@@ -336,6 +475,30 @@ class MSeriesRealtimeEngine:
                     window = delay + m7_grace
                     horizons.append(window)
                     direction_horizons.append(window)
+
+            # Research strategies have their own horizons and must keep the
+            # realtime engine evaluating Spot/Futures/Prediction events for
+            # the full configured research window.
+            for strategy, parameters in RESEARCH_PARAMETERS.items():
+                enabled_key = f"strategy_{strategy.lower()}_enabled"
+
+                if not bool(cfg.get(enabled_key)):
+                    continue
+
+                try:
+                    research_horizon = float(parameters.get("horizon", 0.0))
+                except (TypeError, ValueError):
+                    continue
+
+                if research_horizon <= 0:
+                    continue
+
+                horizons.append(research_horizon)
+
+                # Research strategies such as R_FUTURES_LEAD need Spot/Futures
+                # direction events throughout the complete horizon, not only
+                # subsequent Prediction-book execution events.
+                direction_horizons.append(research_horizon)
             self.evaluation_horizon_seconds = max(
                 0.0, min(300.0, max(horizons))
             )
@@ -369,12 +532,50 @@ class MSeriesRealtimeEngine:
         if not event:
             return None
         value = _finite(event.get("price"))
+        if value is None and str(event.get("stream") or "") == "bookTicker":
+            bid = _finite(event.get("best_bid"))
+            ask = _finite(event.get("best_ask"))
+            if bid is not None and ask is not None and 0 < bid <= ask:
+                value = (bid + ask) / 2.0
         return value if value is not None and value > 0 else None
 
+    @classmethod
+    def _event_age_ms(cls, asof_ns: int, event: dict[str, Any] | None) -> float | None:
+        received_ns = int((event or {}).get("received_monotonic_ns") or 0)
+        if received_ns <= 0 or received_ns > asof_ns:
+            return None
+        return max(0.0, (asof_ns - received_ns) / 1_000_000)
+
+    def _spot_signal_event(self, asof_ns: int) -> tuple[dict[str, Any] | None, str | None]:
+        """Return trade first, then an explicit fresh bookTicker midpoint.
+
+        No futures aggTrade or opaque last-value cache is consulted here.  A
+        later fallback can be evaluated only after queue blockage is proven;
+        this path remains limited to the independent Spot book socket.
+        """
+        trade = self.spot_event
+        if self._event_price(trade) is not None:
+            age = self._event_age_ms(asof_ns, trade)
+            if age is not None and age <= SPOT_DATA_MAX_AGE_MS:
+                return trade, "trade"
+        book = self.spot_book_event
+        if self._event_price(book) is not None:
+            age = self._event_age_ms(asof_ns, book)
+            if age is not None and age <= SPOT_DATA_MAX_AGE_MS:
+                return book, "bookTicker_midpoint"
+        return None, None
+
     def _prediction_values(
-        self, event: dict[str, Any] | None, now_mono_ns: int
+        self,
+        event: dict[str, Any] | None,
+        now_mono_ns: int,
+        *,
+        require_feature_eligible: bool = True,
     ) -> dict[str, float] | None:
-        if not event or event.get("feature_eligible") is not True:
+        if not event or (
+            require_feature_eligible
+            and event.get("feature_eligible") is not True
+        ):
             return None
         up_bid = _finite(event.get("best_bid"))
         up_ask = _finite(event.get("best_ask"))
@@ -394,21 +595,88 @@ class MSeriesRealtimeEngine:
             and up_ask_size > 0
         ):
             return None
-        # In a binary market, the opposite token's executable top levels are
-        # the complement of this verified UP book.  Both sides therefore share
-        # one exchange timestamp and have zero artificial cross-request skew.
+        local_receipt_age_ms = max(
+            0.0, (now_mono_ns - received_mono_ns) / 1_000_000
+        )
+        source_age_ms = _finite(
+            event.get(
+                "book_age_ms",
+                event.get("prediction_book_version_age_ms"),
+            )
+        )
+        up_source_content_age_ms = _finite(
+            event.get("up_book_content_age_ms")
+        )
+        down_source_content_age_ms = _finite(
+            event.get("down_book_content_age_ms")
+        )
+        if up_source_content_age_ms is None:
+            up_source_content_age_ms = source_age_ms
+        if down_source_content_age_ms is None:
+            down_source_content_age_ms = source_age_ms
+        up_content_age_ms = (
+            up_source_content_age_ms + local_receipt_age_ms
+            if up_source_content_age_ms is not None
+            else None
+        )
+        down_content_age_ms = (
+            down_source_content_age_ms + local_receipt_age_ms
+            if down_source_content_age_ms is not None
+            else None
+        )
+        effective_content_ages = [
+            age
+            for age in (up_content_age_ms, down_content_age_ms)
+            if age is not None
+        ]
+        book_age_ms = (
+            max(local_receipt_age_ms, *effective_content_ages)
+            if effective_content_ages
+            else local_receipt_age_ms
+        )
+        if event.get("direct_outcome_books") is True:
+            down_bid = _finite(event.get("direct_down_bid"))
+            down_ask = _finite(event.get("direct_down_ask"))
+            down_bid_size = _finite(event.get("direct_down_bid_qty"))
+            down_ask_size = _finite(event.get("direct_down_ask_qty"))
+            if (
+                None in (down_bid, down_ask, down_bid_size, down_ask_size)
+                or not 0 <= down_bid <= down_ask <= 1
+                or down_bid_size <= 0
+                or down_ask_size <= 0
+            ):
+                return None
+            assert down_bid is not None and down_ask is not None
+            assert down_bid_size is not None and down_ask_size is not None
+            book_skew_ms = _finite(event.get("book_skew_ms"))
+            book_timestamp_ms = _finite(event.get("prediction_book_version_ms"))
+        else:
+            # Legacy WSS books contain one verified UP book.  Derive the
+            # opposite token only for diagnostics; stale WSS frames are now
+            # rejected before reaching this engine.
+            down_bid = 1.0 - up_ask
+            down_ask = 1.0 - up_bid
+            down_bid_size = up_ask_size
+            down_ask_size = up_bid_size
+            book_skew_ms = 0.0
+            book_timestamp_ms = _finite(event.get("prediction_book_version_ms"))
         return {
             "up_bid": up_bid,
             "up_ask": up_ask,
             "up_bid_size": up_bid_size,
             "up_ask_size": up_ask_size,
-            "down_bid": 1.0 - up_ask,
-            "down_ask": 1.0 - up_bid,
-            "down_bid_size": up_ask_size,
-            "down_ask_size": up_bid_size,
-            "book_age_ms": max(0.0, (now_mono_ns - received_mono_ns) / 1_000_000),
-            "book_skew_ms": 0.0,
-            "book_timestamp_ms": float(event.get("received_wall_ns") or 0) / 1_000_000,
+            "down_bid": down_bid,
+            "down_ask": down_ask,
+            "down_bid_size": down_bid_size,
+            "down_ask_size": down_ask_size,
+            "book_age_ms": book_age_ms,
+            "effective_book_age_ms": book_age_ms,
+            "content_version_age_ms": book_age_ms,
+            "transport_receipt_age_ms": local_receipt_age_ms,
+            "up_book_content_age_ms": up_content_age_ms,
+            "down_book_content_age_ms": down_content_age_ms,
+            "book_skew_ms": book_skew_ms,
+            "book_timestamp_ms": book_timestamp_ms,
         }
 
     def _snapshot(
@@ -444,7 +712,11 @@ class MSeriesRealtimeEngine:
         trigger_received_mono_ns = int(trigger.get("received_monotonic_ns") or now_mono_ns)
         trigger_received_wall_ns = int(trigger.get("received_wall_ns") or now_wall_ns)
         signal_sequence = self._event_sequence(trigger)
-        signal_spot_event = spot_event_override or self.spot_event
+        signal_spot_event, spot_price_source = (
+            (spot_event_override, "trade")
+            if spot_event_override is not None
+            else self._spot_signal_event(trigger_received_mono_ns)
+        )
         spot_price = self._event_price(signal_spot_event)
         spot_received_mono_ns = int(
             (signal_spot_event or {}).get("received_monotonic_ns") or 0
@@ -470,6 +742,15 @@ class MSeriesRealtimeEngine:
                 )
                 if spot_received_mono_ns
                 else None
+            ),
+            "spot_price_source": spot_price_source,
+            "spot_trade_ingress_age_ms": self._event_age_ms(
+                trigger_received_mono_ns,
+                {"received_monotonic_ns": self.spot_trade_ingress_received_ns},
+            ),
+            "spot_trade_processed_age_ms": self._event_age_ms(
+                trigger_received_mono_ns,
+                {"received_monotonic_ns": self.spot_trade_processed_received_ns},
             ),
             "futures_price": futures_price,
             "futures_timestamp_ms": (self.futures_event or {}).get(
@@ -567,9 +848,18 @@ class MSeriesRealtimeEngine:
             ),
             "prediction_book_age_ms": prediction.get("book_age_ms"),
             "spot_age_ms": snapshot["spot_age_ms"],
+            "spot_price_source": snapshot["spot_price_source"],
+            "spot_trade_ingress_age_ms": snapshot["spot_trade_ingress_age_ms"],
+            "spot_trade_processed_age_ms": snapshot["spot_trade_processed_age_ms"],
             "futures_age_ms": snapshot["futures_age_ms"],
             "prediction_book_orientation": prediction_event.get(
                 "prediction_orientation"
+            ),
+            "prediction_data_source": (
+                prediction_event.get("prediction_data_source") or "websocket"
+            ),
+            "prediction_sampling_mode": (
+                prediction_event.get("prediction_sampling_mode") or "event_stream"
             ),
             "clock_resolution": "nanosecond_capture_millisecond_metrics",
             "server_clock_offset_ms": server_offset_ms,
@@ -766,6 +1056,14 @@ class MSeriesRealtimeEngine:
                         signal_ask_size_key
                     ),
                     "signal_prediction_bid": snapshot.get(signal_bid_key),
+                    "signal_spot_age_ms": snapshot.get("spot_age_ms"),
+                    "signal_spot_price_source": snapshot.get("spot_price_source"),
+                    "signal_spot_trade_ingress_age_ms": context.get(
+                        "spot_trade_ingress_age_ms"
+                    ),
+                    "signal_spot_trade_processed_age_ms": context.get(
+                        "spot_trade_processed_age_ms"
+                    ),
                     "signal_prediction_orientation": context.get(
                         "prediction_book_orientation"
                     ),
@@ -778,6 +1076,20 @@ class MSeriesRealtimeEngine:
                     # must never be substituted for Spot here.
                     "drawdown_control_start_price": snapshot.get("start_price"),
                     "drawdown_control_spot_price": snapshot.get("spot_price"),
+                    "drawdown_control_spot_age_ms": snapshot.get("spot_age_ms"),
+                    "drawdown_control_spot_source": snapshot.get(
+                        "spot_price_source"
+                    ),
+                    "drawdown_signal_spot_price": snapshot.get("spot_price"),
+                    "drawdown_signal_spot_age_ms": snapshot.get("spot_age_ms"),
+                    "drawdown_signal_spot_source": (
+                        "SPOT_TRADE"
+                        if snapshot.get("spot_price_source") == "trade"
+                        else "SPOT_BOOK_MIDPOINT"
+                        if snapshot.get("spot_price_source")
+                        == "bookTicker_midpoint"
+                        else snapshot.get("spot_price_source")
+                    ),
                 }
                 if candidate.get("paper_only") is True:
                     strategy = str(candidate.get("strategy"))
@@ -858,17 +1170,23 @@ class MSeriesRealtimeEngine:
                 0.0, (store_finished_ns - store_started_ns) / 1_000_000
             )
 
-    def current_verified_prediction_book(self) -> dict[str, Any] | None:
-        """Return a fast immutable copy of the latest accepted WSS book."""
-        now_ns = time.monotonic_ns()
-        with self.lock:
-            event = dict(self.prediction_event or {})
-            market_id = self.market_id
+    def _prediction_book_copy(
+        self,
+        event: dict[str, Any],
+        market_id: int | None,
+        now_ns: int,
+        *,
+        require_feature_eligible: bool = True,
+    ) -> dict[str, Any] | None:
         if not event:
             return None
         received_ns = int(event.get("received_monotonic_ns") or 0)
         orientation = str(event.get("prediction_orientation") or "UNVERIFIED")
-        values = self._prediction_values(event, now_ns)
+        values = self._prediction_values(
+            event,
+            now_ns,
+            require_feature_eligible=require_feature_eligible,
+        )
         if values is None or received_ns <= 0:
             return None
 
@@ -886,15 +1204,25 @@ class MSeriesRealtimeEngine:
 
         up_bids = levels("bids")
         up_asks = levels("asks")
-        down_asks = sorted(
-            [[1.0 - price, size] for price, size in up_bids],
-            key=lambda level: level[0],
+        down_asks = (
+            levels("down_asks")
+            if event.get("direct_outcome_books") is True
+            else sorted(
+                [[1.0 - price, size] for price, size in up_bids],
+                key=lambda level: level[0],
+            )
         )
         return {
             "market_id": int(event.get("market_id") or market_id or 0),
             "orientation": orientation,
             "received_monotonic_ns": received_ns,
-            "book_age_ms": max(0.0, (now_ns - received_ns) / 1_000_000),
+            "book_age_ms": values["book_age_ms"],
+            "effective_book_age_ms": values["effective_book_age_ms"],
+            "content_version_age_ms": values["content_version_age_ms"],
+            "transport_receipt_age_ms": values["transport_receipt_age_ms"],
+            "up_book_content_age_ms": values["up_book_content_age_ms"],
+            "down_book_content_age_ms": values["down_book_content_age_ms"],
+            "book_skew_ms": values["book_skew_ms"],
             "up_bid": values["up_bid"],
             "up_ask": values["up_ask"],
             "up_bid_size": values["up_bid_size"],
@@ -906,8 +1234,92 @@ class MSeriesRealtimeEngine:
             "up_asks": up_asks,
             "down_asks": down_asks,
             "event_sequence": self._event_sequence(event),
+            "data_source": event.get("prediction_data_source") or "websocket",
             "verified": orientation in VERIFIED_PREDICTION_ORIENTATIONS,
         }
+
+    def current_verified_prediction_book(self) -> dict[str, Any] | None:
+        """Return a fast immutable copy of the latest strategy-eligible book."""
+        now_ns = time.monotonic_ns()
+        with self.lock:
+            event = dict(self.prediction_event or {})
+            market_id = self.market_id
+        return self._prediction_book_copy(event, market_id, now_ns)
+
+    def current_spot_reference(self) -> dict[str, Any]:
+        """Return independent current Spot trade and book reference inputs.
+
+        This method deliberately does not choose a live-trading fallback or
+        apply freshness thresholds.  The live executor owns those safety
+        rules; this callback only exposes immutable, process-local values and
+        monotonic receipt ages from the two independent Spot sockets.
+        """
+        now_ns = time.monotonic_ns()
+        with self.lock:
+            trade = dict(self.spot_event or {})
+            book = dict(self.spot_book_event or {})
+
+        trade_price = self._event_price(trade)
+        trade_age_ms = self._event_age_ms(now_ns, trade)
+        book_age_ms = self._event_age_ms(now_ns, book)
+        book_bid = _finite(book.get("best_bid"))
+        book_ask = _finite(book.get("best_ask"))
+        book_bid_size = _finite(book.get("best_bid_qty"))
+        book_ask_size = _finite(book.get("best_ask_qty"))
+        book_midpoint: float | None = None
+        book_microprice: float | None = None
+        if (
+            book_bid is not None
+            and book_ask is not None
+            and 0 < book_bid <= book_ask
+        ):
+            book_midpoint = (book_bid + book_ask) / 2.0
+            if (
+                book_bid_size is not None
+                and book_ask_size is not None
+                and book_bid_size > 0
+                and book_ask_size > 0
+            ):
+                total_size = book_bid_size + book_ask_size
+                book_microprice = (
+                    book_ask * book_bid_size
+                    + book_bid * book_ask_size
+                ) / total_size
+        return {
+            "captured_monotonic_ns": now_ns,
+            "trade_price": trade_price,
+            "trade_age_ms": trade_age_ms,
+            "book_bid": book_bid,
+            "book_ask": book_ask,
+            "book_bid_size": book_bid_size,
+            "book_ask_size": book_ask_size,
+            "book_midpoint": book_midpoint,
+            "book_microprice": book_microprice,
+            "book_age_ms": book_age_ms,
+        }
+
+    def current_direct_rest_prediction_book(self) -> dict[str, Any] | None:
+        """Return the latest independently fetched UP/DOWN REST books.
+
+        Unlike ``current_verified_prediction_book``, this view is not pinned to
+        the last strategy-eligible exchange content version.  Pair execution
+        uses its local REST receipt age plus its own content-age/skew limits.
+        """
+        now_ns = time.monotonic_ns()
+        with self.lock:
+            event = dict(self.latest_rest_prediction_observation or {})
+            market_id = self.market_id
+        if (
+            event.get("prediction_data_source") != "dual_token_rest"
+            or event.get("direct_outcome_books") is not True
+        ):
+            return None
+        return self._prediction_book_copy(
+            event,
+            market_id,
+            now_ns,
+            require_feature_eligible=False,
+        )
 
     def _emit_due_m7_deadlines(self, now_monotonic_ns: int) -> None:
         if (
@@ -1008,6 +1420,9 @@ class MSeriesRealtimeEngine:
             self.last_trade_id["spot"] = trade_id
         if set_current:
             self.spot_event = event
+        received_ns = int(event.get("received_monotonic_ns") or 0)
+        if received_ns > 0:
+            self.spot_trade_processed_received_ns = received_ns
         self.spot_history.append(event)
         return True
 
@@ -1037,6 +1452,11 @@ class MSeriesRealtimeEngine:
         if source == "prediction" and stream == "orderbook":
             if (
                 int(event.get("market_id") or -1) == market_id
+                and event.get("prediction_data_source") == "dual_token_rest"
+            ):
+                self.latest_rest_prediction_observation = event
+            if (
+                int(event.get("market_id") or -1) == market_id
                 and event.get("feature_eligible") is True
             ):
                 self.prediction_event = event
@@ -1052,6 +1472,10 @@ class MSeriesRealtimeEngine:
         elif source == "spot" and stream == "trade":
             if not self._accept_spot_trade(event, set_current=True):
                 return
+        elif source == "spot" and stream == "bookTicker":
+            if self._event_price(event) is None:
+                return
+            self.spot_book_event = event
         elif source == "futures" and stream == "aggTrade":
             trade_id = event.get("trade_id")
             if trade_id is not None:
@@ -1131,13 +1555,56 @@ class MSeriesRealtimeEngine:
             prediction_received = int(
                 (self.prediction_event or {}).get("received_monotonic_ns") or 0
             )
-            spot_received = int((self.spot_event or {}).get("received_monotonic_ns") or 0)
+            latest_prediction_received = int(
+                (self.latest_rest_prediction_observation or {}).get(
+                    "received_monotonic_ns"
+                )
+                or 0
+            )
+            strategy_book_age_ms = (
+                (self._prediction_values(self.prediction_event, now_ns) or {}).get(
+                    "book_age_ms"
+                )
+                if prediction_received
+                else None
+            )
+            latest_prediction_receipt_age_ms = (
+                max(0.0, (now_ns - latest_prediction_received) / 1_000_000)
+                if latest_prediction_received
+                else None
+            )
+            latest_prediction_source_age_ms = _finite(
+                (self.latest_rest_prediction_observation or {}).get(
+                    "book_age_ms",
+                    (self.latest_rest_prediction_observation or {}).get(
+                        "prediction_book_version_age_ms"
+                    ),
+                )
+            )
+            latest_prediction_content_age_ms = (
+                latest_prediction_source_age_ms + latest_prediction_receipt_age_ms
+                if latest_prediction_source_age_ms is not None
+                and latest_prediction_receipt_age_ms is not None
+                else None
+            )
+            spot_signal_event, spot_price_source = self._spot_signal_event(now_ns)
+            spot_signal_age_ms = self._event_age_ms(now_ns, spot_signal_event)
+            spot_trade_ingress_age_ms = self._event_age_ms(
+                now_ns,
+                {"received_monotonic_ns": self.spot_trade_ingress_received_ns},
+            )
+            spot_trade_processed_age_ms = self._event_age_ms(
+                now_ns,
+                {"received_monotonic_ns": self.spot_trade_processed_received_ns},
+            )
+            spot_trade_age_ms = self._event_age_ms(now_ns, self.spot_event)
+            spot_book_age_ms = self._event_age_ms(now_ns, self.spot_book_event)
             futures_received = int(
                 (self.futures_event or {}).get("received_monotonic_ns") or 0
             )
             return {
                 "status": self.status,
-                "mode": "WEBSOCKET_EVENT_DRIVEN_PAPER",
+                "mode": "HYBRID_WS_WITH_DIRECT_REST_PREDICTION",
                 "paperOnly": True,
                 "marketId": self.market_id,
                 "eventRate": len(recent) / 5.0,
@@ -1163,19 +1630,59 @@ class MSeriesRealtimeEngine:
                 ),
                 "lastStoreDurationMs": self.last_store_duration_ms,
                 "spotAgeMs": (
-                    max(0.0, (now_ns - spot_received) / 1_000_000)
-                    if spot_received
-                    else None
+                    spot_signal_age_ms
                 ),
+                "spotPriceSource": spot_price_source,
+                "spotTradeAgeMs": spot_trade_age_ms,
+                "spotBookAgeMs": spot_book_age_ms,
+                "spotTradeIngressAgeMs": spot_trade_ingress_age_ms,
+                "spotTradeProcessedAgeMs": spot_trade_processed_age_ms,
                 "futuresAgeMs": (
                     max(0.0, (now_ns - futures_received) / 1_000_000)
                     if futures_received
                     else None
                 ),
-                "predictionBookAgeMs": (
+                # Keep predictionBookAgeMs as a compatibility alias for health
+                # checks and older dashboard clients.
+                "predictionBookAgeMs": strategy_book_age_ms,
+                "predictionStrategyBookAgeMs": strategy_book_age_ms,
+                "predictionLocalReceiptAgeMs": (
                     max(0.0, (now_ns - prediction_received) / 1_000_000)
                     if prediction_received
                     else None
+                ),
+                "predictionRestReceiptAgeMs": (
+                    latest_prediction_receipt_age_ms
+                    if (self.latest_rest_prediction_observation or {}).get(
+                        "prediction_data_source"
+                    )
+                    == "dual_token_rest"
+                    else None
+                ),
+                "predictionExchangeContentAgeMs": (
+                    latest_prediction_content_age_ms
+                    if (self.latest_rest_prediction_observation or {}).get(
+                        "prediction_data_source"
+                    )
+                    == "dual_token_rest"
+                    else None
+                ),
+                "predictionLatestRestEligible": (
+                    (self.latest_rest_prediction_observation or {}).get(
+                        "feature_eligible"
+                    )
+                    if (self.latest_rest_prediction_observation or {}).get(
+                        "prediction_data_source"
+                    )
+                    == "dual_token_rest"
+                    else None
+                ),
+                "predictionDataSource": (
+                    (self.prediction_event or {}).get("prediction_data_source")
+                    or "websocket"
+                ),
+                "predictionOrientation": (
+                    (self.prediction_event or {}).get("prediction_orientation")
                 ),
                 "schedulerTickMs": self.scheduler_tick_seconds * 1_000,
                 "m7EventReorderGraceMs": self.m7_event_reorder_grace_seconds * 1_000,

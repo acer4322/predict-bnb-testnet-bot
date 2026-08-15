@@ -7,7 +7,7 @@ name = "binance-prediction-paper-bot"
 version = "0.2.0"
 description = "Read-only BTC 5-minute Binance Prediction Trading paper bot"
 requires-python = ">=3.11"
-dependencies = ["httpx>=0.28,<1", "websocket-client>=1.8,<2"]
+dependencies = ["httpx>=0.28,<1", "requests>=2.32,<3", "websocket-client>=1.8,<2"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
