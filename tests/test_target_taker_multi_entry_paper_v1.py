@@ -6,6 +6,7 @@ import threading
 import pytest
 
 from predict_bot import predict_wallet_shadow_observer_v4_21 as v4_21
+from predict_bot import predict_wallet_shadow_observer_v4_22 as v4_22
 from predict_bot import target_taker_multi_entry_paper_v1 as multi
 
 
@@ -99,21 +100,26 @@ def test_same_market_accepts_multiple_distinct_trade_snapshots_and_dedupes_same_
     assert observer.target_taker_multi_entry_state["entryCount"] == 2
 
 
-def test_multi_entry_settlement_aggregates_every_entry_even_if_side_flips(
-    monkeypatch: pytest.MonkeyPatch,
+def _seed_three_entry_settled_market(
+    observer: _Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    observer = _Harness()
     observer._reset_market(100, None, "excluded")
     observer._reset_market(101, None, "active")
-
     decisions = iter([_trade("UP", 0.40), _trade("DOWN", 0.30), _trade("UP", 0.50)])
     monkeypatch.setattr(multi.public_side, "decide_side", lambda *_a, **_k: next(decisions))
     for index in range(3):
         observer._advance_target_taker_multi_entry(
             {}, snapshot_ns=1_000 + index, now_ms=10_000 + index
         )
-
     observer._store_market_result(101, {"title": "settled"}, "UP")
+
+
+def test_multi_entry_settlement_aggregates_every_entry_even_if_side_flips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observer = _Harness()
+    _seed_three_entry_settled_market(observer, monkeypatch)
+
     result = observer.db.execute(
         "SELECT * FROM wallet_target_taker_multi_entry_v1_results WHERE market_id=101"
     ).fetchone()
@@ -137,6 +143,29 @@ def test_multi_entry_settlement_aggregates_every_entry_even_if_side_flips(
     assert perf["winningEntries"] == 2
     assert perf["entryWinRate"] == pytest.approx(2 / 3)
     assert perf["averageEntriesPerTradedMarket"] == pytest.approx(3.0)
+
+
+def test_v422_reports_incremental_performance_of_entries_after_first(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seeded = _Harness()
+    _seed_three_entry_settled_market(seeded, monkeypatch)
+
+    observer = object.__new__(v4_22.WalletShadowObserver)
+    observer.db = seeded.db
+    observer.db_lock = seeded.db_lock
+    observer.retention_ms = seeded.retention_ms
+
+    perf = v4_22.WalletShadowObserver._target_taker_multi_entry_performance(observer)
+    later_up_shares = multi.public_side.execution(_trade("UP", 0.50))["shares"]
+    assert perf["laterEntries"] == 2
+    assert perf["laterWinningEntries"] == 1
+    assert perf["laterLosingEntries"] == 1
+    assert perf["laterEntryWinRate"] == pytest.approx(0.5)
+    assert perf["laterStakeUsdt"] == pytest.approx(2.0)
+    assert perf["laterPayoutUsdt"] == pytest.approx(later_up_shares)
+    assert perf["laterNetPnlUsdt"] == pytest.approx(later_up_shares - 2.0)
+    assert perf["laterNetRoi"] == pytest.approx((later_up_shares - 2.0) / 2.0)
 
 
 def test_snapshot_exposes_explicit_every_signal_policy() -> None:
