@@ -13,6 +13,59 @@ VERSION = "PREDICT_WALLET_SHADOW_V0_27_TARGET_TAKER_MULTI_ENTRY_PAPER_V1"
 class WalletShadowObserver(MultiEntryPaperMixin, v4_21.WalletShadowObserver):
     """V4.21 plus an isolated paper-only every-signal multi-entry experiment."""
 
+    def _target_taker_multi_entry_performance(self):
+        performance = super()._target_taker_multi_entry_performance()
+        cutoff = base._now_ms() - self.retention_ms
+        with self.db_lock:
+            rows = [
+                dict(row)
+                for row in self.db.execute(
+                    """SELECT e.market_id,e.side,e.stake_usdt,e.shares,r.winner
+                         FROM wallet_target_taker_multi_entry_v1_events e
+                         JOIN wallet_target_taker_multi_entry_v1_results r
+                           ON r.market_id=e.market_id
+                        WHERE r.resolved_at_ms>=?
+                        ORDER BY e.market_id,e.decision_at_ms,e.id""",
+                    (cutoff,),
+                )
+            ]
+        seen_markets: set[int] = set()
+        later_entries = later_wins = later_losses = 0
+        later_stake = later_payout = 0.0
+        for row in rows:
+            market_id = int(row["market_id"])
+            if market_id not in seen_markets:
+                seen_markets.add(market_id)
+                continue
+            later_entries += 1
+            stake = float(row["stake_usdt"] or 0.0)
+            shares = float(row["shares"] or 0.0)
+            side = str(row["side"] or "").upper()
+            winner = str(row["winner"] or "").upper()
+            won = side in {"UP", "DOWN"} and side == winner
+            later_wins += int(won)
+            later_losses += int(not won)
+            later_stake += stake
+            if won:
+                later_payout += shares
+        later_pnl = later_payout - later_stake
+        performance.update(
+            {
+                "laterEntries": later_entries,
+                "laterWinningEntries": later_wins,
+                "laterLosingEntries": later_losses,
+                "laterEntryWinRate": later_wins / later_entries if later_entries else None,
+                "laterStakeUsdt": later_stake,
+                "laterPayoutUsdt": later_payout,
+                "laterNetPnlUsdt": later_pnl,
+                "laterNetRoi": later_pnl / later_stake if later_stake > 0 else None,
+                "incrementalQuestion": (
+                    "Performance of entries after the first entry in each market; this is the direct test of whether removing the one-entry lock adds value."
+                ),
+            }
+        )
+        return performance
+
     def snapshot(self):
         payload = super().snapshot()
         payload["version"] = VERSION
