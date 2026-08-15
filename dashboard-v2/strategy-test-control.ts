@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Plugin } from 'vite'
 
-const PORT = 8780
+const PORT = 8782
 const MODULE = 'predict_bot.target_taker_public_side_test_v2'
 const RECOGNIZED_MODULES = [
   'predict_bot.target_taker_public_side_test_v1',
@@ -112,7 +112,7 @@ async function waitFor(expected: 'online' | 'offline', timeoutMs: number) {
     }
     await new Promise((resolve) => setTimeout(resolve, 300))
   }
-  throw new Error(`8780 strategy test did not become ${expected} within ${timeoutMs}ms`)
+  throw new Error(`8782 strategy test did not become ${expected} within ${timeoutMs}ms`)
 }
 
 async function writePid(root: string, pid: number) {
@@ -127,12 +127,12 @@ async function start(root: string) {
   const existing = await listener()
   if (existing) {
     if (!recognized(existing)) {
-      throw new Error(`Port 8780 is occupied by an unrecognized process. PID=${existing.pid} command=${existing.commandLine}`)
+      throw new Error(`Port 8782 is occupied by an unrecognized process. PID=${existing.pid} command=${existing.commandLine}`)
     }
     const runningModule = currentModule(existing)
     if (runningModule !== MODULE) {
       throw new Error(
-        `Port 8780 is still running ${runningModule || 'an older recognized strategy test'}. Use Restart so it can be safely replaced by ${MODULE}.`,
+        `Port 8782 is still running ${runningModule || 'an older recognized strategy test'}. Use Restart so it can be safely replaced by ${MODULE}.`,
       )
     }
     return { ok: true, unchanged: true, pid: existing.pid, module: runningModule, health: await probeHealth() }
@@ -152,7 +152,7 @@ async function start(root: string) {
       stdio: ['ignore', stdoutFd, stderrFd],
     })
     child.unref()
-    if (!child.pid) throw new Error('Failed to obtain PID for 8780 strategy test')
+    if (!child.pid) throw new Error('Failed to obtain PID for 8782 strategy test')
     pid = child.pid
   } finally {
     closeSync(stdoutFd)
@@ -170,7 +170,7 @@ async function stop(root: string) {
     return { ok: true, unchanged: true, verifiedPortClosed: true }
   }
   if (!recognized(existing)) {
-    throw new Error(`Port 8780 PID ${existing.pid} is not a recognized EBM strategy-test process; refusing to terminate it. command=${existing.commandLine}`)
+    throw new Error(`Port 8782 PID ${existing.pid} is not a recognized EBM strategy-test process; refusing to terminate it. command=${existing.commandLine}`)
   }
   const stoppedModule = currentModule(existing)
   try {
@@ -216,7 +216,7 @@ export function strategyTestControlPlugin(repoRoot: string): Plugin {
           return
         }
         if (busy) {
-          json(res, 409, { ok: false, error: '8780 strategy test lifecycle action already in progress' })
+          json(res, 409, { ok: false, error: '8782 strategy test lifecycle action already in progress' })
           return
         }
         busy = true
