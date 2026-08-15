@@ -61,10 +61,10 @@ export const useWalletShadowStore = create<WalletShadowStore>((set, get) => ({
       const started = performance.now()
       try {
         const response = await axios.get('/bridge/wallet-shadow', {
-          // The intentionally comprehensive 8776 snapshot can take 10-15s on
-          // the multi-GB research ledger. refreshInFlight still guarantees
-          // that the 3s UI timer cannot overlap these expensive reads.
-          timeout: 20000,
+          // TARGET_WALLET_OFFICIAL_V1 serves pre-aggregated official data and
+          // should remain responsive. Keep a bounded timeout so a DB/API bug
+          // cannot recreate the old overlapping 10-20 second dashboard reads.
+          timeout: 4000,
           headers: { Accept: 'application/json' },
         })
         set({
@@ -101,6 +101,9 @@ export const useWalletShadowStore = create<WalletShadowStore>((set, get) => ({
     }
   },
 
+  // Retained only for the separately preserved legacy Echtgeld page. The new
+  // 8776 Official collector intentionally exposes no /settings endpoint, and
+  // Target Wallet Research never calls this method.
   updateTargetTakerSettings: async (values) => {
     set({ targetTakerSaving: true, targetTakerSaveError: null })
     try {
