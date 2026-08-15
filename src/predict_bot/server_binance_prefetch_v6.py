@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import time
 from typing import Any
 
 # Install the optional lightweight observer patch before importing any server
@@ -14,6 +16,50 @@ from .strong_trend_guard_shadows import NORMALIZED_STAKE_USDT, STRATEGIES
 
 
 server = previous.server
+_ORIGINAL_DO_GET = server.Handler.do_GET
+
+
+def _client_disconnected(exc: BaseException) -> bool:
+    if isinstance(exc, (BrokenPipeError, ConnectionAbortedError, ConnectionResetError)):
+        return True
+    return isinstance(exc, OSError) and getattr(exc, "winerror", None) in {10053, 10054}
+
+
+def _do_get_with_lightweight_health(self: server.Handler) -> None:
+    request_path = self.path.split("?", 1)[0]
+    if request_path == "/health":
+        payload = {
+            "ok": True,
+            "status": "ONLINE",
+            "version": "SERVER_BINANCE_PREFETCH_V6_LIGHTWEIGHT_HEALTH_V1",
+            "generatedAtMs": int(time.time() * 1000),
+            "collectorStatus": str(server.COLLECTOR.status or ""),
+            "collectorError": server.COLLECTOR.error,
+            "processAlive": True,
+            "fullRealtimePath": "/api/realtime",
+            "healthDoesNotBuildDashboardState": True,
+        }
+        body = json.dumps(payload, separators=(",", ":"), default=str).encode("utf-8")
+        try:
+            self._headers(200)
+            self.wfile.write(body)
+        except BaseException as exc:
+            if not _client_disconnected(exc):
+                raise
+        return
+
+    try:
+        return _ORIGINAL_DO_GET(self)
+    except BaseException as exc:
+        # Browser/Vite health polling may abandon a request while the server is
+        # still serializing a larger dashboard payload. A disconnected reader is
+        # not an API crash and should not flood the shared supervisor stderr log.
+        if _client_disconnected(exc):
+            return
+        raise
+
+
+server.Handler.do_GET = _do_get_with_lightweight_health
 
 
 def backfill_strong_trend_runtime_config(
