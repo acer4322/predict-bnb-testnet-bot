@@ -75,7 +75,7 @@ async function listenerInfo(port: number): Promise<ProcessInfo | null> {
     '  $p=Get-CimInstance Win32_Process -Filter ("ProcessId=" + $c.OwningProcess) -ErrorAction SilentlyContinue',
     '  if($p){[pscustomobject]@{pid=[int]$p.ProcessId;commandLine=[string]$p.CommandLine} | ConvertTo-Json -Compress}',
     '}',
-  ].join(';')
+  ].join('\n')
   try {
     const raw = await powershell(script, 5_000)
     if (!raw) return null
@@ -93,7 +93,7 @@ async function processInfo(pid: number): Promise<ProcessInfo | null> {
   const script = [
     `$p=Get-CimInstance Win32_Process -Filter "ProcessId=${pid}" -ErrorAction SilentlyContinue`,
     'if($p){[pscustomobject]@{pid=[int]$p.ProcessId;commandLine=[string]$p.CommandLine} | ConvertTo-Json -Compress}',
-  ].join(';')
+  ].join('\n')
   try {
     const raw = await powershell(script, 5_000)
     if (!raw) return null
@@ -224,6 +224,38 @@ async function startMaker(root: string, def: MakerDefinition) {
     }
   }
 
+  // A previous Dashboard version may already have spawned this process and be
+  // waiting on its heavy /state endpoint. Do not create a duplicate merely
+  // because the listener is not ready yet; follow the verified owned PID first.
+  const existingOwned = await ownedPid(root, def)
+  if (existingOwned) {
+    const opened = await waitForPort(def.port, true, 15_000)
+    if (opened) {
+      const listener = await listenerInfo(def.port)
+      if (listener?.pid === existingOwned && commandMatches(listener, def)) {
+        return {
+          ok: true,
+          unchanged: true,
+          service: def.id,
+          state: 'ONLINE',
+          pid: existingOwned,
+          ownership: 'MANAGED_OR_LEGACY',
+          readiness: 'VERIFIED_EXISTING_LISTENER',
+        }
+      }
+      throw new Error(
+        `Port ${def.port} opened while verified ${def.label} PID ${existingOwned} was starting, ` +
+        `but listener ownership does not match. Refusing to spawn another process.`,
+      )
+    }
+    if (await processInfo(existingOwned)) {
+      throw new Error(
+        `${def.label} PID ${existingOwned} is already starting but has not opened port ${def.port} yet. ` +
+        'No duplicate process was started.',
+      )
+    }
+  }
+
   const launched = spawnMaker(root, def)
   const pidFile = join(root, def.pidFile)
   await fs.writeFile(pidFile, `${launched.pid}\n`, 'utf8')
@@ -318,7 +350,7 @@ async function restartMaker(root: string, def: MakerDefinition) {
 }
 
 function errorStatus(message: string) {
-  if (/EXTERNAL|unrecognized|different process|refusing|occupied/i.test(message)) return 409
+  if (/EXTERNAL|unrecognized|different process|refusing|occupied|already starting/i.test(message)) return 409
   if (/Windows hosts only/i.test(message)) return 501
   return 500
 }
