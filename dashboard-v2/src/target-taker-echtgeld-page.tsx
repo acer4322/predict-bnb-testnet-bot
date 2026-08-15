@@ -45,6 +45,7 @@ const rows = (value: unknown): RowObject[] => Array.isArray(value)
   ? value.filter((item): item is RowObject => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
   : []
 const num = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
 }
