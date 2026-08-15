@@ -35,6 +35,8 @@ const endpoints: Record<ServiceKey, string> = {
   multiMarket: '/bridge/multi-market',
 }
 
+let refreshInFlight: Promise<void> | null = null
+
 function isRecord(value: unknown): value is JsonRecord {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
@@ -349,43 +351,51 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     multiMarket: blank(),
   },
   refresh: async () => {
-    const previous = get().services
-    const [rawRealtime, rawPolyGap, rawCrossOracle, rawMultiMarket] = await Promise.all([
-      readService('realtime'),
-      readService('polyGap'),
-      readService('crossOracle'),
-      readService('multiMarket'),
-    ])
+    if (refreshInFlight) return refreshInFlight
+    refreshInFlight = (async () => {
+      const previous = get().services
+      const [rawRealtime, rawPolyGap, rawCrossOracle, rawMultiMarket] = await Promise.all([
+        readService('realtime'),
+        readService('polyGap'),
+        readService('crossOracle'),
+        readService('multiMarket'),
+      ])
 
-    const realtimeData = rawRealtime.ok
-      ? normalizeRealtime(rawRealtime.data)
-      : previous.realtime.data
-    const crossOracleData = rawCrossOracle.ok
-      ? normalizeCrossOracle(rawCrossOracle.data)
-      : previous.crossOracle.data
-    const polyGapData = rawPolyGap.ok
-      ? normalizePolyGap(rawPolyGap.data, realtimeData, crossOracleData)
-      : previous.polyGap.data
-    const multiMarketData = rawMultiMarket.ok
-      ? unwrapPayload(rawMultiMarket.data)
-      : previous.multiMarket.data
+      const realtimeData = rawRealtime.ok
+        ? normalizeRealtime(rawRealtime.data)
+        : previous.realtime.data
+      const crossOracleData = rawCrossOracle.ok
+        ? normalizeCrossOracle(rawCrossOracle.data)
+        : previous.crossOracle.data
+      const polyGapData = rawPolyGap.ok
+        ? normalizePolyGap(rawPolyGap.data, realtimeData, crossOracleData)
+        : previous.polyGap.data
+      const multiMarketData = rawMultiMarket.ok
+        ? unwrapPayload(rawMultiMarket.data)
+        : previous.multiMarket.data
 
-    set({
-      services: {
-        realtime: rawRealtime.ok
-          ? { ...rawRealtime, data: realtimeData }
-          : { ...rawRealtime, data: previous.realtime.data },
-        polyGap: rawPolyGap.ok
-          ? { ...rawPolyGap, data: polyGapData }
-          : { ...rawPolyGap, data: previous.polyGap.data },
-        crossOracle: rawCrossOracle.ok
-          ? { ...rawCrossOracle, data: crossOracleData }
-          : { ...rawCrossOracle, data: previous.crossOracle.data },
-        multiMarket: rawMultiMarket.ok
-          ? { ...rawMultiMarket, data: multiMarketData }
-          : { ...rawMultiMarket, data: previous.multiMarket.data },
-      },
-    })
+      set({
+        services: {
+          realtime: rawRealtime.ok
+            ? { ...rawRealtime, data: realtimeData }
+            : { ...rawRealtime, data: previous.realtime.data },
+          polyGap: rawPolyGap.ok
+            ? { ...rawPolyGap, data: polyGapData }
+            : { ...rawPolyGap, data: previous.polyGap.data },
+          crossOracle: rawCrossOracle.ok
+            ? { ...rawCrossOracle, data: crossOracleData }
+            : { ...rawCrossOracle, data: previous.crossOracle.data },
+          multiMarket: rawMultiMarket.ok
+            ? { ...rawMultiMarket, data: multiMarketData }
+            : { ...rawMultiMarket, data: previous.multiMarket.data },
+        },
+      })
+    })()
+    try {
+      await refreshInFlight
+    } finally {
+      refreshInFlight = null
+    }
   },
 }))
 
