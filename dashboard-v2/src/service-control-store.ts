@@ -50,7 +50,7 @@ type ServiceControlStore = {
   snapshot: ServiceControlSnapshot | null
   loading: boolean
   error: string | null
-  actionKey: string | null
+  actionKeys: string[]
   refresh: () => Promise<void>
   serviceAction: (id: string, action: ServiceAction) => Promise<void>
   groupAction: (id: string, action: ServiceAction) => Promise<void>
@@ -88,11 +88,19 @@ async function request(path: string, method: 'GET' | 'POST') {
   return payload
 }
 
+function addActionKey(keys: string[], key: string) {
+  return keys.includes(key) ? keys : [...keys, key]
+}
+
+function removeActionKey(keys: string[], key: string) {
+  return keys.filter((value) => value !== key)
+}
+
 export const useServiceControlStore = create<ServiceControlStore>((set, get) => ({
   snapshot: null,
   loading: false,
   error: null,
-  actionKey: null,
+  actionKeys: [],
 
   refresh: async () => {
     if (refreshPromise) return refreshPromise
@@ -114,26 +122,32 @@ export const useServiceControlStore = create<ServiceControlStore>((set, get) => 
 
   serviceAction: async (id, action) => {
     const key = `${id}:${action}`
-    set({ actionKey: key, error: null })
+    set((state) => ({ actionKeys: addActionKey(state.actionKeys, key), error: null }))
     try {
       await request(`/control/services/${encodeURIComponent(id)}/${action}`, 'POST')
-      set({ actionKey: null })
+      set((state) => ({ actionKeys: removeActionKey(state.actionKeys, key) }))
       await get().refresh()
     } catch (error) {
-      set({ actionKey: null, error: error instanceof Error ? error.message : String(error) })
+      set((state) => ({
+        actionKeys: removeActionKey(state.actionKeys, key),
+        error: error instanceof Error ? error.message : String(error),
+      }))
       throw error
     }
   },
 
   groupAction: async (id, action) => {
     const key = `group:${id}:${action}`
-    set({ actionKey: key, error: null })
+    set((state) => ({ actionKeys: addActionKey(state.actionKeys, key), error: null }))
     try {
       await request(`/control/service-groups/${encodeURIComponent(id)}/${action}`, 'POST')
-      set({ actionKey: null })
+      set((state) => ({ actionKeys: removeActionKey(state.actionKeys, key) }))
       await get().refresh()
     } catch (error) {
-      set({ actionKey: null, error: error instanceof Error ? error.message : String(error) })
+      set((state) => ({
+        actionKeys: removeActionKey(state.actionKeys, key),
+        error: error instanceof Error ? error.message : String(error),
+      }))
       throw error
     }
   },
