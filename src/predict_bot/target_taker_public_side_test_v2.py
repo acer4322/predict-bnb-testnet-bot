@@ -152,13 +152,16 @@ class TargetTakerPublicSideTest(v1.TargetTakerPublicSideTest):
 
 
 class Handler(v1.Handler):
-    collector: TargetTakerPublicSideTest
+    # v1.Handler.do_GET() expects the bound runtime under `self.test`.
+    # Keep the same attribute contract in V2; using `collector` here makes every
+    # /health and /state request raise AttributeError after the TCP connection is accepted.
+    test: TargetTakerPublicSideTest
 
 
 def main() -> int:
-    collector = TargetTakerPublicSideTest()
-    collector.start()
-    handler = type("TargetTakerPublicSideTestV2Handler", (Handler,), {"collector": collector})
+    test = TargetTakerPublicSideTest()
+    test.start()
+    handler = type("TargetTakerPublicSideTestV2Handler", (Handler,), {"test": test})
     server = ThreadingHTTPServer((v1.HOST, PORT), handler)
     print(
         f"{VERSION} listening on http://{v1.HOST}:{PORT}/state; "
@@ -172,7 +175,7 @@ def main() -> int:
         return 130
     finally:
         server.server_close()
-        collector.stop()
+        test.stop()
     return 0
 
 
