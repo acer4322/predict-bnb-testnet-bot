@@ -71,6 +71,15 @@ def _signal_db(path: Path) -> None:
     db.close()
 
 
+def _trainer_module(name: str):
+    path = Path(__file__).resolve().parents[1] / "tools" / "train_target_maker_direct_placement_v1.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_builder_uses_strict_pre_placement_and_keeps_zero_placement_markets(tmp_path: Path) -> None:
     maker = tmp_path / "maker.db"
     signal = tmp_path / "signal.db"
@@ -100,11 +109,7 @@ def test_builder_uses_strict_pre_placement_and_keeps_zero_placement_markets(tmp_
 
 
 def test_spanning_folds_include_latest_history() -> None:
-    path = Path(__file__).resolve().parents[1] / "tools" / "train_target_maker_direct_placement_v1.py"
-    spec = importlib.util.spec_from_file_location("maker_direct_trainer", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = _trainer_module("maker_direct_trainer")
     markets = list(range(1, 101))
     folds = module._spanning_folds(markets, min_train=20, test_markets=10, max_folds=4)
     assert len(folds) == 4
@@ -114,11 +119,17 @@ def test_spanning_folds_include_latest_history() -> None:
 
 
 def test_side_feature_sets_are_target_blind() -> None:
-    path = Path(__file__).resolve().parents[1] / "tools" / "train_target_maker_direct_placement_v1.py"
-    spec = importlib.util.spec_from_file_location("maker_direct_trainer_contract", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = _trainer_module("maker_direct_trainer_contract")
     forbidden = ("target_", "chosen_", "label_", "placement_", "parent_")
     for features in module.SIDE_FEATURE_SETS.values():
         assert all(not feature.startswith(forbidden) for feature in features)
+
+
+def test_validate_preset_only_runs_shortlisted_tasks() -> None:
+    module = _trainer_module("maker_direct_validation_preset")
+    plan = module._research_plan("validate")
+    assert plan["hazardHorizons"] == (2, 5)
+    assert tuple(plan["hazardFeatureSets"].keys()) == ("time_price", "compact_public", "full_public")
+    assert tuple(plan["sideFeatureSets"].keys()) == ("time_price", "full_public")
+    assert plan["levelLabels"] == ("label_at_or_improves_best_bid", "label_near_best_2ticks")
+    assert tuple(plan["levelFeatureSets"].keys()) == ("compact_level", "full_conditional")
