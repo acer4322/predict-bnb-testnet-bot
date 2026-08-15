@@ -57,7 +57,7 @@ def _signal_db(path: Path) -> None:
     def insert(ts: int, market: int, up_bid: float, direction: float) -> None:
         down_bid = 1.0 - up_bid - 0.02
         values = [
-            ts * 1_000_000,ts,market,100.0,
+            ts * 1_000_000 + market,ts,market,100.0,
             up_bid,up_bid+0.02,up_bid+0.01,down_bid,down_bid+0.02,down_bid+0.01,
             0.1,0.1,0.1,0.2,0.3,0.4,0.5,-0.1,-0.1,-0.1,-0.2,-0.3,-0.4,-0.5,1.0,2.0,1.5,0.5,direction,
         ]
