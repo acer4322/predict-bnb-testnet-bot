@@ -42,11 +42,17 @@ def test_retired_dashboard_panels_are_compatibility_stubs() -> None:
         assert "return null" in text
 
 
-def test_launcher_uses_v21_8778_and_latest_v4_19_8776() -> None:
+def test_launcher_uses_v21_collectors_and_v4_21_dashboard_control_8776() -> None:
     text = (ROOT / "start-wallet-shadow-lab.ps1").read_text(encoding="utf-8")
     assert "predict_bot.predict_wallet_maker_book_inference_collector_v2_1" in text
-    assert "predict_bot.predict_wallet_shadow_observer_v4_19" in text
-    assert "predict_bot.predict_wallet_shadow_observer_v4_16" not in text
+    assert '-ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_21")' in text
+    assert '$env:PREDICT_TARGET_TAKER_LIVE_MODE = "paper"' in text
+    assert 'Contains("DASHBOARD_CONTROL_V1")' in text
+    assert "Target Taker Echtgeld is PAUSED by default" in text
+    # Older module names may appear only in the verified stale-process allowlist;
+    # they must never be the module passed to Start-Process.
+    assert '-ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_19")' not in text
+    assert '-ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_16")' not in text
     stop_text = (ROOT / "stop-wallet-shadow-lab.ps1").read_text(encoding="utf-8")
     assert "Save-WalletShadowWarmCache" in stop_text
     assert "wallet-shadow-last-good-state.json" in stop_text
