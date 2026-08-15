@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { makerServiceControlPlugin } from './maker-service-control'
-import { serviceManagerPlugin } from './service-manager'
+import { serviceManagerV2Plugin } from './service-manager-v2'
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 
@@ -48,7 +48,7 @@ function localhostControlGuard(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [localhostControlGuard(), makerServiceControlPlugin(repoRoot), serviceManagerPlugin(repoRoot), react()],
+  plugins: [localhostControlGuard(), makerServiceControlPlugin(repoRoot), serviceManagerV2Plugin(repoRoot), react()],
   server: {
     host: '0.0.0.0',
     port: 4320,
@@ -152,11 +152,6 @@ export default defineConfig({
         target: 'http://127.0.0.1:8781',
         changeOrigin: false,
         rewrite: () => '/control/settings',
-      },
-      '/control/target-taker-v1': {
-        target: 'http://127.0.0.1:8776',
-        changeOrigin: false,
-        rewrite: () => '/settings',
       },
       '/control/btc-live': {
         target: 'http://127.0.0.1:8769',
