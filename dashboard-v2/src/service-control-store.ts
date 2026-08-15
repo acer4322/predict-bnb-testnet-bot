@@ -1,0 +1,140 @@
+import { create } from 'zustand'
+
+export type ServiceOwnership = 'MANAGED' | 'LEGACY_MANAGED' | 'EXTERNAL' | 'NONE' | 'SELF'
+export type ServiceRuntimeState = 'ONLINE' | 'OFFLINE' | 'PARTIAL' | 'CONFLICT' | 'CRASHED'
+export type ServiceAction = 'start' | 'stop' | 'restart'
+
+export type ServicePortStatus = {
+  port: number
+  label: string
+  required: boolean
+  healthy: boolean
+  httpStatus: number | null
+  pid: number | null
+  commandRecognized: boolean | null
+}
+
+export type ManagedServiceStatus = {
+  id: string
+  label: string
+  description: string
+  mode: 'direct' | 'script' | 'self'
+  state: ServiceRuntimeState
+  ownership: ServiceOwnership
+  rootPid: number | null
+  pids: number[]
+  startedAt: number | null
+  controllable: boolean
+  canStart: boolean
+  canStop: boolean
+  canRestart: boolean
+  safetyNote: string | null
+  runtime: {
+    armed?: boolean
+    runtimeStatus?: string | null
+    version?: string | null
+  } | null
+  ports: ServicePortStatus[]
+}
+
+export type ServiceControlSnapshot = {
+  ok: boolean
+  generatedAt: number
+  hostControl: boolean
+  dashboardRestartExternal: boolean
+  groups: Array<{ id: string; label: string }>
+  services: ManagedServiceStatus[]
+}
+
+type ServiceControlStore = {
+  snapshot: ServiceControlSnapshot | null
+  loading: boolean
+  error: string | null
+  actionKey: string | null
+  refresh: () => Promise<void>
+  serviceAction: (id: string, action: ServiceAction) => Promise<void>
+  groupAction: (id: string, action: ServiceAction) => Promise<void>
+}
+
+let token: string | null = null
+let refreshPromise: Promise<void> | null = null
+
+async function controlToken() {
+  if (token) return token
+  const response = await fetch('/control/session', { method: 'GET', cache: 'no-store', headers: { Accept: 'application/json' } })
+  const payload = await response.json().catch(() => null) as Record<string, unknown> | null
+  if (!response.ok) throw new Error(payload?.error ? String(payload.error) : `Control session unavailable (HTTP ${response.status})`)
+  const value = String(payload?.token || '')
+  if (!value) throw new Error('Control session returned no token')
+  token = value
+  return value
+}
+
+async function request(path: string, method: 'GET' | 'POST') {
+  const sessionToken = await controlToken()
+  const response = await fetch(path, {
+    method,
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      'X-BTC-Lab-Control': sessionToken,
+    },
+  })
+  const payload = await response.json().catch(() => null) as Record<string, unknown> | null
+  if (!response.ok) {
+    if (response.status === 403) token = null
+    throw new Error(payload?.error ? String(payload.error) : `HTTP ${response.status}`)
+  }
+  return payload
+}
+
+export const useServiceControlStore = create<ServiceControlStore>((set, get) => ({
+  snapshot: null,
+  loading: false,
+  error: null,
+  actionKey: null,
+
+  refresh: async () => {
+    if (refreshPromise) return refreshPromise
+    refreshPromise = (async () => {
+      set({ loading: true })
+      try {
+        const payload = await request('/control/services', 'GET') as unknown as ServiceControlSnapshot
+        set({ snapshot: payload, loading: false, error: null })
+      } catch (error) {
+        set({ loading: false, error: error instanceof Error ? error.message : String(error) })
+      }
+    })()
+    try {
+      await refreshPromise
+    } finally {
+      refreshPromise = null
+    }
+  },
+
+  serviceAction: async (id, action) => {
+    const key = `${id}:${action}`
+    set({ actionKey: key, error: null })
+    try {
+      await request(`/control/services/${encodeURIComponent(id)}/${action}`, 'POST')
+      set({ actionKey: null })
+      await get().refresh()
+    } catch (error) {
+      set({ actionKey: null, error: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
+  },
+
+  groupAction: async (id, action) => {
+    const key = `group:${id}:${action}`
+    set({ actionKey: key, error: null })
+    try {
+      await request(`/control/service-groups/${encodeURIComponent(id)}/${action}`, 'POST')
+      set({ actionKey: null })
+      await get().refresh()
+    } catch (error) {
+      set({ actionKey: null, error: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
+  },
+}))
