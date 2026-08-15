@@ -53,6 +53,13 @@ function Get-ProcessCommandLine([int]$ProcessId) {
     catch { return "" }
 }
 
+function Import-UserEnvironment([string]$Name) {
+    $Value = [Environment]::GetEnvironmentVariable($Name, "User")
+    if (-not [string]::IsNullOrWhiteSpace($Value)) {
+        Set-Item -Path "Env:$Name" -Value $Value
+    }
+}
+
 function Assert-PausedLiveServices {
     foreach ($Port in @(8769, 8772, 8773, 8774, 8775)) {
         if (-not (Test-LocalService "http://127.0.0.1:${Port}/state")) { continue }
@@ -137,18 +144,36 @@ if (-not $KeepExistingStack) {
     }
 }
 
-$UserPredictKey = [Environment]::GetEnvironmentVariable("PREDICT_FUN_API_KEY", "User")
-if ($UserPredictKey) { $env:PREDICT_FUN_API_KEY = $UserPredictKey }
+@(
+    "PREDICT_FUN_API_KEY",
+    "PREDICT_FUN_PRIVATE_KEY",
+    "PREDICT_FUN_PRIVY_PRIVATE_KEY",
+    "PREDICT_FUN_ACCOUNT_ADDRESS",
+    "PREDICT_FUN_JWT",
+    "BINANCE_API_KEY",
+    "BINANCE_API_SECRET",
+    "PREDICT_TARGET_TAKER_BINANCE_WALLET_ADDRESS",
+    "PREDICT_TARGET_TAKER_BINANCE_WALLET_ID",
+    "PREDICT_TARGET_TAKER_BINANCE_ACCOUNT_TYPE"
+) | ForEach-Object { Import-UserEnvironment $_ }
+
 if ([string]::IsNullOrWhiteSpace($env:PREDICT_FUN_API_KEY)) {
     throw "PREDICT_FUN_API_KEY is required for the read-only 8771 market feed. Configure it as a User environment variable first."
 }
 
-# These child processes are research-only. They never inherit an enabled live runtime.
+# Research cohorts remain paper-only. Target Taker v4.21 is the only isolated
+# runtime-controllable Echtgeld path, and it always starts PAUSED here. The
+# localhost Dashboard session token is required before it can be resumed.
 $env:PREDICT_LIVE_ENABLED = "false"
 $env:PREDICT_POLY_GAP_LIVE_ENABLED = "false"
 $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED = "false"
 $env:PREDICT_BNB_POLY_GAP_LIVE_ENABLED = "false"
 $env:PREDICT_WALLET_SHADOW_LEGACY_COHORTS_ENABLED = "false"
+$env:PREDICT_TARGET_TAKER_LIVE_MODE = "paper"
+$env:PREDICT_TARGET_TAKER_LIVE_VENUE = "predictfun"
+$env:PREDICT_TARGET_TAKER_LIVE_NOTIONAL_USDT = "1"
+$env:PREDICT_TARGET_TAKER_LIVE_MAX_PRICE_DRIFT = "0.02"
+$env:PREDICT_TARGET_TAKER_LIVE_COHORT = "TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY"
 $env:PREDICT_MICRO_RAW_RETENTION_HOURS = "6"
 $env:PREDICT_MICRO_SNAPSHOT_RETENTION_HOURS = "72"
 $env:PREDICT_MICRO_LIQUIDITY_RETENTION_HOURS = "72"
@@ -203,17 +228,53 @@ try {
     }
     else { Write-Host "Wallet Shadow Lab: reusing the current paper-only 8777 Taker signal collector." }
 
-    Assert-KnownListener 8776 "predict_bot.predict_wallet_shadow_observer_v4_19" "Wallet Shadow observer"
-    if (-not (Test-LocalService "http://127.0.0.1:8776/health" 5)) {
-        Write-Host "Wallet Shadow Lab: starting latest paper-only Wallet Shadow observer v4.19 on 8776."
+    $ShadowPid = Get-ListeningProcessId 8776
+    if ($ShadowPid) {
+        $ShadowCommand = Get-ProcessCommandLine $ShadowPid
+        $ShadowLower = $ShadowCommand.ToLowerInvariant()
+        $KnownWalletShadow = (
+            $ShadowLower.Contains("predict_bot.predict_wallet_shadow_observer_v4_16") -or
+            $ShadowLower.Contains("predict_bot.predict_wallet_shadow_observer_v4_17") -or
+            $ShadowLower.Contains("predict_bot.predict_wallet_shadow_observer_v4_18") -or
+            $ShadowLower.Contains("predict_bot.predict_wallet_shadow_observer_v4_19") -or
+            $ShadowLower.Contains("predict_bot.predict_wallet_shadow_observer_v4_20") -or
+            $ShadowLower.Contains("predict_bot.predict_wallet_shadow_observer_v4_21")
+        )
+        if (-not $KnownWalletShadow) {
+            throw "Port 8776 is occupied by an unrecognized process. Refusing to terminate it. PID=$ShadowPid command=$ShadowCommand"
+        }
+
+        $CanReuseShadow = $false
+        if ($ShadowLower.Contains("predict_bot.predict_wallet_shadow_observer_v4_21")) {
+            $ExistingShadow = Get-JsonPayload "http://127.0.0.1:8776/health" 5
+            $ExistingShadowState = if ($ExistingShadow.state) { $ExistingShadow.state } else { $ExistingShadow }
+            $CanReuseShadow = ([string]$ExistingShadowState.version).Contains("DASHBOARD_CONTROL_V1") -and
+                ($null -ne $ExistingShadowState.targetTakerLiveV1)
+        }
+
+        if ($CanReuseShadow) {
+            Write-Host "Wallet Shadow Lab: reusing current v4.21 Dashboard-control observer on 8776."
+        }
+        else {
+            Write-Warning "Wallet Shadow Lab: replacing stale known Wallet Shadow observer on 8776 (PID=$ShadowPid) with v4.21 Dashboard-control backend."
+            & taskkill.exe /PID $ShadowPid /T /F | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to stop stale Wallet Shadow observer PID=$ShadowPid."
+            }
+            Start-Sleep -Milliseconds 500
+            $ShadowPid = $null
+        }
+    }
+
+    if (-not $ShadowPid) {
+        Write-Host "Wallet Shadow Lab: starting Wallet Shadow v4.21 on 8776 in PAUSED Target Taker mode."
         $Shadow = Start-Process -FilePath "python" `
-            -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_19") `
+            -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_21") `
             -WorkingDirectory $Root -WindowStyle Hidden `
             -RedirectStandardOutput (Join-Path $Data "wallet-shadow-lab-observer.stdout.log") `
             -RedirectStandardError (Join-Path $Data "wallet-shadow-lab-observer.stderr.log") -PassThru
         $Shadow.Id | Set-Content (Join-Path $Root ".wallet-shadow-lab-observer.pid")
     }
-    else { Write-Host "Wallet Shadow Lab: reusing the latest paper-only 8776 observer." }
 
     $WebPid = Get-ListeningProcessId 4320
     if ($WebPid) {
@@ -256,13 +317,20 @@ try {
 
     $ShadowPayload = Get-JsonPayload "http://127.0.0.1:8776/health" 5
     $ShadowState = if ($ShadowPayload.state) { $ShadowPayload.state } else { $ShadowPayload }
-    if (-not ([string]$ShadowState.version).StartsWith("PREDICT_WALLET_SHADOW_")) {
-        throw "8776 returned an unexpected version: $($ShadowState.version)"
+    if (-not ([string]$ShadowState.version).Contains("DASHBOARD_CONTROL_V1")) {
+        throw "8776 returned a stale/non-controllable Wallet Shadow version: $($ShadowState.version)"
+    }
+    if ($null -eq $ShadowState.targetTakerLiveV1) {
+        throw "8776 v4.21 did not expose targetTakerLiveV1 runtime control state."
+    }
+    if ([bool]$ShadowState.targetTakerLiveV1.runtimeEnabled) {
+        throw "Wallet Shadow Lab must start Target Taker PAUSED, but 8776 reported runtimeEnabled=true."
     }
 
     Write-Host "Wallet Shadow Lab ready: http://localhost:4320/wallet-shadow"
-    Write-Host "Started research path: 8771 + 8778 BTC lifecycle inference + 8779 ETH book + 8777 public Taker signals + 8776 v4.19 + 4320."
-    Write-Host "8776 version=$($ShadowState.version); status=$($ShadowState.status); report=$($ShadowState.reportStatus); public-side Taker A/B is paper-only."
+    Write-Host "Started research path: 8771 + 8778 BTC lifecycle inference + 8779 ETH book + 8777 public Taker signals + 8776 v4.21 + 4320."
+    Write-Host "8776 version=$($ShadowState.version); Target Taker runtime=$($ShadowState.targetTakerLiveV1.runtimeStatus); public-side paper cohorts and Auto Bankroll remain active."
+    Write-Host "Target Taker Echtgeld is PAUSED by default and can only be resumed through localhost Dashboard control."
     if (-not $NoBrowser) { Start-Process "http://localhost:4320/wallet-shadow" }
 }
 catch {

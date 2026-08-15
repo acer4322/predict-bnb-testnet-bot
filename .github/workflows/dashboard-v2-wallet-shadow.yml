@@ -35,19 +35,24 @@ jobs:
       - name: Compile Maker and Taker research tools
         run: python -m py_compile src/predict_bot/target_maker_ebm_dataset.py src/predict_bot/target_maker_ebm_v3_dataset.py src/predict_bot/target_maker_direct_placement_v1.py src/predict_bot/target_maker_taker_link.py src/predict_bot/target_maker_taker_link_v2.py src/predict_bot/target_maker_taker_state_link_v3.py src/predict_bot/target_taker_behavior_v1.py src/predict_bot/target_eth_taker_behavior_v1.py src/predict_bot/target_eth_taker_hazard_v1.py src/predict_bot/predict_wallet_eth_taker_signal_collector.py src/predict_bot/predict_wallet_reconstructed_maker_strategy_v3.py src/predict_bot/predict_wallet_lifecycle_state_taker_strategy_v4.py src/predict_bot/predict_wallet_target_taker_public_side_strategy_v1.py src/predict_bot/target_taker_auto_bankroll_v1.py src/predict_bot/predict_wallet_maker_ebm_strategy_v1.py src/predict_bot/target_taker_live_execution_v3.py src/predict_bot/target_taker_live_execution_v4.py src/predict_bot/predict_wallet_shadow_observer_v4_17.py src/predict_bot/predict_wallet_shadow_observer_v4_18.py src/predict_bot/predict_wallet_shadow_observer_v4_19.py src/predict_bot/predict_wallet_shadow_observer_v4_20.py src/predict_bot/predict_wallet_shadow_observer_v4_21.py tools/build_target_maker_ebm_dataset.py tools/build_target_maker_ebm_v3_dataset.py tools/build_target_maker_direct_placement_v1_dataset.py tools/build_target_maker_taker_state_link_v3_dataset.py tools/build_target_taker_behavior_v1_dataset.py tools/build_target_eth_taker_behavior_v1_dataset.py tools/build_target_eth_taker_hazard_v1_dataset.py tools/train_target_maker_ebm.py tools/train_target_maker_ebm_v2.py tools/train_target_maker_ebm_v3.py tools/train_target_maker_direct_placement_v1.py tools/train_target_maker_direct_runtime_v1.py tools/train_target_maker_taker_state_link_v3.py tools/train_target_taker_behavior_v1.py tools/train_target_eth_taker_behavior_v1.py tools/analyze_target_maker_taker_link.py tools/analyze_target_maker_taker_link_v2.py
 
-      - name: Parse Target Taker PowerShell launcher
+      - name: Parse Target Taker PowerShell launchers
         shell: pwsh
         run: |
-          $tokens = $null
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path "start-target-taker-public-side-v1.ps1"),
-            [ref]$tokens,
-            [ref]$errors
-          ) | Out-Null
-          if ($errors.Count -gt 0) {
-            $errors | ForEach-Object { Write-Error $_.Message }
-            exit 1
+          foreach ($path in @(
+            "start-target-taker-public-side-v1.ps1",
+            "start-wallet-shadow-lab.ps1"
+          )) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $path),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error "$path`: $($_.Message)" }
+              exit 1
+            }
           }
 
       - uses: actions/setup-node@v4
