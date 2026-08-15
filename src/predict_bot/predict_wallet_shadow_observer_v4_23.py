@@ -15,14 +15,14 @@ from .target_taker_live_execution_v4 import TargetTakerLiveConfig, TargetTakerLi
 
 
 VERSION = "PREDICT_WALLET_SHADOW_V0_28_ECHTGELD_INTENT_PRODUCER_V1"
-ENGINE_URL = str(os.environ.get("PREDICT_ECHTGELD_ENGINE_URL") or "http://127.0.0.1:8780").rstrip("/")
+ENGINE_URL = str(os.environ.get("PREDICT_ECHTGELD_ENGINE_URL") or "http://127.0.0.1:8781").rstrip("/")
 
 
 class WalletShadowObserver(v4_22.WalletShadowObserver):
     """V4.22 research observer with embedded Echtgeld disabled.
 
     SIDE_ONLY / HAZARD_SIDE still produce their normal paper event. A newly
-    created paper event is then copied once to the independent 8780 Echtgeld
+    created paper event is then copied once to the independent 8781 Echtgeld
     Engine as a durable TradeIntent. Venue access, credentials, arming, risk and
     order submission no longer live in this process.
     """
@@ -63,7 +63,7 @@ class WalletShadowObserver(v4_22.WalletShadowObserver):
 
     def update_target_taker_live_settings(self, values: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(
-            "Embedded Target Taker Echtgeld is retired on v4.23. Use the standalone Echtgeld Engine on port 8780."
+            "Embedded Target Taker Echtgeld is retired on v4.23. Use the standalone Echtgeld Engine on port 8781."
         )
 
     def _publish_echtgeld_intent(
