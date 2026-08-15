@@ -12,6 +12,13 @@ os.environ["PREDICT_WALLET_MAKER_BOOK_DB"] = os.environ.get(
     "PREDICT_WALLET_MAKER_BOOK_ETH5M_DB",
     str(root / "data" / "wallet_maker_book_inference_eth5m.db"),
 )
+# The current ETH collector still polls target matches directly, but pin the
+# retained target DB to the new official ledger as well so future shared-source
+# logic cannot silently fall back to the retired Wallet Shadow database.
+os.environ["PREDICT_WALLET_SHADOW_DB"] = os.environ.get(
+    "PREDICT_TARGET_WALLET_OFFICIAL_DB",
+    str(root / "data" / "target_wallet_official_v1.db"),
+)
 
 from .predict_wallet_maker_book_inference_collector import main  # noqa: E402
 
