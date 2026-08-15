@@ -25,6 +25,7 @@ import PinnedDivergencePage from './pinned-divergence-page'
 import WalletClonePage from './wallet-clone-page-v84'
 import WalletShadowPage from './wallet-shadow-page'
 import WalletShadowTargetTakerPublicSideV1Panel from './wallet-shadow-target-taker-public-side-v1-panel'
+import WalletShadowMakerEbmV1Panel from './wallet-shadow-maker-ebm-v1-panel'
 import {
   DiagnosticsPage,
   LivePage,
@@ -48,6 +49,7 @@ const menuItems: MenuProps['items'] = [
   { key: '/', icon: <DashboardOutlined />, label: '總覽' },
   { key: '/live-markets', icon: <DollarOutlined />, label: 'Live Markets' },
   { key: '/target-taker-v1', icon: <ExperimentOutlined />, label: 'Target Taker V1' },
+  { key: '/maker-ebm-v1', icon: <ExperimentOutlined />, label: 'Maker EBM V1' },
   { key: '/wallet-shadow', icon: <ExperimentOutlined />, label: 'Wallet Shadow Lab' },
   { key: '/wallet-clone', icon: <SwapOutlined />, label: 'Wallet Maker Clone' },
   { key: '/pinned-divergence', icon: <AimOutlined />, label: 'Pinned Divergence' },
@@ -111,7 +113,7 @@ function Shell() {
   }, [refreshWalletLabHealth])
 
   useEffect(() => {
-    if (!['/wallet-shadow', '/target-taker-v1'].includes(location.pathname)) return
+    if (!['/wallet-shadow', '/target-taker-v1', '/maker-ebm-v1'].includes(location.pathname)) return
     let cancelled = false
     const tick = () => {
       if (!cancelled && document.visibilityState === 'visible') void refreshWalletShadow()
@@ -193,6 +195,7 @@ function Shell() {
             <Route path="/" element={<><OverviewPage /><CrossOracleStorageCard /></>} />
             <Route path="/live-markets" element={<LiveMarketsPage />} />
             <Route path="/target-taker-v1" element={<WalletShadowTargetTakerPublicSideV1Panel />} />
+            <Route path="/maker-ebm-v1" element={<WalletShadowMakerEbmV1Panel />} />
             <Route path="/wallet-shadow" element={<WalletShadowPage />} />
             <Route path="/wallet-clone" element={<WalletClonePage />} />
             <Route path="/pinned-divergence" element={<PinnedDivergencePage />} />
