@@ -16,12 +16,7 @@ BALANCE_ACCOUNT_TYPE_ENV = "PREDICT_ECHTGELD_BINANCE_BALANCE_ACCOUNT_TYPE"
 
 
 def binance_prediction_payment_options(payload: Any) -> list[dict[str, Any]]:
-    """Normalize the old 4310/XPAIR Prediction payment-options response.
-
-    The proven legacy endpoint returns rows such as accountType=CeDeFi with an
-    availableBalanceDisplay string. This helper is deliberately display/read
-    only; live order funding semantics remain in the hardened V4 executor.
-    """
+    """Normalize the old 4310/XPAIR Prediction payment-options response."""
 
     if not isinstance(payload, dict):
         return []
@@ -39,41 +34,67 @@ def binance_prediction_payment_options(payload: Any) -> list[dict[str, Any]]:
         account_type = str(row.get("accountType") or "").strip()
         if not account_type:
             continue
-        available = _display_balance_number(row.get("availableBalanceDisplay"))
         output.append(
             {
                 "accountType": account_type,
                 "enabled": row.get("enabled") is True,
-                "availableUsdt": available,
+                "availableUsdt": _display_balance_number(row.get("availableBalanceDisplay")),
             }
         )
     return output
 
 
+def _aggregate_payment_type(options: list[dict[str, Any]], account_type: str) -> dict[str, Any] | None:
+    wanted = str(account_type or "").strip().upper()
+    matching = [
+        row
+        for row in options
+        if row.get("enabled") is True
+        and row.get("availableUsdt") is not None
+        and str(row.get("accountType") or "").strip().upper() == wanted
+    ]
+    if not matching:
+        return None
+    return {
+        "accountType": str(matching[0]["accountType"]),
+        "enabled": True,
+        "availableUsdt": sum(float(row["availableUsdt"]) for row in matching),
+        "rows": len(matching),
+    }
+
+
 def select_prediction_payment_balance(
     options: list[dict[str, Any]], *, preferred_account_type: str | None = None
 ) -> dict[str, Any] | None:
-    enabled = [
-        row
-        for row in options
-        if row.get("enabled") is True and row.get("availableUsdt") is not None
-    ]
-    if not enabled:
+    enabled_types: list[str] = []
+    for row in options:
+        if row.get("enabled") is not True or row.get("availableUsdt") is None:
+            continue
+        account_type = str(row.get("accountType") or "").strip()
+        if account_type and account_type.upper() not in {item.upper() for item in enabled_types}:
+            enabled_types.append(account_type)
+    if not enabled_types:
         return None
 
-    preferred = str(preferred_account_type or "").strip().upper()
+    preferred = str(preferred_account_type or "").strip()
     if preferred:
-        for row in enabled:
-            if str(row.get("accountType") or "").strip().upper() == preferred:
-                return row
+        selected = _aggregate_payment_type(options, preferred)
+        if selected is not None:
+            return selected
 
-    # The old 4310/XPAIR live page discovered the funded Prediction source as
-    # CeDeFi while SPOT/FUNDING were zero. Preserve that proven preference, then
-    # fall back to the largest enabled source rather than silently summing types.
-    for row in enabled:
-        if str(row.get("accountType") or "").strip().upper() == "CEDEFI":
-            return row
-    return max(enabled, key=lambda row: float(row.get("availableUsdt") or 0.0))
+    # Exact old XPAIR/CeDeFi behavior: Prediction funding was found under
+    # accountType=CeDeFi while SPOT/FUNDING were zero, and matching enabled rows
+    # were summed before the balance check.
+    selected = _aggregate_payment_type(options, "CeDeFi")
+    if selected is not None:
+        return selected
+
+    aggregated = [
+        item
+        for account_type in enabled_types
+        if (item := _aggregate_payment_type(options, account_type)) is not None
+    ]
+    return max(aggregated, key=lambda row: float(row.get("availableUsdt") or 0.0)) if aggregated else None
 
 
 class TargetTakerLiveExecutor(_V4TargetTakerLiveExecutor):
@@ -106,6 +127,7 @@ class TargetTakerLiveExecutor(_V4TargetTakerLiveExecutor):
                 "availableUsdt": float(selected["availableUsdt"]),
                 "source": "binance_prediction.payment-options",
                 "accountType": str(selected["accountType"]),
+                "paymentSourceRows": int(selected.get("rows") or 1),
                 "paymentSourceStatus": "OK",
                 "paymentOptions": options,
                 "mpcWalletAvailableUsdt": mpc.get("availableUsdt"),
@@ -117,8 +139,6 @@ class TargetTakerLiveExecutor(_V4TargetTakerLiveExecutor):
                 ),
             }
         except Exception as exc:
-            # Do not hide a valid MPC wallet diagnostic merely because the old
-            # Prediction payment-source endpoint is temporarily unavailable.
             return {
                 **mpc,
                 "paymentSourceStatus": "UNAVAILABLE",
