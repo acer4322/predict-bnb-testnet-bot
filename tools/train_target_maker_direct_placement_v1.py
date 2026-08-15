@@ -71,6 +71,49 @@ LEVEL_FEATURE_SETS = {
     "full_conditional": LEVEL_MODEL_FEATURES,
 }
 
+VALIDATE_HAZARD_FEATURE_SETS = {
+    "time_price": HAZARD_FEATURE_SETS["time_price"],
+    "compact_public": HAZARD_FEATURE_SETS["compact_public"],
+    "full_public": HAZARD_FEATURE_SETS["full_public"],
+}
+VALIDATE_SIDE_FEATURE_SETS = {
+    "time_price": SIDE_FEATURE_SETS["time_price"],
+    "full_public": SIDE_FEATURE_SETS["full_public"],
+}
+VALIDATE_LEVEL_FEATURE_SETS = {
+    "compact_level": LEVEL_FEATURE_SETS["compact_level"],
+    "full_conditional": LEVEL_FEATURE_SETS["full_conditional"],
+}
+ALL_LEVEL_LABELS = (
+    "label_at_or_improves_best_bid",
+    "label_near_best_1tick",
+    "label_near_best_2ticks",
+)
+VALIDATE_LEVEL_LABELS = (
+    "label_at_or_improves_best_bid",
+    "label_near_best_2ticks",
+)
+
+
+def _research_plan(preset: str) -> dict[str, Any]:
+    if preset == "validate":
+        return {
+            "hazardHorizons": (2, 5),
+            "hazardFeatureSets": VALIDATE_HAZARD_FEATURE_SETS,
+            "sideFeatureSets": VALIDATE_SIDE_FEATURE_SETS,
+            "levelLabels": VALIDATE_LEVEL_LABELS,
+            "levelFeatureSets": VALIDATE_LEVEL_FEATURE_SETS,
+            "purpose": "4-fold shortlist validation after the broad quick screen; includes the latest history window.",
+        }
+    return {
+        "hazardHorizons": (1, 2, 5),
+        "hazardFeatureSets": HAZARD_FEATURE_SETS,
+        "sideFeatureSets": SIDE_FEATURE_SETS,
+        "levelLabels": ALL_LEVEL_LABELS,
+        "levelFeatureSets": LEVEL_FEATURE_SETS,
+        "purpose": "broad research screen across all configured direct Maker tasks and feature families.",
+    }
+
 
 def _shared() -> Any:
     path = ROOT / "tools" / "train_target_taker_behavior_v1.py"
@@ -192,6 +235,8 @@ def _clean(value: Any) -> Any:
         return {str(key): _clean(item) for key, item in value.items()}
     if isinstance(value, list):
         return [_clean(item) for item in value]
+    if isinstance(value, tuple):
+        return [_clean(item) for item in value]
     if isinstance(value, float) and not math.isfinite(value):
         return None
     return value
@@ -202,6 +247,7 @@ def main() -> int:
     parser.add_argument("--hazard-dataset", type=Path, default=DEFAULT_HAZARD_OUTPUT)
     parser.add_argument("--behavior-dataset", type=Path, default=DEFAULT_BEHAVIOR_OUTPUT)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--preset", choices=("full", "validate"), default="full")
     parser.add_argument("--min-train-markets", type=int, default=60)
     parser.add_argument("--test-markets", type=int, default=18)
     parser.add_argument("--max-folds", type=int, default=4)
@@ -210,6 +256,7 @@ def main() -> int:
     parser.add_argument("--outer-bags", type=int, default=6)
     args = parser.parse_args()
 
+    plan = _research_plan(args.preset)
     shared = _shared()
     deps = shared._imports()
     pd = deps["pd"]
@@ -237,6 +284,15 @@ def main() -> int:
     outer_bags = max(2, int(args.outer_bags))
     report: dict[str, Any] = {
         "reportVersion": REPORT_VERSION,
+        "preset": args.preset,
+        "researchPlan": {
+            "purpose": plan["purpose"],
+            "hazardHorizons": plan["hazardHorizons"],
+            "hazardFeatureSets": list(plan["hazardFeatureSets"].keys()),
+            "sideFeatureSets": list(plan["sideFeatureSets"].keys()),
+            "levelLabels": plan["levelLabels"],
+            "levelFeatureSets": list(plan["levelFeatureSets"].keys()),
+        },
         "paperResearchOnly": True,
         "automaticStrategyPromotion": False,
         "causalClaim": False,
@@ -260,26 +316,26 @@ def main() -> int:
         "hazardTasks": {},
     }
 
-    for horizon in (1, 2, 5):
+    for horizon in plan["hazardHorizons"]:
         label = f"label_next_inferred_placement_any_{horizon}s"
         report["hazardTasks"][f"next_inferred_placement_any_{horizon}s"] = _classification_suite(
             shared=shared, deps=deps, frame=hazard, label=label,
-            feature_sets=HAZARD_FEATURE_SETS, folds=hazard_folds,
+            feature_sets=plan["hazardFeatureSets"], folds=hazard_folds,
             interactions=interactions, max_rounds=max_rounds, outer_bags=outer_bags,
             seed_base=1000 + horizon * 100,
         )
 
     report["sideTask"] = _classification_suite(
         shared=shared, deps=deps, frame=behavior, label="label_side_up",
-        feature_sets=SIDE_FEATURE_SETS, folds=behavior_folds,
+        feature_sets=plan["sideFeatureSets"], folds=behavior_folds,
         interactions=interactions, max_rounds=max_rounds, outer_bags=outer_bags,
         seed_base=3000,
     )
     report["levelTasks"] = {}
-    for index, label in enumerate(("label_at_or_improves_best_bid", "label_near_best_1tick", "label_near_best_2ticks")):
+    for index, label in enumerate(plan["levelLabels"]):
         report["levelTasks"][label] = _classification_suite(
             shared=shared, deps=deps, frame=behavior, label=label,
-            feature_sets=LEVEL_FEATURE_SETS, folds=behavior_folds,
+            feature_sets=plan["levelFeatureSets"], folds=behavior_folds,
             interactions=interactions, max_rounds=max_rounds, outer_bags=outer_bags,
             seed_base=4000 + index * 100,
         )
