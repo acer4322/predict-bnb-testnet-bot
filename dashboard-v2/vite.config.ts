@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { legacySupervisorRecoveryPlugin } from './legacy-supervisor-recovery'
+import { strategyTestControlPlugin } from './strategy-test-control'
 import { verifiedServiceControlPlugin } from './verified-service-control'
 import { makerServiceControlPlugin } from './maker-service-control'
 import { serviceManagerV2Plugin } from './service-manager-v2'
@@ -53,6 +54,7 @@ export default defineConfig({
   plugins: [
     localhostControlGuard(),
     legacySupervisorRecoveryPlugin(),
+    strategyTestControlPlugin(repoRoot),
     verifiedServiceControlPlugin(repoRoot),
     makerServiceControlPlugin(repoRoot),
     serviceManagerV2Plugin(repoRoot),
@@ -129,6 +131,16 @@ export default defineConfig({
       },
       '/bridge/wallet-maker-book-inference': {
         target: 'http://127.0.0.1:8778',
+        changeOrigin: false,
+        rewrite: () => '/state',
+      },
+      '/bridge/ebm-strategy-test-health': {
+        target: 'http://127.0.0.1:8780',
+        changeOrigin: false,
+        rewrite: () => '/health',
+      },
+      '/bridge/ebm-strategy-test': {
+        target: 'http://127.0.0.1:8780',
         changeOrigin: false,
         rewrite: () => '/state',
       },
