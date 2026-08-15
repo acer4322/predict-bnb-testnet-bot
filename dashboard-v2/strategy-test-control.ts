@@ -5,7 +5,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Plugin } from 'vite'
 
 const PORT = 8780
-const MODULE = 'predict_bot.target_taker_public_side_test_v1'
+const MODULE = 'predict_bot.target_taker_public_side_test_v2'
+const RECOGNIZED_MODULES = [
+  'predict_bot.target_taker_public_side_test_v1',
+  'predict_bot.target_taker_public_side_test_v2',
+]
 const PID_FILE = '.target-taker-public-side-test.pid'
 
 type ProcessInfo = { pid: number; commandLine: string }
@@ -68,7 +72,15 @@ async function listener(): Promise<ProcessInfo | null> {
 }
 
 function recognized(info: ProcessInfo | null) {
-  return Boolean(info && info.commandLine.toLowerCase().includes(MODULE.toLowerCase()))
+  if (!info) return false
+  const command = info.commandLine.toLowerCase()
+  return RECOGNIZED_MODULES.some((module) => command.includes(module.toLowerCase()))
+}
+
+function currentModule(info: ProcessInfo | null) {
+  if (!info) return null
+  const command = info.commandLine.toLowerCase()
+  return RECOGNIZED_MODULES.find((module) => command.includes(module.toLowerCase())) ?? null
 }
 
 async function probeHealth() {
@@ -117,7 +129,13 @@ async function start(root: string) {
     if (!recognized(existing)) {
       throw new Error(`Port 8780 is occupied by an unrecognized process. PID=${existing.pid} command=${existing.commandLine}`)
     }
-    return { ok: true, unchanged: true, pid: existing.pid, health: await probeHealth() }
+    const runningModule = currentModule(existing)
+    if (runningModule !== MODULE) {
+      throw new Error(
+        `Port 8780 is still running ${runningModule || 'an older recognized strategy test'}. Use Restart so it can be safely replaced by ${MODULE}.`,
+      )
+    }
+    return { ok: true, unchanged: true, pid: existing.pid, module: runningModule, health: await probeHealth() }
   }
 
   const data = join(root, 'data')
@@ -142,7 +160,7 @@ async function start(root: string) {
   }
   await writePid(root, pid)
   await waitFor('online', 30_000)
-  return { ok: true, unchanged: false, pid, health: await probeHealth() }
+  return { ok: true, unchanged: false, pid, module: MODULE, health: await probeHealth() }
 }
 
 async function stop(root: string) {
@@ -152,8 +170,9 @@ async function stop(root: string) {
     return { ok: true, unchanged: true, verifiedPortClosed: true }
   }
   if (!recognized(existing)) {
-    throw new Error(`Port 8780 PID ${existing.pid} is not ${MODULE}; refusing to terminate it. command=${existing.commandLine}`)
+    throw new Error(`Port 8780 PID ${existing.pid} is not a recognized EBM strategy-test process; refusing to terminate it. command=${existing.commandLine}`)
   }
+  const stoppedModule = currentModule(existing)
   try {
     await execText('taskkill.exe', ['/PID', String(existing.pid), '/T', '/F'], 10_000)
   } catch (error) {
@@ -161,7 +180,7 @@ async function stop(root: string) {
   }
   await waitFor('offline', 12_000)
   await clearPid(root)
-  return { ok: true, unchanged: false, killedPid: existing.pid, verifiedPortClosed: true }
+  return { ok: true, unchanged: false, killedPid: existing.pid, module: stoppedModule, verifiedPortClosed: true }
 }
 
 export function strategyTestControlPlugin(repoRoot: string): Plugin {
@@ -185,6 +204,9 @@ export function strategyTestControlPlugin(repoRoot: string): Plugin {
             port: PORT,
             pid: active?.pid ?? null,
             recognized: active ? recognized(active) : null,
+            module: currentModule(active),
+            expectedModule: MODULE,
+            upgradeRequired: Boolean(active && recognized(active) && currentModule(active) !== MODULE),
             health,
           })
           return
@@ -208,7 +230,7 @@ export function strategyTestControlPlugin(repoRoot: string): Plugin {
           json(res, 200, { ok: true, action, result })
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
-          json(res, /occupied|refusing/i.test(message) ? 409 : 500, { ok: false, error: message })
+          json(res, /occupied|refusing|Use Restart/i.test(message) ? 409 : 500, { ok: false, error: message })
         } finally {
           busy = false
         }
