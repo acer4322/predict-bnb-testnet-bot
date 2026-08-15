@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Data = Join-Path $Root "data"
+$Expected8776Version = "TARGET_WALLET_OFFICIAL_V2_LEGACY_HISTORY"
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
 
 function Test-LocalService([string]$Url, [int]$TimeoutSeconds = 2) {
@@ -118,19 +119,20 @@ if (-not (Test-LocalService "http://127.0.0.1:8777/state")) {
 $Existing = Get-ListeningProcessId 8776
 if ($Existing) {
     $Health = Get-JsonPayload "http://127.0.0.1:8776/health" 4
-    if ($Health -and ([string]$Health.version) -eq "TARGET_WALLET_OFFICIAL_V1") {
-        Write-Host "Target Official: reusing healthy 8776 PID=$Existing."
+    if ($Health -and ([string]$Health.version) -eq $Expected8776Version) {
+        Write-Host "Target Official: reusing healthy 8776 V2 PID=$Existing."
         Write-Host "  DB = $($Health.dbPath)"
         return
     }
     $Command = Get-ProcessCommandLine $Existing
-    throw "Port 8776 is still occupied by an older process. Use Dashboard Diagnostics -> Restart for the service, then retry. PID=$Existing command=$Command"
+    $ObservedVersion = if ($Health) { [string]$Health.version } else { "UNKNOWN" }
+    throw "Port 8776 is still occupied by an older process (version=$ObservedVersion). Use Dashboard Diagnostics -> Restart Target Wallet Official, then retry. PID=$Existing command=$Command"
 }
 
-Write-Host "Target Official: starting clean 8776 collector."
+Write-Host "Target Official: starting clean 8776 V2 collector."
 # The old module token is intentionally kept in the command line for safe
 # Dashboard process ownership during the cutover. The module itself is now only
-# a thin compatibility launcher into target_wallet_official_v1.
+# a thin compatibility launcher into target_wallet_official_v2.
 $Process = Start-Process -FilePath "python" `
     -ArgumentList @("-m", "predict_bot.predict_wallet_shadow_observer_v4_23") `
     -WorkingDirectory $Root -WindowStyle Hidden `
@@ -138,18 +140,20 @@ $Process = Start-Process -FilePath "python" `
     -RedirectStandardError (Join-Path $Data "target-wallet-official.stderr.log") -PassThru
 $Process.Id | Set-Content (Join-Path $Root ".target-taker-echtgeld-producer.pid")
 
-Wait-LocalService "8776 Target Wallet Official" "http://127.0.0.1:8776/health" 60 (Join-Path $Data "target-wallet-official.stderr.log")
+Wait-LocalService "8776 Target Wallet Official V2" "http://127.0.0.1:8776/health" 60 (Join-Path $Data "target-wallet-official.stderr.log")
 $Health = Get-JsonPayload "http://127.0.0.1:8776/health" 5
-if (-not $Health -or ([string]$Health.version) -ne "TARGET_WALLET_OFFICIAL_V1") {
-    throw "8776 responded but did not report TARGET_WALLET_OFFICIAL_V1."
+if (-not $Health -or ([string]$Health.version) -ne $Expected8776Version) {
+    $ObservedVersion = if ($Health) { [string]$Health.version } else { "NO_HEALTH" }
+    throw "8776 responded but reported version=$ObservedVersion instead of $Expected8776Version."
 }
 if ([bool]$Health.liveOrdersAffected -or [bool]$Health.strategyLogic) {
     throw "8776 unexpectedly reports strategy/live behavior. Refusing to continue."
 }
 
-Write-Host "Target Wallet Official is running on 8776."
+Write-Host "Target Wallet Official V2 is running on 8776."
 Write-Host "  BTC5M + ETH5M target fills = enabled"
 Write-Host "  Parent Orders / Inventory / Official Performance = enabled"
+Write-Host "  Legacy Target win/loss history = read-only display source"
 Write-Host "  DB = $($Health.dbPath)"
 Write-Host "  Retention = permanent unless manually archived"
 Write-Host "  Strategy / EBM / Echtgeld / TradeIntent = removed from 8776"
