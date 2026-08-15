@@ -7,18 +7,23 @@ from typing import Any
 from . import predict_wallet_shadow_observer as base
 from . import predict_wallet_shadow_observer_v4_20 as v4_20
 from . import predict_wallet_target_taker_public_side_strategy_v1 as public_side
+from .target_taker_auto_bankroll_v1 import AutoBankrollMixin
 from .target_taker_live_execution_v4 import TargetTakerLiveConfig, TargetTakerLiveExecutor
 
 
-VERSION = "PREDICT_WALLET_SHADOW_V0_26_TARGET_TAKER_LIVE_V1"
+VERSION = "PREDICT_WALLET_SHADOW_V0_26_TARGET_TAKER_LIVE_V1_AUTO_BANKROLL_V1"
 
 
-class WalletShadowObserver(v4_20.WalletShadowObserver):
-    """V4.20 plus an explicitly armed, isolated Target Taker live bridge.
+class WalletShadowObserver(AutoBankrollMixin, v4_20.WalletShadowObserver):
+    """V4.20 plus isolated Target Taker live and paper-bankroll bridges.
 
     Paper cohorts continue unchanged. Only the configured public-side cohort may
     reach the live bridge, and a durable ATTEMPTING row is committed before any
     venue write so a restart can never blindly duplicate the same market order.
+
+    AutoBankrollMixin separately mirrors the exact SIDE_ONLY paper trade stream
+    into a 100 USDT autonomous sizing wallet. It never changes signal direction,
+    trade eligibility, or any live-order notional.
     """
 
     def __init__(self, db_path=base.DB_PATH, simulation_db_path=None) -> None:
@@ -186,6 +191,7 @@ class WalletShadowObserver(v4_20.WalletShadowObserver):
             **self.target_taker_live_config.snapshot(),
             "armed": self.target_taker_live_config.mode == "live",
             "paperCohortsStillActive": True,
+            "autoBankrollPaperWalletActive": True,
             "oneLiveAttemptPerMarket": True,
             "lastExecution": self.target_taker_live_last,
             "recentOrders": self._target_taker_live_recent(),
@@ -218,7 +224,7 @@ def main() -> int:
     print(
         f"Predict wallet shadow {VERSION} listening on http://{base.HOST}:{base.PORT}/state; "
         f"TargetTakerMode={config.mode}; venue={config.venue}; notional={config.notional_usdt:.2f} USDT; "
-        f"cohort={config.cohort}; paperCohortsStillActive=true",
+        f"cohort={config.cohort}; paperCohortsStillActive=true; autoBankrollPaperWallet=true",
         flush=True,
     )
     try:
