@@ -25,29 +25,47 @@ from .core import (
     taker_fee,
 )
 from .microstructure import MicrostructureObserver, PREDICTION_VERIFIED_ORIENTATIONS
-from .m_realtime import MSeriesRealtimeEngine
+from .m_realtime import MSeriesRealtimeEngine, direct_rest_prediction_event
 from .live_trading import LiveM0WEngine, M01O_F1_MIN_SECONDS_LEFT
 from .market_observer import MarketStateObserver, summarize_m01_settled_fills
 from .supervisor import API_RESTART_EXIT_CODE
 from .research_forward import (
+    CONFIRMATION_ADD_FEE_BPS,
+    CONFIRMATION_ADD_SOURCE_STRATEGIES,
+    CONFIRMATION_ADD_STRATEGY,
+    CONFIRMATION_ADD_TRANCHE_USDT,
     CONTINUOUS_CALIBRATION_RULES,
     CONTINUOUS_CALIBRATION_STRATEGIES,
     FUTURES_LEAD_EXPERIMENT_STRATEGIES,
     FUTURES_LEAD_EXIT_STRATEGIES,
+    FUTURES_LEAD_FILTER_RULES,
+    FUTURES_LEAD_FILTER_STRATEGIES,
     FUTURES_LEAD_OBSERVER_STRATEGIES,
     FUTURES_LEAD_OBSERVER_STRATEGY_VERSION,
+    OBSERVER_AUTO_V6_SLOW_WINDOW,
+    OBSERVER_AUTO_V6_STRATEGIES,
+    OBSERVER_AUTO_V6_STRATEGY_RULES,
     OBSERVER_COMBINATION_STRATEGIES,
     OBSERVER_COMBINATION_STRATEGY_RULES,
     PRIMARY_RESEARCH_STRATEGIES,
     RESEARCH_PARAMETERS,
     RESEARCH_STRATEGIES,
     SHADOW_RESEARCH_STRATEGIES,
+    PAIRED_REVERSE_RULES,
+    PAIRED_REVERSE_STRATEGIES,
     ResearchSampleBuffer,
+    confirmation_add_book_event_key,
+    confirmation_add_book_is_safe,
+    confirmation_add_execution_price,
+    confirmation_add_levels,
     continuous_calibration_decision,
     execution_candidate as research_execution_candidate,
+    filtered_futures_lead_signal,
     futures_lead_observer_decision,
+    observer_v6_auto_decision,
     regime_futures_lead_signal as research_regime_futures_lead_signal,
     reverse_futures_lead_signal as research_reverse_futures_lead_signal,
+    reverse_source_signal as research_reverse_source_signal,
     sampling_active as research_sampling_active,
     signal_for_strategy as research_signal_for_strategy,
 )
@@ -315,6 +333,8 @@ DEFAULT_CONFIG: dict[str, float | bool] = {
     # capital pool. Counterfactual variants are isolated paper shadows.
     "strategy_r_microprice_enabled": True,
     "strategy_r_microprice_stake": 5.0,
+    "strategy_r_microprice_reverse_enabled": True,
+    "strategy_r_microprice_reverse_stake": 5.0,
     "strategy_r_ofi_enabled": True,
     "strategy_r_ofi_stake": 5.0,
     "strategy_r_ofi_min040_enabled": True,
@@ -339,6 +359,10 @@ DEFAULT_CONFIG: dict[str, float | bool] = {
     "strategy_r_futures_lead_distance_stake": 5.0,
     "strategy_r_futures_lead_exit30_distance_enabled": True,
     "strategy_r_futures_lead_exit30_distance_stake": 5.0,
+    "strategy_r_futures_lead_signal_100_enabled": True,
+    "strategy_r_futures_lead_signal_100_stake": 5.0,
+    "strategy_r_futures_lead_min_entry_020_enabled": True,
+    "strategy_r_futures_lead_min_entry_020_stake": 5.0,
     "strategy_r_futures_lead_observer_f1_enabled": True,
     "strategy_r_futures_lead_observer_f1_stake": 5.0,
     "strategy_r_futures_lead_observer_v2_enabled": True,
@@ -357,8 +381,14 @@ DEFAULT_CONFIG: dict[str, float | bool] = {
     "strategy_r_microprice_observer_v6_stake": 5.0,
     "strategy_r_calibrated_value_observer_v6_enabled": True,
     "strategy_r_calibrated_value_observer_v6_stake": 5.0,
+    "strategy_r_microprice_observer_auto_v6_enabled": True,
+    "strategy_r_microprice_observer_auto_v6_stake": 5.0,
+    "strategy_r_calibrated_value_observer_auto_v6_enabled": True,
+    "strategy_r_calibrated_value_observer_auto_v6_stake": 5.0,
     "strategy_r_calibrated_value_enabled": True,
     "strategy_r_calibrated_value_stake": 5.0,
+    "strategy_r_calibrated_value_reverse_enabled": True,
+    "strategy_r_calibrated_value_reverse_stake": 5.0,
     "strategy_r_calibrated_value_continuous_v2_enabled": True,
     "strategy_r_calibrated_value_continuous_v2_stake": 5.0,
     "strategy_r_consensus_enabled": True,
@@ -419,6 +449,7 @@ SUPPORTED_STRATEGIES = (
     "A", "B", "B2", "C", "D", "E", "F", "E2", "G", "H", "I", "J", "K", "L",
     *M_SERIES_STRATEGIES,
     *RESEARCH_STRATEGIES,
+    CONFIRMATION_ADD_STRATEGY,
 )
 
 
@@ -830,6 +861,29 @@ class Store:
                     ON trades(market_id, strategy);
                 CREATE INDEX IF NOT EXISTS trades_strategy_id_idx
                     ON trades(strategy, id);
+                CREATE TABLE IF NOT EXISTS confirmation_add_shadow_state (
+                    source_trade_id INTEGER PRIMARY KEY,
+                    shadow_trade_id INTEGER NOT NULL UNIQUE,
+                    source_strategy TEXT NOT NULL,
+                    market_id INTEGER NOT NULL,
+                    side TEXT NOT NULL CHECK (side IN ('UP', 'DOWN')),
+                    base_price REAL NOT NULL,
+                    levels_json TEXT NOT NULL,
+                    fills_json TEXT NOT NULL,
+                    last_event_key TEXT,
+                    status TEXT NOT NULL DEFAULT 'ACTIVE',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    officially_settled_at TEXT,
+                    FOREIGN KEY(source_trade_id) REFERENCES trades(id),
+                    FOREIGN KEY(shadow_trade_id) REFERENCES trades(id)
+                );
+                CREATE INDEX IF NOT EXISTS confirmation_add_shadow_market_idx
+                    ON confirmation_add_shadow_state(market_id, status);
+                CREATE TABLE IF NOT EXISTS confirmation_add_shadow_meta (
+                    singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+                    forward_started_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS strategy_pair_arb_trades (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     strategy TEXT NOT NULL,
@@ -1312,6 +1366,21 @@ class Store:
                    WHERE key='strategy_e2_lookback_observations' AND value=120
                      AND NOT EXISTS (SELECT 1 FROM trades WHERE strategy='E2')"""
             )
+            boundary = self.db.execute(
+                "SELECT forward_started_at FROM confirmation_add_shadow_meta WHERE singleton=1"
+            ).fetchone()
+            if boundary is None:
+                forward_started_at = utc_iso()
+                self.db.execute(
+                    "INSERT INTO confirmation_add_shadow_meta VALUES (1, ?)",
+                    (forward_started_at,),
+                )
+                self.db.execute(
+                    """UPDATE confirmation_add_shadow_state
+                          SET status='EXCLUDED_PREDEPLOY', updated_at=?
+                        WHERE status IN ('ACTIVE', 'OFFICIAL')""",
+                    (forward_started_at,),
+                )
             self._recalculate_trade_accounting()
             self.db.commit()
 
@@ -2468,6 +2537,336 @@ class Store:
                 ),
             )
             self.db.commit()
+
+    @staticmethod
+    def _confirmation_add_initial_fills(
+        base_price: float, fee_rate_bps: int
+    ) -> list[dict[str, Any]]:
+        levels = confirmation_add_levels(base_price)
+        shares = CONFIRMATION_ADD_TRANCHE_USDT / float(base_price)
+        return [
+            {
+                "index": index,
+                "targetPrice": float(level),
+                "triggered": index == 0,
+                "stakeUsdt": CONFIRMATION_ADD_TRANCHE_USDT if index == 0 else 0.0,
+                "shares": shares if index == 0 else 0.0,
+                "fees": (
+                    taker_fee(shares, float(base_price), fee_rate_bps)
+                    if index == 0 else 0.0
+                ),
+                "events": [],
+            }
+            for index, level in enumerate(levels)
+        ]
+
+    def _create_confirmation_add_shadows_locked(
+        self, snapshot: dict[str, Any]
+    ) -> int:
+        market_id = int(snapshot["market_id"])
+        forward_started_at = str(self.db.execute(
+            "SELECT forward_started_at FROM confirmation_add_shadow_meta WHERE singleton=1"
+        ).fetchone()["forward_started_at"])
+        placeholders = ",".join("?" for _ in CONFIRMATION_ADD_SOURCE_STRATEGIES)
+        sources = self.db.execute(
+            f"""SELECT t.* FROM trades AS t
+                 LEFT JOIN confirmation_add_shadow_state AS c
+                   ON c.source_trade_id=t.id
+                WHERE t.market_id=? AND t.status='OPEN' AND t.opened_at>=?
+                  AND t.strategy IN ({placeholders})
+                  AND c.source_trade_id IS NULL
+                ORDER BY t.id ASC""",
+            (market_id, forward_started_at, *CONFIRMATION_ADD_SOURCE_STRATEGIES),
+        ).fetchall()
+        created = 0
+        for source in sources:
+            base_price = float(source["entry_price"])
+            if not 0 < base_price < 1:
+                continue
+            fee_rate_bps = CONFIRMATION_ADD_FEE_BPS
+            fills = self._confirmation_add_initial_fills(base_price, fee_rate_bps)
+            stake = sum(float(item["stakeUsdt"]) for item in fills)
+            shares = sum(float(item["shares"]) for item in fills)
+            fees = sum(float(item["fees"]) for item in fills)
+            levels = confirmation_add_levels(base_price)
+            now = str(snapshot.get("timestamp") or utc_iso())
+            diagnostics = {
+                "paper_only": True,
+                "live_orders_affected": False,
+                "forward_only": True,
+                "source_strategy": str(source["strategy"]),
+                "source_trade_id": int(source["id"]),
+                "rule": "initial_1_usdt_then_add_1_usdt_at_+10pct_steps",
+                "minimum_seconds_left_exclusive": 30.0,
+                "maximum_total_stake_usdt": 5.0,
+                "levels": list(levels),
+                "fills": fills,
+            }
+            cursor = self.db.execute(
+                """INSERT INTO trades(
+                       strategy, topic_id, market_id, side, status, entry_price,
+                       target_price, stake, shares, fees, fee_rate_bps, opened_at,
+                       note, strategy_version, diagnostics_json
+                   ) VALUES (?, ?, ?, ?, 'OPEN', ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    CONFIRMATION_ADD_STRATEGY,
+                    int(source["topic_id"]),
+                    market_id,
+                    str(source["side"]),
+                    base_price,
+                    stake,
+                    shares,
+                    fees,
+                    fee_rate_bps,
+                    now,
+                    (
+                        f"forward-only confirmation-add Shadow from "
+                        f"{source['strategy']} trade #{source['id']}; excluded from live routing"
+                    ),
+                    "confirmation_add_10_shadow_v1",
+                    json.dumps(diagnostics, sort_keys=True),
+                ),
+            )
+            shadow_trade_id = int(cursor.lastrowid)
+            self.db.execute(
+                """INSERT INTO confirmation_add_shadow_state(
+                       source_trade_id, shadow_trade_id, source_strategy,
+                       market_id, side, base_price, levels_json, fills_json,
+                       status, created_at, updated_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?)""",
+                (
+                    int(source["id"]),
+                    shadow_trade_id,
+                    str(source["strategy"]),
+                    market_id,
+                    str(source["side"]),
+                    base_price,
+                    json.dumps(list(levels)),
+                    json.dumps(fills, sort_keys=True),
+                    now,
+                    now,
+                ),
+            )
+            created += 1
+        return created
+
+    def process_confirmation_add_shadows(
+        self, snapshot: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Advance forward-only paper ladders from recorded, executable books."""
+        market_id = int(snapshot["market_id"])
+        with self.lock:
+            created = self._create_confirmation_add_shadows_locked(snapshot)
+            states = self.db.execute(
+                """SELECT c.*, t.fee_rate_bps
+                     FROM confirmation_add_shadow_state AS c
+                     JOIN trades AS t ON t.id=c.shadow_trade_id
+                    WHERE c.market_id=? AND c.status='ACTIVE'
+                      AND t.status='OPEN'
+                    ORDER BY c.source_trade_id ASC""",
+                (market_id,),
+            ).fetchall()
+            filled_stake = 0.0
+            filled_tranches: set[tuple[int, int]] = set()
+            for side in ("UP", "DOWN"):
+                side_states = [row for row in states if str(row["side"]) == side]
+                if not side_states:
+                    continue
+                safe, _ = confirmation_add_book_is_safe(snapshot, side)
+                if not safe:
+                    continue
+                event_key = confirmation_add_book_event_key(snapshot, side)
+                actionable = [
+                    row for row in side_states
+                    if str(row["last_event_key"] or "") != event_key
+                ]
+                if not actionable:
+                    continue
+                prefix = side.lower()
+                ask = float(snapshot[f"{prefix}_ask"])
+                execution_price = confirmation_add_execution_price(ask)
+                if execution_price is None:
+                    continue
+                available_shares = float(snapshot[f"{prefix}_ask_size"])
+                for row in actionable:
+                    levels = [float(value) for value in json.loads(row["levels_json"])]
+                    fills = json.loads(row["fills_json"])
+                    for index in range(1, len(fills)):
+                        if ask + 1e-12 >= levels[index]:
+                            fills[index]["triggered"] = True
+                    for index in range(1, len(fills)):
+                        item = fills[index]
+                        if not item.get("triggered") or available_shares <= 1e-12:
+                            continue
+                        remaining_stake = max(
+                            0.0,
+                            CONFIRMATION_ADD_TRANCHE_USDT
+                            - float(item.get("stakeUsdt") or 0.0),
+                        )
+                        if remaining_stake <= 1e-12:
+                            continue
+                        shares = min(
+                            remaining_stake / execution_price,
+                            available_shares,
+                        )
+                        if shares <= 1e-12:
+                            continue
+                        stake = shares * execution_price
+                        fee = taker_fee(
+                            shares,
+                            execution_price,
+                            int(row["fee_rate_bps"] or CONFIRMATION_ADD_FEE_BPS),
+                        )
+                        item["stakeUsdt"] = float(item.get("stakeUsdt") or 0.0) + stake
+                        item["shares"] = float(item.get("shares") or 0.0) + shares
+                        item["fees"] = float(item.get("fees") or 0.0) + fee
+                        item.setdefault("events", []).append(
+                            {
+                                "eventKey": event_key,
+                                "timestamp": snapshot.get("timestamp"),
+                                "secondsLeft": float(snapshot["seconds_left"]),
+                                "observedAsk": ask,
+                                "executionPrice": execution_price,
+                                "stakeUsdt": stake,
+                                "shares": shares,
+                                "fee": fee,
+                                "bookAgeMs": float(snapshot["book_age_ms"]),
+                                "bookSkewMs": float(snapshot["book_skew_ms"]),
+                            }
+                        )
+                        available_shares -= shares
+                        filled_stake += stake
+                        if float(item["stakeUsdt"]) >= CONFIRMATION_ADD_TRANCHE_USDT - 1e-9:
+                            filled_tranches.add((int(row["source_trade_id"]), index))
+                    total_stake = sum(float(item.get("stakeUsdt") or 0.0) for item in fills)
+                    total_shares = sum(float(item.get("shares") or 0.0) for item in fills)
+                    total_fees = sum(float(item.get("fees") or 0.0) for item in fills)
+                    average_entry = total_stake / total_shares if total_shares > 0 else float(row["base_price"])
+                    diagnostics = {
+                        "paper_only": True,
+                        "live_orders_affected": False,
+                        "forward_only": True,
+                        "source_strategy": str(row["source_strategy"]),
+                        "source_trade_id": int(row["source_trade_id"]),
+                        "rule": "initial_1_usdt_then_add_1_usdt_at_+10pct_steps",
+                        "minimum_seconds_left_exclusive": 30.0,
+                        "maximum_total_stake_usdt": 5.0,
+                        "levels": levels,
+                        "fills": fills,
+                    }
+                    now = str(snapshot.get("timestamp") or utc_iso())
+                    self.db.execute(
+                        """UPDATE trades SET entry_price=?, stake=?, shares=?, fees=?,
+                                  diagnostics_json=? WHERE id=?""",
+                        (
+                            average_entry,
+                            total_stake,
+                            total_shares,
+                            total_fees,
+                            json.dumps(diagnostics, sort_keys=True),
+                            int(row["shadow_trade_id"]),
+                        ),
+                    )
+                    self.db.execute(
+                        """UPDATE confirmation_add_shadow_state
+                              SET fills_json=?, last_event_key=?, updated_at=?
+                            WHERE source_trade_id=?""",
+                        (
+                            json.dumps(fills, sort_keys=True),
+                            event_key,
+                            now,
+                            int(row["source_trade_id"]),
+                        ),
+                    )
+            self.db.commit()
+        return {
+            "created": created,
+            "filledStakeUsdt": filled_stake,
+            "completedTranches": len(filled_tranches),
+            "paperOnly": True,
+            "liveOrdersAffected": False,
+        }
+
+    def confirmation_add_shadow_summary(self, recent_limit: int = 50) -> dict[str, Any]:
+        with self.lock:
+            rows = [dict(row) for row in self.db.execute(
+                """SELECT c.*, t.status AS trade_status, t.stake, t.shares,
+                          t.fees, t.pnl, t.opened_at, t.closed_at
+                     FROM confirmation_add_shadow_state AS c
+                     JOIN trades AS t ON t.id=c.shadow_trade_id
+                    WHERE c.status!='EXCLUDED_PREDEPLOY'
+                    ORDER BY c.source_trade_id DESC"""
+            ).fetchall()]
+
+        def cohort(items: list[dict[str, Any]]) -> dict[str, Any]:
+            official = [item for item in items if item["status"] == "OFFICIAL"]
+            stake = sum(float(item["stake"] or 0.0) for item in official)
+            fees = sum(float(item["fees"] or 0.0) for item in official)
+            pnl = sum(float(item["pnl"] or 0.0) for item in official)
+            wins = sum(item["trade_status"] == "SETTLED_WIN" for item in official)
+            return {
+                "samples": len(items),
+                "officialSamples": len(official),
+                "pendingSamples": len(items) - len(official),
+                "wins": int(wins),
+                "losses": len(official) - int(wins),
+                "stakeUsdt": stake,
+                "feesUsdt": fees,
+                "pnlUsdt": pnl,
+                "returnOnCostPct": pnl / (stake + fees) * 100.0 if stake + fees > 0 else None,
+            }
+
+        by_source = {
+            source: cohort([row for row in rows if row["source_strategy"] == source])
+            for source in CONFIRMATION_ADD_SOURCE_STRATEGIES
+        }
+        recent = []
+        for row in rows[:max(1, min(200, int(recent_limit)))]:
+            fills = json.loads(str(row["fills_json"] or "[]"))
+            recent.append(
+                {
+                    "sourceTradeId": int(row["source_trade_id"]),
+                    "shadowTradeId": int(row["shadow_trade_id"]),
+                    "sourceStrategy": row["source_strategy"],
+                    "marketId": int(row["market_id"]),
+                    "side": row["side"],
+                    "basePrice": row["base_price"],
+                    "filledTranches": sum(
+                        float(item.get("stakeUsdt") or 0.0) >= 1.0 - 1e-9
+                        for item in fills
+                    ),
+                    "stakeUsdt": row["stake"],
+                    "feesUsdt": row["fees"],
+                    "status": row["status"],
+                    "result": row["trade_status"],
+                    "pnlUsdt": row["pnl"],
+                    "openedAt": row["opened_at"],
+                    "closedAt": row["closed_at"],
+                    "fills": fills,
+                }
+            )
+        return {
+            "strategy": CONFIRMATION_ADD_STRATEGY,
+            "status": "FORWARD_ONLY",
+            "paperOnly": True,
+            "liveOrdersAffected": False,
+            "sourceStrategies": list(CONFIRMATION_ADD_SOURCE_STRATEGIES),
+            "rule": {
+                "initialStakeUsdt": 1.0,
+                "addStakeUsdt": 1.0,
+                "multipliers": [1.0, 1.1, 1.2, 1.3, 1.4],
+                "minimumSecondsLeftExclusive": 30.0,
+                "maximumStakeUsdt": 5.0,
+                "slippageBps": 50.0,
+                "feeBps": 200,
+                "maxSpread": 0.03,
+                "maxBookAgeMs": 2000.0,
+                "maxBookSkewMs": 500.0,
+            },
+            "overall": cohort(rows),
+            "bySource": by_source,
+            "recent": recent,
+        }
 
     @staticmethod
     def strategy_m_entry_candidate(
@@ -4314,13 +4713,26 @@ class Store:
                             "pair_up_price": up_ask,
                             "pair_down_price": down_ask,
                             "pair_arb_leg": True,
+                            "pair_book_source": "independent_outcome_books",
+                            "pair_max_book_age_ms": float(
+                                cfg["strategy_pair_arb_max_book_age_ms"]
+                            ),
+                            "pair_max_book_skew_ms": float(
+                                cfg["strategy_pair_arb_max_book_skew_ms"]
+                            ),
                             "market_data_integrity_ok": True,
                             "signal_timestamp": signal_timestamp,
+                            "market_event_received_monotonic_ns": snapshot.get(
+                                "received_monotonic_ns"
+                            ),
                             "drawdown_control_start_price": snapshot.get(
                                 "start_price"
                             ),
                             "drawdown_control_spot_price": snapshot.get(
                                 "spot_price"
+                            ),
+                            "drawdown_control_spot_age_ms": snapshot.get(
+                                "spot_age_ms"
                             ),
                         })
             if self.db.total_changes != changes_before:
@@ -4668,6 +5080,81 @@ class Store:
             "causalNextMarketOnly": True,
         }
 
+    def _research_observer_auto_v6_history(
+        self,
+        source_strategy: str,
+        *,
+        before_market_id: int,
+    ) -> list[dict[str, Any]]:
+        """Return prior official source results with frozen V6 decisions."""
+        rows = self.db.execute(
+            """SELECT t.market_id, t.stake, t.pnl, t.diagnostics_json
+                 FROM trades AS t
+                 JOIN market_settlements AS s ON s.market_id=t.market_id
+                WHERE t.strategy=? AND t.market_id < ?
+                  AND s.status='OFFICIAL' AND s.official_winner IS NOT NULL
+                  AND t.status IN ('SETTLED_WIN', 'SETTLED_LOSS')
+                  AND t.pnl IS NOT NULL AND t.stake > 0
+                ORDER BY t.market_id DESC, t.id DESC
+                LIMIT ?""",
+            (
+                source_strategy,
+                int(before_market_id),
+                OBSERVER_AUTO_V6_SLOW_WINDOW * 5,
+            ),
+        ).fetchall()
+        history: list[dict[str, Any]] = []
+        for row in rows:
+            try:
+                diagnostics = json.loads(str(row["diagnostics_json"] or "{}"))
+                context = diagnostics["realtime_context"]
+                gates = context["m01o_observer_gates"]
+                gate = gates["F1"]
+                market_id = int(row["market_id"])
+                sample_count = int(gate["historicalSampleCount"])
+                minimum_samples = int(gate.get("minSettledSamples") or 6)
+            except (
+                KeyError,
+                TypeError,
+                ValueError,
+                json.JSONDecodeError,
+            ):
+                continue
+            if (
+                not isinstance(gate, dict)
+                or str(gate.get("profile") or "").upper() != "F1"
+                or str(gate.get("dataQualityStatus") or "").upper() != "READY"
+                or sample_count < minimum_samples
+            ):
+                continue
+            decision = futures_lead_observer_decision(
+                "V6", gate, expected_market_id=market_id
+            )
+            history.append(
+                {
+                    "market_id": market_id,
+                    "unit_pnl": float(row["pnl"]) / float(row["stake"]),
+                    "v6_allowed": bool(decision["allowed"]),
+                }
+            )
+            if len(history) >= OBSERVER_AUTO_V6_SLOW_WINDOW:
+                break
+        return list(reversed(history))
+
+    def _research_observer_auto_v6_state(
+        self, strategy: str
+    ) -> dict[str, Any]:
+        source_strategy = OBSERVER_AUTO_V6_STRATEGY_RULES[strategy]
+        history = self._research_observer_auto_v6_history(
+            source_strategy,
+            before_market_id=2**63 - 1,
+        )
+        return {
+            **observer_v6_auto_decision(history, None),
+            "strategy": strategy,
+            "sourceStrategy": source_strategy,
+        }
+
     @staticmethod
     def _research_experiment_segment(sample_index: int) -> str:
         if sample_index <= 60:
@@ -4889,7 +5376,16 @@ class Store:
             or context.get("received_wall_ns")
             or int(current["timestamp_ns"])
         )
-        self._research_samples.append_event_ofi(market_id, current, event_key)
+        # Event-cumulative OFI is valid only for a genuine Prediction event
+        # stream.  The current dual-token REST fallback is a periodic snapshot
+        # and must not be counted or labelled as exchange book events.
+        if (
+            context.get("signal_event_type") == "prediction"
+            and context.get("prediction_sampling_mode") == "event_stream"
+        ):
+            self._research_samples.append_event_ofi(
+                market_id, current, event_key
+            )
         seconds_left = float(current["seconds_left"])
         exposure = self._research_open_exposure()
         cap = float(cfg["strategy_research_shared_cap_usdt"])
@@ -4917,20 +5413,30 @@ class Store:
             regime_history = None
             regime_direction_control = None
             observer_decision = None
+            observer_auto_v6_decision = None
             calibration_decision = None
             source_strategy = None
             if strategy in {
                 *CONTINUOUS_CALIBRATION_STRATEGIES,
+                *FUTURES_LEAD_FILTER_STRATEGIES,
+                *PAIRED_REVERSE_STRATEGIES,
                 "R_FUTURES_LEAD_REVERSE",
                 "R_FUTURES_LEAD_REGIME_REVERSE_3L",
                 *FUTURES_LEAD_OBSERVER_STRATEGIES,
                 *OBSERVER_COMBINATION_STRATEGIES,
+                *OBSERVER_AUTO_V6_STRATEGIES,
             }:
                 source_strategy = (
                     CONTINUOUS_CALIBRATION_RULES[strategy]
                     if strategy in CONTINUOUS_CALIBRATION_STRATEGIES
+                    else FUTURES_LEAD_FILTER_RULES[strategy]["source_strategy"]
+                    if strategy in FUTURES_LEAD_FILTER_STRATEGIES
+                    else PAIRED_REVERSE_RULES[strategy]
+                    if strategy in PAIRED_REVERSE_STRATEGIES
                     else OBSERVER_COMBINATION_STRATEGY_RULES[strategy][0]
                     if strategy in OBSERVER_COMBINATION_STRATEGIES
+                    else OBSERVER_AUTO_V6_STRATEGY_RULES[strategy]
+                    if strategy in OBSERVER_AUTO_V6_STRATEGIES
                     else "R_FUTURES_LEAD"
                 )
                 source_trade = self.db.execute(
@@ -4950,7 +5456,16 @@ class Store:
                     source_signal = float(source_diagnostics["signal"])
                 except (KeyError, TypeError, ValueError, json.JSONDecodeError):
                     continue
-                if strategy in CONTINUOUS_CALIBRATION_STRATEGIES:
+                if strategy in FUTURES_LEAD_FILTER_STRATEGIES:
+                    signal = filtered_futures_lead_signal(
+                        strategy,
+                        source_side=str(source_trade["side"]),
+                        source_signal=source_signal,
+                        source_entry=float(source_trade["entry_price"]),
+                    )
+                    if signal is None:
+                        continue
+                elif strategy in CONTINUOUS_CALIBRATION_STRATEGIES:
                     source_shares = float(source_trade["shares"])
                     if source_shares <= 0:
                         continue
@@ -4986,6 +5501,38 @@ class Store:
                         "model_edge": float(
                             calibration_decision["calibrated_edge"]
                         ),
+                    }
+                elif strategy in PAIRED_REVERSE_STRATEGIES:
+                    signal = research_reverse_source_signal(
+                        source_strategy,
+                        str(source_trade["side"]),
+                        source_signal,
+                        source_probability=source_trade["model_probability"],
+                    )
+                elif strategy in OBSERVER_AUTO_V6_STRATEGIES:
+                    observer_gates = context.get("m01o_observer_gates")
+                    observer_gate = (
+                        observer_gates.get("F1")
+                        if isinstance(observer_gates, dict)
+                        else None
+                    )
+                    auto_history = self._research_observer_auto_v6_history(
+                        source_strategy,
+                        before_market_id=market_id,
+                    )
+                    observer_auto_v6_decision = observer_v6_auto_decision(
+                        auto_history,
+                        observer_gate,
+                        expected_market_id=market_id,
+                    )
+                    if observer_auto_v6_decision["allowed"] is not True:
+                        continue
+                    signal = {
+                        "side": str(source_trade["side"]),
+                        "signal": source_signal,
+                        "source_strategy": source_strategy,
+                        "source_side": str(source_trade["side"]),
+                        "source_signal": source_signal,
                     }
                 elif strategy in {
                     *FUTURES_LEAD_OBSERVER_STRATEGIES,
@@ -5119,6 +5666,22 @@ class Store:
             )
             if candidate is None:
                 continue
+            if (
+                strategy in PAIRED_REVERSE_STRATEGIES
+                and candidate.get("model_probability") is not None
+            ):
+                counterfactual_effective_cost = (
+                    float(candidate["entry"])
+                    + taker_fee(1.0, float(candidate["entry"]), fee_bps)
+                )
+
+                candidate["model_edge"] = (
+                    float(candidate["model_probability"])
+                    - counterfactual_effective_cost
+                )
+                candidate["counterfactual_effective_cost"] = (
+                    counterfactual_effective_cost
+                )
             if strategy in CONTINUOUS_CALIBRATION_STRATEGIES:
                 actual_effective_cost = float(candidate["entry"]) + taker_fee(
                     1.0, float(candidate["entry"]), fee_bps
@@ -5133,9 +5696,12 @@ class Store:
             sample_segment = None
             if strategy in {
                 *CONTINUOUS_CALIBRATION_STRATEGIES,
+                *PAIRED_REVERSE_STRATEGIES,
+                *FUTURES_LEAD_FILTER_STRATEGIES,
                 *FUTURES_LEAD_EXPERIMENT_STRATEGIES,
                 *FUTURES_LEAD_OBSERVER_STRATEGIES,
                 *OBSERVER_COMBINATION_STRATEGIES,
+                *OBSERVER_AUTO_V6_STRATEGIES,
             }:
                 sample_index, sample_segment = self._research_experiment_next_sample(
                     strategy
@@ -5210,14 +5776,32 @@ class Store:
                 diagnostics["event_ofi_count"] = candidate["event_ofi_count"]
                 diagnostics["event_ofi_window_seconds"] = params["window"]
             if candidate.get("direction_reversed") is True:
-                diagnostics["direction_reversed"] = True
-                diagnostics["source_strategy"] = candidate.get("source_strategy")
-                diagnostics["source_side"] = candidate.get("source_side")
-                diagnostics["source_signal"] = candidate.get("source_signal")
-                diagnostics["source_trade_id"] = int(source_trade["id"])
-                diagnostics["source_trade_opened_at"] = source_trade["opened_at"]
-                diagnostics["dependency_rule"] = (
-                    "open_only_after_R_FUTURES_LEAD_trade"
+                    source_name = str(
+                        candidate.get("source_strategy")
+                        or source_strategy
+                        or ""
+                    )
+
+                    diagnostics["direction_reversed"] = True
+                    diagnostics["paired_counterfactual"] = True
+                    diagnostics["source_strategy"] = source_name
+                    diagnostics["source_side"] = candidate.get("source_side")
+                    diagnostics["source_signal"] = candidate.get("source_signal")
+                    diagnostics["source_trade_id"] = int(source_trade["id"])
+                    diagnostics["source_trade_opened_at"] = source_trade["opened_at"]
+                    diagnostics["dependency_rule"] = (
+                        f"open_only_after_same_market_{source_name}_trade"
+                    )
+            if strategy in PAIRED_REVERSE_STRATEGIES:
+                diagnostics.update(
+                    {
+                        "paired_reverse_shadow": True,
+                        "counterfactual_same_market": True,
+                        "counterfactual_same_book": True,
+                        "counterfactual_effective_cost": candidate.get(
+                            "counterfactual_effective_cost"
+                        ),
+                    }
                 )
             if strategy == "R_FUTURES_LEAD_REGIME_REVERSE_3L":
                 diagnostics["regime_rule"] = (
@@ -5283,6 +5867,23 @@ class Store:
                         "current_market_excluded_from_history": True,
                     }
                 )
+            if strategy in FUTURES_LEAD_FILTER_STRATEGIES:
+                diagnostics.update(
+                    {
+                        "source_strategy": source_strategy,
+                        "source_side": str(source_trade["side"]),
+                        "source_signal": source_signal,
+                        "source_entry": float(source_trade["entry_price"]),
+                        "source_trade_id": int(source_trade["id"]),
+                        "source_trade_opened_at": source_trade["opened_at"],
+                        "filter_rule": signal["filter_rule"],
+                        "dependency_rule": (
+                            f"open_only_after_same_market_{source_strategy}_trade_"
+                            "and_frozen_filter_allows"
+                        ),
+                        "direction_reversed": False,
+                    }
+                )
             if strategy in OBSERVER_COMBINATION_STRATEGIES:
                 diagnostics.update(
                     {
@@ -5302,6 +5903,25 @@ class Store:
                         "direction_reversed": False,
                     }
                 )
+            if strategy in OBSERVER_AUTO_V6_STRATEGIES:
+                diagnostics.update(
+                    {
+                        "observer_version": "AUTO_V6",
+                        "observer_auto_v6": observer_auto_v6_decision,
+                        "source_strategy": source_strategy,
+                        "source_side": str(source_trade["side"]),
+                        "source_signal": source_signal,
+                        "source_trade_id": int(source_trade["id"]),
+                        "source_trade_opened_at": source_trade["opened_at"],
+                        "dependency_rule": (
+                            f"open_only_after_same_market_{source_strategy}_trade_"
+                            "and_causal_official_auto_v6_switch_allows"
+                        ),
+                        "direction_reversed": False,
+                        "official_history_only": True,
+                        "current_market_excluded_from_history": True,
+                    }
+                )
             self.open_trade(
                 strategy=strategy,
                 topic_id=int(snapshot["topic_id"]),
@@ -5315,6 +5935,8 @@ class Store:
                     f"{strategy}_shadow_paper_v2"
                     if strategy in {
                         *CONTINUOUS_CALIBRATION_STRATEGIES,
+                        *FUTURES_LEAD_FILTER_STRATEGIES,
+                        *PAIRED_REVERSE_STRATEGIES,
                         "R_FUTURES_LEAD_REVERSE",
                         "R_FUTURES_LEAD_REGIME_REVERSE_3L",
                     }
@@ -5365,6 +5987,26 @@ class Store:
                         "source_side": str(source_trade["side"]),
                         "source_trade_id": int(source_trade["id"]),
                         "continuous_calibration": calibration_decision,
+                    }
+                )
+            elif strategy in FUTURES_LEAD_FILTER_STRATEGIES:
+                opened_candidate.update(
+                    {
+                        "source_strategy": source_strategy,
+                        "source_side": str(source_trade["side"]),
+                        "source_trade_id": int(source_trade["id"]),
+                        "source_entry_price": float(source_trade["entry_price"]),
+                        "filter_rule": signal["filter_rule"],
+                    }
+                )
+            elif strategy in PAIRED_REVERSE_STRATEGIES:
+                opened_candidate.update(
+                    {
+                        "paired_shadow": True,
+                        "source_strategy": source_strategy,
+                        "source_side": str(candidate.get("source_side") or ""),
+                        "source_trade_id": int(source_trade["id"]),
+                        "direction_reversed": True,
                     }
                 )
             elif strategy == "R_FUTURES_LEAD_REVERSE":
@@ -5424,6 +6066,16 @@ class Store:
                             strategy
                         ][1],
                         "observer_decision": observer_decision,
+                    }
+                )
+            elif strategy in OBSERVER_AUTO_V6_STRATEGIES:
+                opened_candidate.update(
+                    {
+                        "source_strategy": source_strategy,
+                        "source_side": str(source_trade["side"]),
+                        "source_trade_id": int(source_trade["id"]),
+                        "observer_version": "AUTO_V6",
+                        "observer_auto_v6": observer_auto_v6_decision,
                     }
                 )
             opened.append(opened_candidate)
@@ -7862,6 +8514,12 @@ class Store:
                 if trade["strategy"] == "H":
                     h_result = "WIN" if won else "LOSS"
             if official:
+                self.db.execute(
+                    """UPDATE confirmation_add_shadow_state
+                          SET status='OFFICIAL', officially_settled_at=?, updated_at=?
+                        WHERE market_id=? AND status<>'OFFICIAL'""",
+                    (settled_at, settled_at, market_id),
+                )
                 self._settle_mx_positions(market_id, winner)
                 self.db.execute(
                     """UPDATE strategy_k_forecasts
@@ -8946,6 +9604,7 @@ class Store:
         observer_strategies = (
             *FUTURES_LEAD_OBSERVER_STRATEGIES,
             *OBSERVER_COMBINATION_STRATEGIES,
+            *OBSERVER_AUTO_V6_STRATEGIES,
         )
         placeholders = ",".join("?" for _ in observer_strategies)
         with self.lock:
@@ -9286,6 +9945,7 @@ class Store:
             "status": "PAPER_ONLY",
             "paperOnly": True,
             "liveOrdersAffected": False,
+            "confirmationAdd": self.confirmation_add_shadow_summary(),
             "strategies": {
                 strategy: {
                     "enabled": bool(
@@ -9299,9 +9959,11 @@ class Store:
                         self._research_experiment_validation_state(strategy)
                         if strategy in {
                             *CONTINUOUS_CALIBRATION_STRATEGIES,
+                            *PAIRED_REVERSE_STRATEGIES,
                             *FUTURES_LEAD_EXPERIMENT_STRATEGIES,
                             *FUTURES_LEAD_OBSERVER_STRATEGIES,
                             *OBSERVER_COMBINATION_STRATEGIES,
+                            *OBSERVER_AUTO_V6_STRATEGIES,
                         }
                         else None
                     ),
@@ -9312,6 +9974,15 @@ class Store:
                             )
                         }
                         if strategy in CONTINUOUS_CALIBRATION_STRATEGIES
+                        else {}
+                    ),
+                    **(
+                        {
+                            "observerAutoV6": (
+                                self._research_observer_auto_v6_state(strategy)
+                            )
+                        }
+                        if strategy in OBSERVER_AUTO_V6_STRATEGIES
                         else {}
                     ),
                     **(
@@ -9490,6 +10161,8 @@ class Collector(threading.Thread):
         self.pending_settlement_lock = threading.Lock()
         self.market_watch_thread: threading.Thread | None = None
         self.live_signal_sink: Callable[[dict[str, Any]], None] | None = None
+        self.realtime_prediction_sink: Callable[[dict[str, Any]], None] | None = None
+        self.confirmation_snapshot_sink: Callable[[dict[str, Any]], None] | None = None
 
     def settle_previous(
         self,
@@ -9738,6 +10411,7 @@ class Collector(threading.Thread):
                     up_future = pool.submit(self.prediction.orderbook, market_id, str(selected["up"]["tokenId"]))
                     down_future = pool.submit(self.prediction.orderbook, market_id, str(selected["down"]["tokenId"]))
                     spot_price = spot_future.result()
+                    spot_received_monotonic_ns = time.monotonic_ns()
                     up_book = up_future.result()
                     down_book = down_future.result()
                 received_wall_ns = time.time_ns()
@@ -9760,6 +10434,11 @@ class Collector(threading.Thread):
                         "timestamp": utc_iso(), "topic_id": int(market["marketTopicId"]),
                         "market_id": market_id, "title": market["title"],
                         "start_price": float(start_price), "spot_price": spot_price,
+                        "spot_age_ms": max(
+                            0.0,
+                            (received_monotonic_ns - spot_received_monotonic_ns)
+                            / 1_000_000,
+                        ),
                         # M5 consumes the existing USD-M aggTrade WebSocket hot
                         # path.  The 1 s REST collector deliberately leaves these
                         # nullable so a public Futures request can never take A-L
@@ -9801,8 +10480,26 @@ class Collector(threading.Thread):
                             up_ask=book.up_ask,
                             down_ask=book.down_ask,
                             market_id=market_id,
+                            book_age_seconds=(
+                                float(book.book_age_ms) / 1000.0
+                                if book.book_age_ms is not None
+                                else None
+                            ),
+                            book_skew_ms=book.book_skew_ms,
+                            require_verified_book_freshness=True,
                         )
                     self.latest_snapshot = dict(snapshot)
+                    if self.realtime_prediction_sink is not None:
+                        self.realtime_prediction_sink(
+                            direct_rest_prediction_event(
+                                market_id=market_id,
+                                up_book=up_book,
+                                down_book=down_book,
+                                received_wall_ns=received_wall_ns,
+                                received_monotonic_ns=received_monotonic_ns,
+                                current_timestamp_ms=now_ms,
+                            )
+                        )
                     fee_bps = int(market.get("feeRateBps") or 0)
                     self.store.observe(snapshot)
                     pair_snapshot = {
@@ -9839,6 +10536,9 @@ class Collector(threading.Thread):
                     self.store.maybe_enter(
                         snapshot, fee_bps, include_m_series=False
                     )
+                    self.store.process_confirmation_add_shadows(snapshot)
+                    if self.confirmation_snapshot_sink is not None:
+                        self.confirmation_snapshot_sink(snapshot)
                     self.store.process_confidence_stop_losses(snapshot, fee_bps)
                     self.status, self.error, self.updated_at = (
                         "LIVE", None, snapshot["timestamp"]
@@ -9927,15 +10627,28 @@ def build_health_payload(
     """Separate Prediction transport health from execution usability."""
     writer_status = (micro or {}).get("storage", {}).get("writerStatus")
     stream_states = (micro or {}).get("streams", {})
+    legacy_spot = stream_states.get("spot") or {}
     required_streams = {
-        name: (stream_states.get(name) or {}).get("status")
-        for name in ("spot", "futures", "prediction")
+        "spot_trade": (
+            stream_states.get("spot_trade") or legacy_spot
+        ).get("status"),
+        "spot_book": (
+            stream_states.get("spot_book") or legacy_spot
+        ).get("status"),
+        "futures": (stream_states.get("futures") or {}).get("status"),
+        "prediction": (stream_states.get("prediction") or {}).get("status"),
     }
     prediction = stream_states.get("prediction") or {}
     mapping = prediction.get("bookMapping")
     prediction_market_id = prediction.get("marketId")
     m_realtime_market_id = (m_realtime or {}).get("marketId")
     prediction_book_age_ms = (m_realtime or {}).get("predictionBookAgeMs")
+    prediction_data_source = (m_realtime or {}).get("predictionDataSource")
+    effective_mapping = (
+        (m_realtime or {}).get("predictionOrientation")
+        if prediction_data_source == "dual_token_rest"
+        else mapping
+    )
     try:
         ids_match = (
             prediction_market_id is not None
@@ -9952,9 +10665,10 @@ def build_health_payload(
         )
     except (TypeError, ValueError):
         book_age_healthy = False
-    mapping_verified = mapping in PREDICTION_VERIFIED_ORIENTATIONS
+    mapping_verified = effective_mapping in PREDICTION_VERIFIED_ORIENTATIONS
+    direct_rest_prediction = prediction_data_source == "dual_token_rest"
     orientation_healthy = bool(
-        required_streams["prediction"] == "LIVE"
+        (direct_rest_prediction or required_streams["prediction"] == "LIVE")
         and mapping_verified
         and ids_match
         and book_age_healthy
@@ -9963,7 +10677,7 @@ def build_health_payload(
     if orientation_healthy:
         orientation_status = "HEALTHY"
         orientation_reason = None
-    elif required_streams["prediction"] != "LIVE":
+    elif required_streams["prediction"] != "LIVE" and not direct_rest_prediction:
         orientation_status = "DEGRADED"
         orientation_reason = "PREDICTION_STREAM_NOT_LIVE"
     elif orientation_timed_out:
@@ -9995,8 +10709,15 @@ def build_health_payload(
     healthy = bool(
         collector_status == "LIVE"
         and writer_status == "RUNNING"
-        and (micro or {}).get("status") == "LIVE"
-        and all(status == "LIVE" for status in required_streams.values())
+        and (micro or {}).get("status") in {"LIVE", "DEGRADED", "PARTIAL"}
+        and all(
+            required_streams[name] == "LIVE"
+            for name in ("spot_trade", "spot_book", "futures")
+        )
+        and (
+            direct_rest_prediction
+            or required_streams["prediction"] == "LIVE"
+        )
         and (m_realtime or {}).get("status") == "LIVE"
         and (m_realtime or {}).get("marketDataIntegrityOk") is True
         and int((m_realtime or {}).get("droppedEvents") or 0) == 0
@@ -10014,11 +10735,15 @@ def build_health_payload(
         "mRealtimeDroppedEvents": (m_realtime or {}).get("droppedEvents"),
         "mRealtimeError": (m_realtime or {}).get("error"),
         "predictionBookMapping": mapping,
+        "effectivePredictionBookMapping": effective_mapping,
+        "predictionDataSource": prediction_data_source,
         "predictionMarketId": prediction_market_id,
         "mRealtimeMarketId": m_realtime_market_id,
         "predictionBookAgeMs": prediction_book_age_ms,
         "predictionBookVersionAgeMs": prediction.get("bookVersionAgeMs"),
         "predictionLocalReceiptAgeMs": prediction.get("localReceiptAgeMs"),
+        "spotTradeIngressAgeMs": (m_realtime or {}).get("spotTradeIngressAgeMs"),
+        "spotTradeProcessedAgeMs": (m_realtime or {}).get("spotTradeProcessedAgeMs"),
         "predictionOrientationHealthy": orientation_healthy,
         "predictionOrientationStatus": orientation_status,
         "predictionOrientationReason": orientation_reason,
@@ -10349,9 +11074,26 @@ def main() -> None:
                 else None
             )
         ),
+        current_spot_reference=(
+            lambda: (
+                M_REALTIME.current_spot_reference()
+                if M_REALTIME is not None
+                else None
+            )
+        ),
+        current_direct_rest_prediction_book=(
+            lambda: (
+                M_REALTIME.current_direct_rest_prediction_book()
+                if M_REALTIME is not None
+                else None
+            )
+        ),
     )
     LIVE_M0W.start()
     COLLECTOR.live_signal_sink = LIVE_M0W.submit_signal
+    COLLECTOR.confirmation_snapshot_sink = (
+        LIVE_M0W.record_confirmation_add_snapshot
+    )
     M_REALTIME = MSeriesRealtimeEngine(
         store=STORE,
         current_market=current_m_market_reference,
@@ -10359,6 +11101,7 @@ def main() -> None:
         market_observer=MARKET_OBSERVER,
     )
     M_REALTIME.start()
+    COLLECTOR.realtime_prediction_sink = M_REALTIME.submit
     MICROSTRUCTURE = MicrostructureObserver(
         api_key=os.environ.get("BINANCE_API_KEY"),
         api_secret=os.environ.get("BINANCE_API_SECRET"),

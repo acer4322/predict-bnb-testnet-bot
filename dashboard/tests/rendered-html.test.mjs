@@ -29,7 +29,12 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.match(page, /剛好 50% 仍允許下單/);
   assert.match(styles, /\.live-hourly-guard\.blocked/);
   assert.match(page, /正式實單規則/);
+  assert.match(page, /MANUAL_EXIT_FILLED/);
+  assert.match(page, /手動平倉/);
   assert.match(page, /實單訊號策略/);
+  assert.match(page, /LIVE_STRATEGY_SLOT_INDEXES = \[0, 1, 2, 3\]/);
+  assert.match(page, /LIVE_OBSERVER_SLOT_INDEXES = \[0, 1, 2\]/);
+  assert.match(page, /第四格固定不使用 Observer/);
   assert.match(page, /策略 \$\{index \+ 1\} 每筆／每組互補單的獨立上限/);
   assert.match(page, /M0 每小時最低勝率/);
   assert.match(page, /M0 一勝一敗率上限/);
@@ -101,6 +106,9 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.match(page, /id="research-panel"/);
   assert.match(page, /id="reliability-shadow-tab"/);
   assert.match(page, /id="reliability-shadow-panel"/);
+  assert.match(page, /實單成交改用順勢確認加碼，結果會怎樣？/);
+  assert.match(page, /一般策略 · 順勢確認加碼 Shadow/);
+  assert.match(page, /<ConfirmationAddSummaryPanel/);
   assert.match(page, /<ReliabilityShadowPanel data=\{state\.liveM0W\} \/>/);
   assert.match(page, /實單成交鏡像可靠／失準研究/);
   assert.match(page, /假設放行/);
@@ -133,7 +141,10 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.match(page, /R_MICROPRICE \+ V3/);
   assert.match(page, /R_MICROPRICE \+ V6/);
   assert.match(page, /R_CALIBRATED_VALUE \+ V6/);
-  assert.match(page, /OBSERVER · NINE INDEPENDENT SHADOWS/);
+  assert.match(page, /OBSERVER · ELEVEN INDEPENDENT SHADOWS/);
+  assert.match(page, /R_MICROPRICE_OBSERVER_AUTO_V6/);
+  assert.match(page, /R_CALIBRATED_VALUE_OBSERVER_AUTO_V6/);
+  assert.match(page, /AUTO：/);
   assert.match(page, /trade\.strategy\.includes\("_OBSERVER_"\)/);
   assert.match(page, /api\/trades\/futures-lead-observer\?page=\$\{observerTradePageNumber\}/);
   assert.match(page, /observerTradePage\.trades/);
@@ -492,8 +503,10 @@ test("ships the BTC 5M strategy monitor", async () => {
   for (const field of [
     "status", "mode", "paperOnly", "marketId", "eventRate", "queueDepth",
     "processedEvents", "droppedEvents", "evaluations", "lastEventAt", "lastDecisionAt",
-    "lastQueueDelayMs", "lastDecisionDurationMs", "spotAgeMs", "futuresAgeMs",
-    "predictionBookAgeMs", "schedulerTickMs", "error",
+    "lastQueueDelayMs", "lastDecisionDurationMs", "spotAgeMs", "spotTradeIngressAgeMs",
+    "spotTradeProcessedAgeMs", "futuresAgeMs",
+    "predictionBookAgeMs", "predictionStrategyBookAgeMs", "predictionRestReceiptAgeMs",
+    "predictionExchangeContentAgeMs", "predictionLatestRestEligible", "schedulerTickMs", "error",
   ]) {
     assert.match(page, new RegExp(`${field}\\?:`));
   }
@@ -511,6 +524,10 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.match(page, /lastDecisionDurationMs/);
   assert.match(page, /schedulerTickMs/);
   assert.match(page, /predictionBookAgeMs/);
+  assert.match(page, /Prediction 策略可用簿年齡/);
+  assert.match(page, /Prediction REST 接收年齡/);
+  assert.match(page, /Prediction 交易所內容年齡/);
+  assert.match(page, /最近一次 REST 快照抵達本機/);
   assert.match(page, /毫秒 timestamp 與延遲欄位/);
   for (const field of [
     "observed_timestamp_ms", "up_book_timestamp_ms", "down_book_timestamp_ms",
@@ -529,7 +546,8 @@ test("ships the BTC 5M strategy monitor", async () => {
     assert.match(page, new RegExp(field));
   }
   assert.match(page, /本機策略 diagnostics，不代表上游行情延遲/);
-  assert.match(page, /Binance 現貨/);
+  assert.match(page, /Binance Spot trade/);
+  assert.match(page, /Binance Spot book\/depth/);
   assert.match(page, /USDT 永續/);
   assert.match(page, /Prediction 訂單簿/);
   assert.match(page, /event\/s/);
@@ -703,7 +721,9 @@ test("ships the BTC 5M strategy monitor", async () => {
   assert.match(readme, /optional `mRealtime` 狀態列/);
   for (const field of [
     "processedEvents", "droppedEvents", "lastQueueDelayMs", "lastDecisionDurationMs",
-    "spotAgeMs", "futuresAgeMs", "predictionBookAgeMs", "schedulerTickMs",
+    "spotAgeMs", "spotTradeIngressAgeMs", "spotTradeProcessedAgeMs", "futuresAgeMs",
+    "predictionBookAgeMs", "predictionStrategyBookAgeMs",
+    "predictionRestReceiptAgeMs", "predictionExchangeContentAgeMs", "schedulerTickMs",
   ]) {
     assert.match(readme, new RegExp(field));
   }

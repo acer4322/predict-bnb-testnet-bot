@@ -9,7 +9,9 @@ import predict_bot.live_trading as live_trading
 from predict_bot.core import ApiHttpError, ApiTransportError
 from predict_bot.live_trading import (
     LIVE_M0W_AMOUNT_WEI,
+    LIVE_OBSERVER_STRATEGIES,
     LIVE_RESEARCH_STRATEGIES,
+    LIVE_SUPPORTED_STRATEGIES,
     LiveLedger,
     LiveM0WEngine,
 )
@@ -20,6 +22,47 @@ INDEPENDENT_LIVE_RESEARCH_STRATEGIES = tuple(
     for strategy in LIVE_RESEARCH_STRATEGIES
     if strategy != "R_FUTURES_LEAD_REVERSE"
 )
+
+
+def test_live_allowlist_keeps_only_f01_from_m_family_and_adds_test_variants():
+    assert [
+        strategy
+        for strategy in LIVE_SUPPORTED_STRATEGIES
+        if strategy.startswith("M")
+    ] == ["M01O_F1"]
+    variants = {
+        "R_FUTURES_LEAD_DISTANCE",
+        "R_FUTURES_LEAD_SIGNAL_100",
+        "R_FUTURES_LEAD_MIN_ENTRY_020",
+    }
+    assert variants <= set(LIVE_RESEARCH_STRATEGIES)
+    assert variants <= set(LIVE_OBSERVER_STRATEGIES)
+
+
+def test_live_spot_gate_blocks_data_older_than_four_seconds():
+    signal_payload = {
+        "signal_spot_age_ms": 3_500.0,
+        "signal_spot_price_source": "trade",
+        "market_event_received_monotonic_ns": time.monotonic_ns() - 600_000_000,
+    }
+
+    allowed, reason = LiveM0WEngine._spot_data_is_safe_for_live(signal_payload)
+
+    assert allowed is False
+    assert "4000ms" in reason
+
+
+def test_live_spot_gate_accepts_fresh_bookticker_midpoint_fallback():
+    signal_payload = {
+        "signal_spot_age_ms": 150.0,
+        "signal_spot_price_source": "bookTicker_midpoint",
+        "market_event_received_monotonic_ns": time.monotonic_ns() - 100_000_000,
+    }
+
+    allowed, reason = LiveM0WEngine._spot_data_is_safe_for_live(signal_payload)
+
+    assert allowed is True
+    assert reason == ""
 
 
 class FakeTradingClient:
@@ -216,9 +259,13 @@ def signal(**overrides):
         "entry_price": 0.40,
         "seconds_left": 100.0,
         "signal_timestamp": "2026-07-19T00:00:00+00:00",
+        "market_event_received_monotonic_ns": time.monotonic_ns(),
         "market_data_integrity_ok": True,
+        "pair_max_book_age_ms": 3000.0,
+        "pair_max_book_skew_ms": 1000.0,
         "drawdown_control_start_price": 100.0,
         "drawdown_control_spot_price": 99.95,
+        "drawdown_control_spot_age_ms": 100.0,
         "m0w_gate": {
             "version": "M0W_GATE_V2_ADJACENT_OFFICIAL_WIN",
             "previous_market_id": 201,
@@ -314,16 +361,23 @@ def verified_prediction_book(**overrides):
         "orientation": "DIRECT_UP_VERIFIED",
         "received_monotonic_ns": time.monotonic_ns(),
         "book_age_ms": 0.0,
+        "book_skew_ms": 0.0,
         "up_bid": 0.39,
         "up_ask": 0.40,
-        "up_bid_size": 10.0,
-        "up_ask_size": 10.0,
+        "up_bid_size": 100.0,
+        "up_ask_size": 100.0,
         "down_bid": 0.39,
         "down_ask": 0.40,
-        "down_bid_size": 10.0,
-        "down_ask_size": 10.0,
+        "down_bid_size": 100.0,
+        "down_ask_size": 100.0,
     }
     payload.update(overrides)
+    payload.setdefault(
+        "up_asks", [[payload["up_ask"], payload["up_ask_size"]]]
+    )
+    payload.setdefault(
+        "down_asks", [[payload["down_ask"], payload["down_ask_size"]]]
+    )
     return payload
 
 
@@ -694,6 +748,11 @@ def test_order_latency_is_backward_compatible_without_causal_timestamps():
             "BLOCKED_STALE_PREDICTION_BOOK",
             "LOCAL_STALE_BOOK",
         ),
+        (
+            verified_prediction_book(book_age_ms=55_000.0),
+            "BLOCKED_STALE_PREDICTION_BOOK",
+            "LOCAL_STALE_BOOK",
+        ),
     ],
 )
 def test_latest_prediction_book_gate_blocks_before_binance_quote(
@@ -769,7 +828,7 @@ def test_initial_quote_uses_latest_verified_ask_without_lowering_signal_limit(
 
 
 def test_estimate_buy_vwap_covers_stake_without_mutating_levels():
-    levels = [[0.20, 2.0], [0.40, 2.0]]
+    levels = [[0.40, 2.0], [0.20, 2.0]]
     original = [list(level) for level in levels]
 
     estimate = live_trading.estimate_buy_vwap(levels, "1.00")
@@ -793,7 +852,7 @@ def test_estimate_buy_vwap_reports_insufficient_depth():
 
 
 @pytest.mark.parametrize("ask_size", [None, 0.10])
-def test_top_level_capacity_gate_fails_closed_before_quote(
+def test_multilevel_depth_coverage_gate_fails_closed_before_quote(
     tmp_path: Path, ask_size,
 ):
     client = FakeTradingClient()
@@ -810,13 +869,14 @@ def test_top_level_capacity_gate_fails_closed_before_quote(
 
     assert client.quote_calls == []
     order = live.state()["orders"][0]
-    assert order["status"] == "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY"
+    assert order["status"] == "BLOCKED_INSUFFICIENT_DEPTH_COVERAGE"
     assert order["error_kind"] == "LOCAL_INSUFFICIENT_DEPTH"
     depth = live.state()["lastDepthCheck"]
-    assert depth["topLevelCapacityRatio"] < 0.70
+    assert depth["depthCoverageRatio"] < 1.0
+    assert depth["minimumDepthCoverageRatio"] == pytest.approx(1.0)
 
 
-def test_down_capacity_gate_uses_down_ask_size(tmp_path: Path):
+def test_down_depth_coverage_gate_uses_down_ask_levels(tmp_path: Path):
     client = FakeTradingClient()
     live = engine(
         tmp_path,
@@ -833,8 +893,56 @@ def test_down_capacity_gate_uses_down_ask_size(tmp_path: Path):
 
     assert client.quote_calls == []
     assert live.state()["orders"][0]["status"] == (
-        "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY"
+        "BLOCKED_INSUFFICIENT_DEPTH_COVERAGE"
     )
+
+
+def test_multilevel_depth_can_pass_with_less_than_seventy_percent_top_level(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.40,
+            up_ask_size=1.0,
+            up_asks=[[0.40, 1.0], [0.45, 2.0]],
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal(entry_price=0.40))
+
+    assert len(client.quote_calls) == 1
+    depth = live.state()["lastDepthCheck"]
+    assert depth["status"] == "PASS"
+    assert depth["topLevelCapacityRatio"] == pytest.approx(0.40)
+    assert depth["depthCoverageRatio"] == pytest.approx(1.0)
+    assert depth["depthLevelsConsumed"] == 2
+    assert depth["estimatedVwap"] == pytest.approx(1.0 / (1.0 + 0.6 / 0.45))
+
+
+def test_multilevel_depth_requires_full_stake_coverage(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_ask_size=10.0,
+            up_asks=[[0.40, 2.0]],
+        ),
+    )
+    force_legacy_m0w_rules_for_test(live)
+
+    live.process_signal(signal())
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_INSUFFICIENT_DEPTH_COVERAGE"
+    depth = live.state()["lastDepthCheck"]
+    assert depth["topLevelCapacityRatio"] == pytest.approx(4.0)
+    assert depth["depthCoverageRatio"] == pytest.approx(0.8)
 
 
 def test_estimated_vwap_above_ceiling_blocks_before_quote(tmp_path: Path):
@@ -861,18 +969,27 @@ def test_estimated_vwap_above_ceiling_blocks_before_quote(tmp_path: Path):
     assert depth["estimatedVwap"] > 0.50
 
 
-def test_missing_multilevel_depth_is_reported_unavailable_not_invented(
+def test_missing_multilevel_depth_fails_closed_before_quote(
     tmp_path: Path,
 ):
     client = FakeTradingClient()
-    live = engine(tmp_path, client)
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            up_asks=None
+        ),
+    )
     force_legacy_m0w_rules_for_test(live)
 
     live.process_signal(signal())
 
-    assert len(client.quote_calls) == 1
+    assert client.quote_calls == []
+    assert live.state()["orders"][0]["status"] == (
+        "BLOCKED_INSUFFICIENT_DEPTH_COVERAGE"
+    )
     depth = live.state()["lastDepthCheck"]
-    assert depth["status"] == "PASS"
+    assert depth["status"] == "BLOCKED_INSUFFICIENT_DEPTH_COVERAGE"
     assert depth["vwapAvailable"] is False
     assert depth["estimatedVwap"] is None
 
@@ -1812,32 +1929,67 @@ def test_live_rules_select_strategy_and_change_exact_order_cap(tmp_path: Path):
     }
 
 
-def test_three_selected_live_strategies_use_independent_caps(tmp_path: Path):
+def test_four_selected_live_strategies_use_independent_caps(tmp_path: Path):
     client = FakeTradingClient()
     client.quote_amount_ins = [
         "750000000000000000",
         "1250000000000000000",
         "500000000000000000",
+        "600000000000000000",
     ]
     live = engine(tmp_path, client)
     live.update_live_rules({
-        "strategies": ["M1", "M2", "M3"],
-        "strategyStakesUsdt": [0.75, 1.25, 0.5],
+        "strategies": [
+            "R_MICROPRICE",
+            "R_FUTURES_LEAD",
+            "R_OFI",
+            "R_CALIBRATED_VALUE",
+        ],
+        "strategyStakesUsdt": [0.75, 1.25, 0.5, 0.6],
     })
 
-    live.process_signal(signal(strategy="M1", m0w_gate=None))
-    live.process_signal(signal(strategy="M2", m0w_gate=None))
-    live.process_signal(signal(strategy="M3", m0w_gate=None))
+    live.process_signal(signal(strategy="R_MICROPRICE", m0w_gate=None))
+    live.process_signal(signal(strategy="R_FUTURES_LEAD", m0w_gate=None))
+    live.process_signal(signal(strategy="R_OFI", m0w_gate=None))
+    live.process_signal(signal(strategy="R_CALIBRATED_VALUE", m0w_gate=None))
 
-    assert len(client.place_calls) == 3
-    assert live.state()["maxSelectableStrategies"] == 3
+    assert len(client.place_calls) == 4
+    assert live.state()["maxSelectableStrategies"] == 4
     assert {order["strategy"] for order in live.state()["orders"]} == {
-        "M1", "M2", "M3",
+        "R_MICROPRICE",
+        "R_FUTURES_LEAD",
+        "R_OFI",
+        "R_CALIBRATED_VALUE",
     }
     assert {
         order["strategy"]: order["max_stake_usdt"]
         for order in live.state()["orders"]
-    } == {"M1": 0.75, "M2": 1.25, "M3": 0.5}
+    } == {
+        "R_MICROPRICE": 0.75,
+        "R_FUTURES_LEAD": 1.25,
+        "R_OFI": 0.5,
+        "R_CALIBRATED_VALUE": 0.6,
+    }
+
+
+def test_fourth_live_strategy_slot_forces_observer_off(tmp_path: Path):
+    live = engine(tmp_path, FakeTradingClient())
+
+    state = live.update_live_rules({
+        "strategies": [
+            "R_MICROPRICE",
+            "R_FUTURES_LEAD",
+            "R_OFI",
+            "R_CALIBRATED_VALUE",
+        ],
+        "strategyStakesUsdt": [1.0, 1.0, 1.0, 1.0],
+        "strategyObserverEnabled": [True, True, True, True],
+        "strategyObserverVersions": ["V3", "V3", "V3", "V6"],
+    })
+
+    assert state["rules"]["strategyObserverEnabled"] == [
+        True, True, True, False,
+    ]
 
 
 @pytest.mark.parametrize(
@@ -1933,13 +2085,70 @@ def test_real_fills_are_copied_into_reliability_counterfactual_research(
     assert summary["recentSamples"][0]["tagDecisions"]
 
 
-def test_live_rules_reject_more_than_three_selected_strategies(tmp_path: Path):
+def test_real_fill_confirmation_add_mirror_tracks_books_without_new_live_order(
+    tmp_path: Path,
+):
+    ledger = LiveLedger(tmp_path / "live.db")
+    local_id = ledger.record_signal(
+        topic_id=101, market_id=401, side="UP", token_id="token-401",
+        signal_price=0.20, account_type="SPOT",
+        signal_at="2026-08-02T00:00:00+00:00", strategy="M01O_F1",
+        max_stake_usdt=5.0, requested_amount_wei=str(LIVE_M0W_AMOUNT_WEI),
+        reliability_context={"seconds_left": 100.0, "book_age_ms": 10.0},
+    )
+    assert local_id is not None
+    ledger.update_order(
+        local_id, status="SUBMITTED", quote_average_price=0.20,
+        quote_amount_in_wei=str(LIVE_M0W_AMOUNT_WEI),
+        quote_amount_out_wei="5000000000000000000",
+    )
+    ledger.sync_exchange_order(local_id, {
+        "status": "FILLED", "filledUsdtAmount": "5.0",
+        "filledShareQty": "25.0", "fillPercentage": "1",
+        "marketProviderFee": "0", "networkFee": "0",
+    })
+    pending = ledger.confirmation_add_research_summary()
+    assert pending["source"] == "real_filled_orders_only"
+    assert pending["overall"]["samples"] == 1
+    assert pending["overall"]["pendingSamples"] == 1
+    assert pending["recent"][0]["hypotheticalStakeUsdt"] == pytest.approx(1.0)
+
+    book = {
+        "market_id": 401, "timestamp": "2026-08-02T00:00:01+00:00",
+        "seconds_left": 100.0, "up_ask": 0.225, "up_bid": 0.215,
+        "up_ask_size": 100.0, "book_age_ms": 10.0, "book_skew_ms": 0.0,
+        "up_book_timestamp_ms": 1,
+    }
+    assert ledger.record_confirmation_add_snapshot(book)["filledStakeUsdt"] == pytest.approx(1.0)
+    assert ledger.record_confirmation_add_snapshot(book)["filledStakeUsdt"] == 0.0
+    assert ledger.confirmation_add_research_summary()["recent"][0]["hypotheticalStakeUsdt"] == pytest.approx(2.0)
+
+    order = next(row for row in ledger.unsettled_filled_orders() if int(row["id"]) == local_id)
+    assert ledger.record_strategy_settlement(order, {
+        "positionStatus": "ENDED", "isWinner": True,
+        "endDate": 1_800_000_000_401,
+    }) is not None
+    summary = ledger.reliability_research_summary()["confirmationAdd"]
+    assert summary["paperOnly"] is True
+    assert summary["liveOrdersAffected"] is False
+    assert summary["overall"]["settledSamples"] == 1
+    assert summary["overall"]["hypotheticalPnlUsdt"] > 0
+    assert ledger.db.execute("SELECT COUNT(*) FROM live_orders").fetchone()[0] == 1
+
+
+def test_live_rules_reject_more_than_four_selected_strategies(tmp_path: Path):
     live = engine(tmp_path, FakeTradingClient())
 
-    with pytest.raises(ValueError, match="between one and 3"):
+    with pytest.raises(ValueError, match="between one and 4"):
         live.update_live_rules({
-            "strategies": ["M1", "M2", "M3", "M4"],
-            "strategyStakesUsdt": [1.0, 1.0, 1.0, 1.0],
+            "strategies": [
+                "PAIR_ARB_010",
+                "PAIR_ARB_QC_015",
+                "PAIR_ARB_020",
+                "R_MICROPRICE",
+                "R_OFI",
+            ],
+            "strategyStakesUsdt": [1.0, 1.0, 1.0, 1.0, 1.0],
         })
 
 
@@ -1967,6 +2176,87 @@ def test_pair_arb_uses_one_shared_cap_for_both_live_legs(tmp_path: Path):
     assert {order["strategy"] for order in live.state()["orders"]} == {
         "PAIR_ARB_010:UP", "PAIR_ARB_010:DOWN"
     }
+
+
+def test_pair_arb_uses_fresh_direct_rest_receipt_instead_of_stale_strategy_book(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    client.quote_amount_in = "500000000000000000"
+    client.quote_average_price = 0.48
+    live = engine(
+        tmp_path,
+        client,
+        current_verified_prediction_book=lambda: verified_prediction_book(
+            received_monotonic_ns=time.monotonic_ns() - 16_000_000_000,
+            book_age_ms=16_000.0,
+        ),
+        current_direct_rest_prediction_book=lambda: verified_prediction_book(
+            book_age_ms=2100.0,
+            book_skew_ms=184.0,
+            up_ask=0.48,
+            down_ask=0.48,
+            data_source="dual_token_rest",
+        ),
+    )
+    live.update_live_rules({"strategies": ["PAIR_ARB_010"]})
+
+    for side in ("UP", "DOWN"):
+        live.process_signal(signal(
+            strategy="PAIR_ARB_010",
+            side=side,
+            entry_price=0.48,
+            pair_total_price=0.96,
+            pair_up_price=0.48,
+            pair_down_price=0.48,
+            pair_arb_leg=True,
+            m0w_gate=None,
+        ))
+
+    assert len(client.place_calls) == 2
+    assert {
+        order["status"] for order in live.state()["orders"]
+    } == {"SUBMITTED"}
+    assert live.state()["lastLocalPriceCheck"]["freshnessBasis"] == (
+        "REST_RECEIPT_AGE"
+    )
+    assert live.state()["lastLocalPriceCheck"][
+        "latestExchangeContentAgeMs"
+    ] >= 2100.0
+
+
+def test_pair_arb_blocks_when_direct_rest_receipt_itself_is_stale(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_direct_rest_prediction_book=lambda: verified_prediction_book(
+            received_monotonic_ns=time.monotonic_ns() - 3_000_000_000,
+            book_age_ms=100.0,
+            book_skew_ms=0.0,
+            up_ask=0.48,
+            down_ask=0.48,
+            data_source="dual_token_rest",
+        ),
+    )
+    live.update_live_rules({"strategies": ["PAIR_ARB_010"]})
+
+    for side in ("UP", "DOWN"):
+        live.process_signal(signal(
+            strategy="PAIR_ARB_010",
+            side=side,
+            entry_price=0.48,
+            pair_total_price=0.96,
+            pair_up_price=0.48,
+            pair_down_price=0.48,
+            pair_arb_leg=True,
+            m0w_gate=None,
+        ))
+
+    assert client.quote_calls == []
+    assert {
+        order["error_kind"] for order in live.state()["orders"]
+    } == {"PAIR_REST_RECEIPT_STALE"}
 
 
 def test_futures_lead_observer_defaults_off_and_preserves_existing_execution(
@@ -2064,6 +2354,151 @@ def test_drawdown_control_fails_closed_when_history_is_incomplete(
     order = live.state()["orders"][0]
     assert order["status"] == "BLOCKED_DRAWDOWN_CONTROL"
     assert "history 0/6 is incomplete" in order["error_message"]
+
+
+def test_drawdown_control_fails_closed_for_stale_spot_snapshot(tmp_path: Path):
+    client = FakeTradingClient()
+    live = engine(tmp_path, client, drawdown_market_history=drawdown_history)
+    live.update_live_rules({
+        "strategy": "R_MICROPRICE",
+        "strategyDrawdownControlEnabled": [True],
+    })
+
+    live.process_signal(
+        signal(
+            strategy="R_MICROPRICE",
+            m0w_gate=None,
+            drawdown_control_spot_age_ms=2_001.0,
+        )
+    )
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_DRAWDOWN_CONTROL"
+    assert "Spot age" in order["error_message"]
+    assert "exceeds 2000.000ms" in order["error_message"]
+
+
+def test_drawdown_control_counts_live_queue_time_in_spot_age(
+    tmp_path: Path,
+    monkeypatch,
+):
+    live = engine(
+        tmp_path,
+        FakeTradingClient(),
+        drawdown_market_history=drawdown_history,
+    )
+    monkeypatch.setattr(live_trading.time, "monotonic_ns", lambda: 3_001_000_000)
+
+    allowed, reason = live._drawdown_control_is_safe(
+        signal(
+            drawdown_control_spot_age_ms=0.0,
+            market_event_received_monotonic_ns=1_000_000_000,
+        ),
+        market_reference(),
+    )
+
+    assert allowed is False
+    assert "Spot age 2001.000ms exceeds 2000.000ms" in reason
+
+
+def test_drawdown_control_rechecks_stale_trade_with_fresh_book_microprice(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        drawdown_market_history=drawdown_history,
+        current_spot_reference=lambda: {
+            "trade_price": 100.05,
+            "trade_age_ms": 2_382.891,
+            "book_midpoint": 99.95,
+            "book_microprice": 99.96,
+            "book_age_ms": 30.0,
+        },
+    )
+    live.update_live_rules({
+        "strategy": "R_MICROPRICE",
+        "strategyDrawdownControlEnabled": [True],
+    })
+    payload = signal(
+        strategy="R_MICROPRICE",
+        side="DOWN",
+        m0w_gate=None,
+        signal_spot_age_ms=2_382.891,
+        signal_spot_price_source="trade",
+        drawdown_control_spot_price=100.05,
+        drawdown_control_spot_age_ms=2_382.891,
+        drawdown_control_spot_source="trade",
+    )
+
+    live.process_signal(payload)
+
+    assert len(client.quote_calls) == 1
+    assert len(client.place_calls) == 1
+    assert payload["drawdown_control_spot_price"] == pytest.approx(100.05)
+    assert payload["drawdown_signal_spot_source"] == "SPOT_TRADE"
+    assert payload["drawdown_recheck_spot_price"] == pytest.approx(99.96)
+    assert payload["drawdown_recheck_spot_age_ms"] == pytest.approx(30.0)
+    assert payload["drawdown_recheck_spot_source"] == "SPOT_BOOK_MICROPRICE"
+    state = live.state()
+    assert state["drawdownReferenceSource"] == "SPOT_BOOK_MICROPRICE"
+    assert state["drawdownReferenceAgeMs"] == pytest.approx(30.0)
+
+
+def test_drawdown_control_prefers_fresh_trade_over_fresh_book(tmp_path: Path):
+    live = engine(
+        tmp_path,
+        FakeTradingClient(),
+        drawdown_market_history=drawdown_history,
+        current_spot_reference=lambda: {
+            "trade_price": 100.05,
+            "trade_age_ms": 100.0,
+            "book_midpoint": 99.95,
+            "book_microprice": 99.95,
+            "book_age_ms": 30.0,
+        },
+    )
+    payload = signal(side="DOWN")
+
+    allowed, reason = live._drawdown_control_is_safe(
+        payload,
+        market_reference(),
+    )
+
+    assert allowed is False
+    assert "signal opposes" in reason
+    assert payload["drawdown_recheck_spot_source"] == "SPOT_TRADE"
+    assert payload["drawdown_recheck_spot_price"] == pytest.approx(100.05)
+
+
+def test_drawdown_control_fails_closed_when_trade_and_book_are_stale(
+    tmp_path: Path,
+):
+    live = engine(
+        tmp_path,
+        FakeTradingClient(),
+        drawdown_market_history=drawdown_history,
+        current_spot_reference=lambda: {
+            "trade_price": 100.05,
+            "trade_age_ms": 2_001.0,
+            "book_midpoint": 99.95,
+            "book_microprice": 99.95,
+            "book_age_ms": 501.0,
+        },
+    )
+    payload = signal(side="DOWN")
+
+    allowed, reason = live._drawdown_control_is_safe(
+        payload,
+        market_reference(),
+    )
+
+    assert allowed is False
+    assert "trade 2001.000ms, max 2000.000ms" in reason
+    assert "book 501.000ms, max 500.000ms" in reason
+    assert payload["drawdown_recheck_spot_source"] == "UNAVAILABLE"
 
 
 def _record_official_strategy_result(
@@ -2315,6 +2750,33 @@ def test_r_ofi_observer_fails_closed_without_live_authorized_context(
 
 
 @pytest.mark.parametrize(
+    "strategy",
+    [
+        "R_FUTURES_LEAD_DISTANCE",
+        "R_FUTURES_LEAD_SIGNAL_100",
+        "R_FUTURES_LEAD_MIN_ENTRY_020",
+    ],
+)
+def test_futures_lead_test_variants_observer_fails_closed_before_quote(
+    tmp_path: Path, strategy: str,
+):
+    client = FakeTradingClient()
+    live = engine(tmp_path, client)
+    live.update_live_rules({
+        "strategy": strategy,
+        "strategyObserverEnabled": [True],
+        "strategyObserverVersions": ["V6"],
+    })
+
+    live.process_signal(signal(strategy=strategy, m0w_gate=None))
+
+    assert client.quote_calls == []
+    assert live.state()["orders"][0]["status"] == (
+        "BLOCKED_FUTURES_LEAD_OBSERVER"
+    )
+
+
+@pytest.mark.parametrize(
     "gate",
     [None, f1_observer_gate(currentBothSidesTouched=True)],
 )
@@ -2383,16 +2845,244 @@ def test_pair_arb_places_neither_leg_when_one_quote_is_unsafe(tmp_path: Path):
     assert {order["status"] for order in orders} == {"REJECTED"}
 
 
-def test_risk_pair_cannot_be_selected_for_live_execution(tmp_path: Path):
+@pytest.mark.parametrize(
+    ("up_quote", "expected_places"),
+    [(0.42, 2), (0.45, 0)],
+)
+def test_pair_arb_010_allows_leg_reprice_only_when_combined_locked_pnl_passes(
+    tmp_path: Path,
+    up_quote: float,
+    expected_places: int,
+):
     client = FakeTradingClient()
     client.quote_average_by_token = {
-        "up-token": 0.31,
-        "down-token": 0.68,
+        "up-token": up_quote,
+        "down-token": 0.55,
     }
     client.quote_amount_in_by_token = {
-        "up-token": "218750000000000000",
-        "down-token": "781250000000000000",
+        "up-token": "2163000000000000000",
+        "down-token": "2678000000000000000",
     }
+    client.quote_amount_out_by_token = {
+        "up-token": "5150000000000000000",
+        "down-token": "5150000000000000000",
+    }
+    live = engine(
+        tmp_path,
+        client,
+        current_direct_rest_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.42,
+            down_ask=0.55,
+            up_ask_size=100.0,
+            down_ask_size=100.0,
+            book_age_ms=100.0,
+            book_skew_ms=0.0,
+            data_source="dual_token_rest",
+        ),
+    )
+    live.update_live_rules({
+        "strategies": ["PAIR_ARB_010"],
+        "strategyStakesUsdt": [5.0],
+    })
+
+    for side, signal_price in (("UP", 0.45), ("DOWN", 0.52)):
+        live.process_signal(signal(
+            strategy="PAIR_ARB_010",
+            side=side,
+            entry_price=signal_price,
+            pair_total_price=0.97,
+            pair_up_price=0.45,
+            pair_down_price=0.52,
+            pair_arb_leg=True,
+            m0w_gate=None,
+        ))
+
+    assert len(client.quote_calls) == 2
+    assert len(client.place_calls) == expected_places
+    orders = live.state()["orders"]
+    if expected_places:
+        assert {order["status"] for order in orders} == {"SUBMITTED"}
+        assert {call["price_limit"] for call in client.place_calls} == {
+            "0.55", "0.62"
+        }
+    else:
+        assert {order["status"] for order in orders} == {"REJECTED"}
+        assert {order["error_kind"] for order in orders} == {
+            "PAIR_QUOTE_ABORTED"
+        }
+        assert all(
+            "locked PnL" in str(order["error_message"])
+            for order in orders
+        )
+
+
+def test_pair_arb_010_rejects_share_mismatch_when_equal_requote_is_unsafe(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    client.quote_average_by_token = {
+        "up-token": 0.42,
+        "down-token": 0.55,
+    }
+    client.quote_amount_in_by_token = {
+        "up-token": "2163000000000000000",
+        "down-token": "2678000000000000000",
+    }
+    client.quote_amount_out_by_token = {
+        "up-token": "5150000000000000000",
+        "down-token": "4000000000000000000",
+    }
+    live = engine(
+        tmp_path,
+        client,
+        current_direct_rest_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.42,
+            down_ask=0.55,
+            up_ask_size=100.0,
+            down_ask_size=100.0,
+            book_age_ms=100.0,
+            book_skew_ms=0.0,
+            data_source="dual_token_rest",
+        ),
+    )
+    live.update_live_rules({
+        "strategies": ["PAIR_ARB_010"],
+        "strategyStakesUsdt": [5.0],
+    })
+
+    for side, signal_price in (("UP", 0.45), ("DOWN", 0.52)):
+        live.process_signal(signal(
+            strategy="PAIR_ARB_010",
+            side=side,
+            entry_price=signal_price,
+            pair_total_price=0.97,
+            pair_up_price=0.45,
+            pair_down_price=0.52,
+            pair_arb_leg=True,
+            m0w_gate=None,
+        ))
+
+    assert len(client.quote_calls) == 4
+    assert client.place_calls == []
+    assert {order["error_kind"] for order in live.state()["orders"]} == {
+        "PAIR_EQUAL_SHARE_REQUOTE_REJECTED"
+    }
+    assert all(
+        "equal-share requote failed" in str(order["error_message"])
+        for order in live.state()["orders"]
+    )
+
+
+def test_pair_arb_010_resizes_to_current_profitable_shared_depth(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    client.payment_option_balances = lambda: {
+        "items": [{
+            "accountType": "CeDeFi",
+            "availableBalanceDisplay": "20.00",
+            "enabled": True,
+        }]
+    }
+    client.quote_average_by_token = {
+        "up-token": 0.81,
+        "down-token": 0.11,
+    }
+    client.quote_amount_in_by_token = {
+        "up-token": "3108656880000000000",
+        "down-token": "422163280000000000",
+    }
+    client.quote_amount_out_by_token = {
+        "up-token": "3837848000000000000",
+        "down-token": "3837848000000000000",
+    }
+    live = engine(
+        tmp_path,
+        client,
+        current_direct_rest_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.81,
+            down_ask=0.11,
+            up_ask_size=10.88,
+            down_ask_size=3.837848,
+            up_asks=[[0.81, 10.88]],
+            down_asks=[[0.11, 3.837848], [0.30, 100.0]],
+            book_age_ms=4.0,
+            book_skew_ms=225.0,
+            data_source="dual_token_rest",
+        ),
+    )
+    live.update_live_rules({
+        "strategies": ["PAIR_ARB_010"],
+        "strategyStakesUsdt": [10.0],
+    })
+
+    for side, price in (("UP", 0.81), ("DOWN", 0.11)):
+        live.process_signal(signal(
+            strategy="PAIR_ARB_010",
+            side=side,
+            entry_price=price,
+            pair_total_price=0.92,
+            pair_up_price=0.81,
+            pair_down_price=0.11,
+            pair_arb_leg=True,
+            m0w_gate=None,
+        ))
+
+    assert len(client.quote_calls) == 2
+    assert len(client.place_calls) == 2
+    orders = live.state()["orders"]
+    assert sum(order["max_stake_usdt"] for order in orders) == pytest.approx(
+        3.53082016
+    )
+    assert {order["status"] for order in orders} == {"SUBMITTED"}
+    assert any(
+        event["event_type"] == "PAIR_DYNAMIC_DEPTH_SIZED"
+        for event in live.state()["events"]
+    )
+
+
+def test_pair_arb_010_blocks_when_no_current_shared_depth_is_profitable(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    live = engine(
+        tmp_path,
+        client,
+        current_direct_rest_prediction_book=lambda: verified_prediction_book(
+            up_ask=0.81,
+            down_ask=0.19,
+            up_ask_size=100.0,
+            down_ask_size=100.0,
+            book_age_ms=4.0,
+            book_skew_ms=0.0,
+            data_source="dual_token_rest",
+        ),
+    )
+    live.update_live_rules({
+        "strategies": ["PAIR_ARB_010"],
+        "strategyStakesUsdt": [10.0],
+    })
+
+    for side, price in (("UP", 0.81), ("DOWN", 0.11)):
+        live.process_signal(signal(
+            strategy="PAIR_ARB_010",
+            side=side,
+            entry_price=price,
+            pair_total_price=0.92,
+            pair_up_price=0.81,
+            pair_down_price=0.11,
+            pair_arb_leg=True,
+            m0w_gate=None,
+        ))
+
+    assert client.quote_calls == []
+    order = live.state()["orders"][0]
+    assert order["status"] == "BLOCKED_PAIR_PROFITABLE_DEPTH"
+    assert order["error_kind"] == "PAIR_NO_PROFITABLE_SHARED_DEPTH"
+
+
+def test_risk_pair_cannot_be_selected_for_live_execution(tmp_path: Path):
+    client = FakeTradingClient()
     live = engine(tmp_path, client)
     with pytest.raises(ValueError, match="strategy must be one of"):
         live.update_live_rules({
@@ -2416,13 +3106,14 @@ def test_pair_quote_capacity_uses_seventy_percent_minimum(
         "up-token": 0.21,
         "down-token": 0.75,
     }
+    quoted_shares_wei = int(up_amount_out)
     client.quote_amount_in_by_token = {
-        "up-token": "218750000000000000",
-        "down-token": "781250000000000000",
+        "up-token": str(quoted_shares_wei * 21 // 100),
+        "down-token": str(quoted_shares_wei * 75 // 100),
     }
     client.quote_amount_out_by_token = {
         "up-token": up_amount_out,
-        "down-token": "2500000000000000000",
+        "down-token": up_amount_out,
     }
     live = engine(
         tmp_path,
@@ -2868,6 +3559,7 @@ def test_manual_sell_fill_sync_removes_active_position(tmp_path: Path):
         "bids": [{"price": "0.55", "size": "10"}],
     }
     client.quote_average_by_token["up-token"] = 0.55
+    client.quote_amount_out_by_token["up-token"] = "1350000000000000000"
     live = engine(tmp_path, client)
     local_id = _record_filled_futures_lead(live)
     live.manual_sell(local_id, "MARKET")
@@ -2877,7 +3569,9 @@ def test_manual_sell_fill_sync_removes_active_position(tmp_path: Path):
         "filledUsdtAmount": "1.35",
         "filledShareQty": "2.5",
         "fillPercentage": "1",
-        "realizedPnl": "0.35",
+        # Exchange realizedPnl can include other wallet lots for the same token;
+        # strategy settlement must use this order's exact quote proceeds instead.
+        "realizedPnl": "9.99",
     }]
 
     live._sync_orders()
@@ -2885,7 +3579,50 @@ def test_manual_sell_fill_sync_removes_active_position(tmp_path: Path):
     state = live.state()
     assert state["activePositions"] == []
     assert state["manualExits"][0]["status"] == "FILLED"
-    assert state["manualExits"][0]["realized_pnl"] == pytest.approx(0.35)
+    assert state["manualExits"][0]["realized_pnl"] == pytest.approx(9.99)
+    order = next(row for row in state["orders"] if row["id"] == local_id)
+    assert order["settlement_status"] == "MANUAL_EXIT_FILLED"
+    assert order["settlement_result"] == "WIN"
+    assert order["settlement_cost_usdt"] == pytest.approx(1.0)
+    assert order["settlement_payout_usdt"] == pytest.approx(1.35)
+    assert order["settlement_pnl_usdt"] == pytest.approx(0.35)
+    assert order["settlement_roi_pct"] == pytest.approx(35.0)
+    assert any(
+        event["event_type"] == "MANUAL_EXIT_SETTLED"
+        for event in state["events"]
+    )
+
+
+def test_manual_sell_backfills_filled_exit_that_was_left_pending(
+    tmp_path: Path,
+):
+    client = FakeTradingClient()
+    client.server_time_ms = market_reference()["end_ms"] - 60_000
+    client.position_payloads["up-token"] = {
+        "shares": "2.5", "positionStatus": "ONGOING",
+    }
+    client.orderbooks_by_token["up-token"] = {
+        "bids": [{"price": "0.35", "size": "10"}],
+    }
+    client.quote_average_by_token["up-token"] = 0.35
+    client.quote_amount_out_by_token["up-token"] = "850000000000000000"
+    live = engine(tmp_path, client)
+    local_id = _record_filled_futures_lead(live)
+    submitted = live.manual_sell(local_id, "MARKET")["manualExits"][0]
+    live.ledger.update_manual_exit(
+        int(submitted["id"]),
+        status="FILLED",
+        filled_usdt_amount=0.85,
+        filled_share_qty=2.5,
+        fill_percentage=1.0,
+    )
+
+    live._sync_orders()
+
+    order = next(row for row in live.state()["orders"] if row["id"] == local_id)
+    assert order["settlement_status"] == "MANUAL_EXIT_FILLED"
+    assert order["settlement_result"] == "LOSS"
+    assert order["settlement_pnl_usdt"] == pytest.approx(-0.15)
 
 
 def test_live_rule_thresholds_change_hourly_guard_decision(tmp_path: Path):

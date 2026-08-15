@@ -10,17 +10,26 @@ from predict_bot.m_realtime import (
     LIVE_FORWARDABLE_PAPER_STRATEGIES,
 )
 from predict_bot.research_forward import (
+    CONFIRMATION_ADD_STRATEGY,
     CONTINUOUS_CALIBRATION_STRATEGIES,
+    PAIRED_REVERSE_STRATEGIES,
     FUTURES_LEAD_EXPERIMENT_STRATEGIES,
+    FUTURES_LEAD_FILTER_STRATEGIES,
     FUTURES_LEAD_OBSERVER_STRATEGIES,
     FUTURES_LEAD_OBSERVER_VERSIONS,
     OBSERVER_COMBINATION_STRATEGIES,
+    OBSERVER_AUTO_V6_STRATEGIES,
     RESEARCH_STRATEGIES,
     ResearchSampleBuffer,
+    confirmation_add_book_is_safe,
+    confirmation_add_levels,
     confirmed_futures_lead_signal,
     continuous_calibration_decision,
     execution_candidate,
+    reverse_source_signal,
+    filtered_futures_lead_signal,
     futures_lead_observer_decision,
+    observer_v6_auto_decision,
     regime_futures_lead_signal,
     reverse_futures_lead_signal,
     signal_for_strategy,
@@ -74,6 +83,118 @@ def sample(*, timestamp_ns: int, seconds_left: float, current: bool) -> dict:
     }
 
 
+def test_confirmation_add_ladder_is_fixed_and_never_live_forwardable():
+    assert confirmation_add_levels(0.20) == pytest.approx((0.20, 0.22, 0.24, 0.26, 0.28))
+    assert CONFIRMATION_ADD_STRATEGY not in LIVE_FORWARDABLE_PAPER_STRATEGIES
+    assert CONFIRMATION_ADD_STRATEGY not in LIVE_FORWARDABLE_OBSERVER_STRATEGIES
+
+def test_reverse_source_signal_flips_side_and_probability() -> None:
+    microprice = reverse_source_signal(
+        "R_MICROPRICE",
+        "UP",
+        0.75,
+    )
+
+    assert microprice is not None
+    assert microprice["side"] == "DOWN"
+    assert microprice["signal"] == pytest.approx(-0.75)
+    assert microprice["source_strategy"] == "R_MICROPRICE"
+    assert microprice["direction_reversed"] is True
+
+    calibrated = reverse_source_signal(
+        "R_CALIBRATED_VALUE",
+        "DOWN",
+        0.04,
+        source_probability=0.72,
+    )
+
+    assert calibrated is not None
+    assert calibrated["side"] == "UP"
+    assert calibrated["signal"] == pytest.approx(-0.04)
+    assert calibrated["model_probability"] == pytest.approx(0.28)
+    assert calibrated["source_strategy"] == "R_CALIBRATED_VALUE"
+
+def test_microprice_reverse_opens_only_beside_source(tmp_path) -> None:
+    store = Store(tmp_path / "simulation.db")
+
+    values = {
+        key: False
+        for key in DEFAULT_CONFIG
+        if key.endswith("_enabled")
+    }
+    values["strategy_r_microprice_enabled"] = True
+    values["strategy_r_microprice_reverse_enabled"] = True
+    store.update_config(values)
+
+    current = sample(
+        timestamp_ns=20_000_000_000,
+        seconds_left=180.0,
+        current=True,
+    )
+
+    opened = store.maybe_enter_m_series(
+        current,
+        0,
+        realtime_context=prediction_context(1),
+    )
+
+    assert [
+        (item["strategy"], item["side"])
+        for item in opened
+    ] == [
+        ("R_MICROPRICE", "UP"),
+        ("R_MICROPRICE_REVERSE", "DOWN"),
+    ]
+
+    reverse = store.db.execute(
+        """
+        SELECT diagnostics_json
+        FROM trades
+        WHERE strategy='R_MICROPRICE_REVERSE'
+        """
+    ).fetchone()
+
+    diagnostics = json.loads(reverse["diagnostics_json"])
+
+    assert diagnostics["shadow_only"] is True
+    assert diagnostics["direction_reversed"] is True
+    assert diagnostics["source_strategy"] == "R_MICROPRICE"
+    assert diagnostics["source_trade_id"] > 0
+
+def test_reverse_shadows_never_generate_independent_signal() -> None:
+    current = sample(
+        timestamp_ns=20_000_000_000,
+        seconds_left=180.0,
+        current=True,
+    )
+
+    for strategy in PAIRED_REVERSE_STRATEGIES:
+        assert signal_for_strategy(
+            strategy,
+            current,
+            None,
+            fee_bps=0,
+            slippage_bps=50.0,
+        ) is None
+
+def test_confirmation_add_book_gate_fails_closed_at_cutoff_and_on_stale_book():
+    book = sample(timestamp_ns=1, seconds_left=31.0, current=True)
+    safe, reason = confirmation_add_book_is_safe(book, "UP")
+    assert safe is True
+    assert reason == "safe"
+
+    cutoff = {**book, "seconds_left": 30.0}
+    assert confirmation_add_book_is_safe(cutoff, "UP") == (
+        False,
+        "confirmation cutoff reached",
+    )
+    stale = {**book, "book_age_ms": 2001.0}
+    assert confirmation_add_book_is_safe(stale, "UP") == (
+        False,
+        "book age exceeds confirmation limit",
+    )
+
+
 def paper_config(store: Store, enabled: str) -> None:
     values = {
         key: False for key in DEFAULT_CONFIG if key.endswith("_enabled")
@@ -82,7 +203,11 @@ def paper_config(store: Store, enabled: str) -> None:
     store.update_config(values)
 
 
-def prediction_context(sequence: int = 1, gate: dict | None = None) -> dict:
+def prediction_context(
+    sequence: int = 1,
+    gate: dict | None = None,
+    sampling_mode: str = "event_stream",
+) -> dict:
     context = {
         "signal_event_type": "prediction",
         "trigger_source": "prediction",
@@ -91,6 +216,7 @@ def prediction_context(sequence: int = 1, gate: dict | None = None) -> dict:
         "received_wall_ns": 20_000_000_000,
         "received_monotonic_ns": 20_000_000_000,
         "signal_event_sequence": f"prediction:{sequence}",
+        "prediction_sampling_mode": sampling_mode,
     }
     if gate is not None:
         context["m01o_observer_gates"] = {"F1": gate}
@@ -188,6 +314,94 @@ def test_futures_lead_reverse_is_derived_from_opened_source_trade() -> None:
     assert reverse["source_strategy"] == "R_FUTURES_LEAD"
     assert reverse["source_side"] == forward["side"]
     assert reverse["direction_reversed"] is True
+
+
+@pytest.mark.parametrize("strategy", ["R_FUTURES_LEAD", "R_CONSENSUS"])
+def test_base_cross_market_signals_reject_stale_source_samples(strategy: str) -> None:
+    previous = sample(timestamp_ns=10_000_000_000, seconds_left=184.0, current=False)
+    current = sample(timestamp_ns=14_000_000_000, seconds_left=180.0, current=True)
+    current["spot_age_ms"] = 501.0
+
+    assert signal_for_strategy(
+        strategy,
+        current,
+        previous,
+        fee_bps=200,
+        slippage_bps=50.0,
+    ) is None
+
+
+def test_futures_lead_filter_variants_use_frozen_source_trade_fields() -> None:
+    assert set(FUTURES_LEAD_FILTER_STRATEGIES) == {
+        "R_FUTURES_LEAD_SIGNAL_100",
+        "R_FUTURES_LEAD_MIN_ENTRY_020",
+    }
+    assert filtered_futures_lead_signal(
+        "R_FUTURES_LEAD_SIGNAL_100",
+        source_side="UP",
+        source_signal=1.0,
+        source_entry=0.19,
+    ) is not None
+    assert filtered_futures_lead_signal(
+        "R_FUTURES_LEAD_SIGNAL_100",
+        source_side="UP",
+        source_signal=0.999,
+        source_entry=0.40,
+    ) is None
+    assert filtered_futures_lead_signal(
+        "R_FUTURES_LEAD_MIN_ENTRY_020",
+        source_side="DOWN",
+        source_signal=-0.50,
+        source_entry=0.200001,
+    ) is not None
+    assert filtered_futures_lead_signal(
+        "R_FUTURES_LEAD_MIN_ENTRY_020",
+        source_side="DOWN",
+        source_signal=-2.0,
+        source_entry=0.20,
+    ) is None
+
+
+def test_futures_lead_filter_shadows_open_only_after_source_trade(tmp_path) -> None:
+    store = Store(tmp_path / "simulation.db")
+    values = {key: False for key in DEFAULT_CONFIG if key.endswith("_enabled")}
+    values.update(
+        {
+            "strategy_r_futures_lead_enabled": True,
+            "strategy_r_futures_lead_signal_100_enabled": True,
+            "strategy_r_futures_lead_min_entry_020_enabled": True,
+        }
+    )
+    store.update_config(values)
+    previous = sample(
+        timestamp_ns=10_000_000_000, seconds_left=184.0, current=False
+    )
+    current = sample(
+        timestamp_ns=14_000_000_000, seconds_left=180.0, current=True
+    )
+
+    store.maybe_enter_m_series(
+        previous, 200, realtime_context=prediction_context(1)
+    )
+    opened = store.maybe_enter_m_series(
+        current, 200, realtime_context=prediction_context(2)
+    )
+
+    assert [item["strategy"] for item in opened] == [
+        "R_FUTURES_LEAD",
+        "R_FUTURES_LEAD_SIGNAL_100",
+        "R_FUTURES_LEAD_MIN_ENTRY_020",
+    ]
+    rows = store.db.execute(
+        "SELECT id, strategy, diagnostics_json FROM trades WHERE market_id=11"
+    ).fetchall()
+    diagnostics = {
+        row["strategy"]: json.loads(row["diagnostics_json"]) for row in rows
+    }
+    source_id = next(row["id"] for row in rows if row["strategy"] == "R_FUTURES_LEAD")
+    for strategy in FUTURES_LEAD_FILTER_STRATEGIES:
+        assert diagnostics[strategy]["source_strategy"] == "R_FUTURES_LEAD"
+        assert diagnostics[strategy]["source_trade_id"] == source_id
 
 
 def test_futures_lead_reverse_does_not_trigger_when_original_does_not() -> None:
@@ -499,6 +713,85 @@ def test_calibrated_value_observer_v6_depends_on_source_and_frozen_gate(
     ]
 
 
+def test_auto_v6_switch_requires_profitable_allowed_and_losing_blocked_cohorts() -> None:
+    history = [
+        {
+            "market_id": index,
+            "v6_allowed": index % 2 == 0,
+            "unit_pnl": 0.20 if index % 2 == 0 else -0.20,
+        }
+        for index in range(100)
+    ]
+    applied = observer_v6_auto_decision(
+        history,
+        observer_gate(currentMarketId=200),
+        expected_market_id=200,
+    )
+    assert applied["mode"] == "APPLY_V6"
+    assert applied["allowed"] is True
+    assert applied["fastWindow"]["samples"] == 30
+    assert applied["slowWindow"]["samples"] == 100
+
+    blocked_current = observer_v6_auto_decision(
+        history,
+        observer_gate(currentMarketId=200, currentEffectiveCrossovers=1),
+        expected_market_id=200,
+    )
+    assert blocked_current["mode"] == "APPLY_V6"
+    assert blocked_current["allowed"] is False
+
+    bypass_history = [
+        {**row, "unit_pnl": 0.20}
+        for row in history
+    ]
+    bypassed = observer_v6_auto_decision(
+        bypass_history,
+        observer_gate(currentMarketId=200, currentEffectiveCrossovers=0),
+        expected_market_id=200,
+    )
+    assert bypassed["mode"] == "BYPASS_V6"
+    assert bypassed["reason"] == "V6_NOT_PROVEN_BETTER"
+    assert bypassed["allowed"] is True
+
+
+def test_auto_v6_shadow_bypasses_during_official_history_warmup(tmp_path) -> None:
+    store = Store(tmp_path / "simulation.db")
+    values = {key: False for key in DEFAULT_CONFIG if key.endswith("_enabled")}
+    values["strategy_r_microprice_enabled"] = True
+    values["strategy_r_microprice_observer_auto_v6_enabled"] = True
+    store.update_config(values)
+    store.maybe_enter_m_series(
+        sample(timestamp_ns=10_000_000_000, seconds_left=190.2, current=False),
+        200,
+        realtime_context=prediction_context(
+            1, observer_gate(currentEffectiveCrossovers=0)
+        ),
+    )
+    opened = store.maybe_enter_m_series(
+        sample(timestamp_ns=20_200_000_000, seconds_left=180.0, current=True),
+        200,
+        realtime_context=prediction_context(
+            2, observer_gate(currentEffectiveCrossovers=0)
+        ),
+    )
+
+    assert [item["strategy"] for item in opened] == [
+        "R_MICROPRICE",
+        "R_MICROPRICE_OBSERVER_AUTO_V6",
+    ]
+    assert set(OBSERVER_AUTO_V6_STRATEGIES).issubset(RESEARCH_STRATEGIES)
+    diagnostics = json.loads(store.db.execute(
+        "SELECT diagnostics_json FROM trades "
+        "WHERE strategy='R_MICROPRICE_OBSERVER_AUTO_V6'"
+    ).fetchone()[0])
+    decision = diagnostics["observer_auto_v6"]
+    assert decision["mode"] == "BYPASS_V6"
+    assert decision["reason"] == "OFFICIAL_HISTORY_WARMUP"
+    assert decision["currentV6Decision"]["allowed"] is False
+    assert diagnostics["official_history_only"] is True
+    assert diagnostics["current_market_excluded_from_history"] is True
+
+
 @pytest.mark.parametrize(
     "recent_statuses,direction_mode,expected_side,expected_reversed,expected_automatic",
     [
@@ -658,6 +951,37 @@ def test_cumulative_event_ofi_sums_distinct_prediction_events() -> None:
     assert signal["event_ofi_count"] == 3
 
 
+def test_cumulative_event_ofi_does_not_count_periodic_rest_snapshots(tmp_path) -> None:
+    store = Store(tmp_path / "simulation.db")
+    paper_config(store, "R_OFI_EVENT_CUM")
+    current = None
+    for sequence, bid_size in enumerate((10.0, 20.0, 40.0, 80.0), start=1):
+        current = sample(
+            timestamp_ns=sequence * 1_000_000_000,
+            seconds_left=64.0 - sequence,
+            current=False,
+        )
+        current["up_bid_size"] = bid_size
+        store.maybe_enter_m_series(
+            current,
+            200,
+            realtime_context=prediction_context(
+                sequence,
+                sampling_mode="periodic_snapshot",
+            ),
+        )
+
+    assert current is not None
+    buffered = store._research_samples.append(11, current)
+    assert buffered is not None
+    assert store._research_samples.cumulative_event_ofi(
+        11, buffered, 10.0, 1
+    ) is None
+    assert store.db.execute(
+        "SELECT COUNT(*) FROM trades WHERE strategy='R_OFI_EVENT_CUM'"
+    ).fetchone()[0] == 0
+
+
 def test_filtered_cumulative_ofi_requires_stronger_signal_without_changing_original() -> None:
     current = sample(timestamp_ns=1, seconds_left=60.0, current=True)
     cumulative = {"signal": 1.5, "event_count": 8}
@@ -814,10 +1138,11 @@ def test_minimum_stake_floor_and_live_isolation(tmp_path) -> None:
     assert "R_FUTURES_LEAD_REGIME_REVERSE_3L" in (
         LIVE_FORWARDABLE_PAPER_STRATEGIES
     )
-    assert all(
-        strategy not in LIVE_FORWARDABLE_PAPER_STRATEGIES
-        for strategy in FUTURES_LEAD_EXPERIMENT_STRATEGIES
-    )
+    assert "R_FUTURES_LEAD_DISTANCE" in LIVE_FORWARDABLE_PAPER_STRATEGIES
+    assert {
+        "R_FUTURES_LEAD_EXIT30",
+        "R_FUTURES_LEAD_EXIT30_DISTANCE",
+    }.isdisjoint(LIVE_FORWARDABLE_PAPER_STRATEGIES)
     assert all(
         strategy not in LIVE_FORWARDABLE_PAPER_STRATEGIES
         for strategy in FUTURES_LEAD_OBSERVER_STRATEGIES
@@ -1194,10 +1519,11 @@ def test_three_futures_lead_experiments_open_as_independent_frozen_cohorts(
     assert all(row["model_probability"] is not None for row in distance_rows)
     assert all(row["model_edge"] is not None for row in distance_rows)
     assert all(row["model_sigma"] is not None for row in distance_rows)
-    assert all(
-        strategy not in LIVE_FORWARDABLE_PAPER_STRATEGIES
-        for strategy in FUTURES_LEAD_EXPERIMENT_STRATEGIES
-    )
+    assert "R_FUTURES_LEAD_DISTANCE" in LIVE_FORWARDABLE_PAPER_STRATEGIES
+    assert {
+        "R_FUTURES_LEAD_EXIT30",
+        "R_FUTURES_LEAD_EXIT30_DISTANCE",
+    }.isdisjoint(LIVE_FORWARDABLE_PAPER_STRATEGIES)
     validation = store._research_experiment_validation_state(
         "R_FUTURES_LEAD_EXIT30"
     )

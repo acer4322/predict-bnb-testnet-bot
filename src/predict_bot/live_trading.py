@@ -17,11 +17,19 @@ from .core import (
     ApiHttpError,
     ApiTransportError,
     BinancePredictionTradingClient,
+    taker_fee,
 )
 from .drawdown_control import MarketRegimeDrawdownController
 from .research_forward import (
+    CONFIRMATION_ADD_FEE_BPS,
+    CONFIRMATION_ADD_SOURCE_STRATEGIES,
+    CONFIRMATION_ADD_TRANCHE_USDT,
     FUTURES_LEAD_LIVE_OBSERVER_STRATEGIES,
     FUTURES_LEAD_OBSERVER_VERSIONS,
+    confirmation_add_book_event_key,
+    confirmation_add_book_is_safe,
+    confirmation_add_execution_price,
+    confirmation_add_levels,
     futures_lead_observer_decision,
 )
 
@@ -29,13 +37,16 @@ from .research_forward import (
 LIVE_DEFAULT_MAX_STAKE_USDT = Decimal("1.00")
 LIVE_MIN_CONFIGURABLE_STAKE_USDT = Decimal("0.01")
 LIVE_MAX_CONFIGURABLE_STAKE_USDT = Decimal("100.00")
-LIVE_MAX_SELECTED_STRATEGIES = 3
-LIVE_DEFAULT_STRATEGY = "M0W"
+LIVE_MAX_SELECTED_STRATEGIES = 4
+LIVE_DEFAULT_STRATEGY = "M01O_F1"
 LIVE_RESEARCH_STRATEGIES = (
     "R_MICROPRICE",
     "R_FUTURES_LEAD",
     "R_FUTURES_LEAD_REVERSE",
     "R_FUTURES_LEAD_REGIME_REVERSE_3L",
+    "R_FUTURES_LEAD_DISTANCE",
+    "R_FUTURES_LEAD_SIGNAL_100",
+    "R_FUTURES_LEAD_MIN_ENTRY_020",
     "R_OFI",
     "R_CALIBRATED_VALUE",
     "R_OFI_EVENT_CUM",
@@ -55,12 +66,16 @@ LIVE_RESEARCH_REPRICE_GAPS = {
     "R_FUTURES_LEAD": Decimal("0.05"),
     "R_FUTURES_LEAD_REVERSE": Decimal("0.05"),
     "R_FUTURES_LEAD_REGIME_REVERSE_3L": Decimal("0.05"),
+    "R_FUTURES_LEAD_DISTANCE": Decimal("0.05"),
+    "R_FUTURES_LEAD_SIGNAL_100": Decimal("0.05"),
+    "R_FUTURES_LEAD_MIN_ENTRY_020": Decimal("0.05"),
     "R_OFI": Decimal("0.05"),
     "R_CALIBRATED_VALUE": Decimal("0.05"),
     "R_OFI_EVENT_CUM": Decimal("0.05"),
 }
 LIVE_RESEARCH_PRICE_RANGES = {
     "R_OFI_EVENT_CUM": (Decimal("0.40"), Decimal("0.69")),
+    "R_FUTURES_LEAD_MIN_ENTRY_020": (Decimal("0.20"), Decimal("0.55")),
 }
 LIVE_RELIABILITY_TAGS = {
     "RC_LOW_ENTRY": {
@@ -112,23 +127,7 @@ LIVE_RELIABILITY_CANDIDATE_TAGS = (
     "MP_FRESH_BOOK",
 )
 LIVE_SUPPORTED_STRATEGIES = (
-    "M",
-    "M0",
-    "M01",
-    "M01T180",
     "M01O_F1",
-    "M0W",
-    "M01W",
-    "M1",
-    "M2",
-    "M3",
-    "M4",
-    "M5",
-    "M6",
-    "M7_1",
-    "M7_2",
-    "M7_3",
-    "M7_5",
     "PAIR_ARB_010",
     "PAIR_ARB_QC_015",
     "PAIR_ARB_020",
@@ -143,7 +142,10 @@ LIVE_MARKET_DURATION_MS = 300_000
 LIVE_MARKET_ADJACENCY_TOLERANCE_MS = 2_000
 LIVE_MAX_QUOTE_PRICE_GAP = Decimal("0.10")
 LIVE_MAX_PREDICTION_BOOK_AGE_MS = 2_000.0
-LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO = Decimal("0.70")
+LIVE_MAX_DRAWDOWN_SPOT_AGE_MS = 2_000.0
+LIVE_MAX_DRAWDOWN_SPOT_BOOK_AGE_MS = 500.0
+LIVE_MAX_SPOT_DATA_AGE_MS = 4_000.0
+LIVE_MIN_DEPTH_COVERAGE_RATIO = Decimal("1.00")
 VERIFIED_PREDICTION_ORIENTATIONS = {
     "DIRECT_UP_VERIFIED",
     "INVERTED_TO_UP_VERIFIED",
@@ -245,10 +247,7 @@ def estimate_buy_vwap(
             "capacity_ratio": 0.0,
             "levels_consumed": 0,
         }
-    remaining = stake
-    covered = Decimal("0")
-    shares = Decimal("0")
-    consumed = 0
+    valid_levels: list[tuple[Decimal, Decimal]] = []
     for raw in list(levels) if isinstance(levels, (list, tuple)) else []:
         if not isinstance(raw, (list, tuple)) or len(raw) < 2:
             continue
@@ -261,6 +260,13 @@ def estimate_buy_vwap(
             or size <= 0
         ):
             continue
+        valid_levels.append((price, size))
+
+    remaining = stake
+    covered = Decimal("0")
+    shares = Decimal("0")
+    consumed = 0
+    for price, size in sorted(valid_levels, key=lambda level: level[0]):
         level_cost = price * size
         take_cost = min(remaining, level_cost)
         if take_cost <= 0:
@@ -412,6 +418,9 @@ def normalize_live_rules(
             + [False] * len(strategies)
         )[:len(strategies)]
     ]
+    if len(strategy_observer_enabled) >= LIVE_MAX_SELECTED_STRATEGIES:
+        # Slot 4 is execution-only and never applies an Observer gate.
+        strategy_observer_enabled[LIVE_MAX_SELECTED_STRATEGIES - 1] = False
 
     raw_observer_versions = candidate.get("strategyObserverVersions")
     if "strategyObserverVersions" in values:
@@ -686,12 +695,21 @@ def _safe_payload(value: dict[str, Any]) -> str:
         "eventToLocalCheckMs",
         "topLevelCapacityUsdt",
         "topLevelCapacityRatio",
+        "depthCoverageRatio",
+        "depthCoveredStakeUsdt",
+        "depthLevelsConsumed",
+        "minimumDepthCoverageRatio",
         "configuredStake",
         "estimatedVwap",
         "estimatedVwapCapacityRatio",
         "estimatedVwapCoveredStake",
         "estimatedVwapLevelsConsumed",
         "vwapAvailable",
+        "pairDynamicTargetShares",
+        "pairDynamicLegStakeUsdt",
+        "pairDynamicTotalStakeUsdt",
+        "pairDynamicMaximumStakeUsdt",
+        "pairDynamicLockedPnlUsdt",
     }
     return json.dumps(
         {key: value[key] for key in allowed if key in value},
@@ -881,6 +899,30 @@ class LiveLedger:
                 );
                 CREATE INDEX IF NOT EXISTS live_reliability_samples_strategy_idx
                     ON live_reliability_samples(strategy, order_local_id DESC);
+                CREATE TABLE IF NOT EXISTS live_confirmation_add_mirrors (
+                    order_local_id INTEGER PRIMARY KEY,
+                    strategy TEXT NOT NULL,
+                    market_id INTEGER NOT NULL,
+                    side TEXT NOT NULL,
+                    base_price REAL NOT NULL,
+                    levels_json TEXT NOT NULL,
+                    fills_json TEXT NOT NULL,
+                    last_event_key TEXT,
+                    status TEXT NOT NULL DEFAULT 'ACTIVE',
+                    settlement_result TEXT,
+                    hypothetical_stake_usdt REAL NOT NULL DEFAULT 0,
+                    hypothetical_fees_usdt REAL NOT NULL DEFAULT 0,
+                    hypothetical_shares REAL NOT NULL DEFAULT 0,
+                    hypothetical_payout_usdt REAL,
+                    hypothetical_pnl_usdt REAL,
+                    hypothetical_roi_pct REAL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    settled_at TEXT,
+                    FOREIGN KEY(order_local_id) REFERENCES live_orders(id)
+                );
+                CREATE INDEX IF NOT EXISTS live_confirmation_add_market_idx
+                    ON live_confirmation_add_mirrors(market_id, status);
                 CREATE TABLE IF NOT EXISTS live_strategy_loss_cooldown_results (
                     order_local_id INTEGER PRIMARY KEY,
                     strategy TEXT NOT NULL,
@@ -1166,7 +1208,9 @@ class LiveLedger:
             "signalBookAgeMs", "signalAsk", "signalAskSize",
             "latestLocalAsk", "latestLocalAskSize", "latestLocalBookAgeMs",
             "maximumExecutionPrice", "topLevelCapacityUsdt",
-            "topLevelCapacityRatio", "configuredStake", "estimatedVwap",
+            "topLevelCapacityRatio", "depthCoverageRatio",
+            "depthCoveredStakeUsdt", "depthLevelsConsumed",
+            "minimumDepthCoverageRatio", "configuredStake", "estimatedVwap",
             "estimatedVwapCapacityRatio", "estimatedVwapCoveredStake",
             "estimatedVwapLevelsConsumed", "vwapAvailable", "queueMs",
             "preQuoteMs", "quotePhaseMs", "quoteNetworkMs", "quoteToPlaceMs",
@@ -1243,7 +1287,11 @@ class LiveLedger:
             "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY": (
                 "blockedInsufficientCapacity"
             ),
+            "BLOCKED_INSUFFICIENT_DEPTH_COVERAGE": (
+                "blockedInsufficientCapacity"
+            ),
             "BLOCKED_ESTIMATED_VWAP_TOO_HIGH": "blockedEstimatedVwapTooHigh",
+            "BLOCKED_STALE_SPOT_DATA": "blockedStaleSpotData",
             "QUOTE_REJECTED": "quoteRejected",
             "PLACEMENT_REJECTED": "placementRejected",
             "PLACEMENT_AMBIGUOUS": "placementAmbiguous",
@@ -1427,8 +1475,12 @@ class LiveLedger:
         context: dict[str, Any],
     ) -> None:
         normalized_strategy = str(strategy).split(":", 1)[0].upper()
-        if normalized_strategy not in {
+        reliability_strategies = {
             definition["strategy"] for definition in LIVE_RELIABILITY_TAGS.values()
+        }
+        if normalized_strategy not in {
+            *reliability_strategies,
+            *CONFIRMATION_ADD_SOURCE_STRATEGIES,
         }:
             return
         now = utc_iso()
@@ -1541,7 +1593,233 @@ class LiveLedger:
                     int(local_id),
                 ),
             )
+            self._create_confirmation_add_mirror_locked(
+                row=row,
+                base_price=float(actual_entry),
+                initial_stake_usdt=min(
+                    CONFIRMATION_ADD_TRANCHE_USDT,
+                    min(positive_costs),
+                ),
+                captured_at=now,
+            )
             self.db.commit()
+
+    def _create_confirmation_add_mirror_locked(
+        self,
+        *,
+        row: sqlite3.Row,
+        base_price: float,
+        initial_stake_usdt: float,
+        captured_at: str,
+    ) -> None:
+        strategy = str(row["strategy"] or "").split(":", 1)[0].upper()
+        if strategy not in CONFIRMATION_ADD_SOURCE_STRATEGIES:
+            return
+        if not 0 < base_price < 1 or initial_stake_usdt <= 0:
+            return
+        levels = confirmation_add_levels(base_price)
+        shares = initial_stake_usdt / base_price
+        fee = taker_fee(shares, base_price, CONFIRMATION_ADD_FEE_BPS)
+        fills = [
+            {
+                "index": index,
+                "targetPrice": float(level),
+                "triggered": index == 0,
+                "stakeUsdt": initial_stake_usdt if index == 0 else 0.0,
+                "shares": shares if index == 0 else 0.0,
+                "fees": fee if index == 0 else 0.0,
+                "events": [
+                    {
+                        "eventKey": f"actual-fill:{int(row['id'])}",
+                        "timestamp": captured_at,
+                        "executionPrice": base_price,
+                        "stakeUsdt": initial_stake_usdt,
+                        "shares": shares,
+                        "fee": fee,
+                        "source": "actual_live_fill",
+                    }
+                ] if index == 0 else [],
+            }
+            for index, level in enumerate(levels)
+        ]
+        self.db.execute(
+            """INSERT OR IGNORE INTO live_confirmation_add_mirrors(
+                   order_local_id, strategy, market_id, side, base_price,
+                   levels_json, fills_json, status,
+                   hypothetical_stake_usdt, hypothetical_fees_usdt,
+                   hypothetical_shares, created_at, updated_at
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?)""",
+            (
+                int(row["id"]),
+                strategy,
+                int(row["market_id"]),
+                str(row["side"]).upper(),
+                base_price,
+                json.dumps(list(levels)),
+                json.dumps(fills, sort_keys=True),
+                initial_stake_usdt,
+                fee,
+                shares,
+                captured_at,
+                captured_at,
+            ),
+        )
+
+    def record_confirmation_add_snapshot(
+        self, snapshot: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Advance real-fill mirrors without submitting or quoting an order."""
+        try:
+            market_id = int(snapshot["market_id"])
+        except (KeyError, TypeError, ValueError):
+            return {"updatedMirrors": 0, "filledStakeUsdt": 0.0}
+        with self.lock:
+            rows = self.db.execute(
+                """SELECT * FROM live_confirmation_add_mirrors
+                    WHERE market_id=? AND status='ACTIVE'
+                    ORDER BY order_local_id ASC""",
+                (market_id,),
+            ).fetchall()
+            updated = 0
+            filled_stake = 0.0
+            for side in ("UP", "DOWN"):
+                side_rows = [row for row in rows if str(row["side"]) == side]
+                if not side_rows:
+                    continue
+                safe, _ = confirmation_add_book_is_safe(snapshot, side)
+                if not safe:
+                    continue
+                event_key = confirmation_add_book_event_key(snapshot, side)
+                actionable = [
+                    row for row in side_rows
+                    if str(row["last_event_key"] or "") != event_key
+                ]
+                if not actionable:
+                    continue
+                prefix = side.lower()
+                ask = float(snapshot[f"{prefix}_ask"])
+                execution_price = confirmation_add_execution_price(ask)
+                if execution_price is None:
+                    continue
+                available_shares = float(snapshot[f"{prefix}_ask_size"])
+                for row in actionable:
+                    levels = [float(value) for value in json.loads(row["levels_json"])]
+                    fills = json.loads(row["fills_json"])
+                    for index in range(1, len(fills)):
+                        if ask + 1e-12 >= levels[index]:
+                            fills[index]["triggered"] = True
+                    for index in range(1, len(fills)):
+                        item = fills[index]
+                        if not item.get("triggered") or available_shares <= 1e-12:
+                            continue
+                        remaining_stake = max(
+                            0.0,
+                            CONFIRMATION_ADD_TRANCHE_USDT
+                            - float(item.get("stakeUsdt") or 0.0),
+                        )
+                        if remaining_stake <= 1e-12:
+                            continue
+                        shares = min(
+                            remaining_stake / execution_price,
+                            available_shares,
+                        )
+                        if shares <= 1e-12:
+                            continue
+                        stake = shares * execution_price
+                        fee = taker_fee(
+                            shares,
+                            execution_price,
+                            CONFIRMATION_ADD_FEE_BPS,
+                        )
+                        item["stakeUsdt"] = float(item.get("stakeUsdt") or 0.0) + stake
+                        item["shares"] = float(item.get("shares") or 0.0) + shares
+                        item["fees"] = float(item.get("fees") or 0.0) + fee
+                        item.setdefault("events", []).append(
+                            {
+                                "eventKey": event_key,
+                                "timestamp": snapshot.get("timestamp"),
+                                "secondsLeft": float(snapshot["seconds_left"]),
+                                "observedAsk": ask,
+                                "executionPrice": execution_price,
+                                "stakeUsdt": stake,
+                                "shares": shares,
+                                "fee": fee,
+                                "bookAgeMs": float(snapshot["book_age_ms"]),
+                                "bookSkewMs": float(snapshot["book_skew_ms"]),
+                                "source": "recorded_prediction_book",
+                            }
+                        )
+                        available_shares -= shares
+                        filled_stake += stake
+                    total_stake = sum(float(item.get("stakeUsdt") or 0.0) for item in fills)
+                    total_fees = sum(float(item.get("fees") or 0.0) for item in fills)
+                    total_shares = sum(float(item.get("shares") or 0.0) for item in fills)
+                    now = str(snapshot.get("timestamp") or utc_iso())
+                    self.db.execute(
+                        """UPDATE live_confirmation_add_mirrors
+                              SET fills_json=?, last_event_key=?,
+                                  hypothetical_stake_usdt=?,
+                                  hypothetical_fees_usdt=?,
+                                  hypothetical_shares=?, updated_at=?
+                            WHERE order_local_id=?""",
+                        (
+                            json.dumps(fills, sort_keys=True),
+                            event_key,
+                            total_stake,
+                            total_fees,
+                            total_shares,
+                            now,
+                            int(row["order_local_id"]),
+                        ),
+                    )
+                    updated += 1
+            self.db.commit()
+        return {
+            "updatedMirrors": updated,
+            "filledStakeUsdt": filled_stake,
+            "paperOnly": True,
+            "liveOrdersAffected": False,
+        }
+
+    def _finalize_confirmation_add_mirror_locked(
+        self,
+        *,
+        order_local_id: int,
+        result: str,
+        settled_at: str,
+    ) -> None:
+        row = self.db.execute(
+            """SELECT * FROM live_confirmation_add_mirrors
+                WHERE order_local_id=? LIMIT 1""",
+            (int(order_local_id),),
+        ).fetchone()
+        if row is None:
+            return
+        normalized = str(result).upper()
+        if normalized not in {"WIN", "LOSS"}:
+            return
+        stake = float(row["hypothetical_stake_usdt"] or 0.0)
+        fees = float(row["hypothetical_fees_usdt"] or 0.0)
+        shares = float(row["hypothetical_shares"] or 0.0)
+        payout = shares if normalized == "WIN" else 0.0
+        pnl = payout - stake - fees
+        cost = stake + fees
+        self.db.execute(
+            """UPDATE live_confirmation_add_mirrors
+                  SET status='SETTLED', settlement_result=?,
+                      hypothetical_payout_usdt=?, hypothetical_pnl_usdt=?,
+                      hypothetical_roi_pct=?, settled_at=?, updated_at=?
+                WHERE order_local_id=?""",
+            (
+                normalized,
+                payout,
+                pnl,
+                pnl / cost * 100.0 if cost > 0 else None,
+                settled_at,
+                utc_iso(),
+                int(order_local_id),
+            ),
+        )
 
     def pending_orders(self) -> list[dict[str, Any]]:
         placeholders = ",".join("?" for _ in ACTIVE_ORDER_STATUSES)
@@ -1579,6 +1857,109 @@ class LiveLedger:
             item.pop("response_json", None)
             result.append(item)
         return result
+
+    def confirmation_add_research_summary(
+        self, recent_limit: int = 50
+    ) -> dict[str, Any]:
+        with self.lock:
+            rows = [dict(row) for row in self.db.execute(
+                """SELECT m.*, s.cost_usdt AS original_cost_usdt,
+                          s.pnl_usdt AS original_pnl_usdt,
+                          s.result AS original_result
+                     FROM live_confirmation_add_mirrors AS m
+                     LEFT JOIN live_strategy_settlements AS s
+                       ON s.order_local_id=m.order_local_id
+                    ORDER BY m.order_local_id DESC"""
+            ).fetchall()]
+
+        def cohort(items: list[dict[str, Any]]) -> dict[str, Any]:
+            settled = [item for item in items if item["status"] == "SETTLED"]
+            original_cost = sum(float(item["original_cost_usdt"] or 0.0) for item in settled)
+            original_pnl = sum(float(item["original_pnl_usdt"] or 0.0) for item in settled)
+            hypothetical_stake = sum(
+                float(item["hypothetical_stake_usdt"] or 0.0) for item in settled
+            )
+            hypothetical_fees = sum(
+                float(item["hypothetical_fees_usdt"] or 0.0) for item in settled
+            )
+            hypothetical_pnl = sum(
+                float(item["hypothetical_pnl_usdt"] or 0.0) for item in settled
+            )
+            wins = sum(item["settlement_result"] == "WIN" for item in settled)
+            return {
+                "samples": len(items),
+                "settledSamples": len(settled),
+                "pendingSamples": len(items) - len(settled),
+                "wins": int(wins),
+                "losses": len(settled) - int(wins),
+                "originalCostUsdt": original_cost,
+                "originalPnlUsdt": original_pnl,
+                "hypotheticalStakeUsdt": hypothetical_stake,
+                "hypotheticalFeesUsdt": hypothetical_fees,
+                "hypotheticalCostUsdt": hypothetical_stake + hypothetical_fees,
+                "hypotheticalPnlUsdt": hypothetical_pnl,
+                "hypotheticalReturnOnCostPct": (
+                    hypothetical_pnl / (hypothetical_stake + hypothetical_fees) * 100.0
+                    if hypothetical_stake + hypothetical_fees > 0 else None
+                ),
+                "deltaVsOriginalPnlUsdt": hypothetical_pnl - original_pnl,
+            }
+
+        recent = []
+        for row in rows[:max(1, min(200, int(recent_limit)))]:
+            fills = json.loads(str(row["fills_json"] or "[]"))
+            recent.append(
+                {
+                    "orderLocalId": int(row["order_local_id"]),
+                    "strategy": row["strategy"],
+                    "marketId": int(row["market_id"]),
+                    "side": row["side"],
+                    "basePrice": row["base_price"],
+                    "filledTranches": sum(
+                        float(item.get("stakeUsdt") or 0.0) >= 1.0 - 1e-9
+                        for item in fills
+                    ),
+                    "hypotheticalStakeUsdt": row["hypothetical_stake_usdt"],
+                    "hypotheticalFeesUsdt": row["hypothetical_fees_usdt"],
+                    "settlementResult": row["settlement_result"],
+                    "originalPnlUsdt": row["original_pnl_usdt"],
+                    "hypotheticalPnlUsdt": row["hypothetical_pnl_usdt"],
+                    "deltaVsOriginalPnlUsdt": (
+                        float(row["hypothetical_pnl_usdt"] or 0.0)
+                        - float(row["original_pnl_usdt"] or 0.0)
+                        if row["status"] == "SETTLED" else None
+                    ),
+                    "status": row["status"],
+                    "createdAt": row["created_at"],
+                    "settledAt": row["settled_at"],
+                    "fills": fills,
+                }
+            )
+        return {
+            "status": "FORWARD_ONLY",
+            "source": "real_filled_orders_only",
+            "paperOnly": True,
+            "liveOrdersAffected": False,
+            "historicalBackfill": False,
+            "rule": {
+                "initialStakeUsdt": 1.0,
+                "addStakeUsdt": 1.0,
+                "multipliers": [1.0, 1.1, 1.2, 1.3, 1.4],
+                "minimumSecondsLeftExclusive": 30.0,
+                "maximumStakeUsdt": 5.0,
+                "slippageBps": 50.0,
+                "feeBps": 200,
+                "maxSpread": 0.03,
+                "maxBookAgeMs": 2000.0,
+                "maxBookSkewMs": 500.0,
+            },
+            "overall": cohort(rows),
+            "byStrategy": {
+                strategy: cohort([row for row in rows if row["strategy"] == strategy])
+                for strategy in CONFIRMATION_ADD_SOURCE_STRATEGIES
+            },
+            "recent": recent,
+        }
 
     def reliability_research_summary(
         self,
@@ -1700,6 +2081,9 @@ class LiveLedger:
             ),
             "enabledLiveTags": sorted(enabled),
             "tags": tag_summaries,
+            "confirmationAdd": self.confirmation_add_research_summary(
+                recent_limit=recent_limit
+            ),
             "recentSamples": recent_samples,
         }
 
@@ -1821,7 +2205,9 @@ class LiveLedger:
             )
             self.db.commit()
 
-    def sync_manual_exit(self, exit_id: int, order: dict[str, Any]) -> None:
+    def sync_manual_exit(
+        self, exit_id: int, order: dict[str, Any]
+    ) -> dict[str, Any] | None:
         self.update_manual_exit(
             exit_id,
             status=str(order.get("status") or "UNKNOWN").upper(),
@@ -1835,6 +2221,159 @@ class LiveLedger:
             ),
             response_json=_safe_payload(order),
         )
+        return self.record_manual_exit_settlement(exit_id)
+
+    def record_manual_exit_settlement(
+        self, exit_id: int
+    ) -> dict[str, Any] | None:
+        """Finalize strategy PnL when a full manual exit is confirmed filled."""
+        now = utc_iso()
+        with self.lock:
+            row = self.db.execute(
+                """SELECT x.*, o.strategy AS entry_strategy,
+                          o.market_id AS entry_market_id,
+                          o.quote_amount_in_wei AS entry_quote_amount_in_wei,
+                          o.filled_usdt_amount AS entry_filled_usdt_amount,
+                          o.network_fee AS entry_network_fee,
+                          s.order_local_id AS existing_settlement_id
+                     FROM live_manual_exits x
+                     JOIN live_orders o ON o.id=x.order_local_id
+                     LEFT JOIN live_strategy_settlements s
+                       ON s.order_local_id=o.id
+                    WHERE x.id=? LIMIT 1""",
+                (int(exit_id),),
+            ).fetchone()
+            if (
+                row is None
+                or str(row["status"] or "").upper() != "FILLED"
+                or row["existing_settlement_id"] is not None
+            ):
+                return None
+
+            sell_shares = _float(row["sell_shares"])
+            filled_shares = _float(row["filled_share_qty"])
+            if (
+                sell_shares is None
+                or filled_shares is None
+                or sell_shares <= 0
+                or filled_shares + 0.02 < sell_shares
+            ):
+                return None
+
+            quote_cost = self._wei_amount(row["entry_quote_amount_in_wei"])
+            filled_cost = _float(row["entry_filled_usdt_amount"])
+            positive_costs = [
+                value
+                for value in (quote_cost, filled_cost)
+                if value is not None and value > 0
+            ]
+            if not positive_costs:
+                return None
+            cost_usdt = min(positive_costs)
+
+            precise_payout = self._wei_amount(row["quote_amount_out_wei"])
+            filled_payout = _float(row["filled_usdt_amount"])
+            payout_usdt = (
+                precise_payout
+                if precise_payout is not None and precise_payout > 0
+                else filled_payout
+            )
+            if payout_usdt is None or payout_usdt < 0:
+                return None
+
+            network_fee = max(
+                0.0, float(_float(row["entry_network_fee"]) or 0.0)
+            )
+            pnl_usdt = float(payout_usdt) - cost_usdt - network_fee
+            result = "WIN" if pnl_usdt >= 0 else "LOSS"
+            roi_pct = pnl_usdt / cost_usdt * 100.0
+            settled_at = str(row["updated_at"] or now)
+            order_local_id = int(row["order_local_id"])
+            market_id = int(row["entry_market_id"])
+            strategy = str(row["entry_strategy"] or "")
+
+            cursor = self.db.execute(
+                """INSERT OR IGNORE INTO live_strategy_settlements(
+                       order_local_id, market_id, position_status, result,
+                       cost_usdt, payout_usdt, pnl_usdt, roi_pct,
+                       settled_at, updated_at
+                   ) VALUES (?, ?, 'MANUAL_EXIT_FILLED', ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    order_local_id,
+                    market_id,
+                    result,
+                    cost_usdt,
+                    float(payout_usdt),
+                    pnl_usdt,
+                    roi_pct,
+                    settled_at,
+                    now,
+                ),
+            )
+            if not cursor.rowcount:
+                self.db.rollback()
+                return None
+            self._record_loss_cooldown_result_locked(
+                order_local_id=order_local_id,
+                strategy=strategy,
+                market_id=market_id,
+                result=result,
+                processed_at=now,
+            )
+            self.db.execute(
+                """UPDATE live_reliability_samples
+                      SET settlement_result=?, settlement_cost_usdt=?,
+                          settlement_pnl_usdt=?, settlement_roi_pct=?,
+                          settled_at=?, updated_at=?
+                    WHERE order_local_id=? AND captured_at IS NOT NULL""",
+                (
+                    result,
+                    cost_usdt,
+                    pnl_usdt,
+                    roi_pct,
+                    settled_at,
+                    now,
+                    order_local_id,
+                ),
+            )
+            self._finalize_confirmation_add_mirror_locked(
+                order_local_id=order_local_id,
+                result=result,
+                settled_at=settled_at,
+            )
+            self.db.commit()
+            settlement = self.db.execute(
+                """SELECT * FROM live_strategy_settlements
+                    WHERE order_local_id=? LIMIT 1""",
+                (order_local_id,),
+            ).fetchone()
+        if settlement is None:
+            return None
+        result_row = dict(settlement)
+        result_row["strategy"] = strategy
+        result_row["manual_exit_id"] = int(exit_id)
+        return result_row
+
+    def reconcile_filled_manual_exit_settlements(
+        self,
+    ) -> list[dict[str, Any]]:
+        """Backfill confirmed manual exits that predate immediate finalization."""
+        with self.lock:
+            rows = self.db.execute(
+                """SELECT x.id
+                     FROM live_manual_exits x
+                     LEFT JOIN live_strategy_settlements s
+                       ON s.order_local_id=x.order_local_id
+                    WHERE UPPER(x.status)='FILLED'
+                      AND s.order_local_id IS NULL
+                    ORDER BY x.id ASC"""
+            ).fetchall()
+        settlements: list[dict[str, Any]] = []
+        for row in rows:
+            settlement = self.record_manual_exit_settlement(int(row["id"]))
+            if settlement is not None:
+                settlements.append(settlement)
+        return settlements
 
     def pending_manual_exits(self) -> list[dict[str, Any]]:
         with self.lock:
@@ -2411,6 +2950,11 @@ class LiveLedger:
                     int(order["id"]),
                 ),
             )
+            self._finalize_confirmation_add_mirror_locked(
+                order_local_id=int(order["id"]),
+                result=result,
+                settled_at=settled_at,
+            )
             self.db.commit()
             row = self.db.execute(
                 "SELECT * FROM live_strategy_settlements WHERE order_local_id=?",
@@ -2689,6 +3233,12 @@ class LiveM0WEngine:
         current_verified_prediction_book: Callable[
             [], dict[str, Any] | None
         ] | None = None,
+        current_spot_reference: Callable[
+            [], dict[str, Any] | None
+        ] | None = None,
+        current_direct_rest_prediction_book: Callable[
+            [], dict[str, Any] | None
+        ] | None = None,
         max_prediction_book_age_ms: float = LIVE_MAX_PREDICTION_BOOK_AGE_MS,
     ) -> None:
         self.api_key = api_key
@@ -2708,6 +3258,11 @@ class LiveM0WEngine:
         self.restart_request = restart_request
         self.drawdown_market_history = drawdown_market_history
         self.current_verified_prediction_book = current_verified_prediction_book
+        self.current_spot_reference = current_spot_reference
+        self.current_direct_rest_prediction_book = (
+            current_direct_rest_prediction_book
+            or current_verified_prediction_book
+        )
         self.max_prediction_book_age_ms = max(
             1.0, float(max_prediction_book_age_ms)
         )
@@ -2747,6 +3302,7 @@ class LiveM0WEngine:
         self.last_local_price_check: dict[str, Any] | None = None
         self.last_depth_check: dict[str, Any] | None = None
         self.last_quote_attempt: dict[str, Any] | None = None
+        self.last_drawdown_reference: dict[str, Any] | None = None
         self.dropped_signals = 0
         self.balances: list[dict[str, Any]] = []
         self.quota: dict[str, Any] = {}
@@ -2924,6 +3480,12 @@ class LiveM0WEngine:
                 self.dropped_signals += 1
                 self.status = "DEGRADED"
                 self.last_error = "live signal queue overflow; no order was placed"
+
+    def record_confirmation_add_snapshot(
+        self, snapshot: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Record counterfactual add-on fills; never reaches the order queue."""
+        return self.ledger.record_confirmation_add_snapshot(snapshot)
 
     def _preflight(self) -> None:
         with self.lock:
@@ -3114,7 +3676,12 @@ class LiveM0WEngine:
         if received_ns <= 0 or received_ns > now_ns:
             age_ms = None
         else:
-            age_ms = max(0.0, (now_ns - received_ns) / 1_000_000)
+            receipt_age_ms = max(0.0, (now_ns - received_ns) / 1_000_000)
+            reported_age_ms = _float(raw.get("book_age_ms"))
+            age_ms = max(
+                receipt_age_ms,
+                reported_age_ms if reported_age_ms is not None else 0.0,
+            )
         diagnostics["latestLocalBookAgeMs"] = age_ms
         if age_ms is None or age_ms > self.max_prediction_book_age_ms:
             return (
@@ -3149,6 +3716,182 @@ class LiveM0WEngine:
         checked["latest_ask_size"] = ask_size
         diagnostics.update(
             {
+                "latestLocalAsk": float(ask),
+                "latestLocalAskSize": (
+                    float(ask_size) if ask_size is not None else None
+                ),
+            }
+        )
+        return checked, None, None, None, diagnostics
+
+    def _latest_pair_rest_book_check(
+        self,
+        *,
+        signal: dict[str, Any],
+        market_id: int,
+        side: str,
+    ) -> tuple[
+        dict[str, Any] | None,
+        str | None,
+        str | None,
+        str | None,
+        dict[str, Any],
+    ]:
+        raw = signal.get("_pair_preflight_book")
+        if not isinstance(raw, dict):
+            callback = self.current_direct_rest_prediction_book
+            try:
+                raw = callback() if callback is not None else None
+            except Exception as exc:
+                return (
+                    None,
+                    "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                    "PAIR_REST_BOOK_UNAVAILABLE",
+                    f"direct Prediction REST book callback failed: {str(exc)[:200]}",
+                    {"latestMarketId": None, "bookSource": "UNAVAILABLE"},
+                )
+        if not isinstance(raw, dict):
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "PAIR_REST_BOOK_UNAVAILABLE",
+                "no current direct Prediction REST pair book is available",
+                {"latestMarketId": None, "bookSource": "UNAVAILABLE"},
+            )
+        try:
+            latest_market_id = int(raw.get("market_id") or 0)
+        except (TypeError, ValueError):
+            latest_market_id = 0
+        book_source = str(raw.get("data_source") or "dual_token_rest")
+        diagnostics: dict[str, Any] = {
+            "latestMarketId": latest_market_id or None,
+            "bookSource": book_source,
+            "freshnessBasis": "REST_RECEIPT_AGE",
+        }
+        if latest_market_id != market_id:
+            return (
+                None,
+                "BLOCKED_PREDICTION_MARKET_MISMATCH",
+                "PAIR_REST_MARKET_MISMATCH",
+                (
+                    f"latest direct REST pair book market "
+                    f"{latest_market_id or 'unknown'} does not match signal market "
+                    f"{market_id}"
+                ),
+                diagnostics,
+            )
+        if book_source != "dual_token_rest":
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "PAIR_REST_BOOK_UNAVAILABLE",
+                f"latest pair book source is not dual_token_rest: {book_source}",
+                diagnostics,
+            )
+        try:
+            received_ns = int(raw.get("received_monotonic_ns") or 0)
+        except (TypeError, ValueError):
+            received_ns = 0
+        now_ns = time.monotonic_ns()
+        receipt_age_ms = (
+            max(0.0, (now_ns - received_ns) / 1_000_000)
+            if 0 < received_ns <= now_ns
+            else None
+        )
+        content_age_ms = _float(raw.get("book_age_ms"))
+        book_skew_ms = _float(raw.get("book_skew_ms"))
+        max_content_age_ms = _float(signal.get("pair_max_book_age_ms"))
+        max_book_skew_ms = _float(signal.get("pair_max_book_skew_ms"))
+        diagnostics.update(
+            {
+                "latestRestReceiptAgeMs": receipt_age_ms,
+                "latestExchangeContentAgeMs": content_age_ms,
+                "latestPairBookSkewMs": book_skew_ms,
+                "maximumRestReceiptAgeMs": self.max_prediction_book_age_ms,
+                "maximumExchangeContentAgeMs": max_content_age_ms,
+                "maximumPairBookSkewMs": max_book_skew_ms,
+            }
+        )
+        if (
+            receipt_age_ms is None
+            or receipt_age_ms > self.max_prediction_book_age_ms
+        ):
+            return (
+                None,
+                "BLOCKED_STALE_PREDICTION_BOOK",
+                "PAIR_REST_RECEIPT_STALE",
+                (
+                    "latest direct Prediction REST pair book has no valid receipt age"
+                    if receipt_age_ms is None
+                    else (
+                        f"latest direct Prediction REST receipt age "
+                        f"{receipt_age_ms:.3f}ms exceeds "
+                        f"{self.max_prediction_book_age_ms:.3f}ms"
+                    )
+                ),
+                diagnostics,
+            )
+        if (
+            content_age_ms is None
+            or max_content_age_ms is None
+            or max_content_age_ms <= 0
+            or content_age_ms > max_content_age_ms
+        ):
+            return (
+                None,
+                "BLOCKED_STALE_PREDICTION_BOOK",
+                "PAIR_EXCHANGE_CONTENT_STALE",
+                (
+                    "latest direct Prediction REST pair book has no valid content age limit"
+                    if content_age_ms is None or max_content_age_ms is None
+                    else (
+                        f"latest direct Prediction REST content age "
+                        f"{content_age_ms:.3f}ms exceeds "
+                        f"{max_content_age_ms:.3f}ms"
+                    )
+                ),
+                diagnostics,
+            )
+        if (
+            book_skew_ms is None
+            or max_book_skew_ms is None
+            or max_book_skew_ms < 0
+            or book_skew_ms > max_book_skew_ms
+        ):
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "PAIR_BOOK_SKEW_EXCEEDED",
+                (
+                    "latest direct Prediction REST pair book has no valid skew limit"
+                    if book_skew_ms is None or max_book_skew_ms is None
+                    else (
+                        f"latest direct Prediction REST book skew "
+                        f"{book_skew_ms:.3f}ms exceeds "
+                        f"{max_book_skew_ms:.3f}ms"
+                    )
+                ),
+                diagnostics,
+            )
+        ask_key = "up_ask" if side == "UP" else "down_ask"
+        ask_size_key = "up_ask_size" if side == "UP" else "down_ask_size"
+        ask = _decimal(raw.get(ask_key))
+        ask_size = _decimal(raw.get(ask_size_key))
+        if ask is None or not Decimal("0") < ask < Decimal("1"):
+            return (
+                None,
+                "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+                "PAIR_REST_BOOK_UNAVAILABLE",
+                f"latest direct Prediction REST pair book is missing valid {side} top level",
+                diagnostics,
+            )
+        checked = dict(raw)
+        checked["book_age_ms"] = receipt_age_ms
+        checked["latest_ask"] = ask
+        checked["latest_ask_size"] = ask_size
+        diagnostics.update(
+            {
+                "latestLocalBookAgeMs": receipt_age_ms,
                 "latestLocalAsk": float(ask),
                 "latestLocalAskSize": (
                     float(ask_size) if ask_size is not None else None
@@ -3275,7 +4018,11 @@ class LiveM0WEngine:
             return min(maximum, price_range[1]) if price_range else maximum
         maximum = min(signal_price + LIVE_MAX_QUOTE_PRICE_GAP, Decimal("0.99"))
         if strategy.startswith("PAIR_ARB_"):
-            return maximum if strategy == "PAIR_ARB_RISK_020" else signal_price
+            return (
+                maximum
+                if strategy in {"PAIR_ARB_010", "PAIR_ARB_RISK_020"}
+                else signal_price
+            )
         if maximum < signal_price:
             maximum = signal_price
         if strategy in {"M01", "M01T180", "M01O_F1", "M01W"}:
@@ -3515,7 +4262,14 @@ class LiveM0WEngine:
         signal: dict[str, Any],
         reference: dict[str, Any],
     ) -> tuple[bool, str]:
-        """Evaluate the causal completed-market guard immediately before quote."""
+        """Evaluate the causal completed-market guard immediately before quote.
+
+        The strategy's frozen signal Spot value remains provenance only.  The
+        price used for this order-time safety recheck is selected independently:
+        a fresh Spot trade first, then a fresh Spot book microprice (or midpoint
+        when sizes are unavailable).  If both live references are stale, fail
+        closed without widening the trade threshold.
+        """
         if self.drawdown_market_history is None:
             return False, "drawdown-control completed-market history is unavailable"
         try:
@@ -3524,11 +4278,148 @@ class LiveM0WEngine:
                 return False, "drawdown-control signal belongs to a different market"
             side = str(signal["side"]).strip().upper()
             start_price = float(signal["drawdown_control_start_price"])
-            spot_price = float(signal["drawdown_control_spot_price"])
+            signal_spot_price = float(signal["drawdown_control_spot_price"])
+            signal_spot_age_ms = float(signal["drawdown_control_spot_age_ms"])
+            signal_received_monotonic_ns = int(
+                signal["market_event_received_monotonic_ns"]
+            )
         except (KeyError, TypeError, ValueError):
             return False, "drawdown-control signal snapshot is incomplete"
         if side not in {"UP", "DOWN"}:
             return False, "drawdown-control signal side is invalid"
+        if (
+            not math.isfinite(signal_spot_price)
+            or signal_spot_price <= 0
+            or not math.isfinite(signal_spot_age_ms)
+            or signal_spot_age_ms < 0
+        ):
+            return False, "drawdown-control signal Spot snapshot is invalid"
+        now_monotonic_ns = time.monotonic_ns()
+        if (
+            signal_received_monotonic_ns <= 0
+            or signal_received_monotonic_ns > now_monotonic_ns
+        ):
+            return False, "drawdown-control signal receipt time is invalid"
+
+        raw_signal_source = str(
+            signal.get("drawdown_signal_spot_source")
+            or signal.get("drawdown_control_spot_source")
+            or signal.get("signal_spot_price_source")
+            or "SPOT_TRADE"
+        ).strip()
+        signal_source = {
+            "trade": "SPOT_TRADE",
+            "bookTicker_midpoint": "SPOT_BOOK_MIDPOINT",
+        }.get(raw_signal_source, raw_signal_source.upper())
+        signal["drawdown_signal_spot_price"] = signal_spot_price
+        signal["drawdown_signal_spot_age_ms"] = signal_spot_age_ms
+        signal["drawdown_signal_spot_source"] = signal_source
+
+        spot_price: float
+        spot_age_ms: float
+        reference_source: str
+        trade_age_ms: float | None = None
+        book_age_ms: float | None = None
+        callback = self.current_spot_reference
+        if callback is None:
+            # Compatibility for older callers and archived tests.  Production
+            # wiring always supplies the independent current-reference callback.
+            spot_price = signal_spot_price
+            spot_age_ms = signal_spot_age_ms + (
+                now_monotonic_ns - signal_received_monotonic_ns
+            ) / 1_000_000
+            reference_source = signal_source
+            if spot_age_ms > LIVE_MAX_DRAWDOWN_SPOT_AGE_MS:
+                return False, (
+                    f"drawdown-control Spot age {spot_age_ms:.3f}ms exceeds "
+                    f"{LIVE_MAX_DRAWDOWN_SPOT_AGE_MS:.3f}ms"
+                )
+        else:
+            try:
+                current_spot = callback()
+            except Exception as exc:
+                return False, (
+                    "drawdown-control current Spot reference lookup failed: "
+                    f"{str(exc)[:160]}"
+                )
+            if not isinstance(current_spot, dict):
+                return False, "drawdown-control current Spot reference is unavailable"
+            trade_price = _float(current_spot.get("trade_price"))
+            trade_age_ms = _float(current_spot.get("trade_age_ms"))
+            book_microprice = _float(current_spot.get("book_microprice"))
+            book_midpoint = _float(current_spot.get("book_midpoint"))
+            book_age_ms = _float(current_spot.get("book_age_ms"))
+            trade_is_fresh = bool(
+                trade_price is not None
+                and trade_price > 0
+                and trade_age_ms is not None
+                and 0 <= trade_age_ms <= LIVE_MAX_DRAWDOWN_SPOT_AGE_MS
+            )
+            book_is_fresh = bool(
+                book_age_ms is not None
+                and 0 <= book_age_ms <= LIVE_MAX_DRAWDOWN_SPOT_BOOK_AGE_MS
+            )
+            if trade_is_fresh:
+                assert trade_price is not None and trade_age_ms is not None
+                spot_price = trade_price
+                spot_age_ms = trade_age_ms
+                reference_source = "SPOT_TRADE"
+            elif book_is_fresh and book_microprice is not None and book_microprice > 0:
+                spot_price = book_microprice
+                spot_age_ms = book_age_ms
+                reference_source = "SPOT_BOOK_MICROPRICE"
+            elif book_is_fresh and book_midpoint is not None and book_midpoint > 0:
+                spot_price = book_midpoint
+                spot_age_ms = book_age_ms
+                reference_source = "SPOT_BOOK_MIDPOINT"
+            else:
+                trade_text = (
+                    f"{trade_age_ms:.3f}ms"
+                    if trade_age_ms is not None and trade_age_ms >= 0
+                    else "unavailable"
+                )
+                book_text = (
+                    f"{book_age_ms:.3f}ms"
+                    if book_age_ms is not None and book_age_ms >= 0
+                    else "unavailable"
+                )
+                signal["drawdown_recheck_spot_price"] = None
+                signal["drawdown_recheck_spot_age_ms"] = None
+                signal["drawdown_recheck_spot_source"] = "UNAVAILABLE"
+                signal["drawdown_recheck_trade_age_ms"] = trade_age_ms
+                signal["drawdown_recheck_book_age_ms"] = book_age_ms
+                with self.lock:
+                    self.last_drawdown_reference = {
+                        "source": "UNAVAILABLE",
+                        "ageMs": None,
+                        "price": None,
+                        "tradeAgeMs": trade_age_ms,
+                        "bookAgeMs": book_age_ms,
+                        "checkedAt": utc_iso(),
+                        "marketId": market_id,
+                    }
+                return False, (
+                    "drawdown-control Spot references are unavailable or stale "
+                    f"(trade {trade_text}, max "
+                    f"{LIVE_MAX_DRAWDOWN_SPOT_AGE_MS:.3f}ms; book {book_text}, "
+                    f"max {LIVE_MAX_DRAWDOWN_SPOT_BOOK_AGE_MS:.3f}ms)"
+                )
+
+        signal["drawdown_recheck_spot_price"] = spot_price
+        signal["drawdown_recheck_spot_age_ms"] = spot_age_ms
+        signal["drawdown_recheck_spot_source"] = reference_source
+        signal["drawdown_recheck_trade_age_ms"] = trade_age_ms
+        signal["drawdown_recheck_book_age_ms"] = book_age_ms
+        with self.lock:
+            self.last_drawdown_reference = {
+                "source": reference_source,
+                "ageMs": spot_age_ms,
+                "price": spot_price,
+                "tradeAgeMs": trade_age_ms,
+                "bookAgeMs": book_age_ms,
+                "checkedAt": utc_iso(),
+                "marketId": market_id,
+            }
         reference_start = _float(reference.get("start_price"))
         if (
             reference_start is None
@@ -3570,6 +4461,36 @@ class LiveM0WEngine:
         except (TypeError, ValueError) as exc:
             return False, f"drawdown-control signal snapshot is invalid: {exc}"
         return decision.allowed, decision.reason
+
+    @staticmethod
+    def _spot_data_is_safe_for_live(
+        signal: dict[str, Any],
+    ) -> tuple[bool, str]:
+        """Require a fresh effective Spot price immediately before quoting."""
+        age_value = signal.get("signal_spot_age_ms")
+        if age_value is None:
+            # Older candidates used the drawdown snapshot field.  Keep the
+            # compatibility path explicit, but still fail closed when neither
+            # field exists.
+            age_value = signal.get("drawdown_control_spot_age_ms")
+        try:
+            age_ms = float(age_value)
+            received_ns = int(signal["market_event_received_monotonic_ns"])
+        except (KeyError, TypeError, ValueError):
+            return False, "live Spot freshness metadata is incomplete"
+        now_ns = time.monotonic_ns()
+        if received_ns <= 0 or received_ns > now_ns:
+            return False, "live Spot freshness receipt time is invalid"
+        age_ms += (now_ns - received_ns) / 1_000_000
+        if not math.isfinite(age_ms) or age_ms < 0:
+            return False, "live Spot freshness age is invalid"
+        if age_ms > LIVE_MAX_SPOT_DATA_AGE_MS:
+            source = str(signal.get("signal_spot_price_source") or "spot")
+            return False, (
+                f"live Spot data age {age_ms:.3f}ms exceeds "
+                f"{LIVE_MAX_SPOT_DATA_AGE_MS:.0f}ms ({source})"
+            )
+        return True, ""
 
     @staticmethod
     def _f1_entry_time_is_safe(
@@ -3905,6 +4826,33 @@ class LiveM0WEngine:
         error_kind: str = "LOCAL_BLOCK",
         diagnostics: dict[str, Any] | None = None,
     ) -> int | None:
+        if diagnostics is None and status == "BLOCKED_DRAWDOWN_CONTROL":
+            diagnostics = {
+                "drawdownSignalSpotPrice": _float(
+                    signal.get("drawdown_signal_spot_price")
+                ),
+                "drawdownSignalSpotAgeMs": _float(
+                    signal.get("drawdown_signal_spot_age_ms")
+                ),
+                "drawdownSignalSpotSource": signal.get(
+                    "drawdown_signal_spot_source"
+                ),
+                "drawdownReferencePrice": _float(
+                    signal.get("drawdown_recheck_spot_price")
+                ),
+                "drawdownReferenceAgeMs": _float(
+                    signal.get("drawdown_recheck_spot_age_ms")
+                ),
+                "drawdownReferenceSource": signal.get(
+                    "drawdown_recheck_spot_source"
+                ),
+                "drawdownTradeAgeMs": _float(
+                    signal.get("drawdown_recheck_trade_age_ms")
+                ),
+                "drawdownBookAgeMs": _float(
+                    signal.get("drawdown_recheck_book_age_ms")
+                ),
+            }
         market_id = int(signal.get("market_id") or 0)
         reference = self.current_market() or {}
         side = str(signal.get("side") or "UNKNOWN")
@@ -3924,6 +4872,11 @@ class LiveM0WEngine:
         except (KeyError, IndexError, TypeError, ValueError):
             configured_stake = rules["maxStakeUsdt"]
         stake = Decimal(str(configured_stake))
+        dynamic_leg_stake = _decimal(
+            signal.get("_pair_dynamic_leg_stake_usdt")
+        )
+        if dynamic_leg_stake is not None and dynamic_leg_stake > 0:
+            stake = dynamic_leg_stake
         local_id = self.ledger.record_signal(
             topic_id=int(signal.get("topic_id") or reference.get("topic_id") or 0),
             market_id=market_id,
@@ -4248,7 +5201,10 @@ class LiveM0WEngine:
         )
 
     def _requote_qc_pair(
-        self, accepted: list[dict[str, Any]]
+        self,
+        accepted: list[dict[str, Any]],
+        *,
+        minimum_capacity: Decimal = PAIR_ARB_QC_MIN_QUOTE_CAPACITY_RATIO,
     ) -> tuple[list[dict[str, Any]] | None, str]:
         """Requote both legs for the same conservative gross-share target."""
         try:
@@ -4279,10 +5235,10 @@ class LiveM0WEngine:
                 if expected > 0
             ),
         )
-        if initial_capacity < PAIR_ARB_QC_MIN_QUOTE_CAPACITY_RATIO:
+        if initial_capacity < minimum_capacity:
             return None, (
                 f"initial signed quote capacity {initial_capacity:.1%} is below "
-                f"{PAIR_ARB_QC_MIN_QUOTE_CAPACITY_RATIO:.0%}"
+                f"{minimum_capacity:.0%}"
             )
 
         target_output = min(initial_outputs)
@@ -4348,6 +5304,258 @@ class LiveM0WEngine:
         except Exception as exc:
             return None, f"equal-share requote failed: {str(exc)[:300]}"
         return requoted, ""
+
+    @staticmethod
+    def _pair_quote_share_mismatch_ratio(
+        accepted: list[dict[str, Any]],
+    ) -> Decimal | None:
+        try:
+            outputs = [
+                Decimal(int(item["quote"]["amountOut"]))
+                for item in accepted
+            ]
+        except (KeyError, TypeError, ValueError, InvalidOperation):
+            return None
+        if len(outputs) != 2 or min(outputs) <= 0:
+            return None
+        return (max(outputs) - min(outputs)) / min(outputs)
+
+    @staticmethod
+    def _pair_010_profitable_depth_plan(
+        book: dict[str, Any],
+        *,
+        maximum_total_stake: Decimal,
+        fee_bps: int,
+    ) -> tuple[dict[str, Any] | None, str]:
+        """Size equal pair legs only through currently profitable ask depth."""
+
+        def levels_for(side: str) -> list[tuple[Decimal, Decimal]]:
+            key = f"{side.lower()}_asks"
+            result: list[tuple[Decimal, Decimal]] = []
+            raw_levels = book.get(key)
+            for raw_level in (
+                raw_levels
+                if isinstance(raw_levels, (list, tuple))
+                else []
+            ):
+                try:
+                    if isinstance(raw_level, dict):
+                        price = _decimal(raw_level.get("price"))
+                        size = _decimal(
+                            raw_level.get("size", raw_level.get("quantity"))
+                        )
+                    else:
+                        price = _decimal(raw_level[0])
+                        size = _decimal(raw_level[1])
+                except (IndexError, TypeError):
+                    continue
+                if (
+                    price is not None
+                    and size is not None
+                    and Decimal("0") < price < Decimal("1")
+                    and size > 0
+                ):
+                    result.append((price, size))
+            if not result:
+                price = _decimal(book.get(f"{side.lower()}_ask"))
+                size = _decimal(book.get(f"{side.lower()}_ask_size"))
+                if (
+                    price is not None
+                    and size is not None
+                    and Decimal("0") < price < Decimal("1")
+                    and size > 0
+                ):
+                    result.append((price, size))
+            return sorted(result, key=lambda level: level[0])
+
+        up_levels = levels_for("UP")
+        down_levels = levels_for("DOWN")
+        if not up_levels or not down_levels or maximum_total_stake <= 0:
+            return None, "current pair book has no usable two-sided ask depth"
+
+        top_pair_price = up_levels[0][0] + down_levels[0][0]
+        if top_pair_price <= 0:
+            return None, "current pair top-level price is invalid"
+        requested_shares = maximum_total_stake / top_pair_price
+        remaining_shares = requested_shares
+        remaining_stake = maximum_total_stake
+        up_index = down_index = 0
+        up_remaining = up_levels[0][1]
+        down_remaining = down_levels[0][1]
+        filled_shares = Decimal("0")
+        up_cost = down_cost = Decimal("0")
+        up_fee = down_fee = Decimal("0")
+        fee_rate = Decimal(int(fee_bps)) / Decimal(10_000)
+        minimum_edge = PAIR_ARB_MIN_NET_EDGE["PAIR_ARB_010"]
+        up_levels_consumed: set[int] = set()
+        down_levels_consumed: set[int] = set()
+
+        while (
+            remaining_shares > 0
+            and remaining_stake > 0
+            and up_index < len(up_levels)
+            and down_index < len(down_levels)
+        ):
+            up_price = up_levels[up_index][0]
+            down_price = down_levels[down_index][0]
+            unit_up_fee = min(up_price, Decimal("1") - up_price) * fee_rate
+            unit_down_fee = min(down_price, Decimal("1") - down_price) * fee_rate
+            marginal_edge = (
+                Decimal("1")
+                - up_price
+                - down_price
+                - unit_up_fee
+                - unit_down_fee
+            )
+            if marginal_edge < minimum_edge:
+                break
+            pair_notional = up_price + down_price
+            quantity = min(
+                remaining_shares,
+                up_remaining,
+                down_remaining,
+                remaining_stake / pair_notional,
+            )
+            if quantity <= 0:
+                break
+            filled_shares += quantity
+            up_cost += quantity * up_price
+            down_cost += quantity * down_price
+            up_fee += quantity * unit_up_fee
+            down_fee += quantity * unit_down_fee
+            remaining_shares -= quantity
+            remaining_stake -= quantity * pair_notional
+            up_remaining -= quantity
+            down_remaining -= quantity
+            up_levels_consumed.add(up_index)
+            down_levels_consumed.add(down_index)
+            if up_remaining <= 0:
+                up_index += 1
+                if up_index < len(up_levels):
+                    up_remaining = up_levels[up_index][1]
+            if down_remaining <= 0:
+                down_index += 1
+                if down_index < len(down_levels):
+                    down_remaining = down_levels[down_index][1]
+
+        if filled_shares <= 0:
+            return None, "no current equal-share depth meets the 1% net edge"
+        total_cost = (
+            up_cost
+            + down_cost
+            + up_fee
+            + down_fee
+            + PAIR_ARB_QC_NETWORK_AND_ROUNDING_BUFFER
+        )
+        locked_pnl = filled_shares - total_cost
+        minimum_locked_pnl = filled_shares * minimum_edge
+        if locked_pnl < minimum_locked_pnl:
+            return None, (
+                f"profitable shared depth locks {locked_pnl:.6f} USDT, below "
+                f"required {minimum_locked_pnl:.6f} USDT after buffer"
+            )
+        if min(up_cost, down_cost) < LIVE_MIN_CONFIGURABLE_STAKE_USDT:
+            return None, "profitable shared depth leaves one leg below minimum stake"
+
+        quantize = Decimal("0.000000000000000001")
+        up_stake = up_cost.quantize(quantize, rounding=ROUND_DOWN)
+        down_stake = down_cost.quantize(quantize, rounding=ROUND_DOWN)
+        target_shares = filled_shares.quantize(quantize, rounding=ROUND_DOWN)
+        return {
+            "target_shares": target_shares,
+            "up_stake": up_stake,
+            "down_stake": down_stake,
+            "total_order_stake": up_stake + down_stake,
+            "maximum_total_stake": maximum_total_stake,
+            "up_vwap": up_cost / filled_shares,
+            "down_vwap": down_cost / filled_shares,
+            "up_fee": up_fee,
+            "down_fee": down_fee,
+            "locked_pnl_after_buffer": locked_pnl,
+            "minimum_locked_pnl": minimum_locked_pnl,
+            "up_levels_consumed": len(up_levels_consumed),
+            "down_levels_consumed": len(down_levels_consumed),
+        }, ""
+
+    @staticmethod
+    def _pair_010_locked_quote_metrics(
+        accepted: list[dict[str, Any]],
+    ) -> tuple[dict[str, Any], str | None]:
+        """Conservatively value two signed quotes as one matched-share pair."""
+        by_side = {str(item.get("side")): item for item in accepted}
+        if set(by_side) != {"UP", "DOWN"}:
+            return {}, "both PAIR_ARB_010 sides are required"
+        try:
+            fee_rate = Decimal(int(accepted[0]["fee_bps"])) / Decimal(10_000)
+            outputs: dict[str, Decimal] = {}
+            prices: dict[str, Decimal] = {}
+            conservative_leg_costs: dict[str, Decimal] = {}
+            for side, item in by_side.items():
+                quote = item["quote"]
+                quote_input = Decimal(int(quote["amountIn"])) / Decimal(10**18)
+                quote_output = Decimal(int(quote["amountOut"])) / Decimal(10**18)
+                price = Decimal(str(quote["averagePrice"]))
+                if (
+                    quote_input <= 0
+                    or quote_output <= 0
+                    or not Decimal("0") < price < Decimal("1")
+                ):
+                    return {}, "PAIR_ARB_010 signed quote amounts are invalid"
+                modeled_cost = quote_output * price
+                provider_fee = (
+                    quote_output
+                    * min(price, Decimal("1") - price)
+                    * fee_rate
+                )
+                outputs[side] = quote_output
+                prices[side] = price
+                conservative_leg_costs[side] = (
+                    max(quote_input, modeled_cost) + provider_fee
+                )
+        except (KeyError, TypeError, ValueError, InvalidOperation):
+            return {}, "PAIR_ARB_010 signed quote fields are invalid"
+
+        matched_shares = min(outputs.values())
+        mismatch_ratio = (
+            (max(outputs.values()) - matched_shares) / matched_shares
+            if matched_shares > 0
+            else Decimal("Infinity")
+        )
+        total_cost = (
+            sum(conservative_leg_costs.values(), Decimal(0))
+            + PAIR_ARB_QC_NETWORK_AND_ROUNDING_BUFFER
+        )
+        locked_pnl = matched_shares - total_cost
+        minimum_locked_pnl = (
+            matched_shares * PAIR_ARB_MIN_NET_EDGE["PAIR_ARB_010"]
+        )
+        locked_roi = locked_pnl / total_cost if total_cost > 0 else Decimal("-1")
+        metrics = {
+            "up_quote_price": float(prices["UP"]),
+            "down_quote_price": float(prices["DOWN"]),
+            "up_gross_shares": float(outputs["UP"]),
+            "down_gross_shares": float(outputs["DOWN"]),
+            "matched_shares": float(matched_shares),
+            "total_cost_usdt": float(total_cost),
+            "locked_pnl_usdt": float(locked_pnl),
+            "minimum_locked_pnl_usdt": float(minimum_locked_pnl),
+            "locked_roi": float(locked_roi),
+            "share_mismatch_ratio": float(mismatch_ratio),
+            "network_and_rounding_buffer_usdt": float(
+                PAIR_ARB_QC_NETWORK_AND_ROUNDING_BUFFER
+            ),
+        }
+        if mismatch_ratio > PAIR_ARB_QC_MAX_NET_SHARE_MISMATCH_RATIO:
+            return metrics, (
+                f"gross share mismatch {mismatch_ratio:.3%} exceeds "
+                f"{PAIR_ARB_QC_MAX_NET_SHARE_MISMATCH_RATIO:.2%}"
+            )
+        if locked_pnl < minimum_locked_pnl:
+            return metrics, (
+                f"PAIR_ARB_010 locked PnL {locked_pnl:.6f} USDT is below "
+                f"required {minimum_locked_pnl:.6f} USDT"
+            )
+        return metrics, None
 
     @staticmethod
     def _qc_pair_metrics(
@@ -4489,6 +5697,95 @@ class LiveM0WEngine:
             for leg_side in ("UP", "DOWN"):
                 pair[leg_side]["_drawdown_control_validated"] = True
 
+        if strategy == "PAIR_ARB_010":
+            callback = self.current_direct_rest_prediction_book
+            try:
+                shared_book = callback() if callback is not None else None
+            except Exception:
+                shared_book = None
+            if isinstance(shared_book, dict):
+                for leg_side in ("UP", "DOWN"):
+                    pair[leg_side]["_pair_preflight_book"] = shared_book
+                checked_books = [
+                    self._latest_pair_rest_book_check(
+                        signal=pair[leg_side],
+                        market_id=market_id,
+                        side=leg_side,
+                    )[0]
+                    for leg_side in ("UP", "DOWN")
+                ]
+                if all(book is not None for book in checked_books):
+                    try:
+                        strategy_index = list(rules["strategies"]).index(strategy)
+                        maximum_total_stake = Decimal(
+                            str(rules["strategyStakesUsdt"][strategy_index])
+                        )
+                    except (KeyError, IndexError, TypeError, ValueError):
+                        maximum_total_stake = Decimal(
+                            str(rules.get("maxStakeUsdt") or 0)
+                        )
+                    reference = self.current_market() or {}
+                    depth_plan, depth_error = self._pair_010_profitable_depth_plan(
+                        shared_book,
+                        maximum_total_stake=maximum_total_stake,
+                        fee_bps=int(reference.get("fee_bps") or 200),
+                    )
+                    if depth_plan is None:
+                        diagnostics = {
+                            "maximumTotalStakeUsdt": float(maximum_total_stake),
+                            "reason": depth_error,
+                            "bookAgeMs": _float(shared_book.get("book_age_ms")),
+                            "bookSkewMs": _float(shared_book.get("book_skew_ms")),
+                        }
+                        self._record_blocked_signal(
+                            pair["UP"],
+                            "BLOCKED_PAIR_PROFITABLE_DEPTH",
+                            depth_error,
+                            error_kind="PAIR_NO_PROFITABLE_SHARED_DEPTH",
+                            diagnostics=diagnostics,
+                        )
+                        return
+                    plan_diagnostics = {
+                        key: float(value) if isinstance(value, Decimal) else value
+                        for key, value in depth_plan.items()
+                    }
+                    for leg_side in ("UP", "DOWN"):
+                        pair[leg_side]["_pair_dynamic_leg_stake_usdt"] = format(
+                            depth_plan[f"{leg_side.lower()}_stake"], "f"
+                        )
+                        pair[leg_side]["_pair_dynamic_target_shares"] = format(
+                            depth_plan["target_shares"], "f"
+                        )
+                        pair[leg_side]["_pair_dynamic_depth_plan"] = (
+                            plan_diagnostics
+                        )
+                        pair[leg_side]["pairDynamicTargetShares"] = float(
+                            depth_plan["target_shares"]
+                        )
+                        pair[leg_side]["pairDynamicLegStakeUsdt"] = float(
+                            depth_plan[f"{leg_side.lower()}_stake"]
+                        )
+                        pair[leg_side]["pairDynamicTotalStakeUsdt"] = float(
+                            depth_plan["total_order_stake"]
+                        )
+                        pair[leg_side]["pairDynamicMaximumStakeUsdt"] = float(
+                            depth_plan["maximum_total_stake"]
+                        )
+                        pair[leg_side]["pairDynamicLockedPnlUsdt"] = float(
+                            depth_plan["locked_pnl_after_buffer"]
+                        )
+                    self.ledger.record_event(
+                        "INFO",
+                        "PAIR_DYNAMIC_DEPTH_SIZED",
+                        (
+                            f"PAIR_ARB_010 resized from "
+                            f"{maximum_total_stake:.6f} to "
+                            f"{depth_plan['total_order_stake']:.6f} USDT for "
+                            f"{depth_plan['target_shares']:.6f} equal shares"
+                        ),
+                        market_id,
+                    )
+
         with ThreadPoolExecutor(max_workers=2) as executor:
             futures = {
                 leg_side: executor.submit(
@@ -4528,6 +5825,35 @@ class LiveM0WEngine:
                     reason="signed pair quote preparation failed while paused",
                 )
             return
+
+        if strategy == "PAIR_ARB_010":
+            mismatch_ratio = self._pair_quote_share_mismatch_ratio(accepted)
+            if mismatch_ratio is None:
+                requoted = None
+                requote_error = "initial pair quote share amounts are invalid"
+            elif mismatch_ratio > PAIR_ARB_QC_MAX_NET_SHARE_MISMATCH_RATIO:
+                requoted, requote_error = self._requote_qc_pair(
+                    accepted,
+                    minimum_capacity=PAIR_ARB_MIN_QUOTE_CAPACITY_RATIO,
+                )
+            else:
+                requoted, requote_error = accepted, ""
+            if requoted is None:
+                for item in accepted:
+                    self.ledger.update_order(
+                        int(item["local_id"]),
+                        status="REJECTED",
+                        error_kind="PAIR_EQUAL_SHARE_REQUOTE_REJECTED",
+                        error_message=requote_error,
+                    )
+                self.ledger.record_event(
+                    "ERROR",
+                    "PAIR_EQUAL_SHARE_REQUOTE_REJECTED",
+                    requote_error,
+                    market_id,
+                )
+                return
+            accepted = requoted
 
         if strategy == "PAIR_ARB_QC_015":
             requoted, requote_error = self._requote_qc_pair(accepted)
@@ -4602,32 +5928,52 @@ class LiveM0WEngine:
                 )
             return
 
-        averages = [
-            _decimal(item["quote"].get("averagePrice")) for item in accepted
-        ]
-        fee_rate = Decimal(int(accepted[0]["fee_bps"])) / Decimal(10_000)
         server_now = accepted[0]["client"].server_timestamp_ms()
         expiries = [int(item["quote"].get("expireAt") or 0) for item in accepted]
         if any(expiry and expiry <= server_now + 500 for expiry in expiries):
             pair_safe = False
             net_edge = None
             unsafe_detail = "互補任一腿報價距離到期不足 500ms"
-        elif any(value is None for value in averages):
-            pair_safe = False
-            net_edge = None
-            unsafe_detail = "互補雙腿實際報價無法計算"
-        else:
-            up_price, down_price = averages
-            unit_fees = (
-                min(up_price, Decimal(1) - up_price)
-                + min(down_price, Decimal(1) - down_price)
-            ) * fee_rate
-            net_edge = Decimal(1) - up_price - down_price - unit_fees
-            minimum_edge = PAIR_ARB_MIN_NET_EDGE[strategy]
-            pair_safe = net_edge >= minimum_edge
-            unsafe_detail = (
-                f"互補雙腿實際含費淨邊際 {net_edge:.6f} 低於策略門檻"
+        elif strategy == "PAIR_ARB_010":
+            pair_metrics, pair_metrics_error = self._pair_010_locked_quote_metrics(
+                accepted
             )
+            pair_safe = pair_metrics_error is None
+            matched_shares = _decimal(pair_metrics.get("matched_shares"))
+            locked_pnl = _decimal(pair_metrics.get("locked_pnl_usdt"))
+            net_edge = (
+                locked_pnl / matched_shares
+                if locked_pnl is not None
+                and matched_shares is not None
+                and matched_shares > 0
+                else None
+            )
+            unsafe_detail = pair_metrics_error or (
+                f"PAIR_ARB_010 locked PnL "
+                f"{pair_metrics['locked_pnl_usdt']:.6f} USDT passed"
+            )
+        else:
+            averages = [
+                _decimal(item["quote"].get("averagePrice"))
+                for item in accepted
+            ]
+            fee_rate = Decimal(int(accepted[0]["fee_bps"])) / Decimal(10_000)
+            if any(value is None for value in averages):
+                pair_safe = False
+                net_edge = None
+                unsafe_detail = "互補雙腿實際報價無法計算"
+            else:
+                up_price, down_price = averages
+                unit_fees = (
+                    min(up_price, Decimal(1) - up_price)
+                    + min(down_price, Decimal(1) - down_price)
+                ) * fee_rate
+                net_edge = Decimal(1) - up_price - down_price - unit_fees
+                minimum_edge = PAIR_ARB_MIN_NET_EDGE[strategy]
+                pair_safe = net_edge >= minimum_edge
+                unsafe_detail = (
+                    f"互補雙腿實際含費淨邊際 {net_edge:.6f} 低於策略門檻"
+                )
         if not pair_safe:
             detail = unsafe_detail
             for item in accepted:
@@ -4813,18 +6159,28 @@ class LiveM0WEngine:
                     signal, "BLOCKED_INVALID_SIGNAL", "互補實單訊號缺少雙邊價格"
                 )
                 return
-            allocation_total = pair_total_price
-            if (
-                selected_strategy == "PAIR_ARB_RISK_020"
-                and signal_up_price is not None
-                and signal_down_price is not None
-                and signal_up_price > 0
-                and signal_down_price > 0
-            ):
-                allocation_total = signal_up_price + signal_down_price
-            max_stake = (max_stake * leg_price / allocation_total).quantize(
-                Decimal("0.000000000000000001"), rounding=ROUND_DOWN
+            dynamic_leg_stake = _decimal(
+                signal.get("_pair_dynamic_leg_stake_usdt")
             )
+            if (
+                selected_strategy == "PAIR_ARB_010"
+                and dynamic_leg_stake is not None
+                and dynamic_leg_stake > 0
+            ):
+                max_stake = dynamic_leg_stake
+            else:
+                allocation_total = pair_total_price
+                if (
+                    selected_strategy == "PAIR_ARB_RISK_020"
+                    and signal_up_price is not None
+                    and signal_down_price is not None
+                    and signal_up_price > 0
+                    and signal_down_price > 0
+                ):
+                    allocation_total = signal_up_price + signal_down_price
+                max_stake = (max_stake * leg_price / allocation_total).quantize(
+                    Decimal("0.000000000000000001"), rounding=ROUND_DOWN
+                )
             if max_stake < LIVE_MIN_CONFIGURABLE_STAKE_USDT:
                 self._record_blocked_signal(
                     signal, "BLOCKED_INVALID_SIGNAL", "互補單腿金額低於可下單下限"
@@ -4881,6 +6237,32 @@ class LiveM0WEngine:
                 signal, "BLOCKED_MARKET_MISMATCH", "實單訊號市場已不是目前市場"
             )
             return
+        if (
+            not selected_strategy.startswith("PAIR_ARB_")
+            and (
+                "signal_spot_age_ms" in signal
+                or "signal_spot_trade_processed_age_ms" in signal
+            )
+        ):
+            spot_is_safe, spot_reason = self._spot_data_is_safe_for_live(signal)
+            if not spot_is_safe:
+                self._record_blocked_signal(
+                    signal,
+                    "BLOCKED_STALE_SPOT_DATA",
+                    spot_reason,
+                    diagnostics={
+                        "spotAgeMs": _float(signal.get("signal_spot_age_ms")),
+                        "spotPriceSource": signal.get("signal_spot_price_source"),
+                        "spotTradeIngressAgeMs": _float(
+                            signal.get("signal_spot_trade_ingress_age_ms")
+                        ),
+                        "spotTradeProcessedAgeMs": _float(
+                            signal.get("signal_spot_trade_processed_age_ms")
+                        ),
+                        "spotDataMaxAgeMs": LIVE_MAX_SPOT_DATA_AGE_MS,
+                    },
+                )
+                return
         reliability_is_safe, reliability_reason = self._reliability_gate_is_safe(
             signal, rules
         )
@@ -5030,13 +6412,29 @@ class LiveM0WEngine:
                 )
                 return
 
-        (
-            latest_prediction_book,
-            book_block_status,
-            book_error_kind,
-            book_block_message,
-            book_diagnostics,
-        ) = self._latest_prediction_book_check(market_id=market_id, side=side)
+        if selected_strategy.startswith("PAIR_ARB_"):
+            (
+                latest_prediction_book,
+                book_block_status,
+                book_error_kind,
+                book_block_message,
+                book_diagnostics,
+            ) = self._latest_pair_rest_book_check(
+                signal=signal,
+                market_id=market_id,
+                side=side,
+            )
+        else:
+            (
+                latest_prediction_book,
+                book_block_status,
+                book_error_kind,
+                book_block_message,
+                book_diagnostics,
+            ) = self._latest_prediction_book_check(
+                market_id=market_id,
+                side=side,
+            )
         if latest_prediction_book is None:
             assert book_block_status is not None
             assert book_error_kind is not None
@@ -5107,26 +6505,37 @@ class LiveM0WEngine:
             if max_stake > 0
             else Decimal("0")
         )
+        level_key = "up_asks" if side == "UP" else "down_asks"
+        local_levels = latest_prediction_book.get(level_key)
+        estimate = estimate_buy_vwap(local_levels, max_stake)
+        estimated_vwap = _decimal(estimate["estimated_vwap"])
+        depth_coverage_ratio = _decimal(estimate["capacity_ratio"]) or Decimal("0")
         depth_diagnostics = {
             **book_diagnostics,
             "configuredStake": float(max_stake),
             "topLevelCapacityUsdt": float(top_level_capacity),
             "topLevelCapacityRatio": float(capacity_ratio),
-            "vwapAvailable": False,
-            "estimatedVwap": None,
-            "estimatedVwapCapacityRatio": None,
-            "estimatedVwapCoveredStake": None,
-            "estimatedVwapLevelsConsumed": 0,
+            "depthCoverageRatio": estimate["capacity_ratio"],
+            "depthCoveredStakeUsdt": estimate["covered_stake"],
+            "depthLevelsConsumed": estimate["levels_consumed"],
+            "minimumDepthCoverageRatio": float(
+                LIVE_MIN_DEPTH_COVERAGE_RATIO
+            ),
+            "vwapAvailable": estimated_vwap is not None,
+            "estimatedVwap": estimate["estimated_vwap"],
+            "estimatedVwapCapacityRatio": estimate["capacity_ratio"],
+            "estimatedVwapCoveredStake": estimate["covered_stake"],
+            "estimatedVwapLevelsConsumed": estimate["levels_consumed"],
         }
-        if capacity_ratio < LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO:
+        if depth_coverage_ratio < LIVE_MIN_DEPTH_COVERAGE_RATIO:
             self._record_prediction_book_block(
                 signal,
-                status="BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY",
+                status="BLOCKED_INSUFFICIENT_DEPTH_COVERAGE",
                 error_kind="LOCAL_INSUFFICIENT_DEPTH",
                 message=(
-                    f"latest {side} top-level capacity ratio "
-                    f"{float(capacity_ratio):.6f} is below required "
-                    f"{float(LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO):.6f}"
+                    f"latest {side} multi-level depth coverage ratio "
+                    f"{float(depth_coverage_ratio):.6f} is below required "
+                    f"{float(LIVE_MIN_DEPTH_COVERAGE_RATIO):.6f}"
                 ),
                 diagnostics=depth_diagnostics,
                 enqueued_monotonic=enqueued_monotonic,
@@ -5134,40 +6543,26 @@ class LiveM0WEngine:
             )
             return
 
-        level_key = "up_asks" if side == "UP" else "down_asks"
-        local_levels = latest_prediction_book.get(level_key)
-        if isinstance(local_levels, (list, tuple)) and local_levels:
-            estimate = estimate_buy_vwap(local_levels, max_stake)
-            depth_diagnostics.update(
-                {
-                    "vwapAvailable": True,
-                    "estimatedVwap": estimate["estimated_vwap"],
-                    "estimatedVwapCapacityRatio": estimate["capacity_ratio"],
-                    "estimatedVwapCoveredStake": estimate["covered_stake"],
-                    "estimatedVwapLevelsConsumed": estimate["levels_consumed"],
-                }
+        if (
+            estimated_vwap is not None
+            and estimated_vwap
+            > maximum_reprice_limit + Decimal("0.00000001")
+        ):
+            self._record_prediction_book_block(
+                signal,
+                status="BLOCKED_ESTIMATED_VWAP_TOO_HIGH",
+                error_kind="LOCAL_ESTIMATED_VWAP_TOO_HIGH",
+                message=(
+                    f"estimated local {side} VWAP "
+                    f"{format(estimated_vwap.normalize(), 'f')} exceeds "
+                    "the permitted execution limit "
+                    f"{format(maximum_reprice_limit.normalize(), 'f')}"
+                ),
+                diagnostics=depth_diagnostics,
+                enqueued_monotonic=enqueued_monotonic,
+                processing_started_monotonic=processing_started_monotonic,
             )
-            estimated_vwap = _decimal(estimate["estimated_vwap"])
-            if (
-                estimated_vwap is not None
-                and estimated_vwap
-                > maximum_reprice_limit + Decimal("0.00000001")
-            ):
-                self._record_prediction_book_block(
-                    signal,
-                    status="BLOCKED_ESTIMATED_VWAP_TOO_HIGH",
-                    error_kind="LOCAL_ESTIMATED_VWAP_TOO_HIGH",
-                    message=(
-                        f"estimated local {side} VWAP "
-                        f"{format(estimated_vwap.normalize(), 'f')} exceeds "
-                        "the permitted execution limit "
-                        f"{format(maximum_reprice_limit.normalize(), 'f')}"
-                    ),
-                    diagnostics=depth_diagnostics,
-                    enqueued_monotonic=enqueued_monotonic,
-                    processing_started_monotonic=processing_started_monotonic,
-                )
-                return
+            return
         with self.lock:
             self.last_depth_check = {
                 **depth_diagnostics,
@@ -5220,7 +6615,7 @@ class LiveM0WEngine:
         first_quote_average_price: float | None = None
         second_quote_average_price: float | None = None
         reprice_event_message: str | None = None
-        if selected_strategy == "PAIR_ARB_RISK_020":
+        if selected_strategy in {"PAIR_ARB_010", "PAIR_ARB_RISK_020"}:
             price_limit = maximum_reprice_limit
         elif selected_strategy.startswith("PAIR_ARB_"):
             # Pair strategies retain their exact leg-price consistency rules.
@@ -5264,6 +6659,24 @@ class LiveM0WEngine:
                 "marketId": market_id,
                 "side": side,
                 "signalPrice": float(signal_price),
+                "drawdownSignalSpotPrice": _float(
+                    signal.get("drawdown_signal_spot_price")
+                ),
+                "drawdownSignalSpotAgeMs": _float(
+                    signal.get("drawdown_signal_spot_age_ms")
+                ),
+                "drawdownSignalSpotSource": signal.get(
+                    "drawdown_signal_spot_source"
+                ),
+                "drawdownReferencePrice": _float(
+                    signal.get("drawdown_recheck_spot_price")
+                ),
+                "drawdownReferenceAgeMs": _float(
+                    signal.get("drawdown_recheck_spot_age_ms")
+                ),
+                "drawdownReferenceSource": signal.get(
+                    "drawdown_recheck_spot_source"
+                ),
                 "signalBookAgeMs": _float(
                     signal.get("signal_prediction_book_age_ms")
                 ),
@@ -5447,7 +6860,15 @@ class LiveM0WEngine:
             "requested_amount_wei": amount_in_wei,
             "expected_amount_out_wei": int(
                 (
-                    max_stake / signal_price * Decimal(10**18)
+                    (
+                        _decimal(signal.get("_pair_dynamic_target_shares"))
+                        if selected_strategy == "PAIR_ARB_010"
+                        and _decimal(
+                            signal.get("_pair_dynamic_target_shares")
+                        ) is not None
+                        else max_stake / signal_price
+                    )
+                    * Decimal(10**18)
                 ).to_integral_value(rounding=ROUND_DOWN)
             ),
             "side": side,
@@ -6218,6 +7639,20 @@ class LiveM0WEngine:
         if client is None or not wallet_address:
             return
         try:
+            manual_settlements = (
+                self.ledger.reconcile_filled_manual_exit_settlements()
+            )
+            for settlement in manual_settlements:
+                self.ledger.record_event(
+                    "INFO",
+                    "MANUAL_EXIT_SETTLED",
+                    (
+                        f"{settlement['strategy']} manual exit "
+                        f"{settlement['result']} confirmed; strategy PnL "
+                        f"{float(settlement['pnl_usdt']):+.8f} USDT"
+                    ),
+                    int(settlement["market_id"]),
+                )
             if pending or pending_insurance or pending_manual_exits:
                 payload = client.order_history(wallet_address, limit=100)
                 with self.lock:
@@ -6251,9 +7686,20 @@ class LiveM0WEngine:
                 for manual_exit in pending_manual_exits:
                     order_id = str(manual_exit.get("order_id") or "")
                     if order_id and order_id in exchange_orders:
-                        self.ledger.sync_manual_exit(
+                        settlement = self.ledger.sync_manual_exit(
                             int(manual_exit["id"]), exchange_orders[order_id]
                         )
+                        if settlement is not None:
+                            self.ledger.record_event(
+                                "INFO",
+                                "MANUAL_EXIT_SETTLED",
+                                (
+                                    f"{settlement['strategy']} manual exit "
+                                    f"{settlement['result']} confirmed; strategy PnL "
+                                    f"{float(settlement['pnl_usdt']):+.8f} USDT"
+                                ),
+                                int(settlement["market_id"]),
+                            )
             self._enforce_pair_execution_safety()
             with self.lock:
                 self.last_order_sync_at = utc_iso()
@@ -7006,8 +8452,27 @@ class LiveM0WEngine:
                 ),
                 "attemptSummary": dict(self.attempt_summary_state),
                 "maxPredictionBookAgeMs": self.max_prediction_book_age_ms,
-                "minTopLevelCapacityRatio": float(
-                    LIVE_MIN_TOP_LEVEL_CAPACITY_RATIO
+                "maxDrawdownSpotAgeMs": LIVE_MAX_DRAWDOWN_SPOT_AGE_MS,
+                "maxDrawdownSpotBookAgeMs": (
+                    LIVE_MAX_DRAWDOWN_SPOT_BOOK_AGE_MS
+                ),
+                "drawdownReferenceSource": (
+                    self.last_drawdown_reference.get("source")
+                    if self.last_drawdown_reference is not None
+                    else None
+                ),
+                "drawdownReferenceAgeMs": (
+                    self.last_drawdown_reference.get("ageMs")
+                    if self.last_drawdown_reference is not None
+                    else None
+                ),
+                "lastDrawdownReference": (
+                    dict(self.last_drawdown_reference)
+                    if self.last_drawdown_reference is not None
+                    else None
+                ),
+                "minDepthCoverageRatio": float(
+                    LIVE_MIN_DEPTH_COVERAGE_RATIO
                 ),
                 **self.sqlite_state,
                 "droppedSignals": self.dropped_signals,
