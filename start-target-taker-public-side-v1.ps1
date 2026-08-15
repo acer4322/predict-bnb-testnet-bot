@@ -63,7 +63,6 @@ if (-not (Test-Path $SideModel)) {
     throw "Frozen compact-side EBM is missing: $SideModel. Run: python tools/train_target_taker_behavior_v1.py"
 }
 
-# Paper research children must never inherit an enabled live runtime.
 $env:PREDICT_LIVE_ENABLED = "false"
 $env:PREDICT_POLY_GAP_LIVE_ENABLED = "false"
 $env:PREDICT_ETH_POLY_GAP_LIVE_ENABLED = "false"
@@ -124,7 +123,10 @@ $ShadowPid = Get-ListeningProcessId 8776
 if ($ShadowPid) {
     $Command = Get-ProcessCommandLine $ShadowPid
     $Lower = $Command.ToLowerInvariant()
-    if ($Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_19")) {
+    if ($Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_20")) {
+        Write-Host "Public-side Taker V1: reusing newer v4.20 observer PID=$ShadowPid; Maker EBM cohorts remain active."
+    }
+    elseif ($Lower.Contains("predict_bot.predict_wallet_shadow_observer_v4_19")) {
         Write-Host "Public-side Taker V1: reusing v4.19 observer PID=$ShadowPid."
     }
     elseif (
@@ -153,20 +155,22 @@ if (-not $ShadowPid) {
     $Process.Id | Set-Content (Join-Path $Root ".target-taker-public-side-observer.pid")
 }
 
-Wait-LocalService "8776 Wallet Shadow v4.19" "http://127.0.0.1:8776/health" 60 (Join-Path $Data "target-taker-public-side-observer.stderr.log")
+Wait-LocalService "8776 Wallet Shadow" "http://127.0.0.1:8776/health" 60 (Join-Path $Data "target-taker-public-side-observer.stderr.log")
 $Health = Get-JsonPayload "http://127.0.0.1:8776/health" 5
 $State = if ($Health.state) { $Health.state } else { $Health }
-if (-not ([string]$State.version).Contains("V0_24_TARGET_TAKER_PUBLIC_SIDE_V1")) {
-    throw "8776 is healthy but did not report the expected public-side V1 version. version=$($State.version)"
+$Version = [string]$State.version
+if (-not ($Version.Contains("V0_24_TARGET_TAKER_PUBLIC_SIDE_V1") -or $Version.Contains("V0_25_MAKER_EBM_V1"))) {
+    throw "8776 is healthy but did not report a compatible public-side observer. version=$Version"
 }
 if (-not [bool]$State.targetTakerPublicSideModelLoaded) {
-    throw "8776 v4.19 started but the frozen compact-side EBM did not load: $($State.targetTakerPublicSideModelError)"
+    throw "8776 started but the frozen compact-side EBM did not load: $($State.targetTakerPublicSideModelError)"
 }
 
 Write-Host "TARGET_TAKER_PUBLIC_SIDE_V1 paper simulation is running."
 Write-Host "  SIDE_ONLY   = frozen compact-side EBM, selected-side score >= 0.60, fixed `$1 max one entry per market"
 Write-Host "  HAZARD_SIDE = same frozen EBM + Lifecycle V3 own-Maker-fill 5s time/price gate"
 Write-Host "  Side artifact = data/research/target_taker_behavior_models_v1/side_up.joblib"
+Write-Host "  Compatible with Wallet Shadow v4.19 and v4.20; v4.20 is never downgraded by this launcher."
 Write-Host "  8771/8777 are public-data dependencies; 8778 is intentionally NOT required."
 Write-Host "  ETH 8779/8780 are untouched and can continue collecting."
 Write-Host "No live trading runtime was enabled."
