@@ -50,7 +50,7 @@ if ($ListenerPid) {
     if ($Health -and [bool]$Health.armed) {
         throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$ListenerPid version=$($Health.version)"
     }
-    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with Poly multi-strategy V10."
+    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with Poly delayed-reconciliation V11."
     & taskkill.exe /PID $ListenerPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$ListenerPid" }
     Start-Sleep -Milliseconds 500
@@ -59,7 +59,7 @@ if ($ListenerPid) {
 $Stdout = Join-Path $Data "echtgeld-engine-v2.stdout.log"
 $Stderr = Join-Path $Data "echtgeld-engine-v2.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v10") `
+    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v11") `
     -WorkingDirectory $Root -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content (Join-Path $Root ".echtgeld-engine-v2.pid")
@@ -86,12 +86,15 @@ if (-not [bool]$Health.polyClaimSettlementRepair) { throw "Poly claim settlement
 if (-not [bool]$Health.claimSettlementClosesActiveRound) { throw "Claim settlement does not close active Poly rounds." }
 if (-not [bool]$Health.polyGapStrategyAccepted) { throw "8781 does not accept R_POLY_GAP_SCALP_LIVE." }
 if (-not [bool]$Health.polyPinnedStrategyAccepted) { throw "8781 does not accept experimental PINNED strategy." }
+if (-not [bool]$Health.polyDelayedReconciliation) { throw "8781 delayed reconciliation for ambiguous Poly entries is not enabled." }
+if (-not [bool]$Health.ambiguousEntryNeverBlindlyRetried) { throw "8781 ambiguous Poly entry safety invariant is missing." }
 if ([bool]$Health.armed) { throw "New Echtgeld engine unexpectedly started ARMED." }
 
-Write-Host "Echtgeld Engine V10 is ready and PAUSED: $Base/state"
+Write-Host "Echtgeld Engine V11 is ready and PAUSED: $Base/state"
 Write-Host "  Poly entry : POST $Base/poly-intent (GAP + PINNED)"
 Write-Host "  Poly exit  : POST $Base/poly-exit-intent"
 Write-Host "  Lifecycle  : GET  $Base/poly-lifecycle"
+Write-Host "  Reconcile  : AMBIGUOUS venue orders are never retried; existing positions are polled read-only and promote the round OPEN when shares appear"
 Write-Host "  Redeem     : Binance PENDING_CLAIM/canClaim payout is settlement evidence even if redeem tx becomes ambiguous"
 Write-Host "  PnL/Risk   : settled Poly payout closes the round and is merged into the existing stop-loss basis"
 Write-Host "  Safety     : 8781 remains the only venue owner; startup is always PAUSED; ambiguous BUY/SELL/redeem is never blindly retried"
