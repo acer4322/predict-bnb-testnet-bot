@@ -62,7 +62,7 @@ if ($ExistingPid) {
     if (-not $CommandLine.ToLowerInvariant().Contains("predict_bot.poly_fast_signal")) {
         throw "Port $Port is already owned by a different process. Stop 8792 first. PID=$ExistingPid command=$CommandLine"
     }
-    Write-Host "Replacing old Poly Fast Signal PID=$ExistingPid with V13 diagnostics wrapper entry=$EntryMode."
+    Write-Host "Replacing old Poly Fast Signal PID=$ExistingPid with V14 rollover guard entry=$EntryMode."
     & taskkill.exe /PID $ExistingPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Poly Fast Signal PID=$ExistingPid" }
     Start-Sleep -Milliseconds 400
@@ -70,7 +70,7 @@ if ($ExistingPid) {
 
 $Stdout = Join-Path $Data "poly-fast-live.stdout.log"
 $Stderr = Join-Path $Data "poly-fast-live.stderr.log"
-$Process = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.poly_fast_signal_v13") -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
+$Process = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.poly_fast_signal_v14") -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content $PidFile
 
 $Deadline = (Get-Date).AddSeconds(45)
@@ -86,10 +86,10 @@ do {
 if (-not (Test-FastSignal)) { throw "Poly Fast Signal did not become healthy on port $Port. Check $Stderr" }
 
 $State = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/state" -TimeoutSec 4
-if (-not ([string]$State.state.version).Contains("POLY_FAST_SIGNAL_V13")) {
+if (-not ([string]$State.state.version).Contains("POLY_FAST_SIGNAL_V14")) {
     throw "Unexpected Poly Fast version: $($State.state.version)"
 }
-Write-Host "Poly Fast Signal V13 is ready: http://127.0.0.1:$Port/state"
+Write-Host "Poly Fast Signal V14 is ready: http://127.0.0.1:$Port/state"
 Write-Host "  Entry mode : $EntryMode"
 Write-Host "  Entry cap  : Binance executable Ask > 0.90 is blocked; exactly 0.90 remains allowed"
 Write-Host "  Take profit: Binance executable same-side Bid >= 0.95 sends a risk-reducing exit"
@@ -98,7 +98,8 @@ Write-Host "  Entry assets: BTC, ETH"
 Write-Host "  BNB        : NEW ENTRY BLOCKED; observer/lifecycle remains active so an existing BNB round can still exit"
 Write-Host "  Safe retry : only REJECTED with no venue-write evidence; requires >=1s cooldown + newer Binance book"
 Write-Host "  Never retry: AMBIGUOUS/SUBMITTED/vendorOrderId/shares/submitted amount"
-Write-Host "  Diagnostic : postRejectRearm + Binance receipt/source/RTT freshness; observation-only"
+Write-Host "  Diagnostic : Binance receipt/source/RTT freshness + partial-side book errors"
+Write-Host "  Rollover   : only exact active Binance 5m market may enter cache; future market is never cached"
 Write-Host "  Lifecycle  : one active round per asset; same-direction repeats ignored while OPEN"
 Write-Host "  Alignment  : current 5m bucket == Poly bucket == Binance start/end; fail closed on rollover"
 Write-Host "  Execution  : 8792 is signal-only; 8781 remains the only Echtgeld venue owner"
