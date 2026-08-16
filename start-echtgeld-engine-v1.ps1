@@ -101,31 +101,32 @@ $EnginePid = Get-ListeningProcessId $EnginePort
 if ($EnginePid) {
     $Command = Get-ProcessCommandLine $EnginePid
     $Lower = $Command.ToLowerInvariant()
+    $IsV5 = $Lower.Contains("predict_bot.echtgeld_engine_v5")
     $IsV4 = $Lower.Contains("predict_bot.echtgeld_engine_v4")
     $IsV3 = $Lower.Contains("predict_bot.echtgeld_engine_v3")
     $IsV2 = $Lower.Contains("predict_bot.echtgeld_engine_v2")
     $IsV1 = $Lower.Contains("predict_bot.echtgeld_engine_v1")
-    if (-not $IsV4 -and -not $IsV3 -and -not $IsV2 -and -not $IsV1) {
+    if (-not $IsV5 -and -not $IsV4 -and -not $IsV3 -and -not $IsV2 -and -not $IsV1) {
         throw "Port $EnginePort is occupied by an unrecognized process. Refusing to terminate it. PID=$EnginePid command=$Command"
     }
 
     $Healthy = Test-LocalService "$EngineBase/health" 5
     $ExistingHealth = if ($Healthy) { Get-JsonPayload "$EngineBase/health" 5 } else { $null }
-    if ($IsV4 -and $Healthy -and ([string]$ExistingHealth.version).Contains("POLY_FAST_V1")) {
+    if ($IsV5 -and $Healthy -and ([string]$ExistingHealth.version).Contains("POLY_FAST_V2")) {
         if ([bool]$ExistingHealth.armed) {
             $ReusedExistingEngine = $true
-            Write-Warning "Echtgeld Engine V4 is LIVE ARMED on PID=$EnginePid. It was left untouched."
+            Write-Warning "Echtgeld Engine V5 is LIVE ARMED on PID=$EnginePid. It was left untouched."
         }
         else {
-            Write-Host "Echtgeld Engine V4: healthy but PAUSED; restarting PID=$EnginePid to reload credentials/environment."
+            Write-Host "Echtgeld Engine V5: healthy but PAUSED; restarting PID=$EnginePid to reload credentials/environment."
             & taskkill.exe /PID $EnginePid /T /F | Out-Null
             if ($LASTEXITCODE -ne 0) { throw "Failed to stop PAUSED Echtgeld Engine PID=$EnginePid." }
             Start-Sleep -Milliseconds 500
             $EnginePid = $null
         }
     }
-    elseif (($IsV3 -or $IsV2) -and $Healthy -and [bool]$ExistingHealth.armed) {
-        throw "Existing 8781 Echtgeld engine is LIVE ARMED. Pause it before migrating to Poly Fast gateway V4."
+    elseif (($IsV4 -or $IsV3 -or $IsV2) -and $Healthy -and [bool]$ExistingHealth.armed) {
+        throw "Existing 8781 Echtgeld engine is LIVE ARMED. Pause it before migrating to Poly Fast gateway V5."
     }
     elseif ($IsV1 -and $Healthy -and [bool]$ExistingHealth.armed) {
         throw "A legacy Echtgeld Engine V1 is LIVE ARMED. Pause it before migration."
@@ -140,9 +141,9 @@ if ($EnginePid) {
 }
 
 if (-not $EnginePid) {
-    Write-Host "Echtgeld Engine V4 + Poly Fast gateway: starting independent service on 127.0.0.1:$EnginePort."
+    Write-Host "Echtgeld Engine V5 + Poly Fast gateway: starting independent service on 127.0.0.1:$EnginePort."
     $Process = Start-Process -FilePath "python" `
-        -ArgumentList @("-m", "predict_bot.echtgeld_engine_v4", "predict_bot.echtgeld_engine_v3", "predict_bot.echtgeld_engine_v2") `
+        -ArgumentList @("-m", "predict_bot.echtgeld_engine_v5", "predict_bot.echtgeld_engine_v4", "predict_bot.echtgeld_engine_v3", "predict_bot.echtgeld_engine_v2") `
         -WorkingDirectory $Root -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $Data "echtgeld-engine-v2.stdout.log") `
         -RedirectStandardError (Join-Path $Data "echtgeld-engine-v2.stderr.log") -PassThru
@@ -160,6 +161,9 @@ if (-not ([string]$Health.version).Contains("ECHTGELD_ENGINE_V2")) {
 if (-not [bool]$Health.polyFastGatewayEnabled) {
     throw "$EnginePort is healthy but Poly Fast gateway is not enabled. version=$($Health.version)"
 }
+if (-not [bool]$Health.polyFastBinanceVenueRequired) {
+    throw "$EnginePort Poly Fast gateway is missing the Binance-only fail-closed guard."
+}
 if ([bool]$Health.armed -and -not $ReusedExistingEngine) {
     throw "A newly started Echtgeld Engine unexpectedly reports ARMED. Refusing to continue."
 }
@@ -167,11 +171,11 @@ if ([bool]$Health.armed -and $ReusedExistingEngine) {
     Write-Warning "Existing Echtgeld Engine is currently LIVE ARMED and was left untouched."
 }
 
-Write-Host "Echtgeld Engine V4 is running independently."
+Write-Host "Echtgeld Engine V5 is running independently."
 Write-Host "  Runtime : $($Health.runtimeStatus)"
 Write-Host "  Health  : $EngineBase/health"
 Write-Host "  State   : $EngineBase/state"
-Write-Host "  Poly    : POST $EngineBase/poly-intent (8792 producer only)"
+Write-Host "  Poly    : POST $EngineBase/poly-intent (8792 producer only; Binance venue required)"
 Write-Host "  DB      : data/echtgeld_engine_v1.db (existing durable ledger retained)"
 Write-Host "  Balance : Binance Prediction payment-options + MPC safety balance"
 Write-Host "  Risk    : existing Pause/Resume + durable stop-loss admission/pre-venue fences"
