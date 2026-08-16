@@ -63,7 +63,7 @@ if ($ExistingPid) {
     if (-not $CommandLine.ToLowerInvariant().Contains("predict_bot.poly_fast_signal")) {
         throw "Port $Port is already owned by a different process. Stop 8792 first. PID=$ExistingPid command=$CommandLine"
     }
-    Write-Host "Replacing old Poly Fast Signal PID=$ExistingPid with V7 entry=$EntryMode."
+    Write-Host "Replacing old Poly Fast Signal PID=$ExistingPid with V8 entry=$EntryMode."
     & taskkill.exe /PID $ExistingPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Poly Fast Signal PID=$ExistingPid" }
     Start-Sleep -Milliseconds 400
@@ -71,7 +71,7 @@ if ($ExistingPid) {
 
 $Stdout = Join-Path $Data "poly-fast-live.stdout.log"
 $Stderr = Join-Path $Data "poly-fast-live.stderr.log"
-$Process = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.poly_fast_signal_v7") -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
+$Process = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.poly_fast_signal_v8") -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content $PidFile
 
 $Deadline = (Get-Date).AddSeconds(45)
@@ -87,16 +87,17 @@ do {
 if (-not (Test-FastSignal)) { throw "Poly Fast Signal did not become healthy on port $Port. Check $Stderr" }
 
 $State = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/state" -TimeoutSec 4
-if (-not ([string]$State.state.version).Contains("POLY_FAST_SIGNAL_V7")) {
+if (-not ([string]$State.state.version).Contains("POLY_FAST_SIGNAL_V8")) {
     throw "Unexpected Poly Fast version: $($State.state.version)"
 }
-Write-Host "Poly Fast Signal V7 is ready: http://127.0.0.1:$Port/state"
+Write-Host "Poly Fast Signal V8 is ready: http://127.0.0.1:$Port/state"
 Write-Host "  Entry mode : $EntryMode"
 Write-Host "  Default    : POLY_GAP = R_POLY_GAP_SCALP_LIVE (high-frequency)"
 Write-Host "  Direction  : fresh embedded Poly book, original thresholds UP>=0.55 / UP<=0.45=>DOWN"
 Write-Host "  Optional   : PINNED_DIVERGENCE (experimental rare-event mode; use -EntryMode PINNED_DIVERGENCE)"
 Write-Host "  Lifecycle  : one active round per asset; same-direction repeats ignored while OPEN"
 Write-Host "  Exit       : immediate Poly direction reversal -> 8781 SELL; rearm only after confirmed flat"
+Write-Host "  Alignment  : current 5m bucket == Poly bucket == Binance start/end; fail closed on rollover"
 Write-Host "  Execution  : 8792 is signal-only; 8781 remains the only Echtgeld venue owner"
 
 if (-not $NoBrowser) { Start-Process "http://127.0.0.1:$Port/state" }
