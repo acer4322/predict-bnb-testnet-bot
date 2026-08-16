@@ -7,7 +7,7 @@ $ProgressPreference = "SilentlyContinue"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Data = Join-Path $Root "data"
 $PidFile = Join-Path $Root ".poly-fast-live.pid"
-$Port = 8782
+$Port = 8792
 New-Item -ItemType Directory -Force -Path $Data | Out-Null
 
 $UserEnvironment = @(
