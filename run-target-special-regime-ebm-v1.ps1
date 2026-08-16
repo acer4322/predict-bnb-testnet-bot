@@ -17,10 +17,11 @@ try {
         Write-Host "Special window end:   latest available data"
     }
 
-    python -c "import pandas, sklearn, interpret" 2>$null
+    python -c "import sys, joblib, pandas, sklearn, interpret; print(f'Python {sys.version.split()[0]} | joblib {joblib.__version__} | interpret {interpret.__version__} | pandas {pandas.__version__} | sklearn {sklearn.__version__}')"
     if ($LASTEXITCODE -ne 0) {
         throw 'Research dependencies missing. Run: pip install -e ".[research]"'
     }
+    Write-Host "Special-regime EBM backend: joblib threading/sharedmem (avoids loky resource_tracker on Windows/Python 3.13)"
 
     $LegacySignalDb = Join-Path $Root "data\wallet_taker_signals.db"
     $PublicArchiveDb = Join-Path $Root "data\public_research_archive_v1.db"
@@ -46,6 +47,7 @@ try {
 
     Write-Host "`n[2/4] Train/stress-test Target Taker direct eligibility EBM..."
     $takerArgs = @(
+        ".\tools\run_with_joblib_threading.py",
         ".\tools\train_target_taker_direct_eligibility_special_regime_v1.py",
         "--special-start", $SpecialStart
     )
@@ -63,6 +65,7 @@ try {
 
         Write-Host "`n[4/4] Stress-test Target Maker on the same special regime..."
         $makerArgs = @(
+            ".\tools\run_with_joblib_threading.py",
             ".\tools\train_target_maker_special_regime_v1.py",
             "--special-start", $SpecialStart
         )
