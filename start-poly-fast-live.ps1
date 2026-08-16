@@ -15,14 +15,9 @@ $UserEnvironment = @(
     "BINANCE_API_SECRET",
     "BINANCE_LIVE_API_KEY",
     "BINANCE_LIVE_API_SECRET",
-    "PREDICT_LIVE_ACCOUNT_TYPE",
-    "PREDICT_POLY_FAST_LIVE_ENABLED",
     "PREDICT_POLY_FAST_ENTRY_MODE",
     "PREDICT_POLY_FAST_BINANCE_POLL_SECONDS",
-    "PREDICT_POLY_FAST_SAMPLE_SECONDS",
-    "PREDICT_POLY_GAP_LIVE_STAKE_USDT",
-    "PREDICT_POLY_GAP_LIVE_MAX_LOSS_USDT",
-    "PREDICT_POLY_GAP_LIVE_MAX_LOSS_ENABLED"
+    "PREDICT_POLY_FAST_SAMPLE_SECONDS"
 )
 foreach ($Name in $UserEnvironment) {
     $Value = [Environment]::GetEnvironmentVariable($Name, "User")
@@ -31,18 +26,19 @@ foreach ($Name in $UserEnvironment) {
     }
 }
 
-if ([string]::IsNullOrWhiteSpace($env:PREDICT_POLY_FAST_LIVE_ENABLED)) {
-    $env:PREDICT_POLY_FAST_LIVE_ENABLED = "true"
-}
 if ([string]::IsNullOrWhiteSpace($env:PREDICT_POLY_FAST_ENTRY_MODE)) {
     $env:PREDICT_POLY_FAST_ENTRY_MODE = "PINNED_DIVERGENCE"
 }
 $EntryMode = $env:PREDICT_POLY_FAST_ENTRY_MODE.Trim().ToUpperInvariant()
-if ($EntryMode -notin @("PINNED_DIVERGENCE", "POLY_GAP")) {
-    throw "PREDICT_POLY_FAST_ENTRY_MODE must be PINNED_DIVERGENCE or POLY_GAP"
+if ($EntryMode -ne "PINNED_DIVERGENCE") {
+    throw "Poly Fast Signal V4 supports PINNED_DIVERGENCE only"
 }
 $env:PREDICT_POLY_FAST_LIVE_HOST = "127.0.0.1"
 $env:PREDICT_POLY_FAST_LIVE_PORT = "$Port"
+# 8792 is producer-only. Even if an old user environment persisted the live
+# master switch, never arm the inherited executor path in this process.
+$env:PREDICT_POLY_FAST_LIVE_ENABLED = "false"
+$env:PREDICT_POLY_GAP_LIVE_ENABLED = "false"
 
 function Get-ListenerPid {
     try {
@@ -54,7 +50,7 @@ function Get-ListenerPid {
     return $null
 }
 
-function Test-FastLive {
+function Test-FastSignal {
     try {
         $response = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 2
         return [int]$response.StatusCode -eq 200
@@ -79,18 +75,16 @@ function Set-FastEntryMode {
 $ExistingPid = Get-ListenerPid
 if ($ExistingPid) {
     $CommandLine = ""
-    try {
-        $CommandLine = [string](Get-CimInstance Win32_Process -Filter "ProcessId=$ExistingPid").CommandLine
+    try { $CommandLine = [string](Get-CimInstance Win32_Process -Filter "ProcessId=$ExistingPid").CommandLine } catch { }
+    $Lower = $CommandLine.ToLowerInvariant()
+    if (-not $Lower.Contains("predict_bot.poly_fast_signal_v4")) {
+        throw "Port $Port is already owned by a non-V4 process. Stop the old 8792 service first. PID=$ExistingPid command=$CommandLine"
     }
-    catch { }
-    if (-not $CommandLine.ToLowerInvariant().Contains("predict_bot.poly_fast_live")) {
-        throw "Port $Port is already owned by another process. PID=$ExistingPid command=$CommandLine"
-    }
-    if (-not (Test-FastLive)) {
-        throw "Poly Fast Live owns port $Port but its health endpoint is not responding."
+    if (-not (Test-FastSignal)) {
+        throw "Poly Fast Signal owns port $Port but its health endpoint is not responding."
     }
     Set-FastEntryMode
-    Write-Host "Poly Fast Live already online on http://127.0.0.1:$Port (PID=$ExistingPid); entry mode=$EntryMode."
+    Write-Host "Poly Fast Signal V4 already online on http://127.0.0.1:$Port (PID=$ExistingPid)."
     $ExistingPid | Set-Content $PidFile
     exit 0
 }
@@ -98,7 +92,7 @@ if ($ExistingPid) {
 $Stdout = Join-Path $Data "poly-fast-live.stdout.log"
 $Stderr = Join-Path $Data "poly-fast-live.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.poly_fast_live_v3") `
+    -ArgumentList @("-m", "predict_bot.poly_fast_signal_v4") `
     -WorkingDirectory $Root `
     -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout `
@@ -111,23 +105,21 @@ do {
     if ($Process.HasExited) {
         $tail = ""
         if (Test-Path $Stderr) { $tail = (Get-Content $Stderr -Tail 50) -join [Environment]::NewLine }
-        throw "Poly Fast Live exited during startup. $tail"
+        throw "Poly Fast Signal exited during startup. $tail"
     }
-    if (Test-FastLive) { break }
+    if (Test-FastSignal) { break }
     Start-Sleep -Milliseconds 250
 } while ((Get-Date) -lt $Deadline)
 
-if (-not (Test-FastLive)) {
-    throw "Poly Fast Live did not become healthy on port $Port. Check $Stderr"
+if (-not (Test-FastSignal)) {
+    throw "Poly Fast Signal did not become healthy on port $Port. Check $Stderr"
 }
 
-# Select the intended strategy while preserving V3's persisted runtime_enabled=0
-# safe-pause on first startup. Choosing a strategy never arms live execution.
 Set-FastEntryMode
-
-Write-Host "Poly Fast Live V3 is ready: http://127.0.0.1:$Port/state"
-Write-Host "8792 owns BTC/ETH/BNB Binance market identity + Polymarket signals in-process; 8766/8770/8781 are not required."
-Write-Host "Entry mode=$EntryMode. BTC, ETH and BNB still require explicit runtime Resume before real orders."
+Write-Host "Poly Fast Signal V4 is ready: http://127.0.0.1:$Port/state"
+Write-Host "8792 owns BTC/ETH/BNB Binance+Polymarket observation and PINNED_DIVERGENCE detection only."
+Write-Host "8792 cannot place venue orders. Eligible intents are forwarded to 8781 /poly-intent."
+Write-Host "Real-money Pause/Resume, notional, stop loss, balance, dedupe, FOK execution and redeem are owned by 8781."
 
 if (-not $NoBrowser) {
     Start-Process "http://127.0.0.1:$Port/state"
