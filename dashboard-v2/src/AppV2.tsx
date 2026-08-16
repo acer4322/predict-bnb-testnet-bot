@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { Alert, Button, Drawer, Grid, Layout, Menu, Space, Tag } from 'antd'
+import { Alert, Button, Drawer, Grid, Layout, Menu, Space, Tag, type MenuProps } from 'antd'
 import {
   AimOutlined,
   ApiOutlined,
