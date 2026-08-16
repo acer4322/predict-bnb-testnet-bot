@@ -75,6 +75,9 @@ function Test-EnvPair([string]$First, [string]$Second) {
 }
 
 # Credentials belong to this process, not to research observers. Never print values.
+# Binance authentication is BINANCE_API_KEY + BINANCE_API_SECRET. Prediction
+# walletAddress/walletId are discovered from authenticated wallet/list at runtime;
+# they are venue metadata, not separate operator credentials.
 @(
     "PREDICT_FUN_API_KEY",
     "PREDICT_FUN_PRIVATE_KEY",
@@ -83,8 +86,6 @@ function Test-EnvPair([string]$First, [string]$Second) {
     "PREDICT_FUN_JWT",
     "BINANCE_API_KEY",
     "BINANCE_API_SECRET",
-    "PREDICT_TARGET_TAKER_BINANCE_WALLET_ADDRESS",
-    "PREDICT_TARGET_TAKER_BINANCE_WALLET_ID",
     "PREDICT_TARGET_TAKER_BINANCE_ACCOUNT_TYPE",
     "PREDICT_TARGET_TAKER_BINANCE_SYMBOL",
     "PREDICT_TARGET_TAKER_BINANCE_BSC_RPC_URL",
@@ -96,8 +97,7 @@ function Test-EnvPair([string]$First, [string]$Second) {
 $PredictApiReady = -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("PREDICT_FUN_API_KEY", "Process"))
 $PredictPrivateReady = -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("PREDICT_FUN_PRIVATE_KEY", "Process")) -or -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("PREDICT_FUN_PRIVY_PRIVATE_KEY", "Process"))
 $BinanceApiReady = Test-EnvPair "BINANCE_API_KEY" "BINANCE_API_SECRET"
-$BinanceWalletReady = Test-EnvPair "PREDICT_TARGET_TAKER_BINANCE_WALLET_ADDRESS" "PREDICT_TARGET_TAKER_BINANCE_WALLET_ID"
-Write-Host "Echtgeld credential load: Predict=$($PredictApiReady -and $PredictPrivateReady) BinanceAPI=$BinanceApiReady BinanceWallet=$BinanceWalletReady (values hidden)"
+Write-Host "Echtgeld credential load: Predict=$($PredictApiReady -and $PredictPrivateReady) BinanceAPI=$BinanceApiReady BinanceWallet=API_DISCOVERY(wallet/list) (values hidden)"
 
 $env:PREDICT_ECHTGELD_ENGINE_HOST = "127.0.0.1"
 $env:PREDICT_ECHTGELD_ENGINE_PORT = "$EnginePort"
@@ -178,7 +178,7 @@ Write-Host "  DB     : data/echtgeld_engine_v1.db (existing durable ledger retai
 Write-Host "  Balance: Binance Prediction payment-options (4310 style) + separate MPC safety balance"
 Write-Host "  PnL    : actual reconciled fills + official Target Taker settlements"
 Write-Host "  Safety : a new engine starts PAUSED; queued/ambiguous orders are never replayed after restart"
-Write-Host "  Env    : explicit launcher runs reload persistent credentials whenever the engine is PAUSED"
+Write-Host "  Env    : Binance auth uses BINANCE_API_KEY/BINANCE_API_SECRET; wallet identity comes from wallet/list"
 Write-Host "  Note   : restarting strategy observers does NOT stop this process"
 
 if (-not $NoBrowser) {
