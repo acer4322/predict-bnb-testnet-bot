@@ -5,6 +5,7 @@ import threading
 from http.server import ThreadingHTTPServer
 from typing import Any
 
+from . import echtgeld_engine_v1 as v1
 from . import echtgeld_engine_v4 as v4
 from . import echtgeld_engine_v6 as v6
 from . import echtgeld_engine_v9 as v9
@@ -25,7 +26,7 @@ class EchtgeldEngine(v9.EchtgeldEngine):
     def submit_poly_fast_intent(self, raw: dict[str, Any]) -> dict[str, Any]:
         supplied = str(raw.get("strategy") or GAP_STRATEGY).strip()
         if supplied not in POLY_STRATEGIES:
-            raise v9.v8.v7.v6.v5.v4.v1.EchtgeldEngineError(f"unsupported Poly Fast strategy: {supplied}")
+            raise v1.EchtgeldEngineError(f"unsupported Poly Fast strategy: {supplied}")
         # V4's adapter was originally built around one Poly strategy constant.
         # Keep its mature schema/execution path untouched, but select that
         # constant for the duration of this serialized admission call so the
@@ -91,7 +92,7 @@ class EchtgeldEngine(v9.EchtgeldEngine):
 
 def main() -> int:
     engine = EchtgeldEngine()
-    handler = type("EchtgeldEngineV10Handler", (v9.v8.v7.v6._Handler,), {"engine": engine})
+    handler = type("EchtgeldEngineV10Handler", (v6._Handler,), {"engine": engine})
     server = ThreadingHTTPServer((HOST, PORT), handler)
     print(
         f"{VERSION} listening on http://{HOST}:{PORT}; Poly GAP+PINNED accepted; venue-owner=8781-only",
