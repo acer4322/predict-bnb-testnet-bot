@@ -415,6 +415,13 @@ class EchtgeldEngine(v1.EchtgeldEngine):
             return True
 
     def _enforce_stop_loss(self, *, force_sync: bool = False) -> dict[str, Any]:
+        # A zero threshold is intentionally a true off switch. Do not add
+        # settlement DB I/O to the live intent/worker path when the operator has
+        # disabled the stop loss.
+        if self.stop_loss_usdt <= 0:
+            self.risk_last_check_at_ms = v1._now_ms()
+            self.risk_last_error = None
+            return self._risk_snapshot({"netPnlUsdt": 0.0})
         try:
             performance = self._performance_snapshot(force_sync=force_sync)
             self.risk_last_check_at_ms = v1._now_ms()
@@ -488,7 +495,8 @@ class EchtgeldEngine(v1.EchtgeldEngine):
 
     def submit_intent(self, payload: dict[str, Any]) -> dict[str, Any]:
         # Force a settlement refresh immediately before deciding whether a new
-        # strategy intent is allowed into the live queue.
+        # strategy intent is allowed into the live queue. The zero-threshold
+        # fast path above makes this a no-I/O check when the guard is disabled.
         self._enforce_stop_loss(force_sync=True)
         return super().submit_intent(payload)
 
