@@ -18,6 +18,186 @@ HOST = v2.HOST
 PORT = v2.PORT
 
 
+class EngineEventRedeemManager(EchtgeldRedeemManager):
+    """Redeem manager that mirrors old 4310 lifecycle transitions into engine_events."""
+
+    def __init__(
+        self,
+        *args: Any,
+        event_sink: Callable[..., None],
+        balance_invalidator: Callable[[], None],
+        **kwargs: Any,
+    ) -> None:
+        self._event_sink = event_sink
+        self._balance_invalidator = balance_invalidator
+        self._last_scan_error_emitted: str | None = None
+        super().__init__(*args, **kwargs)
+
+    def _row_for_token(self, token_id: str) -> dict[str, Any] | None:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT * FROM engine_redeems WHERE token_id=?",
+                (str(token_id),),
+            ).fetchone()
+        return dict(row) if row is not None else None
+
+    def _emit(
+        self,
+        level: str,
+        event_type: str,
+        message: str,
+        row: dict[str, Any] | None,
+        *,
+        error_class: str | None = None,
+    ) -> None:
+        item = dict(row or {})
+        market_id = item.get("venue_market_id")
+        side = item.get("side")
+        context = {
+            "marketId": market_id,
+            "side": side,
+            "tokenId": item.get("token_id"),
+            "redeemStatus": item.get("status"),
+            "redeemTxHash": item.get("tx_hash"),
+            "claimableValueUsdt": item.get("claimable_value_usdt"),
+            "shares": item.get("shares"),
+            "attemptCount": item.get("attempt_count"),
+            "pauseIndependent": True,
+            "retryAmbiguousRedeem": False,
+        }
+        self._event_sink(
+            level,
+            event_type,
+            "SETTLEMENT",
+            message,
+            context=context,
+            error_class=error_class,
+        )
+
+    def _upsert_claimable(self, position: dict[str, Any], tracked: dict[int, set[str]]) -> bool:
+        token_id = str(position.get("tokenId") or "").strip()
+        before = self._row_for_token(token_id) if token_id else None
+        admitted = super()._upsert_claimable(position, tracked)
+        if admitted and before is None and token_id:
+            row = self._row_for_token(token_id)
+            if row is not None:
+                self._emit(
+                    "INFO",
+                    "AUTO_REDEEM_CLAIMABLE",
+                    (
+                        f"Binance marked tracked Echtgeld market {row.get('venue_market_id')} "
+                        f"{row.get('side') or ''} claimable; redeem waits for the 60s settlement fence"
+                    ).strip(),
+                    row,
+                )
+        return admitted
+
+    def _submit_row(self, client: Any, wallet: dict[str, str], row: dict[str, Any]) -> None:
+        token_id = str(row.get("token_id") or "")
+        self._emit(
+            "INFO",
+            "AUTO_REDEEM_ATTEMPTED",
+            (
+                f"Submitting one-token auto-redeem for tracked Echtgeld market "
+                f"{row.get('venue_market_id')} after the 60s delay"
+            ),
+            row,
+        )
+        super()._submit_row(client, wallet, row)
+        after = self._row_for_token(token_id)
+        if after is None:
+            return
+        status = str(after.get("status") or "").upper()
+        if status == "SUBMITTED":
+            self._emit(
+                "INFO",
+                "AUTO_REDEEM_SUBMITTED",
+                f"Auto-redeem submitted for market {after.get('venue_market_id')}; awaiting redeem/status reconciliation",
+                after,
+            )
+        elif status == "REDEEMED":
+            self._balance_invalidator()
+            self._emit(
+                "INFO",
+                "AUTO_REDEEM_COMPLETED",
+                (
+                    f"Auto-redeem confirmed for market {after.get('venue_market_id')}; "
+                    f"claimable value {float(after.get('claimable_value_usdt') or 0):.8f} USDT"
+                ),
+                after,
+            )
+        elif status == "AMBIGUOUS":
+            self._emit(
+                "ERROR",
+                "AUTO_REDEEM_AMBIGUOUS",
+                "Redeem result is uncertain and will not be retried automatically: "
+                + str(after.get("last_error") or "unknown venue result"),
+                after,
+                error_class="AMBIGUOUS_REDEEM",
+            )
+        elif status == "FAILED_REVIEW":
+            self._emit(
+                "ERROR",
+                "AUTO_REDEEM_REJECTED",
+                str(after.get("last_error") or "Binance rejected auto-redeem; manual review required"),
+                after,
+                error_class="REDEEM_REJECTED",
+            )
+
+    def _reconcile_row(self, client: Any, wallet_address: str, row: dict[str, Any]) -> None:
+        token_id = str(row.get("token_id") or "")
+        before_status = str(row.get("status") or "").upper()
+        super()._reconcile_row(client, wallet_address, row)
+        after = self._row_for_token(token_id)
+        if after is None:
+            return
+        status = str(after.get("status") or "").upper()
+        if status == before_status:
+            return
+        if status == "REDEEMED":
+            self._balance_invalidator()
+            self._emit(
+                "INFO",
+                "AUTO_REDEEM_COMPLETED",
+                (
+                    f"Auto-redeem confirmed for market {after.get('venue_market_id')}; "
+                    f"claimable value {float(after.get('claimable_value_usdt') or 0):.8f} USDT"
+                ),
+                after,
+            )
+        elif status == "FAILED_REVIEW":
+            self._emit(
+                "ERROR",
+                "AUTO_REDEEM_REJECTED",
+                str(after.get("last_error") or "Redeem reached a terminal failure; automatic resubmit is forbidden"),
+                after,
+                error_class="REDEEM_REJECTED",
+            )
+        elif status in {"PENDING", "PROCESSING", "SUBMITTED"}:
+            self._emit(
+                "INFO",
+                "AUTO_REDEEM_PENDING",
+                f"Auto-redeem for market {after.get('venue_market_id')} is {status}; no duplicate submit will be sent",
+                after,
+            )
+
+    def run_cycle(self) -> bool:
+        ok = super().run_cycle()
+        if self.status == "ERROR" and self.last_error:
+            if self.last_error != self._last_scan_error_emitted:
+                self._last_scan_error_emitted = self.last_error
+                self._emit(
+                    "ERROR",
+                    "AUTO_REDEEM_SCAN_FAILED",
+                    self.last_error,
+                    None,
+                    error_class="REDEEM_SCAN_ERROR",
+                )
+        elif self.status != "ERROR":
+            self._last_scan_error_emitted = None
+        return ok
+
+
 class EchtgeldEngine(v2.EchtgeldEngine):
     """Current 8781 V2 engine plus the proven 4310 claim/redeem lifecycle."""
 
@@ -28,7 +208,7 @@ class EchtgeldEngine(v2.EchtgeldEngine):
         executor_factory: Callable[[TargetTakerLiveConfig], TargetTakerLiveExecutor] = TargetTakerLiveExecutor,
         start_worker: bool = True,
         settlement_db_path: Path | str = v2.SETTLEMENT_DB_PATH,
-        redeem_manager_factory: Callable[..., EchtgeldRedeemManager] = EchtgeldRedeemManager,
+        redeem_manager_factory: Callable[..., EchtgeldRedeemManager] | None = None,
     ) -> None:
         self.redeem_manager: EchtgeldRedeemManager | None = None
         super().__init__(
@@ -37,11 +217,21 @@ class EchtgeldEngine(v2.EchtgeldEngine):
             start_worker=start_worker,
             settlement_db_path=settlement_db_path,
         )
-        self.redeem_manager = redeem_manager_factory(
-            self.db_path,
-            venue_getter=lambda: str(self.config.venue),
-            start_worker=start_worker,
-        )
+        factory = redeem_manager_factory
+        if factory is None:
+            self.redeem_manager = EngineEventRedeemManager(
+                self.db_path,
+                venue_getter=lambda: str(self.config.venue),
+                start_worker=start_worker,
+                event_sink=self._record_event,
+                balance_invalidator=self._invalidate_balance_cache,
+            )
+        else:
+            self.redeem_manager = factory(
+                self.db_path,
+                venue_getter=lambda: str(self.config.venue),
+                start_worker=start_worker,
+            )
         self._record_event(
             "INFO",
             "AUTO_REDEEM_STARTED" if self.redeem_manager.enabled else "AUTO_REDEEM_DISABLED",
@@ -58,6 +248,9 @@ class EchtgeldEngine(v2.EchtgeldEngine):
                 "retryAmbiguousRedeem": False,
             },
         )
+
+    def _invalidate_balance_cache(self) -> None:
+        self.balance_cache = None
 
     def run_redeem_cycle(self) -> bool:
         manager = self.redeem_manager
@@ -118,7 +311,9 @@ class EchtgeldEngine(v2.EchtgeldEngine):
         payload["recentRedeems"] = manager.recent(50) if manager is not None else []
         # super().state() already called self.orders() through dynamic dispatch,
         # so recentOrders includes redeem lifecycle fields without replacing the
-        # V2 settlement PnL calculation.
+        # V2 settlement PnL calculation. Redeem lifecycle transitions are also
+        # persisted into engine_events, so the existing permanent-message table
+        # requires no risky Dashboard rewrite.
         return payload
 
     def health(self) -> dict[str, Any]:
