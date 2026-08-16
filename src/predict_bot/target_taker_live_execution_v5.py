@@ -22,6 +22,7 @@ _v4.BINANCE_MARKET_MIN_NOTIONAL_USDT = 0.0
 
 VERSION = "TARGET_TAKER_LIVE_EXECUTION_V5_REMOTE_VENUE_MIN_NOTIONAL"
 BALANCE_ACCOUNT_TYPE_ENV = "PREDICT_ECHTGELD_BINANCE_BALANCE_ACCOUNT_TYPE"
+BINANCE_ORDER_ACCOUNT_TYPE_ENV = "PREDICT_TARGET_TAKER_BINANCE_ACCOUNT_TYPE"
 
 
 def binance_prediction_payment_options(payload: Any) -> list[dict[str, Any]]:
@@ -51,6 +52,36 @@ def binance_prediction_payment_options(payload: Any) -> list[dict[str, Any]]:
             }
         )
     return output
+
+
+def select_single_binance_prediction_wallet(payload: Any) -> dict[str, str]:
+    """Select the single Prediction wallet returned by authenticated wallet/list.
+
+    Binance credentials remain BINANCE_API_KEY + BINANCE_API_SECRET. walletAddress
+    and walletId are venue metadata discovered from wallet/list, matching the
+    proven legacy live runtime. Never guess between multiple wallets.
+    """
+
+    if not isinstance(payload, dict):
+        raise TargetTakerLiveError("Binance Prediction wallet/list returned a non-object response")
+    rows = payload.get("wallets")
+    if not isinstance(rows, list):
+        data = payload.get("data")
+        rows = data.get("wallets") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        rows = []
+    if len(rows) != 1:
+        raise TargetTakerLiveError(
+            f"Binance Prediction wallet/list must return exactly one wallet; received {len(rows)}"
+        )
+    wallet = rows[0]
+    if not isinstance(wallet, dict):
+        raise TargetTakerLiveError("Binance Prediction wallet/list returned an invalid wallet row")
+    wallet_address = str(wallet.get("walletAddress") or "").strip()
+    wallet_id = str(wallet.get("walletId") or "").strip()
+    if not wallet_address or not wallet_id:
+        raise TargetTakerLiveError("Binance Prediction wallet/list returned an incomplete wallet")
+    return {"walletAddress": wallet_address, "walletId": wallet_id}
 
 
 def _aggregate_payment_type(options: list[dict[str, Any]], account_type: str) -> dict[str, Any] | None:
@@ -107,14 +138,29 @@ def select_prediction_payment_balance(
 
 
 class TargetTakerLiveExecutor(_V4TargetTakerLiveExecutor):
-    """Hardened V4 execution with venue-authoritative minimum and 4310 balance display."""
+    """Hardened V4 execution with API-discovered Binance wallet metadata."""
+
+    def _binance_wallet(self) -> tuple[str, str, str]:
+        # Authentication is only BINANCE_API_KEY + BINANCE_API_SECRET. The
+        # Prediction wallet identifiers are discovered exactly as the legacy
+        # live wallet/balance runtime did: authenticated wallet/list, one row,
+        # no guessing. V4 still validates the returned pair before execution.
+        client = self._ensure_binance()
+        wallet = select_single_binance_prediction_wallet(client.wallets())
+        account_type = str(os.environ.get(BINANCE_ORDER_ACCOUNT_TYPE_ENV) or "SPOT").strip().upper()
+        if account_type not in {"SPOT", "FUNDING"}:
+            raise TargetTakerLiveError(
+                f"{BINANCE_ORDER_ACCOUNT_TYPE_ENV} must be SPOT or FUNDING; MPC is a fundingSource, not accountType"
+            )
+        return wallet["walletAddress"], wallet["walletId"], account_type
 
     def available_balance_snapshot(self) -> dict[str, Any]:
         if self.config.venue != "binance":
             return super().available_balance_snapshot()
 
         # Keep V4's exact wallet/list + MPC BSC balance as a separate safety
-        # diagnostic. This method does not change _execute_binance preflight.
+        # diagnostic. V5 only changes where walletAddress/walletId come from:
+        # authenticated wallet/list instead of manual environment variables.
         mpc = dict(super().available_balance_snapshot())
         try:
             client = self._ensure_binance()
@@ -142,6 +188,7 @@ class TargetTakerLiveExecutor(_V4TargetTakerLiveExecutor):
                 "mpcWalletAvailableUsdt": mpc.get("availableUsdt"),
                 "mpcWalletBalanceStatus": mpc.get("status"),
                 "mpcWalletBalanceSource": mpc.get("source"),
+                "walletIdentitySource": "binance_prediction.wallet/list",
                 "balanceSemantics": (
                     "Primary display is Binance Prediction payment-options availability; "
                     "MPC wallet on-chain USDT is retained separately for execution safety."
@@ -155,6 +202,7 @@ class TargetTakerLiveExecutor(_V4TargetTakerLiveExecutor):
                 "mpcWalletAvailableUsdt": mpc.get("availableUsdt"),
                 "mpcWalletBalanceStatus": mpc.get("status"),
                 "mpcWalletBalanceSource": mpc.get("source"),
+                "walletIdentitySource": "binance_prediction.wallet/list",
                 "balanceSemantics": (
                     "Prediction payment-options unavailable; showing the separate MPC wallet "
                     "on-chain safety diagnostic instead."
@@ -164,9 +212,11 @@ class TargetTakerLiveExecutor(_V4TargetTakerLiveExecutor):
 
 __all__ = [
     "BALANCE_ACCOUNT_TYPE_ENV",
+    "BINANCE_ORDER_ACCOUNT_TYPE_ENV",
     "TargetTakerLiveConfig",
     "TargetTakerLiveError",
     "TargetTakerLiveExecutor",
     "binance_prediction_payment_options",
     "select_prediction_payment_balance",
+    "select_single_binance_prediction_wallet",
 ]
