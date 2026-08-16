@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from . import target_taker_live_execution_v4 as _v4
 from .target_taker_live_execution_v4 import (
     TargetTakerLiveConfig,
     TargetTakerLiveError,
@@ -11,7 +12,15 @@ from .target_taker_live_execution_v4 import (
 )
 
 
-VERSION = "TARGET_TAKER_LIVE_EXECUTION_V5_4310_BALANCE_DIAGNOSTICS"
+# V4 carried an approximate 1.5 USDT MARKET minimum as a local pre-submit
+# policy. It is not an execution-safety invariant and can reject venue-valid
+# 1.0 USDT orders before Binance gets a chance to validate them. The active V5
+# path deliberately disables only that legacy estimate. TargetTakerLiveConfig
+# still requires a positive bounded notional, and the venue remains the final
+# authority for any actual minimum-order rejection.
+_v4.BINANCE_MARKET_MIN_NOTIONAL_USDT = 0.0
+
+VERSION = "TARGET_TAKER_LIVE_EXECUTION_V5_REMOTE_VENUE_MIN_NOTIONAL"
 BALANCE_ACCOUNT_TYPE_ENV = "PREDICT_ECHTGELD_BINANCE_BALANCE_ACCOUNT_TYPE"
 
 
@@ -98,7 +107,7 @@ def select_prediction_payment_balance(
 
 
 class TargetTakerLiveExecutor(_V4TargetTakerLiveExecutor):
-    """Hardened V4 execution plus the proven 4310 Prediction balance display."""
+    """Hardened V4 execution with venue-authoritative minimum and 4310 balance display."""
 
     def available_balance_snapshot(self) -> dict[str, Any]:
         if self.config.venue != "binance":
