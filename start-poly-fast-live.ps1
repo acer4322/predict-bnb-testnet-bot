@@ -31,19 +31,16 @@ if ([string]::IsNullOrWhiteSpace($env:PREDICT_POLY_FAST_ENTRY_MODE)) {
 }
 $EntryMode = $env:PREDICT_POLY_FAST_ENTRY_MODE.Trim().ToUpperInvariant()
 if ($EntryMode -ne "PINNED_DIVERGENCE") {
-    throw "Poly Fast Signal V4 supports PINNED_DIVERGENCE only"
+    throw "Poly Fast Signal V5 supports PINNED_DIVERGENCE only"
 }
 $env:PREDICT_POLY_FAST_LIVE_HOST = "127.0.0.1"
 $env:PREDICT_POLY_FAST_LIVE_PORT = "$Port"
-# 8792 is producer-only. Even if an old user environment persisted the live
-# master switch, never arm the inherited executor path in this process.
 $env:PREDICT_POLY_FAST_LIVE_ENABLED = "false"
 $env:PREDICT_POLY_GAP_LIVE_ENABLED = "false"
 
 function Get-ListenerPid {
     try {
-        $row = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop |
-            Select-Object -First 1
+        $row = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop | Select-Object -First 1
         if ($row) { return [int]$row.OwningProcess }
     }
     catch { }
@@ -60,15 +57,8 @@ function Test-FastSignal {
 
 function Set-FastEntryMode {
     foreach ($Asset in @("BTC", "ETH", "BNB")) {
-        $Body = @{
-            asset = $Asset
-            entryStrategyMode = $EntryMode
-        } | ConvertTo-Json -Compress
-        Invoke-RestMethod -Method Post `
-            -Uri "http://127.0.0.1:$Port/settings" `
-            -ContentType "application/json" `
-            -Body $Body `
-            -TimeoutSec 5 | Out-Null
+        $Body = @{ asset = $Asset; entryStrategyMode = $EntryMode } | ConvertTo-Json -Compress
+        Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$Port/settings" -ContentType "application/json" -Body $Body -TimeoutSec 5 | Out-Null
     }
 }
 
@@ -76,28 +66,19 @@ $ExistingPid = Get-ListenerPid
 if ($ExistingPid) {
     $CommandLine = ""
     try { $CommandLine = [string](Get-CimInstance Win32_Process -Filter "ProcessId=$ExistingPid").CommandLine } catch { }
-    $Lower = $CommandLine.ToLowerInvariant()
-    if (-not $Lower.Contains("predict_bot.poly_fast_signal_v4")) {
-        throw "Port $Port is already owned by a non-V4 process. Stop the old 8792 service first. PID=$ExistingPid command=$CommandLine"
+    if (-not $CommandLine.ToLowerInvariant().Contains("predict_bot.poly_fast_signal_v5")) {
+        throw "Port $Port is already owned by an older/different process. Stop 8792 first. PID=$ExistingPid command=$CommandLine"
     }
-    if (-not (Test-FastSignal)) {
-        throw "Poly Fast Signal owns port $Port but its health endpoint is not responding."
-    }
+    if (-not (Test-FastSignal)) { throw "Poly Fast Signal owns port $Port but health is not responding." }
     Set-FastEntryMode
-    Write-Host "Poly Fast Signal V4 already online on http://127.0.0.1:$Port (PID=$ExistingPid)."
+    Write-Host "Poly Fast Signal V5 already online on http://127.0.0.1:$Port (PID=$ExistingPid)."
     $ExistingPid | Set-Content $PidFile
     exit 0
 }
 
 $Stdout = Join-Path $Data "poly-fast-live.stdout.log"
 $Stderr = Join-Path $Data "poly-fast-live.stderr.log"
-$Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.poly_fast_signal_v4") `
-    -WorkingDirectory $Root `
-    -WindowStyle Hidden `
-    -RedirectStandardOutput $Stdout `
-    -RedirectStandardError $Stderr `
-    -PassThru
+$Process = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.poly_fast_signal_v5") -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content $PidFile
 
 $Deadline = (Get-Date).AddSeconds(45)
@@ -110,17 +91,12 @@ do {
     if (Test-FastSignal) { break }
     Start-Sleep -Milliseconds 250
 } while ((Get-Date) -lt $Deadline)
-
-if (-not (Test-FastSignal)) {
-    throw "Poly Fast Signal did not become healthy on port $Port. Check $Stderr"
-}
+if (-not (Test-FastSignal)) { throw "Poly Fast Signal did not become healthy on port $Port. Check $Stderr" }
 
 Set-FastEntryMode
-Write-Host "Poly Fast Signal V4 is ready: http://127.0.0.1:$Port/state"
-Write-Host "8792 owns BTC/ETH/BNB Binance+Polymarket observation and PINNED_DIVERGENCE detection only."
-Write-Host "8792 cannot place venue orders. Eligible intents are forwarded to 8781 /poly-intent."
-Write-Host "Real-money Pause/Resume, notional, stop loss, balance, dedupe, FOK execution and redeem are owned by 8781."
+Write-Host "Poly Fast Signal V5 is ready: http://127.0.0.1:$Port/state"
+Write-Host "8792 is signal-only. One active round per asset; same-direction repeats are ignored while OPEN."
+Write-Host "A Poly direction reversal emits an exit intent to 8781; a new round is allowed only after confirmed flat."
+Write-Host "Same 5m market may contain multiple sequential rounds after confirmed flat."
 
-if (-not $NoBrowser) {
-    Start-Process "http://127.0.0.1:$Port/state"
-}
+if (-not $NoBrowser) { Start-Process "http://127.0.0.1:$Port/state" }
