@@ -55,11 +55,23 @@ function Wait-LocalService([string]$Name, [string]$Url, [int]$Seconds, [string]$
     throw "$Name did not become healthy at $Url. Check $ErrorLog."
 }
 
-function Import-UserEnvironment([string]$Name) {
+function Import-PersistentEnvironment([string]$Name) {
+    # Prefer user-scoped values, then machine-scoped values. This is important
+    # when Dashboard V2 was started before credentials were changed: its child
+    # PowerShell would otherwise inherit a stale process environment forever.
     $Value = [Environment]::GetEnvironmentVariable($Name, "User")
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        $Value = [Environment]::GetEnvironmentVariable($Name, "Machine")
+    }
     if (-not [string]::IsNullOrWhiteSpace($Value)) {
         Set-Item -Path "Env:$Name" -Value $Value
     }
+}
+
+function Test-EnvPair([string]$First, [string]$Second) {
+    $FirstValue = [Environment]::GetEnvironmentVariable($First, "Process")
+    $SecondValue = [Environment]::GetEnvironmentVariable($Second, "Process")
+    return -not [string]::IsNullOrWhiteSpace($FirstValue) -and -not [string]::IsNullOrWhiteSpace($SecondValue)
 }
 
 # Credentials belong to this process, not to research observers. Never print values.
@@ -79,7 +91,13 @@ function Import-UserEnvironment([string]$Name) {
     "PREDICT_TARGET_TAKER_BINANCE_USDT_ADDRESS",
     "PREDICT_ECHTGELD_BINANCE_BALANCE_ACCOUNT_TYPE",
     "PREDICT_ECHTGELD_SETTLEMENT_DB"
-) | ForEach-Object { Import-UserEnvironment $_ }
+) | ForEach-Object { Import-PersistentEnvironment $_ }
+
+$PredictApiReady = -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("PREDICT_FUN_API_KEY", "Process"))
+$PredictPrivateReady = -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("PREDICT_FUN_PRIVATE_KEY", "Process")) -or -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("PREDICT_FUN_PRIVY_PRIVATE_KEY", "Process"))
+$BinanceApiReady = Test-EnvPair "BINANCE_API_KEY" "BINANCE_API_SECRET"
+$BinanceWalletReady = Test-EnvPair "PREDICT_TARGET_TAKER_BINANCE_WALLET_ADDRESS" "PREDICT_TARGET_TAKER_BINANCE_WALLET_ID"
+Write-Host "Echtgeld credential load: Predict=$($PredictApiReady -and $PredictPrivateReady) BinanceAPI=$BinanceApiReady BinanceWallet=$BinanceWalletReady (values hidden)"
 
 $env:PREDICT_ECHTGELD_ENGINE_HOST = "127.0.0.1"
 $env:PREDICT_ECHTGELD_ENGINE_PORT = "$EnginePort"
@@ -98,8 +116,22 @@ if ($EnginePid) {
     $Healthy = Test-LocalService "$EngineBase/health" 5
     $ExistingHealth = if ($Healthy) { Get-JsonPayload "$EngineBase/health" 5 } else { $null }
     if ($IsV2 -and $Healthy -and ([string]$ExistingHealth.version).Contains("ECHTGELD_ENGINE_V2")) {
-        $ReusedExistingEngine = $true
-        Write-Host "Echtgeld Engine V2: reusing healthy always-on process PID=$EnginePid without changing runtime state."
+        if ([bool]$ExistingHealth.armed) {
+            # Never kill an armed Echtgeld engine. Its current process environment
+            # is intentionally left untouched until the operator pauses it.
+            $ReusedExistingEngine = $true
+            Write-Warning "Echtgeld Engine V2 is LIVE ARMED on PID=$EnginePid. It was left untouched; pause it before reloading credentials/environment."
+        }
+        else {
+            # A healthy PAUSED process is safe to replace. Do this deliberately
+            # so newly configured User/Machine credentials are inherited by the
+            # Python process instead of silently reusing stale startup env.
+            Write-Host "Echtgeld Engine V2: healthy but PAUSED; restarting PID=$EnginePid to reload persistent credentials/environment."
+            & taskkill.exe /PID $EnginePid /T /F | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "Failed to stop PAUSED Echtgeld Engine PID=$EnginePid for credential reload." }
+            Start-Sleep -Milliseconds 500
+            $EnginePid = $null
+        }
     }
     elseif ($IsV1 -and $Healthy -and [bool]$ExistingHealth.armed) {
         throw "A legacy Echtgeld Engine V1 is LIVE ARMED on $EnginePort. It was NOT stopped. Pause it from the control page, then run this launcher again to migrate safely to V2."
@@ -146,6 +178,7 @@ Write-Host "  DB     : data/echtgeld_engine_v1.db (existing durable ledger retai
 Write-Host "  Balance: Binance Prediction payment-options (4310 style) + separate MPC safety balance"
 Write-Host "  PnL    : actual reconciled fills + official Target Taker settlements"
 Write-Host "  Safety : a new engine starts PAUSED; queued/ambiguous orders are never replayed after restart"
+Write-Host "  Env    : explicit launcher runs reload persistent credentials whenever the engine is PAUSED"
 Write-Host "  Note   : restarting strategy observers does NOT stop this process"
 
 if (-not $NoBrowser) {
