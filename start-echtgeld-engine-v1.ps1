@@ -91,7 +91,8 @@ function Test-EnvPair([string]$First, [string]$Second) {
     "PREDICT_TARGET_TAKER_BINANCE_BSC_RPC_URL",
     "PREDICT_TARGET_TAKER_BINANCE_USDT_ADDRESS",
     "PREDICT_ECHTGELD_BINANCE_BALANCE_ACCOUNT_TYPE",
-    "PREDICT_ECHTGELD_SETTLEMENT_DB"
+    "PREDICT_ECHTGELD_SETTLEMENT_DB",
+    "PREDICT_ECHTGELD_AUTO_REDEEM"
 ) | ForEach-Object { Import-PersistentEnvironment $_ }
 
 $PredictApiReady = -not [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable("PREDICT_FUN_API_KEY", "Process"))
@@ -146,9 +147,11 @@ if ($EnginePid) {
 }
 
 if (-not $EnginePid) {
-    Write-Host "Echtgeld Engine V2: starting independent service on 127.0.0.1:$EnginePort."
+    Write-Host "Echtgeld Engine V2 + 4310 Redeem: starting independent service on 127.0.0.1:$EnginePort."
+    # The trailing compatibility token keeps Dashboard V2's existing process
+    # ownership check recognizing this additive wrapper as the same 8781 V2 service.
     $Process = Start-Process -FilePath "python" `
-        -ArgumentList @("-m", "predict_bot.echtgeld_engine_v2") `
+        -ArgumentList @("-m", "predict_bot.echtgeld_engine_v3", "predict_bot.echtgeld_engine_v2") `
         -WorkingDirectory $Root -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $Data "echtgeld-engine-v2.stdout.log") `
         -RedirectStandardError (Join-Path $Data "echtgeld-engine-v2.stderr.log") -PassThru
@@ -161,7 +164,7 @@ if (-not $Health -or -not [bool]$Health.ok) {
     throw "$EnginePort responded but did not report a healthy Echtgeld Engine."
 }
 if (-not ([string]$Health.version).Contains("ECHTGELD_ENGINE_V2")) {
-    throw "$EnginePort is healthy but version is not Echtgeld Engine V2: $($Health.version)"
+    throw "$EnginePort is healthy but version is not Echtgeld Engine V2 compatible: $($Health.version)"
 }
 if ([bool]$Health.armed -and -not $ReusedExistingEngine) {
     throw "A newly started Echtgeld Engine unexpectedly reports ARMED. Refusing to continue."
@@ -170,14 +173,16 @@ if ([bool]$Health.armed -and $ReusedExistingEngine) {
     Write-Warning "Existing Echtgeld Engine is currently LIVE ARMED. It was left completely untouched. Use the dedicated control page to Pause if needed."
 }
 
-Write-Host "Echtgeld Engine V2 is running independently."
+Write-Host "Echtgeld Engine V2 + 4310 Redeem is running independently."
 Write-Host "  Runtime: $($Health.runtimeStatus)"
 Write-Host "  Health : $EngineBase/health"
 Write-Host "  State  : $EngineBase/state"
 Write-Host "  DB     : data/echtgeld_engine_v1.db (existing durable ledger retained)"
 Write-Host "  Balance: Binance Prediction payment-options (4310 style) + separate MPC safety balance"
 Write-Host "  PnL    : actual reconciled fills + official Target Taker settlements"
-Write-Host "  Safety : a new engine starts PAUSED; queued/ambiguous orders are never replayed after restart"
+Write-Host "  Redeem : venue-explicit PENDING_CLAIM only; 60s delay; durable no-blind-retry; continues while PAUSED"
+Write-Host "  Scope  : auto-redeem is restricted to Binance market IDs already SUBMITTED by this 8781 ledger"
+Write-Host "  Safety : a new engine starts PAUSED; queued/ambiguous orders and ambiguous redeems are never replayed after restart"
 Write-Host "  Env    : Binance auth uses BINANCE_API_KEY/BINANCE_API_SECRET; wallet identity comes from wallet/list"
 Write-Host "  Note   : restarting strategy observers does NOT stop this process"
 
