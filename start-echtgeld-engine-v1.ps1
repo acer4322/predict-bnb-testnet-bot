@@ -50,7 +50,7 @@ if ($ListenerPid) {
     if ($Health -and [bool]$Health.armed) {
         throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$ListenerPid version=$($Health.version)"
     }
-    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with V17 conservative empty-position exit reconciliation."
+    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with V18 restored 4310 Poly round state machine."
     & taskkill.exe /PID $ListenerPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$ListenerPid" }
     Start-Sleep -Milliseconds 500
@@ -59,7 +59,7 @@ if ($ListenerPid) {
 $Stdout = Join-Path $Data "echtgeld-engine-v2.stdout.log"
 $Stderr = Join-Path $Data "echtgeld-engine-v2.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v17") `
+    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v18") `
     -WorkingDirectory $Root -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content (Join-Path $Root ".echtgeld-engine-v2.pid")
@@ -77,7 +77,7 @@ do {
 if (-not (Test-Health)) { throw "Echtgeld Engine did not become healthy on $Base. Check $Stderr" }
 
 $Health = Get-Json "$Base/health"
-if (-not ([string]$Health.version).Contains("ECHTGELD_ENGINE_V2")) { throw "Unexpected Echtgeld version: $($Health.version)" }
+if (-not ([string]$Health.version).Contains("RESTORED_ROUND_STATE_MACHINE")) { throw "Unexpected Echtgeld version: $($Health.version)" }
 if (-not [bool]$Health.polyFastGatewayEnabled) { throw "Poly Fast gateway is not enabled." }
 if (-not [bool]$Health.polyFastRoundLifecycle) { throw "Poly Fast round lifecycle is not enabled." }
 if (-not [bool]$Health.polyAwareRedeem) { throw "Poly-aware 4310 redeem is not enabled." }
@@ -100,11 +100,18 @@ if (-not [bool]$Health.historicalAmbiguousEventsPreserved) { throw "8781 must pr
 if (-not [bool]$Health.durableTradeMessageProjection) { throw "8781 durable Poly trade message projection is not enabled." }
 if (-not [bool]$Health.nonDestructiveLegacyTokenRepair) { throw "8781 non-destructive Poly token preservation guard is not enabled." }
 if (-not [bool]$Health.emptyPositionExitReconciliation) { throw "8781 empty-position exit reconciliation is not enabled." }
+if (-not [bool]$Health.poly4310RoundStateMachineRestored) { throw "8781 restored 4310 Poly round state machine is not enabled." }
+if (-not [bool]$Health.polyRejectedEntryTerminal) { throw "8781 must treat rejected Poly entries as terminal." }
+if (-not [bool]$Health.polyExitFreshPositionRetry) { throw "8781 old-4310 fresh-position exit retry behavior is not enabled." }
 if ([bool]$Health.armed) { throw "New Echtgeld engine unexpectedly started ARMED." }
 
-Write-Host "Echtgeld Engine V17 is ready and PAUSED: $Base/state"
+Write-Host "Echtgeld Engine V18 restored-4310 Poly state machine is ready and PAUSED: $Base/state"
 Write-Host "  Poly entry : BTC + ETH only; NEW BNB entries remain blocked in 8781"
+Write-Host "  Entry state: REJECTED/FAILED are terminal; same-market later rounds are not fenced by old rejected attempts"
 Write-Host "  Poly token : legacy repair can fill a missing token but can never blank an existing durable token"
+Write-Host "  Exit state : SELL success -> SUBMITTED -> 500ms fresh-position sync -> FLAT or OPEN fresh-position retry"
+Write-Host "  Exit retry : after bounded sync, real remaining shares return OPEN; any later TP/reversal reads and sells only fresh remaining shares"
+Write-Host "  Ambiguous  : uncertain venue-write/transport states remain fail-closed and are never blindly retried"
 Write-Host "  Exit flat  : FILLED 100% SELL + 3 consecutive HTTP-200 empty token-position responses may reconcile FLAT read-only"
 Write-Host "  Expiry     : confirmed FILLED old 5m rounds detach from active execution after expiry and no longer block the next market"
 Write-Host "  Recovery   : AMBIGUOUS-at-submit orders later confirmed FILLED no longer appear as unresolved latestError/lastResult"
@@ -112,7 +119,6 @@ Write-Host "  Audit      : original ORDER_AMBIGUOUS_NO_RETRY events remain immut
 Write-Host "  Messages   : durable Poly SELL / FLAT / claim / redeem rows are projected with asset, market, amount and PnL"
 Write-Host "  Settlement : detached expired rounds remain tracked by 4310 claim/redeem + PnL + stop-loss accounting"
 Write-Host "  Reconcile  : old 4310-style order/history sync + position confirmation remains read-only every 500ms while needed"
-Write-Host "  Never retry: AMBIGUOUS BUY/SELL is never resubmitted; reconciliation only observes the existing order/position"
 Write-Host "  Safety     : 8781 remains the only venue owner; startup is always PAUSED"
 
 if (-not $NoBrowser) { Write-Host "Dashboard control page: http://127.0.0.1:4320/echtgeld.html" }
