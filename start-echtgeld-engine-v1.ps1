@@ -50,7 +50,7 @@ if ($Pid) {
     if ($Health -and [bool]$Health.armed) {
         throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$Pid version=$($Health.version)"
     }
-    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$Pid with Poly lifecycle V7."
+    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$Pid with Poly lifecycle V8."
     & taskkill.exe /PID $Pid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$Pid" }
     Start-Sleep -Milliseconds 500
@@ -59,7 +59,7 @@ if ($Pid) {
 $Stdout = Join-Path $Data "echtgeld-engine-v2.stdout.log"
 $Stderr = Join-Path $Data "echtgeld-engine-v2.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v7", "predict_bot.echtgeld_engine_v3", "predict_bot.echtgeld_engine_v2") `
+    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v8", "predict_bot.echtgeld_engine_v3", "predict_bot.echtgeld_engine_v2") `
     -WorkingDirectory $Root -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content (Join-Path $Root ".echtgeld-engine-v2.pid")
@@ -84,12 +84,13 @@ if (-not [bool]$Health.polyAwareRedeem) { throw "Poly-aware 4310 redeem is not e
 if (-not [bool]$Health.polyPnlInStopLoss) { throw "Poly realized PnL is not included in stop loss." }
 if ([bool]$Health.armed) { throw "New Echtgeld engine unexpectedly started ARMED." }
 
-Write-Host "Echtgeld Engine V7 is ready and PAUSED: $Base/state"
+Write-Host "Echtgeld Engine V8 is ready and PAUSED: $Base/state"
 Write-Host "  Poly entry : POST $Base/poly-intent"
 Write-Host "  Poly exit  : POST $Base/poly-exit-intent"
 Write-Host "  Lifecycle  : GET  $Base/poly-lifecycle"
 Write-Host "  Redeem     : 4310 claim discovery includes venue-confirmed ambiguous orders; zero payouts are settlement-only"
 Write-Host "  PnL/Risk   : Poly confirmed-flat/claim payout realized PnL is merged into the existing stop-loss basis"
+Write-Host "  Migration  : legacy poly-fast:* intents are backfilled into the Poly lifecycle/PnL ledger"
 Write-Host "  Safety     : 8781 remains the only venue owner; startup is always PAUSED; ambiguous BUY/SELL is never blindly retried"
 
 if (-not $NoBrowser) { Write-Host "Dashboard control page: http://127.0.0.1:4320/echtgeld.html" }
