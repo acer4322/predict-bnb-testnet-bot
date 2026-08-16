@@ -72,8 +72,9 @@ def _asset_environment(asset: str) -> dict[str, str]:
     env["PREDICT_POLY_GAP_LIVE_DB"] = str(ROOT / "data" / str(config["db"]))
     env["PREDICT_MULTI_PREDICTION_STATE_URL"] = f"http://127.0.0.1:{OBSERVER_PORT}/state"
     env["PREDICT_CROSS_ORACLE_STATE_URL"] = f"http://127.0.0.1:{OBSERVER_PORT}/state"
-    env.pop("BINANCE_API_KEY", None)
-    env.pop("BINANCE_API_SECRET", None)
+    # Live Markets are real-money executors. Keep the Binance credentials that
+    # start-dashboard-v2.ps1 imported into the supervisor process so ETH/BNB
+    # children can perform the existing signed MARKET/FOK order path.
     return env
 
 
