@@ -50,7 +50,7 @@ if ($ListenerPid) {
     if ($Health -and [bool]$Health.armed) {
         throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$ListenerPid version=$($Health.version)"
     }
-    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with Poly lifecycle V9."
+    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with Poly multi-strategy V10."
     & taskkill.exe /PID $ListenerPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$ListenerPid" }
     Start-Sleep -Milliseconds 500
@@ -59,7 +59,7 @@ if ($ListenerPid) {
 $Stdout = Join-Path $Data "echtgeld-engine-v2.stdout.log"
 $Stderr = Join-Path $Data "echtgeld-engine-v2.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v9", "predict_bot.echtgeld_engine_v3", "predict_bot.echtgeld_engine_v2") `
+    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v10") `
     -WorkingDirectory $Root -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content (Join-Path $Root ".echtgeld-engine-v2.pid")
@@ -84,15 +84,16 @@ if (-not [bool]$Health.polyAwareRedeem) { throw "Poly-aware 4310 redeem is not e
 if (-not [bool]$Health.polyPnlInStopLoss) { throw "Poly realized PnL is not included in stop loss." }
 if (-not [bool]$Health.polyClaimSettlementRepair) { throw "Poly claim settlement repair is not enabled." }
 if (-not [bool]$Health.claimSettlementClosesActiveRound) { throw "Claim settlement does not close active Poly rounds." }
+if (-not [bool]$Health.polyGapStrategyAccepted) { throw "8781 does not accept R_POLY_GAP_SCALP_LIVE." }
+if (-not [bool]$Health.polyPinnedStrategyAccepted) { throw "8781 does not accept experimental PINNED strategy." }
 if ([bool]$Health.armed) { throw "New Echtgeld engine unexpectedly started ARMED." }
 
-Write-Host "Echtgeld Engine V9 is ready and PAUSED: $Base/state"
-Write-Host "  Poly entry : POST $Base/poly-intent"
+Write-Host "Echtgeld Engine V10 is ready and PAUSED: $Base/state"
+Write-Host "  Poly entry : POST $Base/poly-intent (GAP + PINNED)"
 Write-Host "  Poly exit  : POST $Base/poly-exit-intent"
 Write-Host "  Lifecycle  : GET  $Base/poly-lifecycle"
 Write-Host "  Redeem     : Binance PENDING_CLAIM/canClaim payout is settlement evidence even if redeem tx becomes ambiguous"
 Write-Host "  PnL/Risk   : settled Poly payout closes the round and is merged into the existing stop-loss basis"
-Write-Host "  Migration  : only legacy poly-fast orders that actually reached the venue are kept in the lifecycle ledger"
 Write-Host "  Safety     : 8781 remains the only venue owner; startup is always PAUSED; ambiguous BUY/SELL/redeem is never blindly retried"
 
 if (-not $NoBrowser) { Write-Host "Dashboard control page: http://127.0.0.1:4320/echtgeld.html" }
