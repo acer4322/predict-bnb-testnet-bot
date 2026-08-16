@@ -141,8 +141,9 @@ def _suite(
             outer_bags=outer_bags,
             seed=seed_base + 100 + feature_index,
         )
-        combined_prior = hist_markets + special_early
-        retrain_train, retrain_cal = stress._split_train_cal(combined_prior)
+        retrain_train, retrain_cal = stress._adapt_split(
+            hist_markets, special_early
+        )
         special_b = (
             stress._fit_eval(
                 shared=shared,
@@ -308,6 +309,20 @@ def main() -> int:
         "behaviorFeatureDrift": stress._drift(
             behavior_split["historical"], behavior_split["special"], PUBLIC_FEATURES, pd
         )[:35],
+        "makerBehaviorOutcomeShift": stress._drift(
+            behavior_split["historical"],
+            behavior_split["special"],
+            [
+                "placement_ticks_from_pre_best_bid",
+                "target_price",
+                "expected_parent_shares",
+                "signal_age_ms",
+                "label_at_or_improves_best_bid",
+                "label_near_best_2ticks",
+                "label_side_up",
+            ],
+            pd,
+        ),
         "hazardTasks": {},
         "levelTasks": {},
     }
