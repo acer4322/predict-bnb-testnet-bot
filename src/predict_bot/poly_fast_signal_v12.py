@@ -126,6 +126,33 @@ class PostRejectDiagnosticEvaluator(v11.TakeProfitSignalEvaluator):
         return payload
 
 
+def _record(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _number(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if number == number and abs(number) != float("inf") else None
+
+
+def _first_record(parent: dict[str, Any], *keys: str) -> dict[str, Any]:
+    for key in keys:
+        value = parent.get(key)
+        if isinstance(value, dict):
+            return value
+    return {}
+
+
+def _first_value(parent: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key in parent and parent.get(key) is not None:
+            return parent.get(key)
+    return None
+
+
 class PolyFastSignalRuntimeV12(v11.PolyFastSignalRuntimeV11):
     def __init__(self) -> None:
         self.observer = v11.v10.v9.v8.v4.v3.SelfContainedFastObserver(db_path=DB_PATH)
@@ -144,9 +171,196 @@ class PolyFastSignalRuntimeV12(v11.PolyFastSignalRuntimeV11):
         payload["architecture"].update(postRejectRearmDiagnostic=True, postRejectDiagnosticObservationOnly=True)
         return payload
 
+    def diagnostics(self) -> dict[str, Any]:
+        """Return a compact, observation-only health summary.
+
+        Deliberately excludes trajectories, raw books, event ledgers and order
+        history so this endpoint is small enough to paste into a bug report.
+        Missing fields remain UNKNOWN rather than being guessed.
+        """
+        snapshot = self.snapshot()
+        observer = _record(snapshot.get("observer"))
+        observer_assets = _record(observer.get("assets"))
+        engine_assets = _record(snapshot.get("assets"))
+        now_ms = observer_base._now_ms()
+        asset_rows: dict[str, Any] = {}
+        warnings: list[dict[str, Any]] = []
+        severity = {
+            "HEALTHY": 0,
+            "WAITING_SIGNAL": 0,
+            "ENTRY_DISABLED": 0,
+            "ACTIVE_POSITION": 0,
+            "DEGRADED": 1,
+            "STALE_MARKET_DATA": 2,
+            "MARKET_MISMATCH": 3,
+            "STALE_STRATEGY_LOOP": 3,
+            "SIGNAL_PIPELINE_BROKEN": 4,
+            "EXECUTION_PIPELINE_BROKEN": 4,
+        }
+        overall = "HEALTHY"
+
+        for asset in ASSETS:
+            engine = _record(engine_assets.get(asset))
+            observed = _record(observer_assets.get(asset))
+            poly = _first_record(observed, "poly", "polymarket")
+            binance = _record(observed.get("binance"))
+            poly_market = _record(poly.get("market"))
+            binance_market = _record(binance.get("market"))
+            gap = _first_record(engine, "gapEntry", "gap_entry")
+            gateway = _first_record(engine, "polyFastSignalGateway", "gateway", "signalGateway")
+            alignment = _first_record(engine, "bucketAlignmentPreflight", "bucketAlignment")
+            alignment_last = _record(alignment.get("last"))
+            lifecycle = _first_record(engine, "signalGeneration", "polyFastLifecycle", "lifecycle")
+            active_round = _first_record(lifecycle, "activeRound", "active_round")
+            post_reject = _record(engine.get("postRejectRearm"))
+            take_profit = _record(engine.get("takeProfit"))
+            last_eval = _first_record(gap, "lastEvaluation", "last")
+            last_gateway = _first_record(gateway, "lastResult", "last")
+
+            market_id = _first_value(binance_market, "marketId", "market_id")
+            poly_bucket = _first_value(poly_market, "bucketStartSec", "bucket_start_sec")
+            if poly_bucket is None:
+                poly_bucket = _first_value(observed, "bucketStartSec", "bucket_start_sec")
+            binance_start = _first_value(binance_market, "startMs", "start_ms")
+            binance_end = _first_value(binance_market, "endMs", "end_ms")
+            poly_status = str(poly.get("status") or "UNKNOWN").upper()
+            binance_status = str(binance.get("status") or "UNKNOWN").upper()
+            poly_age = _number(_first_value(poly, "bookAgeMs", "receiptAgeMs", "ageMs"))
+            binance_age = _number(_first_value(binance, "bookAgeMs", "receiptAgeMs", "ageMs"))
+            aligned_value = alignment_last.get("aligned")
+            if aligned_value is None:
+                aligned_value = alignment.get("aligned")
+            aligned = aligned_value is True
+            phase = str(_first_value(active_round, "phase", "status") or _first_value(lifecycle, "phase", "status") or "").upper()
+            blocking = str(last_eval.get("state") or last_eval.get("reason") or "UNKNOWN")
+            disabled_entry = asset == "BNB"
+
+            status = "WAITING_SIGNAL"
+            reasons: list[str] = []
+            if disabled_entry:
+                status = "ENTRY_DISABLED"
+                reasons.append("BNB new entry intentionally disabled")
+            elif poly_status not in {"LIVE"} or binance_status not in {"LIVE"}:
+                status = "STALE_MARKET_DATA"
+                reasons.append(f"market feeds poly={poly_status} binance={binance_status}")
+            elif (poly_age is not None and poly_age > 2_500) or (binance_age is not None and binance_age > 2_500):
+                status = "STALE_MARKET_DATA"
+                reasons.append(f"book age poly={poly_age}ms binance={binance_age}ms")
+            elif aligned_value is False:
+                status = "MARKET_MISMATCH"
+                reasons.append("strict current/Poly/Binance bucket alignment is false")
+            elif phase in {"OPEN", "ENTRY_AMBIGUOUS", "EXIT_AMBIGUOUS", "EXITING", "ACTIVE"}:
+                status = "ACTIVE_POSITION"
+                reasons.append(f"active lifecycle phase={phase}")
+            elif post_reject.get("active") is True:
+                evaluations = int(_number(post_reject.get("evaluationsAfterRearm")) or 0)
+                ready = int(_number(post_reject.get("entryReadyAfterRearm")) or 0)
+                new_intent = int(_number(post_reject.get("newIntentAfterRearm")) or 0)
+                if evaluations >= 25 and ready > 0 and new_intent == 0:
+                    status = "SIGNAL_PIPELINE_BROKEN"
+                    reasons.append("post-reject evaluator reached ENTRY_READY but no new intent was emitted")
+                else:
+                    reasons.append("post-reject rearm is active and being observed")
+            elif blocking in {"ENTRY_READY"} and not bool(last_gateway):
+                status = "DEGRADED"
+                reasons.append("latest evaluator says ENTRY_READY but gateway has no result yet")
+
+            gateway_status = str(last_gateway.get("status") or "UNKNOWN").upper()
+            if gateway_status in {"ERROR", "FAILED", "UNAVAILABLE"} and status not in {"ENTRY_DISABLED", "ACTIVE_POSITION"}:
+                status = "EXECUTION_PIPELINE_BROKEN"
+                reasons.append(f"last 8781 gateway status={gateway_status}")
+
+            asset_rows[asset] = {
+                "status": status,
+                "marketId": market_id,
+                "secondsLeft": _first_value(observed, "secondsLeft", "seconds_left"),
+                "market": {
+                    "polyStatus": poly_status,
+                    "binanceStatus": binance_status,
+                    "polyBucketSec": poly_bucket,
+                    "binanceStartMs": binance_start,
+                    "binanceEndMs": binance_end,
+                    "polyBookAgeMs": poly_age,
+                    "binanceBookAgeMs": binance_age,
+                    "bucketAligned": aligned if aligned_value is not None else None,
+                },
+                "lifecycle": {
+                    "phase": phase or "FLAT_OR_UNKNOWN",
+                    "roundId": _first_value(active_round, "roundId", "round_id"),
+                },
+                "evaluator": {
+                    "checks": _first_value(gap, "checks"),
+                    "triggers": _first_value(gap, "triggers"),
+                    "blockingReason": blocking,
+                    "lastAtMs": _first_value(last_eval, "atMs", "evaluatedAtMs", "sampledAtMs"),
+                    "direction": last_eval.get("direction"),
+                    "edge": last_eval.get("edge"),
+                    "binanceSelectedAsk": last_eval.get("binanceSelectedAsk"),
+                },
+                "gateway": {
+                    "attempts": _first_value(gateway, "attempts"),
+                    "queued": _first_value(gateway, "queued"),
+                    "lastStatus": gateway_status,
+                    "lastIntentId": _first_value(last_gateway, "intentId", "signalId"),
+                },
+                "postRejectRearm": {
+                    "active": bool(post_reject.get("active") is True),
+                    "evaluationsAfterRearm": post_reject.get("evaluationsAfterRearm"),
+                    "entryReadyAfterRearm": post_reject.get("entryReadyAfterRearm"),
+                    "newIntentAfterRearm": post_reject.get("newIntentAfterRearm"),
+                    "blockedAfterRearmBy": post_reject.get("blockedAfterRearmBy") or {},
+                },
+                "takeProfit": {
+                    "enabled": bool(take_profit.get("enabled") is True),
+                    "price": take_profit.get("price"),
+                    "checks": take_profit.get("checks"),
+                    "triggers": take_profit.get("triggers"),
+                },
+                "reasons": reasons,
+            }
+            if severity.get(status, 1) > severity.get(overall, 0):
+                overall = status
+            if severity.get(status, 0) > 0:
+                warnings.append({"asset": asset, "status": status, "reasons": reasons})
+
+        active_assets = [asset for asset in ASSETS if asset != "BNB"]
+        normal = {"HEALTHY", "WAITING_SIGNAL", "ACTIVE_POSITION", "ENTRY_DISABLED"}
+        if all(str(asset_rows.get(asset, {}).get("status")) in normal for asset in active_assets):
+            overall = "HEALTHY"
+
+        return {
+            "version": "STRATEGY_HEALTH_DIAGNOSTICS_V1",
+            "strategyVersion": snapshot.get("version"),
+            "status": overall,
+            "ok": overall in normal,
+            "asOfMs": now_ms,
+            "purpose": "compact observation-only health summary; safe to paste instead of full /state",
+            "runtime": {
+                "port": PORT,
+                "observerVersion": observer.get("version"),
+                "observerLastError": observer.get("lastError") or observer.get("last_error"),
+                "entryAssets": ["BTC", "ETH"],
+                "disabledEntryAssets": ["BNB"],
+            },
+            "assets": asset_rows,
+            "behavior": {
+                "status": "COUNTERS_ONLY",
+                "note": "V1 reports current counters and post-reject behavior only; it does not invent a historical baseline.",
+            },
+            "warnings": warnings,
+            "fullStateRequired": bool(warnings),
+        }
+
 
 class _Handler(fast_base._Handler):
     runtime: PolyFastSignalRuntimeV12
+
+    def do_GET(self) -> None:  # noqa: N802
+        parsed = fast_base.urlparse(self.path)
+        if parsed.path in {"/diagnostics", "/api/diagnostics"}:
+            self._send(200, {"ok": True, "diagnostics": self.runtime.diagnostics()})
+            return
+        super().do_GET()
 
 
 def main() -> int:
@@ -156,6 +370,7 @@ def main() -> int:
     server = fast_base.ThreadingHTTPServer((HOST, PORT), handler)
     print(
         f"Poly Fast Signal V12 listening on http://{HOST}:{PORT}/state; "
+        "diagnostics=/diagnostics compact observation-only; "
         "post-reject diagnostic=enabled observation-only; V11 trading rules unchanged",
         flush=True,
     )
