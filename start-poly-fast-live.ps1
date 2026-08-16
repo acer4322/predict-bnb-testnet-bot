@@ -1,5 +1,7 @@
 param(
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [ValidateSet("POLY_GAP", "PINNED_DIVERGENCE")]
+    [string]$EntryMode = "POLY_GAP"
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,7 +17,6 @@ $UserEnvironment = @(
     "BINANCE_API_SECRET",
     "BINANCE_LIVE_API_KEY",
     "BINANCE_LIVE_API_SECRET",
-    "PREDICT_POLY_FAST_ENTRY_MODE",
     "PREDICT_POLY_FAST_BINANCE_POLL_SECONDS",
     "PREDICT_POLY_FAST_SAMPLE_SECONDS",
     "PREDICT_POLY_GAP_ENTRY_DELAY_SECONDS",
@@ -28,13 +29,8 @@ foreach ($Name in $UserEnvironment) {
     }
 }
 
-if ([string]::IsNullOrWhiteSpace($env:PREDICT_POLY_FAST_ENTRY_MODE)) {
-    $env:PREDICT_POLY_FAST_ENTRY_MODE = "POLY_GAP"
-}
-$EntryMode = $env:PREDICT_POLY_FAST_ENTRY_MODE.Trim().ToUpperInvariant()
-if ($EntryMode -notin @("POLY_GAP", "PINNED_DIVERGENCE")) {
-    throw "PREDICT_POLY_FAST_ENTRY_MODE must be POLY_GAP or PINNED_DIVERGENCE"
-}
+$EntryMode = $EntryMode.Trim().ToUpperInvariant()
+$env:PREDICT_POLY_FAST_ENTRY_MODE = $EntryMode
 $env:PREDICT_POLY_FAST_LIVE_HOST = "127.0.0.1"
 $env:PREDICT_POLY_FAST_LIVE_PORT = "$Port"
 # 8792 is always signal-only; these switches prevent inherited venue writers.
@@ -95,7 +91,7 @@ if (-not ([string]$State.state.version).Contains("POLY_FAST_SIGNAL_V6")) {
 Write-Host "Poly Fast Signal V6 is ready: http://127.0.0.1:$Port/state"
 Write-Host "  Entry mode : $EntryMode"
 Write-Host "  Default    : POLY_GAP = R_POLY_GAP_SCALP_LIVE (high-frequency)"
-Write-Host "  Optional   : PINNED_DIVERGENCE (experimental rare-event mode)"
+Write-Host "  Optional   : PINNED_DIVERGENCE (experimental rare-event mode; use -EntryMode PINNED_DIVERGENCE)"
 Write-Host "  Lifecycle  : one active round per asset; same-direction repeats ignored while OPEN"
 Write-Host "  Exit       : immediate Poly direction reversal -> 8781 SELL; rearm only after confirmed flat"
 Write-Host "  Execution  : 8792 is signal-only; 8781 remains the only Echtgeld venue owner"
