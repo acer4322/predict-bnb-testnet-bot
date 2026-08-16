@@ -144,6 +144,11 @@ export default defineConfig({
         changeOrigin: false,
         rewrite: () => '/state',
       },
+      '/bridge/poly-fast-diagnostics': {
+        target: 'http://127.0.0.1:8792',
+        changeOrigin: false,
+        rewrite: () => '/diagnostics',
+      },
       '/bridge/wallet-shadow': {
         target: 'http://127.0.0.1:8776',
         changeOrigin: false,
