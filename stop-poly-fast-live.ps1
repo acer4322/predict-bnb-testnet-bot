@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PidFile = Join-Path $Root ".poly-fast-live.pid"
-$Port = 8782
+$Port = 8792
 
 $Pid = $null
 if (Test-Path $PidFile) {
@@ -32,7 +32,7 @@ catch {
 }
 
 if (-not $CommandLine.ToLowerInvariant().Contains("predict_bot.poly_fast_live")) {
-    throw "Refusing to stop PID=$Pid because it is not predict_bot.poly_fast_live. command=$CommandLine"
+    throw "Refusing to stop PID=$Pid because it is not predict_bot.poly_fast_live*. command=$CommandLine"
 }
 
 Stop-Process -Id $Pid -Force -ErrorAction Stop
@@ -46,4 +46,4 @@ for ($i = 0; $i -lt 40; $i++) {
     catch { break }
     Start-Sleep -Milliseconds 100
 }
-Write-Host "Poly Fast Live stopped."
+Write-Host "Poly Fast Live stopped on port $Port."
