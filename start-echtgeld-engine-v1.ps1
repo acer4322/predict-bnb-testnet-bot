@@ -39,20 +39,20 @@ function Test-Health {
     return $null -ne $h -and [bool]$h.ok
 }
 
-$Pid = Get-ListenerPid
-if ($Pid) {
+$ListenerPid = Get-ListenerPid
+if ($ListenerPid) {
     $Command = ""
-    try { $Command = [string](Get-CimInstance Win32_Process -Filter "ProcessId=$Pid").CommandLine } catch { }
+    try { $Command = [string](Get-CimInstance Win32_Process -Filter "ProcessId=$ListenerPid").CommandLine } catch { }
     if (-not $Command.ToLowerInvariant().Contains("predict_bot.echtgeld_engine")) {
-        throw "Port $Port is occupied by an unrecognized process. PID=$Pid command=$Command"
+        throw "Port $Port is occupied by an unrecognized process. PID=$ListenerPid command=$Command"
     }
     $Health = Get-Json "$Base/health"
     if ($Health -and [bool]$Health.armed) {
-        throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$Pid version=$($Health.version)"
+        throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$ListenerPid version=$($Health.version)"
     }
-    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$Pid with Poly lifecycle V8."
-    & taskkill.exe /PID $Pid /T /F | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$Pid" }
+    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with Poly lifecycle V8."
+    & taskkill.exe /PID $ListenerPid /T /F | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$ListenerPid" }
     Start-Sleep -Milliseconds 500
 }
 
