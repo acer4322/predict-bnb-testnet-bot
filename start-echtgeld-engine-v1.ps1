@@ -50,7 +50,7 @@ if ($ListenerPid) {
     if ($Health -and [bool]$Health.armed) {
         throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$ListenerPid version=$($Health.version)"
     }
-    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with V12 old-4310 order-history reconciliation."
+    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with V13 Poly lifecycle repair."
     & taskkill.exe /PID $ListenerPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$ListenerPid" }
     Start-Sleep -Milliseconds 500
@@ -59,7 +59,7 @@ if ($ListenerPid) {
 $Stdout = Join-Path $Data "echtgeld-engine-v2.stdout.log"
 $Stderr = Join-Path $Data "echtgeld-engine-v2.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v12") `
+    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v13") `
     -WorkingDirectory $Root -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content (Join-Path $Root ".echtgeld-engine-v2.pid")
@@ -92,14 +92,18 @@ if (-not [bool]$Health.poly4310OrderSync) { throw "8781 old-4310 order-history r
 if (-not [bool]$Health.polyBnbEntryDisabled) { throw "8781 did not disable new BNB Poly entries." }
 if (-not [bool]$Health.polyBnbExistingExitAllowed) { throw "8781 must keep existing BNB exits enabled." }
 if (-not [bool]$Health.ambiguousExitDelayedReconciliation) { throw "8781 delayed reconciliation for ambiguous Poly exits is not enabled." }
+if (-not [bool]$Health.polyEmptyTokenRepair) { throw "8781 Poly empty-token repair is not enabled." }
+if (-not [bool]$Health.polyExpiredFilledRoundDetach) { throw "8781 expired filled Poly round detach is not enabled." }
+if (-not [bool]$Health.polyExpiredSettlementPreserved) { throw "8781 expired Poly settlement tracking is not preserved." }
 if ([bool]$Health.armed) { throw "New Echtgeld engine unexpectedly started ARMED." }
 
-Write-Host "Echtgeld Engine V12 is ready and PAUSED: $Base/state"
-Write-Host "  Poly entry : BTC + ETH only; NEW BNB entries are blocked in 8781"
-Write-Host "  Poly exit  : existing BTC/ETH/BNB positions may still use risk-reducing SELL"
-Write-Host "  Reconcile  : old 4310-style order/history sync + position confirmation runs read-only every 500ms while needed"
+Write-Host "Echtgeld Engine V13 is ready and PAUSED: $Base/state"
+Write-Host "  Poly entry : BTC + ETH only; NEW BNB entries remain blocked in 8781"
+Write-Host "  Poly token : empty durable token IDs are repaired from the original persisted Poly intent"
+Write-Host "  Expiry     : confirmed FILLED old 5m rounds detach from active execution after expiry and no longer block the next market"
+Write-Host "  Settlement : detached expired rounds remain tracked by 4310 claim/redeem + PnL + stop-loss accounting"
+Write-Host "  Reconcile  : old 4310-style order/history sync + position confirmation remains read-only every 500ms while needed"
 Write-Host "  Never retry: AMBIGUOUS BUY/SELL is never resubmitted; reconciliation only observes the existing order/position"
-Write-Host "  Redeem     : Binance PENDING_CLAIM/canClaim payout remains settlement evidence"
 Write-Host "  Safety     : 8781 remains the only venue owner; startup is always PAUSED"
 
 if (-not $NoBrowser) { Write-Host "Dashboard control page: http://127.0.0.1:4320/echtgeld.html" }
