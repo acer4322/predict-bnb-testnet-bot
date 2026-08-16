@@ -2,6 +2,8 @@ import axios from 'axios'
 import { create } from 'zustand'
 import type { ServiceSnapshot } from './store'
 
+const SIDE_ONLY = 'TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY'
+
 const blank = (): ServiceSnapshot => ({
   ok: false,
   loading: true,
@@ -18,8 +20,72 @@ function unwrap(value: unknown): unknown {
   return value
 }
 
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function producerCompatibility(officialValue: unknown, producerValue: unknown, producerError: string | null) {
+  const official = record(unwrap(officialValue))
+  const producer = record(unwrap(producerValue))
+  const latestSnapshot = record(producer.latestPublicSnapshot)
+  const rawDecision = record(producer.lastDecision)
+  const decision = Object.keys(rawDecision).length
+    ? {
+        ...rawDecision,
+        sampledAtMs: rawDecision.sampledAtMs ?? latestSnapshot.sampledAtMs,
+      }
+    : {}
+  const trade = record(producer.currentTrade)
+  const handoff = record(producer.echtgeldHandoff)
+  const currentEvent = Object.keys(trade).length
+    ? {
+        ...trade,
+        observedAsk: trade.observedAsk ?? trade.observed_ask,
+        selectedProbability: trade.selectedProbability ?? trade.selected_probability,
+        decisionAtMs: trade.decisionAtMs ?? trade.decision_at_ms,
+      }
+    : {}
+
+  return {
+    ...official,
+    // Compatibility shape for the legacy Echtgeld page. The values below are
+    // now sourced from the actual frozen EBM runtime on 8782, never 8776.
+    targetTakerPublicSideV1Lab: {
+      source: '8782_TARGET_TAKER_PUBLIC_SIDE_EBM',
+      online: Object.keys(producer).length > 0 && producerError === null,
+      error: producerError,
+      cohorts: {
+        [SIDE_ONLY]: {
+          lastDecision: decision,
+          currentEvent,
+          currentTrade: trade,
+          currentMarket: record(producer.currentMarket),
+          policy: record(producer.policy),
+          model: record(producer.model),
+          dataIntegrity: record(producer.dataIntegrity),
+          calculationDiagnostics: record(producer.calculationDiagnostics),
+        },
+      },
+    },
+    targetTakerEchtgeldProducerV1: {
+      ...handoff,
+      source: '8782',
+      online: Object.keys(producer).length > 0 && producerError === null,
+      error: producerError,
+    },
+    targetTakerPublicSideProducer8782: {
+      ...producer,
+      online: Object.keys(producer).length > 0 && producerError === null,
+      fetchError: producerError,
+    },
+  }
+}
+
 type WalletShadowStore = {
   service: ServiceSnapshot
+  producer8782: ServiceSnapshot
   targetTakerSaving: boolean
   targetTakerSaveError: string | null
   refresh: () => Promise<void>
@@ -51,48 +117,69 @@ async function getControlToken(): Promise<string> {
 
 export const useWalletShadowStore = create<WalletShadowStore>((set, get) => ({
   service: blank(),
+  producer8782: blank(),
   targetTakerSaving: false,
   targetTakerSaveError: null,
 
   refresh: async () => {
     if (refreshInFlight) return refreshInFlight
     refreshInFlight = (async () => {
-      const previous = get().service
+      const previous = get()
       const started = performance.now()
-      try {
-        const response = await axios.get('/bridge/wallet-shadow', {
-          // TARGET_WALLET_OFFICIAL_V1 serves pre-aggregated official data and
-          // should remain responsive. Keep a bounded timeout so a DB/API bug
-          // cannot recreate the old overlapping 10-20 second dashboard reads.
+      const [officialResult, producerResult] = await Promise.allSettled([
+        axios.get('/bridge/wallet-shadow', {
           timeout: 4000,
           headers: { Accept: 'application/json' },
-        })
-        set({
-          service: {
-            ok: true,
-            loading: false,
-            data: unwrap(response.data),
-            error: null,
-            updatedAt: Date.now(),
-            latencyMs: performance.now() - started,
-          },
-        })
-      } catch (error) {
-        set({
-          service: {
-            ok: previous.data !== null,
-            loading: false,
-            data: previous.data,
-            error: axios.isAxiosError(error)
-              ? error.message
-              : error instanceof Error
-                ? error.message
-                : String(error),
-            updatedAt: Date.now(),
-            latencyMs: performance.now() - started,
-          },
-        })
-      }
+        }),
+        axios.get('/bridge/ebm-strategy-test', {
+          timeout: 2500,
+          headers: { Accept: 'application/json' },
+        }),
+      ])
+
+      const now = Date.now()
+      const officialOk = officialResult.status === 'fulfilled'
+      const producerOk = producerResult.status === 'fulfilled'
+      const officialError = officialOk
+        ? null
+        : axios.isAxiosError(officialResult.reason)
+          ? officialResult.reason.message
+          : officialResult.reason instanceof Error
+            ? officialResult.reason.message
+            : String(officialResult.reason)
+      const producerError = producerOk
+        ? null
+        : axios.isAxiosError(producerResult.reason)
+          ? producerResult.reason.message
+          : producerResult.reason instanceof Error
+            ? producerResult.reason.message
+            : String(producerResult.reason)
+
+      const officialData = officialOk
+        ? unwrap(officialResult.value.data)
+        : previous.service.data
+      const producerData = producerOk
+        ? unwrap(producerResult.value.data)
+        : null
+
+      set({
+        service: {
+          ok: officialOk || previous.service.data !== null,
+          loading: false,
+          data: producerCompatibility(officialData, producerData, producerError),
+          error: officialError,
+          updatedAt: now,
+          latencyMs: performance.now() - started,
+        },
+        producer8782: {
+          ok: producerOk,
+          loading: false,
+          data: producerOk ? producerData : null,
+          error: producerError,
+          updatedAt: now,
+          latencyMs: performance.now() - started,
+        },
+      })
     })()
     try {
       await refreshInFlight
