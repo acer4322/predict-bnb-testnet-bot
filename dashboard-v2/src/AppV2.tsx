@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { Button, Drawer, Grid, Layout, Menu, Space, Tag } from 'antd'
+import { Alert, Button, Drawer, Grid, Layout, Menu, Space, Tag } from 'antd'
 import {
   AimOutlined,
   ApiOutlined,
@@ -13,7 +13,6 @@ import {
   SafetyCertificateOutlined,
   SwapOutlined,
 } from '@ant-design/icons'
-import type { MenuProps } from 'antd'
 import { type ServiceSnapshot, useDashboardStore } from './store'
 import { useStrategyStore } from './strategy-store'
 import { usePredictFunStore } from './predict-fun-store'
@@ -71,6 +70,7 @@ function Shell() {
   const refreshPredictFun = usePredictFunStore((state) => state.refresh)
   const predictFunService = usePredictFunStore((state) => state.service)
   const refreshWalletShadow = useWalletShadowStore((state) => state.refresh)
+  const ebmProducer = useWalletShadowStore((state) => state.producer8782)
   const refreshWalletLabHealth = useWalletLabHealthStore((state) => state.refresh)
   const walletShadowHealth = useWalletLabHealthStore((state) => state.observer8776)
   const echtgeldService = useEchtgeldStore((state) => state.service)
@@ -112,13 +112,18 @@ function Shell() {
   }, [refreshWalletLabHealth])
 
   useEffect(() => {
-    if (location.pathname !== '/wallet-shadow') return
+    const walletResearch = location.pathname === '/wallet-shadow'
+    const echtgeld = location.pathname === '/live'
+    if (!walletResearch && !echtgeld) return
     let cancelled = false
     const tick = () => {
       if (!cancelled && document.visibilityState === 'visible') void refreshWalletShadow()
     }
     tick()
-    const timer = window.setInterval(tick, 3000)
+    // Echtgeld consumes the live 8782 producer state, so refresh it at the same
+    // one-second cadence as the rest of the live console. Research can stay at
+    // three seconds because 8776 includes heavier historical aggregates.
+    const timer = window.setInterval(tick, echtgeld ? 1000 : 3000)
     const onVisibility = () => tick()
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
@@ -185,7 +190,8 @@ function Shell() {
             <ServiceTag label="8769" service={services.polyGap} />
             <ServiceTag label="8770" service={services.multiMarket} />
             <ServiceTag label="8771" service={predictFunService} />
-            <ServiceTag label="8776" service={walletShadowHealth} />
+            <ServiceTag label="8776 OFFICIAL" service={walletShadowHealth} />
+            {location.pathname === '/live' || ebmProducer.updatedAt !== null ? <ServiceTag label="8782 EBM" service={ebmProducer} /> : null}
             {location.pathname === '/live' || echtgeldService.updatedAt !== null ? <ServiceTag label="8781" service={echtgeldService} /> : null}
           </Space>
         </Header>
@@ -197,7 +203,18 @@ function Shell() {
             <Route path="/ebm-strategy-test" element={<EbmStrategyTestReentryPage />} />
             <Route path="/wallet-clone" element={<WalletClonePage />} />
             <Route path="/pinned-divergence" element={<PinnedDivergencePage />} />
-            <Route path="/live" element={<TargetTakerEchtgeldPage />} />
+            <Route path="/live" element={(
+              <>
+                <Alert
+                  type={ebmProducer.ok ? 'success' : 'error'}
+                  showIcon
+                  style={{ marginBottom: 12 }}
+                  message={ebmProducer.ok ? 'Echtgeld 策略來源：8782 frozen EBM producer' : '8782 EBM producer 離線；不可把 8776 視為策略來源'}
+                  description="TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY 的 decision 與 BASE Entry #1 handoff 由 8782 提供；8776 只提供 Official market identity / settlement truth，8781 仍獨立負責 PAUSE/ARM、durable dedupe 與實際送單。"
+                />
+                <TargetTakerEchtgeldPage />
+              </>
+            )} />
             <Route path="/poly-gap" element={<PolyGapPage />} />
             <Route path="/strategies" element={<StrategiesPage />} />
             <Route path="/trades" element={<TradesPage />} />
