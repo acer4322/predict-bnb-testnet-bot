@@ -25,6 +25,7 @@ import PinnedDivergencePage from './pinned-divergence-page'
 import WalletClonePage from './wallet-clone-page-v84'
 import WalletShadowPage from './wallet-shadow-page'
 import EbmStrategyTestReentryPage from './ebm-strategy-test-reentry-page'
+import EchtgeldStopLossPanel from './echtgeld-stop-loss-panel'
 import TargetTakerEchtgeldPage from './target-taker-echtgeld-page'
 import DiagnosticsServiceControlPage from './diagnostics-service-control-page'
 import {
@@ -212,6 +213,7 @@ function Shell() {
                   message={ebmProducer.ok ? 'Echtgeld 策略來源：8782 frozen EBM producer' : '8782 EBM producer 離線；不可把 8776 視為策略來源'}
                   description="TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY 的 decision 與 BASE Entry #1 handoff 由 8782 提供；8776 只提供 Official market identity / settlement truth，8781 仍獨立負責 PAUSE/ARM、durable dedupe 與實際送單。"
                 />
+                <EchtgeldStopLossPanel />
                 <TargetTakerEchtgeldPage />
               </>
             )} />
