@@ -37,6 +37,7 @@ import './target-taker-echtgeld.css'
 
 const { Title, Text } = Typography
 const SIDE_ONLY = 'TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY'
+const MAX_ECHTGELD_NOTIONAL_USDT = 100
 
 type RowObject = Record<string, unknown>
 
@@ -106,6 +107,20 @@ function levelColor(value: unknown): string {
   if (level === 'WARN' || level === 'WARNING') return 'warning'
   if (level === 'INFO') return 'processing'
   return 'default'
+}
+
+function isRecoveredAmbiguousEvent(event: RowObject, orders: RowObject[]): boolean {
+  if (text(event.event_type).toUpperCase() !== 'ORDER_AMBIGUOUS_NO_RETRY') return false
+  const intentId = text(event.intent_id, '')
+  const marketId = num(event.market_id)
+  const matching = orders.find((item) => {
+    const orderIntentId = text(item.intent_id, '')
+    if (intentId && orderIntentId) return orderIntentId === intentId
+    return marketId !== null && num(item.market_id) === marketId
+  })
+  if (!matching) return false
+  const status = text(matching.status).toUpperCase()
+  return Boolean(status) && !['AMBIGUOUS', 'ATTEMPTING', 'QUEUED', 'PROCESSING'].includes(status)
 }
 
 function findActiveOrder(engine: RowObject): RowObject {
@@ -292,9 +307,10 @@ export default function TargetTakerEchtgeldPage() {
   const sampleAge = num(decision.sampleAgeMs)
   const receiptAge = num(decision.predictReceiptAgeMs)
   const notional = num(config.notionalUsdt)
-  const liveSafetyReady = text(config.cohort) === SIDE_ONLY && notional !== null && notional > 0 && notional <= 1
+  const liveSafetyReady = text(config.cohort) === SIDE_ONLY && notional !== null && notional > 0 && notional <= MAX_ECHTGELD_NOTIONAL_USDT
   const strategyAlive = observerHealth.ok
   const predictAlive = predictService.ok && text(btc.status) === 'LIVE'
+  const latestActiveError = events.find((item) => text(item.level).toUpperCase() === 'ERROR' && !isRecoveredAmbiguousEvent(item, orders)) || {}
 
   useEffect(() => {
     if (!Object.keys(config).length || form.isFieldsTouched()) return
@@ -357,7 +373,7 @@ export default function TargetTakerEchtgeldPage() {
 
   const doResume = async () => {
     if (!liveSafetyReady) {
-      message.error('Live Canary 只允許 SIDE_ONLY 且每市場 notional ≤ 1 USDT。')
+      message.error(`Echtgeld 只允許 SIDE_ONLY 且每市場 notional 必須在 (0, ${MAX_ECHTGELD_NOTIONAL_USDT}] USDT。`)
       return
     }
     try {
@@ -370,11 +386,17 @@ export default function TargetTakerEchtgeldPage() {
 
   const eventColumns = [
     { title: '時間', key: 'time', width: 170, render: (_: unknown, item: RowObject) => when(item.occurred_at_ms) },
-    { title: 'Level', dataIndex: 'level', key: 'level', width: 90, render: (value: unknown) => <Tag color={levelColor(value)}>{text(value)}</Tag> },
+    { title: 'Level', dataIndex: 'level', key: 'level', width: 90, render: (value: unknown, item: RowObject) => {
+      const recovered = isRecoveredAmbiguousEvent(item, orders)
+      return <Tag color={recovered ? 'success' : levelColor(value)}>{recovered ? 'RECOVERED' : text(value)}</Tag>
+    } },
     { title: '事件 / Phase', key: 'event', width: 220, render: (_: unknown, item: RowObject) => <Space direction="vertical" size={0}><Text strong>{text(item.event_type)}</Text><Text type="secondary">{text(item.phase)}</Text></Space> },
     { title: 'Market', dataIndex: 'market_id', key: 'market', width: 100, render: (value: unknown) => value ? `#${text(value)}` : '—' },
     { title: 'Side', dataIndex: 'side', key: 'side', width: 80, render: (value: unknown) => <Tag>{text(value)}</Tag> },
-    { title: '永久訊息', dataIndex: 'message', key: 'message', render: (value: unknown, item: RowObject) => <Space direction="vertical" size={0}><Text>{text(value)}</Text>{item.error_class ? <Text type="danger">{text(item.error_class)}</Text> : null}</Space> },
+    { title: '永久訊息', dataIndex: 'message', key: 'message', render: (value: unknown, item: RowObject) => {
+      const recovered = isRecoveredAmbiguousEvent(item, orders)
+      return <Space direction="vertical" size={0}><Text>{text(value)}</Text>{recovered ? <Text type="success">已由 durable order ledger 確認後續結果；保留原事件僅供稽核。</Text> : item.error_class ? <Text type="danger">{text(item.error_class)}</Text> : null}</Space>
+    } },
   ]
 
   const orderColumns = [
@@ -407,7 +429,7 @@ export default function TargetTakerEchtgeldPage() {
 
       {!engineService.ok ? <Alert className="echtgeld-alert" type="error" showIcon message="8781 Echtgeld Engine 無法連線" description={`${engineService.error || '請先啟動 start-echtgeld-engine-v1.ps1'}；舊資料若存在只保留顯示，不會被當成在線。`} /> : null}
       {saveError ? <Alert className="echtgeld-alert" type="error" showIcon message="Echtgeld 控制失敗" description={saveError} /> : null}
-      {!liveSafetyReady && Object.keys(config).length ? <Alert className="echtgeld-alert" type="warning" showIcon message="Live Canary 安全設定不符合目前規格" description={`必須鎖定 SIDE_ONLY 且 notional ≤ 1 USDT。目前 cohort=${text(config.cohort)} / notional=${money(config.notionalUsdt, 2, false)}。Dashboard 會阻擋 Resume。`} /> : null}
+      {!liveSafetyReady && Object.keys(config).length ? <Alert className="echtgeld-alert" type="warning" showIcon message="Echtgeld 安全設定不符合目前規格" description={`必須鎖定 SIDE_ONLY 且 notional 在 (0, ${MAX_ECHTGELD_NOTIONAL_USDT}] USDT。目前 cohort=${text(config.cohort)} / notional=${money(config.notionalUsdt, 2, false)}。Dashboard 會阻擋 Resume。`} /> : null}
 
       <Card className="echtgeld-status-hero" bordered={false}>
         <Row gutter={[20, 18]} align="middle">
@@ -472,11 +494,11 @@ export default function TargetTakerEchtgeldPage() {
       </Row>
 
       <Card className="stack-card" title={<Space><DollarOutlined /> Echtgeld 設定與控制</Space>} extra={<Space><Tag color={armed ? 'success' : 'default'}>{text(engine.runtimeStatus)}</Tag><Text type="secondary">Engine restart 永遠 PAUSED</Text></Space>}>
-        <Alert type="info" showIcon message="Live Canary 固定 SIDE_ONLY" description="HAZARD_SIDE 仍只保留 paper。這個 Dashboard 不提供把 HAZARD_SIDE 切成 Echtgeld 的控制；單市場 notional 也限制在 1 USDT 以內。" />
+        <Alert type="info" showIcon message="Echtgeld 固定 SIDE_ONLY；金額由你控制" description={`HAZARD_SIDE 仍只保留 paper。每市場 notional 不再使用測試期 1 USDT 硬上限；可在下方自行設定，8781 目前保留 ${MAX_ECHTGELD_NOTIONAL_USDT} USDT 的既有後端安全上限。`} />
         <Form form={form} layout="vertical" className="echtgeld-control-form">
           <Row gutter={[12, 0]}>
             <Col xs={24} md={8}><Form.Item name="venue" label="Venue" rules={[{ required: true }]}><Select disabled={armed} options={[{ value: 'predictfun', label: 'Predict.fun' }, { value: 'binance', label: 'Binance Prediction' }]} /></Form.Item></Col>
-            <Col xs={24} md={8}><Form.Item name="notionalUsdt" label="每市場 Echtgeld Notional (USDT)" rules={[{ required: true }]}><InputNumber disabled={armed} min={0.01} max={1} step={0.01} precision={2} style={{ width: '100%' }} /></Form.Item></Col>
+            <Col xs={24} md={8}><Form.Item name="notionalUsdt" label="每市場 Echtgeld Notional (USDT)" rules={[{ required: true }]}><InputNumber disabled={armed} min={0.01} max={MAX_ECHTGELD_NOTIONAL_USDT} step={0.01} precision={2} style={{ width: '100%' }} /></Form.Item></Col>
             <Col xs={24} md={8}><Form.Item name="maxPriceDrift" label="Max price drift" rules={[{ required: true }]}><InputNumber disabled={armed} min={0} max={0.10} step={0.001} precision={3} style={{ width: '100%' }} /></Form.Item></Col>
           </Row>
         </Form>
@@ -492,7 +514,7 @@ export default function TargetTakerEchtgeldPage() {
       </Card>
 
       <Card className="stack-card" title="永久實單訊息" extra={<Text type="secondary">8781 SQLite engine_events · restart 後仍保留</Text>}>
-        {engine.latestError ? <Alert className="echtgeld-alert" type="error" showIcon message="最近 Echtgeld ERROR" description={text(row(engine.latestError).message)} /> : null}
+        {Object.keys(latestActiveError).length ? <Alert className="echtgeld-alert" type="error" showIcon message="最近 Echtgeld ERROR" description={text(latestActiveError.message)} /> : null}
         {engine.latestWarning ? <Alert className="echtgeld-alert" type="warning" showIcon message="最近 Echtgeld WARNING" description={text(row(engine.latestWarning).message)} /> : null}
         <Table<RowObject> size="small" rowKey={(item) => text(item.id, `${text(item.occurred_at_ms)}:${text(item.event_type)}`)} dataSource={events} columns={eventColumns} pagination={{ pageSize: 20, hideOnSinglePage: true }} scroll={{ x: 1050 }} locale={{ emptyText: '尚無 Echtgeld event；Engine 啟動、Pause/Resume、intent、送單結果都會永久記錄在這裡。' }} />
       </Card>
