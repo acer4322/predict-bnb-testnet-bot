@@ -56,9 +56,6 @@ function Wait-LocalService([string]$Name, [string]$Url, [int]$Seconds, [string]$
 }
 
 function Import-PersistentEnvironment([string]$Name) {
-    # Prefer user-scoped values, then machine-scoped values. This is important
-    # when Dashboard V2 was started before credentials were changed: its child
-    # PowerShell would otherwise inherit a stale process environment forever.
     $Value = [Environment]::GetEnvironmentVariable($Name, "User")
     if ([string]::IsNullOrWhiteSpace($Value)) {
         $Value = [Environment]::GetEnvironmentVariable($Name, "Machine")
@@ -74,10 +71,6 @@ function Test-EnvPair([string]$First, [string]$Second) {
     return -not [string]::IsNullOrWhiteSpace($FirstValue) -and -not [string]::IsNullOrWhiteSpace($SecondValue)
 }
 
-# Credentials belong to this process, not to research observers. Never print values.
-# Binance authentication is BINANCE_API_KEY + BINANCE_API_SECRET. Prediction
-# walletAddress/walletId are discovered from authenticated wallet/list at runtime;
-# they are venue metadata, not separate operator credentials.
 @(
     "PREDICT_FUN_API_KEY",
     "PREDICT_FUN_PRIVATE_KEY",
@@ -108,37 +101,37 @@ $EnginePid = Get-ListeningProcessId $EnginePort
 if ($EnginePid) {
     $Command = Get-ProcessCommandLine $EnginePid
     $Lower = $Command.ToLowerInvariant()
+    $IsV4 = $Lower.Contains("predict_bot.echtgeld_engine_v4")
+    $IsV3 = $Lower.Contains("predict_bot.echtgeld_engine_v3")
     $IsV2 = $Lower.Contains("predict_bot.echtgeld_engine_v2")
     $IsV1 = $Lower.Contains("predict_bot.echtgeld_engine_v1")
-    if (-not $IsV2 -and -not $IsV1) {
+    if (-not $IsV4 -and -not $IsV3 -and -not $IsV2 -and -not $IsV1) {
         throw "Port $EnginePort is occupied by an unrecognized process. Refusing to terminate it. PID=$EnginePid command=$Command"
     }
 
     $Healthy = Test-LocalService "$EngineBase/health" 5
     $ExistingHealth = if ($Healthy) { Get-JsonPayload "$EngineBase/health" 5 } else { $null }
-    if ($IsV2 -and $Healthy -and ([string]$ExistingHealth.version).Contains("ECHTGELD_ENGINE_V2")) {
+    if ($IsV4 -and $Healthy -and ([string]$ExistingHealth.version).Contains("POLY_FAST_V1")) {
         if ([bool]$ExistingHealth.armed) {
-            # Never kill an armed Echtgeld engine. Its current process environment
-            # is intentionally left untouched until the operator pauses it.
             $ReusedExistingEngine = $true
-            Write-Warning "Echtgeld Engine V2 is LIVE ARMED on PID=$EnginePid. It was left untouched; pause it before reloading credentials/environment."
+            Write-Warning "Echtgeld Engine V4 is LIVE ARMED on PID=$EnginePid. It was left untouched."
         }
         else {
-            # A healthy PAUSED process is safe to replace. Do this deliberately
-            # so newly configured User/Machine credentials are inherited by the
-            # Python process instead of silently reusing stale startup env.
-            Write-Host "Echtgeld Engine V2: healthy but PAUSED; restarting PID=$EnginePid to reload persistent credentials/environment."
+            Write-Host "Echtgeld Engine V4: healthy but PAUSED; restarting PID=$EnginePid to reload credentials/environment."
             & taskkill.exe /PID $EnginePid /T /F | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "Failed to stop PAUSED Echtgeld Engine PID=$EnginePid for credential reload." }
+            if ($LASTEXITCODE -ne 0) { throw "Failed to stop PAUSED Echtgeld Engine PID=$EnginePid." }
             Start-Sleep -Milliseconds 500
             $EnginePid = $null
         }
     }
+    elseif (($IsV3 -or $IsV2) -and $Healthy -and [bool]$ExistingHealth.armed) {
+        throw "Existing 8781 Echtgeld engine is LIVE ARMED. Pause it before migrating to Poly Fast gateway V4."
+    }
     elseif ($IsV1 -and $Healthy -and [bool]$ExistingHealth.armed) {
-        throw "A legacy Echtgeld Engine V1 is LIVE ARMED on $EnginePort. It was NOT stopped. Pause it from the control page, then run this launcher again to migrate safely to V2."
+        throw "A legacy Echtgeld Engine V1 is LIVE ARMED. Pause it before migration."
     }
     else {
-        Write-Host "Echtgeld Engine V2: replacing recognized old/unhealthy engine PID=$EnginePid while not armed."
+        Write-Host "Echtgeld Engine: replacing recognized old/unhealthy engine PID=$EnginePid while not armed."
         & taskkill.exe /PID $EnginePid /T /F | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "Failed to stop recognized Echtgeld Engine PID=$EnginePid." }
         Start-Sleep -Milliseconds 500
@@ -147,11 +140,9 @@ if ($EnginePid) {
 }
 
 if (-not $EnginePid) {
-    Write-Host "Echtgeld Engine V2 + 4310 Redeem: starting independent service on 127.0.0.1:$EnginePort."
-    # The trailing compatibility token keeps Dashboard V2's existing process
-    # ownership check recognizing this additive wrapper as the same 8781 V2 service.
+    Write-Host "Echtgeld Engine V4 + Poly Fast gateway: starting independent service on 127.0.0.1:$EnginePort."
     $Process = Start-Process -FilePath "python" `
-        -ArgumentList @("-m", "predict_bot.echtgeld_engine_v3", "predict_bot.echtgeld_engine_v2") `
+        -ArgumentList @("-m", "predict_bot.echtgeld_engine_v4", "predict_bot.echtgeld_engine_v3", "predict_bot.echtgeld_engine_v2") `
         -WorkingDirectory $Root -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $Data "echtgeld-engine-v2.stdout.log") `
         -RedirectStandardError (Join-Path $Data "echtgeld-engine-v2.stderr.log") -PassThru
@@ -164,27 +155,30 @@ if (-not $Health -or -not [bool]$Health.ok) {
     throw "$EnginePort responded but did not report a healthy Echtgeld Engine."
 }
 if (-not ([string]$Health.version).Contains("ECHTGELD_ENGINE_V2")) {
-    throw "$EnginePort is healthy but version is not Echtgeld Engine V2 compatible: $($Health.version)"
+    throw "$EnginePort is healthy but version is not Echtgeld Engine V2-compatible: $($Health.version)"
+}
+if (-not [bool]$Health.polyFastGatewayEnabled) {
+    throw "$EnginePort is healthy but Poly Fast gateway is not enabled. version=$($Health.version)"
 }
 if ([bool]$Health.armed -and -not $ReusedExistingEngine) {
     throw "A newly started Echtgeld Engine unexpectedly reports ARMED. Refusing to continue."
 }
 if ([bool]$Health.armed -and $ReusedExistingEngine) {
-    Write-Warning "Existing Echtgeld Engine is currently LIVE ARMED. It was left completely untouched. Use the dedicated control page to Pause if needed."
+    Write-Warning "Existing Echtgeld Engine is currently LIVE ARMED and was left untouched."
 }
 
-Write-Host "Echtgeld Engine V2 + 4310 Redeem is running independently."
-Write-Host "  Runtime: $($Health.runtimeStatus)"
-Write-Host "  Health : $EngineBase/health"
-Write-Host "  State  : $EngineBase/state"
-Write-Host "  DB     : data/echtgeld_engine_v1.db (existing durable ledger retained)"
-Write-Host "  Balance: Binance Prediction payment-options (4310 style) + separate MPC safety balance"
-Write-Host "  PnL    : actual reconciled fills + official Target Taker settlements"
-Write-Host "  Redeem : venue-explicit PENDING_CLAIM only; 60s delay; durable no-blind-retry; continues while PAUSED"
-Write-Host "  Scope  : auto-redeem is restricted to Binance market IDs already SUBMITTED by this 8781 ledger"
-Write-Host "  Safety : a new engine starts PAUSED; queued/ambiguous orders and ambiguous redeems are never replayed after restart"
-Write-Host "  Env    : Binance auth uses BINANCE_API_KEY/BINANCE_API_SECRET; wallet identity comes from wallet/list"
-Write-Host "  Note   : restarting strategy observers does NOT stop this process"
+Write-Host "Echtgeld Engine V4 is running independently."
+Write-Host "  Runtime : $($Health.runtimeStatus)"
+Write-Host "  Health  : $EngineBase/health"
+Write-Host "  State   : $EngineBase/state"
+Write-Host "  Poly    : POST $EngineBase/poly-intent (8792 producer only)"
+Write-Host "  DB      : data/echtgeld_engine_v1.db (existing durable ledger retained)"
+Write-Host "  Balance : Binance Prediction payment-options + MPC safety balance"
+Write-Host "  Risk    : existing Pause/Resume + durable stop-loss admission/pre-venue fences"
+Write-Host "  Orders  : 8781 is the only real-money venue owner; signed MARKET/FOK + reconciliation"
+Write-Host "  Redeem  : existing 4310 durable no-blind-retry lifecycle continues while PAUSED"
+Write-Host "  Safety  : a new engine starts PAUSED; queued/ambiguous orders are never replayed after restart"
+Write-Host "  Assets  : Poly Fast BTC/ETH/BNB symbols are selected per intent inside 8781"
 
 if (-not $NoBrowser) {
     Write-Host "Dashboard control page: http://127.0.0.1:4320/echtgeld.html"
