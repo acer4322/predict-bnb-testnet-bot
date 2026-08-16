@@ -32,7 +32,7 @@ catch {
 }
 
 $Lower = $CommandLine.ToLowerInvariant()
-if (-not $Lower.Contains("predict_bot.poly_fast_signal_v5") -and -not $Lower.Contains("predict_bot.poly_fast_signal_v4") -and -not $Lower.Contains("predict_bot.poly_fast_live")) {
+if (-not $Lower.Contains("predict_bot.poly_fast_signal_v6") -and -not $Lower.Contains("predict_bot.poly_fast_signal_v5") -and -not $Lower.Contains("predict_bot.poly_fast_signal_v4") -and -not $Lower.Contains("predict_bot.poly_fast_live")) {
     throw "Refusing to stop PID=$ListenerPid because it is not a recognized Poly Fast process. command=$CommandLine"
 }
 
