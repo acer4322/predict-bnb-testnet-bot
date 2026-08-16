@@ -63,7 +63,7 @@ function Test-FastLive {
 }
 
 function Set-FastEntryMode {
-    foreach ($Asset in @("ETH", "BNB")) {
+    foreach ($Asset in @("BTC", "ETH", "BNB")) {
         $Body = @{
             asset = $Asset
             entryStrategyMode = $EntryMode
@@ -127,7 +127,7 @@ Set-FastEntryMode
 
 Write-Host "Poly Fast Live is ready: http://127.0.0.1:$Port/state"
 Write-Host "Only Binance Prediction + Polymarket feeds and the existing V3 live executors are active."
-Write-Host "Entry mode=$EntryMode. ETH and BNB still require explicit runtime Resume after V3 safe-pause."
+Write-Host "Entry mode=$EntryMode. BTC, ETH and BNB still require explicit runtime Resume after V3 safe-pause."
 
 if (-not $NoBrowser) {
     Start-Process "http://127.0.0.1:$Port/state"
