@@ -98,7 +98,7 @@ if ($ExistingPid) {
 $Stdout = Join-Path $Data "poly-fast-live.stdout.log"
 $Stderr = Join-Path $Data "poly-fast-live.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.poly_fast_live") `
+    -ArgumentList @("-m", "predict_bot.poly_fast_live_v3") `
     -WorkingDirectory $Root `
     -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout `
@@ -125,9 +125,9 @@ if (-not (Test-FastLive)) {
 # safe-pause on first startup. Choosing a strategy never arms live execution.
 Set-FastEntryMode
 
-Write-Host "Poly Fast Live is ready: http://127.0.0.1:$Port/state"
-Write-Host "Only Binance Prediction + Polymarket feeds and the existing V3 live executors are active."
-Write-Host "Entry mode=$EntryMode. BTC, ETH and BNB still require explicit runtime Resume after V3 safe-pause."
+Write-Host "Poly Fast Live V3 is ready: http://127.0.0.1:$Port/state"
+Write-Host "8792 owns BTC/ETH/BNB Binance market identity + Polymarket signals in-process; 8766/8770/8781 are not required."
+Write-Host "Entry mode=$EntryMode. BTC, ETH and BNB still require explicit runtime Resume before real orders."
 
 if (-not $NoBrowser) {
     Start-Process "http://127.0.0.1:$Port/state"
