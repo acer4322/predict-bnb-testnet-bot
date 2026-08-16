@@ -50,7 +50,7 @@ if ($ListenerPid) {
     if ($Health -and [bool]$Health.armed) {
         throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$ListenerPid version=$($Health.version)"
     }
-    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with V13 Poly lifecycle repair."
+    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with V14 recovered-AMBIGUOUS state projection."
     & taskkill.exe /PID $ListenerPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$ListenerPid" }
     Start-Sleep -Milliseconds 500
@@ -59,7 +59,7 @@ if ($ListenerPid) {
 $Stdout = Join-Path $Data "echtgeld-engine-v2.stdout.log"
 $Stderr = Join-Path $Data "echtgeld-engine-v2.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v13") `
+    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v14") `
     -WorkingDirectory $Root -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content (Join-Path $Root ".echtgeld-engine-v2.pid")
@@ -95,12 +95,16 @@ if (-not [bool]$Health.ambiguousExitDelayedReconciliation) { throw "8781 delayed
 if (-not [bool]$Health.polyEmptyTokenRepair) { throw "8781 Poly empty-token repair is not enabled." }
 if (-not [bool]$Health.polyExpiredFilledRoundDetach) { throw "8781 expired filled Poly round detach is not enabled." }
 if (-not [bool]$Health.polyExpiredSettlementPreserved) { throw "8781 expired Poly settlement tracking is not preserved." }
+if (-not [bool]$Health.recoveredAmbiguousCurrentStateProjection) { throw "8781 recovered AMBIGUOUS current-state projection is not enabled." }
+if (-not [bool]$Health.historicalAmbiguousEventsPreserved) { throw "8781 must preserve historical AMBIGUOUS audit events." }
 if ([bool]$Health.armed) { throw "New Echtgeld engine unexpectedly started ARMED." }
 
-Write-Host "Echtgeld Engine V13 is ready and PAUSED: $Base/state"
+Write-Host "Echtgeld Engine V14 is ready and PAUSED: $Base/state"
 Write-Host "  Poly entry : BTC + ETH only; NEW BNB entries remain blocked in 8781"
 Write-Host "  Poly token : empty durable token IDs are repaired from the original persisted Poly intent"
 Write-Host "  Expiry     : confirmed FILLED old 5m rounds detach from active execution after expiry and no longer block the next market"
+Write-Host "  Recovery   : AMBIGUOUS-at-submit orders later confirmed FILLED no longer appear as unresolved latestError/lastResult"
+Write-Host "  Audit      : original ORDER_AMBIGUOUS_NO_RETRY events remain immutable in engine_events"
 Write-Host "  Settlement : detached expired rounds remain tracked by 4310 claim/redeem + PnL + stop-loss accounting"
 Write-Host "  Reconcile  : old 4310-style order/history sync + position confirmation remains read-only every 500ms while needed"
 Write-Host "  Never retry: AMBIGUOUS BUY/SELL is never resubmitted; reconciliation only observes the existing order/position"
