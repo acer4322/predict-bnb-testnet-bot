@@ -17,7 +17,7 @@ if (-not $Pid) {
 }
 if (-not $Pid) {
     Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
-    Write-Host "Poly Fast Live is already stopped."
+    Write-Host "Poly Fast Signal is already stopped."
     exit 0
 }
 
@@ -27,12 +27,13 @@ try {
 }
 catch {
     Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
-    Write-Host "Poly Fast Live process is already gone."
+    Write-Host "Poly Fast Signal process is already gone."
     exit 0
 }
 
-if (-not $CommandLine.ToLowerInvariant().Contains("predict_bot.poly_fast_live")) {
-    throw "Refusing to stop PID=$Pid because it is not predict_bot.poly_fast_live*. command=$CommandLine"
+$Lower = $CommandLine.ToLowerInvariant()
+if (-not $Lower.Contains("predict_bot.poly_fast_signal_v4") -and -not $Lower.Contains("predict_bot.poly_fast_live")) {
+    throw "Refusing to stop PID=$Pid because it is not a recognized Poly Fast process. command=$CommandLine"
 }
 
 Stop-Process -Id $Pid -Force -ErrorAction Stop
@@ -46,4 +47,4 @@ for ($i = 0; $i -lt 40; $i++) {
     catch { break }
     Start-Sleep -Milliseconds 100
 }
-Write-Host "Poly Fast Live stopped on port $Port."
+Write-Host "Poly Fast Signal stopped on port $Port."
