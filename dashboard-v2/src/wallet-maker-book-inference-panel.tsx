@@ -17,6 +17,7 @@ function rows(value: unknown): RowObject[] {
 }
 
 function num(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
 }
@@ -41,31 +42,63 @@ function usd(value: unknown): string {
   return parsed === null ? '—' : `$${parsed.toFixed(2)}`
 }
 
+function dateTime(value: unknown): string {
+  const parsed = num(value)
+  return parsed === null || parsed <= 0 ? '—' : new Date(parsed).toLocaleString('zh-TW', { hour12: false })
+}
+
 function side(value: unknown) {
   const valueText = text(value)
   return <Tag color={valueText === 'UP' ? 'success' : valueText === 'DOWN' ? 'error' : 'default'}>{valueText}</Tag>
+}
+
+function role(value: unknown) {
+  const valueText = text(value).toUpperCase()
+  return <Tag color={valueText === 'MAKER' ? 'blue' : valueText === 'TAKER' ? 'purple' : 'default'}>{valueText}</Tag>
 }
 
 function InferenceCard({ service, asset, port }: { service: ServiceSnapshot; asset: string; port: number }) {
   const data = row(service.data)
   const current = row(data.current)
   const storage = row(data.storage)
+  const websocket = row(data.websocket)
   const inference = row(data.targetInference)
+  const activity = row(data.targetActivity)
   const lifecycle = row(data.lifecycleInference)
   const capital = row(lifecycle.capitalLowerBound)
   const allocation = row(lifecycle.allocationDiagnostics)
+  const roleSeparation = row(data.roleSeparation)
+  const poll = row(activity.pollDiagnostics)
   const matched = num(inference.matched) ?? 0
   const total = num(inference.target_events ?? inference.targetEvents) ?? 0
   const matchRate = total > 0 ? matched / total : 0
-  const hasV21 = asset === 'BTC' && lifecycle.consumableQuantityAllocation === true
+  const hasV21 = lifecycle.consumableQuantityAllocation === true
+  const bookFresh = num(current.sampleAgeMs) !== null && (num(current.sampleAgeMs) ?? Infinity) < 5000
+  const activityFresh = num(activity.latestAgeMs) !== null && (num(activity.latestAgeMs) ?? Infinity) < 10_000
+
+  const activityColumns: TableColumnsType<RowObject> = [
+    { title: 'Time', dataIndex: 'event_ms', width: 165, render: dateTime },
+    { title: 'Market', dataIndex: 'market_id', width: 90, render: (value) => `#${text(value)}` },
+    { title: 'Role', dataIndex: 'role', width: 85, render: role },
+    { title: 'Quote', dataIndex: 'quote_type', width: 75, render: (value) => <Tag>{text(value)}</Tag> },
+    { title: 'Side', dataIndex: 'side', width: 75, render: side },
+    { title: 'Price', dataIndex: 'price', width: 80, render: (value) => num(value)?.toFixed(4) ?? '—' },
+    { title: 'Shares', dataIndex: 'shares', width: 85, render: (value) => num(value)?.toFixed(2) ?? '—' },
+    { title: 'Observed delay', key: 'delay', width: 120, render: (_, item) => {
+      const eventMs = num(item.event_ms)
+      const observed = num(item.observed_at_ms)
+      return eventMs !== null && observed !== null ? ms(Math.max(0, observed - eventMs)) : '—'
+    } },
+    { title: 'Order hash', dataIndex: 'order_hash', ellipsis: true },
+  ]
 
   const targetColumns: TableColumnsType<RowObject> = [
     { title: 'Market', dataIndex: 'market_id', width: 90, render: (value) => `#${text(value)}` },
     { title: 'Side', dataIndex: 'side', width: 70, render: side },
     { title: 'Price', dataIndex: 'target_price', width: 75 },
     { title: 'Shares', dataIndex: 'target_shares', width: 85, render: (value) => num(value)?.toFixed(2) ?? '—' },
-    { title: 'Book', key: 'book', width: 100, render: (_, item) => `${text(item.native_book_side)} ${text(item.native_price)}` },
-    { title: 'Status', dataIndex: 'status', width: 90, render: (value) => <Tag color={value === 'MATCHED' ? 'success' : 'warning'}>{text(value)}</Tag> },
+    { title: 'Book', key: 'book', width: 110, render: (_, item) => `${text(item.native_book_side)} ${text(item.native_price)}` },
+    { title: 'Status', dataIndex: 'status', width: 95, render: (value) => <Tag color={value === 'MATCHED' ? 'success' : 'warning'}>{text(value)}</Tag> },
     { title: 'Decrease', dataIndex: 'observed_decrease', width: 90, render: (value) => num(value)?.toFixed(2) ?? '—' },
     { title: 'Delay', dataIndex: 'event_delay_ms', width: 85, render: ms },
     { title: 'Confidence', dataIndex: 'match_confidence', width: 95, render: pct },
@@ -76,67 +109,104 @@ function InferenceCard({ service, asset, port }: { service: ServiceSnapshot; ass
     { title: 'Side', dataIndex: 'target_side', width: 70, render: side },
     { title: 'Price', dataIndex: 'target_price', width: 70 },
     { title: 'Fills', dataIndex: 'target_fill_count', width: 60 },
-    { title: 'Filled shares', dataIndex: 'target_filled_shares', width: 100, render: (value) => num(value)?.toFixed(2) ?? '—' },
-    { title: 'Expected parent', dataIndex: 'expected_parent_shares', width: 105, render: (value) => num(value)?.toFixed(2) ?? '—' },
+    { title: 'Filled', dataIndex: 'target_filled_shares', width: 80, render: (value) => num(value)?.toFixed(2) ?? '—' },
+    { title: 'Expected', dataIndex: 'expected_parent_shares', width: 85, render: (value) => num(value)?.toFixed(2) ?? '—' },
     { title: 'Fill alloc.', dataIndex: 'fill_allocation_coverage', width: 90, render: pct },
-    { title: 'Placement alloc.', dataIndex: 'placement_coverage', width: 105, render: pct },
+    { title: 'Placement', dataIndex: 'placement_coverage', width: 90, render: pct },
     { title: 'Resting', dataIndex: 'resting_ms', width: 85, render: ms },
-    { title: 'Next parent', dataIndex: 'post_action', width: 230, render: (value) => <Tag>{text(value)}</Tag> },
+    { title: 'After', dataIndex: 'post_action', width: 200, render: (value) => <Tag>{text(value)}</Tag> },
     { title: 'Delay', dataIndex: 'post_action_delay_ms', width: 85, render: ms },
-    { title: 'Multi-fill', dataIndex: 'multi_fill_parent', width: 80, render: (value) => value ? <Tag color="blue">YES</Tag> : <Tag>NO</Tag> },
     { title: 'Confidence', dataIndex: 'confidence', width: 95, render: pct },
-  ]
-
-  const reasonColumns: TableColumnsType<RowObject> = [
-    { title: 'Speculative cancel reason', dataIndex: 'reason' },
-    { title: 'Candidates', dataIndex: 'count', width: 95 },
-    { title: 'Allocated shares', dataIndex: 'allocatedShares', width: 120, render: (value) => num(value)?.toFixed(1) ?? '—' },
-    { title: 'Avg confidence', dataIndex: 'averageConfidence', width: 110, render: pct },
   ]
 
   const cancelColumns: TableColumnsType<RowObject> = [
     { title: 'Market', dataIndex: 'market_id', width: 90, render: (value) => `#${text(value)}` },
     { title: 'Side', dataIndex: 'target_side', width: 70, render: side },
     { title: 'Price', dataIndex: 'target_price', width: 70 },
-    { title: 'Allocated qty', dataIndex: 'allocated_quantity', width: 100, render: (value) => num(value)?.toFixed(2) ?? '—' },
+    { title: 'Allocated', dataIndex: 'allocated_quantity', width: 90, render: (value) => num(value)?.toFixed(2) ?? '—' },
     { title: 'Resting', dataIndex: 'resting_ms', width: 85, render: ms },
-    { title: 'After', dataIndex: 'post_action', width: 175 },
+    { title: 'After', dataIndex: 'post_action', width: 170 },
     { title: 'Reason', dataIndex: 'likely_reason', width: 170, render: (value) => <Tag color="warning">{text(value)}</Tag> },
-    { title: 'Pressure', dataIndex: 'pressure_side', width: 85 },
-    { title: 'T-left', dataIndex: 'seconds_left', width: 75, render: (value) => num(value) === null ? '—' : `${num(value)?.toFixed(1)}s` },
     { title: 'Confidence', dataIndex: 'confidence', width: 90, render: pct },
   ]
 
   return (
     <Card title={`TARGET_MAKER_BOOK_INFERENCE · ${asset} 5M · ${port}`} style={{ marginTop: 12 }}>
+      {!service.ok && !service.data ? (
+        <Alert type="error" showIcon message={`${port} collector offline`} description={service.error || 'No /state response'} />
+      ) : null}
+
       <Alert
-        type={hasV21 ? 'success' : 'info'}
+        type={hasV21 ? 'success' : 'warning'}
         showIcon
-        message={hasV21 ? 'V2.1：可消耗 quantity + parent lifecycle 已啟用' : '完整公開深度只能做機率式目標掛單配對'}
+        message={hasV21 ? 'V2.1 full-book consumable lifecycle 已啟用' : '尚未確認 V2.1 lifecycle payload'}
         description={hasV21
-          ? '同一筆 public +depth / -depth 不能再無限重複配對；quantity 被配置後會扣除 remaining。相同 order hash 的多段 target fills 先合併成 parent，再計算 placement、partial/multi-fill、下一張 parent 的 refill/reprice。匿名 cancel 仍只標 speculative。'
-          : 'MATCHED 代表目標 Maker fill 附近存在同價位 aggregate depth decrease，不等於交易所證明匿名 resting order 的身分。'}
+          ? `${asset} 與另一資產使用同一套 public full-book delta / consumable quantity lifecycle。MAKER 與 TAKER activity 都保留；只有 MAKER BID 進 anonymous resting-book inference。`
+          : '若 collector 正常但此欄仍沒有 consumableQuantityAllocation=true，請檢查後端版本是否尚未重啟。'}
+        style={{ marginBottom: 12 }}
       />
 
-      <Row gutter={[10, 10]} style={{ marginTop: 12 }}>
+      <Row gutter={[10, 10]}>
         <Col xs={12} md={6} xl={3}><Statistic title="Status" value={text(data.status, service.ok ? 'CONNECTED' : 'OFFLINE')} /></Col>
         <Col xs={12} md={6} xl={3}><Statistic title="Market" value={`#${text(current.marketId)}`} /></Col>
         <Col xs={12} md={6} xl={3}><Statistic title="Book updates" value={num(storage.updates) ?? 0} /></Col>
-        <Col xs={12} md={6} xl={3}><Statistic title="Target events" value={total} /></Col>
-        <Col xs={12} md={6} xl={3}><Statistic title="Matched" value={matched} /></Col>
+        <Col xs={12} md={6} xl={3}><Statistic title="Book age" value={ms(current.sampleAgeMs)} /></Col>
+        <Col xs={12} md={6} xl={3}><Statistic title="Maker events" value={num(activity.maker_events ?? activity.makerEvents) ?? 0} /></Col>
+        <Col xs={12} md={6} xl={3}><Statistic title="Taker events" value={num(activity.taker_events ?? activity.takerEvents) ?? 0} /></Col>
+        <Col xs={12} md={6} xl={3}><Statistic title="Matched Maker" value={matched} /></Col>
         <Col xs={12} md={6} xl={3}><Statistic title="Match rate" value={pct(matchRate)} /></Col>
-        <Col xs={12} md={6} xl={3}><Statistic title="High confidence" value={num(inference.high_confidence ?? inference.highConfidence) ?? 0} /></Col>
-        <Col xs={12} md={6} xl={3}><Statistic title="DB" value={num(storage.databaseBytes) === null ? '—' : `${(num(storage.databaseBytes)! / 1024 / 1024).toFixed(1)} MB`} /></Col>
       </Row>
-      <Progress percent={matchRate * 100} format={() => `Target fill book match ${(matchRate * 100).toFixed(1)}%`} />
+      <Progress percent={matchRate * 100} format={() => `Maker fill ↔ book decrease ${(matchRate * 100).toFixed(1)}%`} />
 
-      <Descriptions size="small" column={3} style={{ marginTop: 8 }}>
-        <Descriptions.Item label="Version">{text(data.version)}</Descriptions.Item>
-        <Descriptions.Item label="WebSocket">{text(row(data.websocket).status)}</Descriptions.Item>
-        <Descriptions.Item label="Book age">{ms(current.sampleAgeMs)}</Descriptions.Item>
-      </Descriptions>
+      <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+        <Col xs={24} xl={12}>
+          <Card size="small" title="Public full order-book capture">
+            <Row gutter={[8, 8]}>
+              <Col xs={12} md={8}><Statistic title="WebSocket" value={text(websocket.status)} /></Col>
+              <Col xs={12} md={8}><Statistic title="Freshness" value={bookFresh ? 'FRESH' : 'STALE / WAIT'} /></Col>
+              <Col xs={12} md={8}><Statistic title="Checkpoints" value={num(storage.checkpoints) ?? 0} /></Col>
+              <Col xs={12} md={8}><Statistic title="Updates this run" value={num(storage.updatesWrittenThisRun) ?? 0} /></Col>
+              <Col xs={12} md={8}><Statistic title="Level Δ this run" value={num(storage.levelChangesWrittenThisRun) ?? 0} /></Col>
+              <Col xs={12} md={8}><Statistic title="Stored markets" value={num(storage.markets) ?? 0} /></Col>
+            </Row>
+            <Descriptions size="small" column={2} style={{ marginTop: 8 }}>
+              <Descriptions.Item label="Last source">{dateTime(current.lastSourceMs)}</Descriptions.Item>
+              <Descriptions.Item label="Last received">{dateTime(current.lastReceivedMs)}</Descriptions.Item>
+              <Descriptions.Item label="Latest storage age">{ms(storage.latestAgeMs)}</Descriptions.Item>
+              <Descriptions.Item label="DB">{num(storage.databaseBytes) === null ? '—' : `${(num(storage.databaseBytes)! / 1024 / 1024).toFixed(1)} MB`}</Descriptions.Item>
+            </Descriptions>
+          </Card>
+        </Col>
+        <Col xs={24} xl={12}>
+          <Card size="small" title="Target Maker / Taker activity">
+            <Row gutter={[8, 8]}>
+              <Col xs={12} md={6}><Statistic title="Total" value={num(activity.total_events ?? activity.totalEvents) ?? 0} /></Col>
+              <Col xs={12} md={6}><Statistic title="Maker shares" value={num(activity.maker_shares ?? activity.makerShares)?.toFixed(2) ?? '0'} /></Col>
+              <Col xs={12} md={6}><Statistic title="Taker shares" value={num(activity.taker_shares ?? activity.takerShares)?.toFixed(2) ?? '0'} /></Col>
+              <Col xs={12} md={6}><Statistic title="Latest" value={activityFresh ? 'FRESH' : ms(activity.latestAgeMs)} /></Col>
+            </Row>
+            <Descriptions size="small" column={2} style={{ marginTop: 8 }}>
+              <Descriptions.Item label="MAKER boundary">{text(roleSeparation.MAKER, text(activity.makerMatchingBoundary))}</Descriptions.Item>
+              <Descriptions.Item label="TAKER boundary">{text(roleSeparation.TAKER, 'retained separately; excluded from Maker lifecycle')}</Descriptions.Item>
+              <Descriptions.Item label="Ledger poll age">{ms(poll.lastPollAgeMs)}</Descriptions.Item>
+              <Descriptions.Item label="Source">8776 Official target ledger</Descriptions.Item>
+            </Descriptions>
+          </Card>
+        </Col>
+      </Row>
 
-      {hasV21 && (
+      <Table
+        style={{ marginTop: 12 }}
+        rowKey={(item) => text(item.source_leg_id)}
+        size="small"
+        columns={activityColumns}
+        dataSource={rows(activity.recent)}
+        pagination={false}
+        scroll={{ x: 1000 }}
+        title={() => `最近 Target Maker + Taker activity · ${asset}`}
+      />
+
+      {hasV21 ? (
         <>
           <Card size="small" title="V2.1 Parent lifecycle · consumable allocation" style={{ marginTop: 12 }}>
             <Row gutter={[8, 8]}>
@@ -146,31 +216,15 @@ function InferenceCard({ service, asset, port }: { service: ServiceSnapshot; ass
               <Col xs={12} md={6} xl={3}><Statistic title="Placement coverage" value={pct(lifecycle.averagePlacementCoverage)} /></Col>
               <Col xs={12} md={6} xl={3}><Statistic title="Fill allocation" value={pct(lifecycle.averageFillAllocationCoverage)} /></Col>
               <Col xs={12} md={6} xl={3}><Statistic title="Resting median" value={ms(lifecycle.medianRestingMs)} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Resting p90" value={ms(lifecycle.p90RestingMs)} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Multi-fill parent" value={pct(lifecycle.multiFillParentRate)} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Confirmed refill" value={pct(lifecycle.confirmedSamePriceRefillRate)} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Confirmed reprice" value={pct(lifecycle.confirmedRepriceRate)} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Observed parent ≈18" value={pct(lifecycle.observedParentFilledNear18Rate)} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Placement supports 18" value={pct(lifecycle.placementSupports18Rate)} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Median parent filled" value={num(lifecycle.medianObservedParentFilledShares)?.toFixed(2) ?? '—'} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Capital LB median" value={usd(capital.medianPeakUsdt)} /></Col>
+              <Col xs={12} md={6} xl={3}><Statistic title="Multi-fill" value={pct(lifecycle.multiFillParentRate)} /></Col>
               <Col xs={12} md={6} xl={3}><Statistic title="Capital LB p90" value={usd(capital.p90PeakUsdt)} /></Col>
-              <Col xs={12} md={6} xl={3}><Statistic title="Cancel candidates" value={num(lifecycle.cancelCandidates) ?? 0} /></Col>
             </Row>
-            <Alert
-              type="warning"
-              showIcon
-              style={{ marginTop: 10 }}
-              message="V2 many-to-one lifecycle 已退休"
-              description={`${text(lifecycle.v2Correction)}。Capital 仍是 lower bound：未成交或無法歸屬目標的 resting orders 不會硬算進目標資金。`}
-            />
             <Descriptions size="small" column={3} style={{ marginTop: 8 }}>
               <Descriptions.Item label="Allocations">{text(allocation.allocations, '0')}</Descriptions.Item>
               <Descriptions.Item label="Allocated shares">{num(allocation.allocated_shares)?.toFixed(1) ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Public events used">{text(allocation.public_events, '0')}</Descriptions.Item>
             </Descriptions>
           </Card>
-
           <Table
             style={{ marginTop: 12 }}
             rowKey={(item) => text(item.parent_id)}
@@ -178,35 +232,21 @@ function InferenceCard({ service, asset, port }: { service: ServiceSnapshot; ass
             columns={parentColumns}
             dataSource={rows(lifecycle.recentParents)}
             pagination={false}
-            scroll={{ x: 1450 }}
-            title={() => '最近 Target Maker parents'}
+            scroll={{ x: 1200 }}
+            title={() => `最近 Target Maker parents · ${asset}`}
           />
-
-          <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
-            <Col xs={24} xl={9}>
-              <Table
-                rowKey={(item) => text(item.reason)}
-                size="small"
-                columns={reasonColumns}
-                dataSource={rows(lifecycle.cancelReasonBreakdown)}
-                pagination={false}
-                title={() => 'Speculative cancel reason · quantity-deduped'}
-              />
-            </Col>
-            <Col xs={24} xl={15}>
-              <Table
-                rowKey={(item) => text(item.candidate_id)}
-                size="small"
-                columns={cancelColumns}
-                dataSource={rows(lifecycle.recentCancelCandidates)}
-                pagination={false}
-                scroll={{ x: 1100 }}
-                title={() => '最近匿名 cancel candidates（ownership 未證明）'}
-              />
-            </Col>
-          </Row>
+          <Table
+            style={{ marginTop: 12 }}
+            rowKey={(item) => text(item.candidate_id)}
+            size="small"
+            columns={cancelColumns}
+            dataSource={rows(lifecycle.recentCancelCandidates)}
+            pagination={false}
+            scroll={{ x: 1000 }}
+            title={() => '最近 anonymous cancel candidates（ownership 未證明）'}
+          />
         </>
-      )}
+      ) : null}
 
       <Table
         style={{ marginTop: 12 }}
@@ -220,7 +260,7 @@ function InferenceCard({ service, asset, port }: { service: ServiceSnapshot; ass
       />
 
       <Text type="secondary">
-        8778/8779 都是 read-only research collectors；public CLOB level 是匿名 aggregate，任何 placement / cancel ownership 都只能做機率式推論，不會驅動 live orders。
+        {port} 是 read-only research collector；public CLOB level 是匿名 aggregate。Maker placement/cancel ownership 只做機率式推論，TAKER activity 不會被混進 Maker lifecycle，也不會驅動 live orders。
       </Text>
     </Card>
   )
