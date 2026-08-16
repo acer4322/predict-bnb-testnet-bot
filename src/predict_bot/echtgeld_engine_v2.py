@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import threading
 import time
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -14,7 +15,7 @@ from .target_taker_live_execution_v5 import (
 )
 
 
-VERSION = "ECHTGELD_ENGINE_V2_4310_BALANCE_PNL"
+VERSION = "ECHTGELD_ENGINE_V2_4310_BALANCE_PNL_STOP_LOSS"
 HOST = str(os.environ.get("PREDICT_ECHTGELD_ENGINE_HOST") or "127.0.0.1").strip()
 PORT = int(os.environ.get("PREDICT_ECHTGELD_ENGINE_PORT") or "8781")
 ROOT = Path(__file__).resolve().parents[2]
@@ -24,13 +25,17 @@ SETTLEMENT_DB_PATH = Path(
     or ROOT / "data" / "predict_wallet_shadow.db"
 )
 SETTLEMENT_SYNC_INTERVAL_MS = 5_000
+RISK_MONITOR_INTERVAL_SECONDS = 2.0
+MAX_STOP_LOSS_USDT = 1_000_000.0
+RISK_BASIS = "SETTLED_NET_PNL_USDT"
 
 
 class EchtgeldEngine(v1.EchtgeldEngine):
-    """V1 execution engine plus old-live-control style balance and PnL monitoring.
+    """V1 execution engine plus balance, settled PnL, and durable PnL stop loss.
 
-    Settlement ingestion is observation-only. Failure to read the research DB is
-    reported in state but never blocks, submits, retries, or replays an order.
+    The stop loss is an engine-level guard, not a Dashboard-only feature. A
+    positive stopLossUsdt pauses new Echtgeld submissions when cumulative
+    settled strategy net PnL is <= -stopLossUsdt. Zero disables the guard.
     """
 
     def __init__(
@@ -50,11 +55,25 @@ class EchtgeldEngine(v1.EchtgeldEngine):
             "rows": 0,
             "error": None,
         }
+        self.risk_thread: threading.Thread | None = None
+        self.stop_loss_usdt = 0.0
+        self.stop_loss_last_triggered_at_ms: int | None = None
+        self.stop_loss_last_triggered_net_pnl_usdt: float | None = None
+        self.risk_last_check_at_ms: int | None = None
+        self.risk_last_error: str | None = None
         super().__init__(
             db_path,
             executor_factory=executor_factory,
             start_worker=start_worker,
         )
+        self._load_risk_control()
+        if start_worker:
+            self.risk_thread = threading.Thread(
+                target=self._risk_loop,
+                name="echtgeld-stop-loss-monitor",
+                daemon=True,
+            )
+            self.risk_thread.start()
 
     def _setup_schema(self) -> None:
         super()._setup_schema()
@@ -72,7 +91,70 @@ class EchtgeldEngine(v1.EchtgeldEngine):
                 );
                 CREATE INDEX IF NOT EXISTS idx_engine_settlements_time
                     ON engine_settlements(resolved_at_ms DESC);
+                CREATE TABLE IF NOT EXISTS engine_risk_control (
+                    id INTEGER PRIMARY KEY CHECK(id=1),
+                    stop_loss_usdt REAL NOT NULL DEFAULT 0,
+                    last_triggered_at_ms INTEGER,
+                    last_triggered_net_pnl_usdt REAL,
+                    updated_at_ms INTEGER NOT NULL
+                );
                 """
+            )
+            self.db.execute(
+                """INSERT OR IGNORE INTO engine_risk_control(
+                       id,stop_loss_usdt,last_triggered_at_ms,
+                       last_triggered_net_pnl_usdt,updated_at_ms
+                   ) VALUES (1,0,NULL,NULL,?)""",
+                (v1._now_ms(),),
+            )
+            self.db.commit()
+
+    def _load_risk_control(self) -> None:
+        with self.db_lock:
+            row = self.db.execute(
+                "SELECT * FROM engine_risk_control WHERE id=1"
+            ).fetchone()
+        if row is None:
+            return
+        self.stop_loss_usdt = max(0.0, float(row["stop_loss_usdt"] or 0.0))
+        self.stop_loss_last_triggered_at_ms = (
+            int(row["last_triggered_at_ms"])
+            if row["last_triggered_at_ms"] is not None
+            else None
+        )
+        self.stop_loss_last_triggered_net_pnl_usdt = (
+            float(row["last_triggered_net_pnl_usdt"])
+            if row["last_triggered_net_pnl_usdt"] is not None
+            else None
+        )
+
+    @staticmethod
+    def _validated_stop_loss(value: Any) -> float:
+        parsed = v1._finite(value)
+        if parsed is None or not 0 <= parsed <= MAX_STOP_LOSS_USDT:
+            raise v1.EchtgeldEngineError(
+                f"stopLossUsdt must be within [0, {MAX_STOP_LOSS_USDT:g}]; 0 disables the stop loss"
+            )
+        return float(parsed)
+
+    def _persist_risk_control(self) -> None:
+        with self.db_lock:
+            self.db.execute(
+                """INSERT INTO engine_risk_control(
+                       id,stop_loss_usdt,last_triggered_at_ms,
+                       last_triggered_net_pnl_usdt,updated_at_ms
+                   ) VALUES (1,?,?,?,?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       stop_loss_usdt=excluded.stop_loss_usdt,
+                       last_triggered_at_ms=excluded.last_triggered_at_ms,
+                       last_triggered_net_pnl_usdt=excluded.last_triggered_net_pnl_usdt,
+                       updated_at_ms=excluded.updated_at_ms""",
+                (
+                    float(self.stop_loss_usdt),
+                    self.stop_loss_last_triggered_at_ms,
+                    self.stop_loss_last_triggered_net_pnl_usdt,
+                    v1._now_ms(),
+                ),
             )
             self.db.commit()
 
@@ -209,8 +291,8 @@ class EchtgeldEngine(v1.EchtgeldEngine):
             row.update(self._settled_pnl(row, settlement))
         return rows
 
-    def performance(self) -> dict[str, Any]:
-        self._sync_settlements()
+    def _performance_snapshot(self, *, force_sync: bool = False) -> dict[str, Any]:
+        self._sync_settlements(force=force_sync)
         settlements = self._settlement_map()
         with self.db_lock:
             rows = [
@@ -274,19 +356,180 @@ class EchtgeldEngine(v1.EchtgeldEngine):
             "settlementSync": dict(self.settlement_sync_state),
         }
 
+    def performance(self) -> dict[str, Any]:
+        return self._performance_snapshot()
+
+    def _risk_snapshot(self, performance: dict[str, Any] | None = None) -> dict[str, Any]:
+        perf = performance if isinstance(performance, dict) else self._performance_snapshot()
+        net_pnl = float(perf.get("netPnlUsdt") or 0.0)
+        threshold = float(self.stop_loss_usdt)
+        enabled = threshold > 0
+        tripped = enabled and net_pnl <= -threshold
+        return {
+            "enabled": enabled,
+            "stopLossUsdt": threshold,
+            "basis": RISK_BASIS,
+            "currentNetPnlUsdt": net_pnl,
+            "triggerAtOrBelowNetPnlUsdt": -threshold if enabled else None,
+            "remainingLossBufferUsdt": max(0.0, threshold + net_pnl) if enabled else None,
+            "tripped": tripped,
+            "lastTriggeredAtMs": self.stop_loss_last_triggered_at_ms,
+            "lastTriggeredNetPnlUsdt": self.stop_loss_last_triggered_net_pnl_usdt,
+            "lastCheckAtMs": self.risk_last_check_at_ms,
+            "lastError": self.risk_last_error,
+            "monitorIntervalMs": int(RISK_MONITOR_INTERVAL_SECONDS * 1000),
+            "enforcement": "BACKGROUND+INTENT_ACCEPT+PRE_VENUE+RESUME",
+        }
+
+    def _auto_pause_stop_loss(self, *, net_pnl: float, threshold: float) -> bool:
+        with self.runtime_lock:
+            if not self.armed:
+                return False
+            old = self.executor
+            self.armed = False
+            self.executor = self.executor_factory(self._executor_config(mode="paper"))
+            self.balance_cache = None
+            try:
+                old.close()
+            except Exception:
+                pass
+            triggered_at_ms = v1._now_ms()
+            self.stop_loss_last_triggered_at_ms = triggered_at_ms
+            self.stop_loss_last_triggered_net_pnl_usdt = float(net_pnl)
+            self._persist_risk_control()
+            self._record_event(
+                "ERROR",
+                "AUTO_PAUSED_STOP_LOSS",
+                "PAUSED_STOP_LOSS",
+                (
+                    f"Echtgeld auto-paused: settled net PnL {net_pnl:.6f} USDT "
+                    f"reached configured loss limit {threshold:.6f} USDT"
+                ),
+                context={
+                    "basis": RISK_BASIS,
+                    "stopLossUsdt": threshold,
+                    "currentNetPnlUsdt": net_pnl,
+                    "triggerAtOrBelowNetPnlUsdt": -threshold,
+                },
+            )
+            return True
+
+    def _enforce_stop_loss(self, *, force_sync: bool = False) -> dict[str, Any]:
+        try:
+            performance = self._performance_snapshot(force_sync=force_sync)
+            self.risk_last_check_at_ms = v1._now_ms()
+            self.risk_last_error = None
+            snapshot = self._risk_snapshot(performance)
+            if snapshot["tripped"]:
+                self._auto_pause_stop_loss(
+                    net_pnl=float(snapshot["currentNetPnlUsdt"]),
+                    threshold=float(snapshot["stopLossUsdt"]),
+                )
+            return snapshot
+        except Exception as exc:
+            self.risk_last_check_at_ms = v1._now_ms()
+            self.risk_last_error = f"{type(exc).__name__}: {str(exc)[:300]}"
+            raise
+
+    def _risk_loop(self) -> None:
+        while not self.stop_event.wait(RISK_MONITOR_INTERVAL_SECONDS):
+            try:
+                self._enforce_stop_loss(force_sync=False)
+            except Exception:
+                # State exposes the monitor error. Do not spam durable events on
+                # every poll if the observation-only settlement source is down.
+                pass
+
+    def update_settings(self, values: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(values, dict):
+            raise v1.EchtgeldEngineError("settings must be a JSON object")
+        with self.runtime_lock:
+            if self.armed:
+                raise v1.EchtgeldEngineError(
+                    "Pause Echtgeld before changing venue, cohort, notional, drift or stop loss"
+                )
+            stop_loss = (
+                self._validated_stop_loss(values.get("stopLossUsdt"))
+                if "stopLossUsdt" in values
+                else float(self.stop_loss_usdt)
+            )
+            replacement = self._validated_config(values, mode="paper")
+            old = self.executor
+            self.config = replacement
+            self.stop_loss_usdt = stop_loss
+            self.executor = self.executor_factory(self._executor_config(mode="paper"))
+            self._persist_config(self.config)
+            self._persist_risk_control()
+            self.balance_cache = None
+            old.close()
+            self._record_event(
+                "INFO",
+                "SETTINGS_UPDATED",
+                "PAUSED",
+                "Echtgeld settings updated while PAUSED",
+                context={
+                    **self.config.snapshot(),
+                    "stopLossUsdt": self.stop_loss_usdt,
+                    "stopLossBasis": RISK_BASIS,
+                },
+            )
+        return self.state()
+
+    def resume(self) -> dict[str, Any]:
+        risk = self._enforce_stop_loss(force_sync=True)
+        if risk["tripped"]:
+            raise v1.EchtgeldEngineError(
+                "Cannot resume Echtgeld: settled net PnL "
+                f"{float(risk['currentNetPnlUsdt']):.6f} USDT is at/below the configured "
+                f"-{float(risk['stopLossUsdt']):.6f} USDT stop loss. "
+                "While PAUSED, increase stopLossUsdt or set it to 0 to disable."
+            )
+        return super().resume()
+
+    def submit_intent(self, payload: dict[str, Any]) -> dict[str, Any]:
+        # Force a settlement refresh immediately before deciding whether a new
+        # strategy intent is allowed into the live queue.
+        self._enforce_stop_loss(force_sync=True)
+        return super().submit_intent(payload)
+
+    def _process_intent(self, intent_id: str) -> None:
+        # Second fence: re-check immediately before the parent worker can create
+        # its durable ATTEMPTING row and touch the venue.
+        self._enforce_stop_loss(force_sync=True)
+        super()._process_intent(intent_id)
+
+    def close(self) -> None:
+        self.stop_event.set()
+        if self.risk_thread is not None and self.risk_thread.is_alive():
+            self.risk_thread.join(timeout=2.5)
+        super().close()
+
     def state(self) -> dict[str, Any]:
         payload = super().state()
+        performance = self._performance_snapshot()
+        risk = self._risk_snapshot(performance)
         payload["version"] = VERSION
-        payload["performance"] = self.performance()
+        payload["performance"] = performance
         payload["recentOrders"] = self.orders(50)
         payload["settlementSync"] = dict(self.settlement_sync_state)
         payload["monitoringCompatibility"] = "4310_LIVE_CONTROL_BALANCE_PNL"
+        payload["riskControl"] = risk
+        config = payload.get("config") if isinstance(payload.get("config"), dict) else {}
+        config["stopLossUsdt"] = float(self.stop_loss_usdt)
+        payload["config"] = config
+        if risk["tripped"] and not self.armed:
+            payload["runtimeStatus"] = "PAUSED_STOP_LOSS"
         return payload
 
     def health(self) -> dict[str, Any]:
         payload = super().health()
         payload["version"] = VERSION
         payload["settlementDbPath"] = str(self.settlement_db_path)
+        payload["stopLossEnabled"] = bool(self.stop_loss_usdt > 0)
+        payload["stopLossUsdt"] = float(self.stop_loss_usdt)
+        payload["riskMonitorAlive"] = bool(
+            self.risk_thread and self.risk_thread.is_alive()
+        ) if self.risk_thread is not None else True
         return payload
 
 
@@ -300,7 +543,8 @@ def main() -> int:
     server = ThreadingHTTPServer((HOST, PORT), handler)
     print(
         f"{VERSION} listening on http://{HOST}:{PORT}; startup=PAUSED; "
-        "strategy-observer-independent=true; balance=4310-payment-options+MPC-safety; pnl=durable-settlement-ledger",
+        "strategy-observer-independent=true; balance=4310-payment-options+MPC-safety; "
+        "pnl=durable-settlement-ledger; stopLoss=durable-settled-net-pnl",
         flush=True,
     )
     try:
