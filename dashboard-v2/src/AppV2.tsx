@@ -25,7 +25,7 @@ import LiveMarketsPage from './live-markets-page'
 import PinnedDivergencePage from './pinned-divergence-page'
 import WalletClonePage from './wallet-clone-page-v84'
 import WalletShadowPage from './wallet-shadow-page'
-import EbmStrategyTestPage from './ebm-strategy-test-page'
+import EbmStrategyTestReentryPage from './ebm-strategy-test-reentry-page'
 import TargetTakerEchtgeldPage from './target-taker-echtgeld-page'
 import DiagnosticsServiceControlPage from './diagnostics-service-control-page'
 import {
@@ -194,7 +194,7 @@ function Shell() {
             <Route path="/" element={<><OverviewPage /><CrossOracleStorageCard /></>} />
             <Route path="/live-markets" element={<LiveMarketsPage />} />
             <Route path="/wallet-shadow" element={<WalletShadowPage />} />
-            <Route path="/ebm-strategy-test" element={<EbmStrategyTestPage />} />
+            <Route path="/ebm-strategy-test" element={<EbmStrategyTestReentryPage />} />
             <Route path="/wallet-clone" element={<WalletClonePage />} />
             <Route path="/pinned-divergence" element={<PinnedDivergencePage />} />
             <Route path="/live" element={<TargetTakerEchtgeldPage />} />

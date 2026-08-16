@@ -5,10 +5,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Plugin } from 'vite'
 
 const PORT = 8782
-const MODULE = 'predict_bot.target_taker_public_side_test_v2'
+const MODULE = 'predict_bot.target_taker_public_side_reentry_test_v1'
 const RECOGNIZED_MODULES = [
   'predict_bot.target_taker_public_side_test_v1',
   'predict_bot.target_taker_public_side_test_v2',
+  'predict_bot.target_taker_public_side_reentry_test_v1',
 ]
 const PID_FILE = '.target-taker-public-side-test.pid'
 
