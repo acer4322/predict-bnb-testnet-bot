@@ -62,7 +62,7 @@ if ($ExistingPid) {
     if (-not $CommandLine.ToLowerInvariant().Contains("predict_bot.poly_fast_signal")) {
         throw "Port $Port is already owned by a different process. Stop 8792 first. PID=$ExistingPid command=$CommandLine"
     }
-    Write-Host "Replacing old Poly Fast Signal PID=$ExistingPid with V9 entry=$EntryMode."
+    Write-Host "Replacing old Poly Fast Signal PID=$ExistingPid with V10 entry=$EntryMode."
     & taskkill.exe /PID $ExistingPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Poly Fast Signal PID=$ExistingPid" }
     Start-Sleep -Milliseconds 400
@@ -70,7 +70,7 @@ if ($ExistingPid) {
 
 $Stdout = Join-Path $Data "poly-fast-live.stdout.log"
 $Stderr = Join-Path $Data "poly-fast-live.stderr.log"
-$Process = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.poly_fast_signal_v9") -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
+$Process = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.poly_fast_signal_v10") -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content $PidFile
 
 $Deadline = (Get-Date).AddSeconds(45)
@@ -86,11 +86,13 @@ do {
 if (-not (Test-FastSignal)) { throw "Poly Fast Signal did not become healthy on port $Port. Check $Stderr" }
 
 $State = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/state" -TimeoutSec 4
-if (-not ([string]$State.state.version).Contains("POLY_FAST_SIGNAL_V9")) {
+if (-not ([string]$State.state.version).Contains("POLY_FAST_SIGNAL_V10")) {
     throw "Unexpected Poly Fast version: $($State.state.version)"
 }
-Write-Host "Poly Fast Signal V9 is ready: http://127.0.0.1:$Port/state"
+Write-Host "Poly Fast Signal V10 is ready: http://127.0.0.1:$Port/state"
 Write-Host "  Entry mode : $EntryMode"
+Write-Host "  Entry assets: BTC, ETH"
+Write-Host "  BNB        : NEW ENTRY BLOCKED; observer/lifecycle remains active so an existing BNB round can still exit"
 Write-Host "  Safe retry : only REJECTED with no venue-write evidence; requires >=1s cooldown + newer Binance book"
 Write-Host "  Never retry: AMBIGUOUS/SUBMITTED/vendorOrderId/shares/submitted amount"
 Write-Host "  Lifecycle  : one active round per asset; same-direction repeats ignored while OPEN"
