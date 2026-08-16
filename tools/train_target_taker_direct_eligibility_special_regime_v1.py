@@ -78,6 +78,19 @@ def _split_train_cal(markets: list[int]) -> tuple[list[int], list[int]]:
     return markets[:-cal_count], markets[-cal_count:]
 
 
+def _adapt_split(
+    historical_markets: list[int], special_early: list[int]
+) -> tuple[list[int], list[int]]:
+    base_train, base_cal = _split_train_cal(historical_markets)
+    if len(special_early) >= 3:
+        special_cal_count = max(1, min(3, int(round(len(special_early) * 0.20))))
+        return (
+            historical_markets + special_early[:-special_cal_count],
+            special_early[-special_cal_count:],
+        )
+    return base_train + special_early, base_cal
+
+
 def _fit_eval(
     *,
     shared: Any,
@@ -276,8 +289,6 @@ def main() -> int:
     if not special_market_ids:
         raise SystemExit("No special-regime rows found in the requested window.")
 
-    # Market-disjoint boundary: if any row from a market falls in the special window,
-    # that entire market is excluded from historical training/reference.
     historical = frame[
         (frame["decision_sampled_at_ms"] < start_ms)
         & (~frame["market_id"].isin(special_market_ids))
@@ -320,7 +331,6 @@ def main() -> int:
 
     normal_train, normal_cal, normal_test = _normal_reference_split(historical_markets)
     hist_train, hist_cal = _split_train_cal(historical_markets)
-
     cut = max(1, min(len(special_markets) - 1, int(round(len(special_markets) * fraction))))
     special_early = special_markets[:cut]
     special_late = special_markets[cut:]
@@ -369,11 +379,9 @@ def main() -> int:
                 outer_bags=outer_bags,
                 seed=3000 + horizon * 100 + feature_index,
             )
-
-            # Experiment B: early special markets are allowed into the fit, then late special
-            # is a fresh chronological holdout. Keep a calibration tail from the combined prior.
-            combined_prior = historical_markets + special_early
-            retrain_train, retrain_cal = _split_train_cal(combined_prior)
+            retrain_train, retrain_cal = _adapt_split(
+                historical_markets, special_early
+            )
             special_retrain = (
                 _fit_eval(
                     shared=shared,
