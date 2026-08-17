@@ -14,11 +14,17 @@ function Stamp([string]$Message) {
     Write-Host ("[{0:HH:mm:ss} +{1:mm\:ss}] {2}" -f (Get-Date), $elapsed, $Message)
 }
 
-Stamp 'syntax check V2.5b'
-python -m py_compile .\tools\audit_target_maker_8778_predict_book_coverage_v2_5b.py
+$CoreAudit = '.\tools\audit_target_maker_8778_predict_book_coverage_v2_5b.py'
+$V21Audit = '.\tools\audit_target_maker_8778_predict_book_coverage_v2_5b_v21.py'
+
+Stamp 'syntax check V2.5b core + V2.1 parent adapter'
+python -m py_compile $CoreAudit $V21Audit
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
 
 $argsList = @(
-    '.\tools\audit_target_maker_8778_predict_book_coverage_v2_5b.py',
+    $V21Audit,
     '--db', $Db,
     '--out', $Out,
     '--special-start', $SpecialStart,
@@ -28,7 +34,7 @@ if ($BookDb) {
     $argsList += @('--book-db', $BookDb)
 }
 
-Stamp "audit bounded pre-noon 8/16 window against live 8778 checkpoint+changes_z: [$SpecialStart, $SpecialEnd)"
+Stamp "audit bounded pre-noon 8/16 window against live 8778 checkpoint+changes_z with V2.1 parent schema: [$SpecialStart, $SpecialEnd)"
 python @argsList
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
