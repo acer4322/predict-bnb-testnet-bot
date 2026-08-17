@@ -25,35 +25,49 @@ try {
 
     $LegacySignalDb = Join-Path $Root "data\wallet_taker_signals.db"
     $PublicArchiveDb = Join-Path $Root "data\public_research_archive_v1.db"
+    $OfficialTargetDb = Join-Path $Root "data\target_wallet_official_v1.db"
     Write-Host "`nSignal archives:"
     if (Test-Path $LegacySignalDb) {
-        Write-Host "  [legacy] $LegacySignalDb"
+        Write-Host "  [legacy public] $LegacySignalDb"
     } else {
         Write-Warning "Legacy signal DB missing: $LegacySignalDb"
     }
     if (Test-Path $PublicArchiveDb) {
-        Write-Host "  [target-blind] $PublicArchiveDb"
+        Write-Host "  [target-blind public] $PublicArchiveDb"
     } else {
         Write-Warning "PUBLIC_RESEARCH_ARCHIVE_V1 missing: $PublicArchiveDb"
-        Write-Warning "If the legacy archive ends before SpecialStart, the requested special window cannot be reconstructed from this runner."
     }
+    Write-Host "Target label sources:"
+    Write-Host "  [legacy history] data\predict_wallet_shadow.db"
+    if (Test-Path $OfficialTargetDb) {
+        Write-Host "  [official observed truth] $OfficialTargetDb"
+    } else {
+        Write-Warning "TARGET_WALLET_OFFICIAL_V1 missing: $OfficialTargetDb"
+        Write-Warning "The preflight will refuse training if legacy Target Taker labels do not cover the special window."
+    }
+
+    $labelArgs = @(
+        ".\tools\build_target_taker_direct_eligibility_special_regime_official_v2.py",
+        "--special-start", $SpecialStart
+    )
+    if ($SpecialEnd) { $labelArgs += @("--special-end", $SpecialEnd) }
 
     if (-not $SkipBuild) {
         Write-Host "`n[1/4] Build merged direct Target Taker eligibility dataset..."
-        Write-Host "      legacy 8777 history + PUBLIC_RESEARCH_ARCHIVE_V1 when available"
-        python .\tools\build_target_taker_direct_eligibility_special_regime_multisource_v1.py
-        if ($LASTEXITCODE -ne 0) { throw "Taker eligibility dataset build failed." }
-    }
-
-    Write-Host "`n[preflight] Verify Target Taker positives exist in the special window..."
-    $preflightArgs = @(
-        ".\tools\preflight_target_taker_special_labels_v1.py",
-        "--special-start", $SpecialStart
-    )
-    if ($SpecialEnd) { $preflightArgs += @("--special-end", $SpecialEnd) }
-    python @preflightArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw "Target Taker special-label preflight failed. Do not spend time training this holdout until Target event coverage is fixed."
+        Write-Host "      public state: legacy 8777 + PUBLIC_RESEARCH_ARCHIVE_V1"
+        Write-Host "      Target truth: legacy mirror history + TARGET_WALLET_OFFICIAL_V1 BTC/TAKER parents"
+        Write-Host "      Official parent first_event_ms wins exact parent/order overlap."
+        python @labelArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "Taker eligibility dataset build or official-label preflight failed. Do not train stale/all-negative labels."
+        }
+    } else {
+        Write-Host "`n[preflight] Verify the existing dataset against current official Target Taker truth..."
+        $preflightArgs = @($labelArgs + "--preflight-only")
+        python @preflightArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "Target Taker official-label preflight failed. Rebuild before training."
+        }
     }
 
     Write-Host "`n[2/4] Train/stress-test Target Taker direct eligibility EBM..."
