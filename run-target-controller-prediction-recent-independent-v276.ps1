@@ -1,0 +1,5 @@
+$ErrorActionPreference = 'Stop'
+
+python -m py_compile tools/analyze_target_controller_prediction_recent_independent_v276.py
+python -m pytest tests/test_target_controller_prediction_recent_independent_v276.py -q
+python tools/analyze_target_controller_prediction_recent_independent_v276.py
