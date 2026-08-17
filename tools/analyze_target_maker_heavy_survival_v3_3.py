@@ -114,7 +114,8 @@ def _canonicalize_risk_outcomes(
         official = str(settlements.get(market_id) or "").upper()
         if heavy in {"UP", "DOWN"} and official in {"UP", "DOWN"}:
             canonical = int(heavy == official)
-            legacy = str(row.get("heavy_side_won") or "").strip()
+            legacy_raw = row.get("heavy_side_won")
+            legacy = "" if legacy_raw is None else str(legacy_raw).strip()
             if legacy != "":
                 try:
                     compared += 1
