@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-Write-Host "[V2.7] Compile analyzer"
-python -m py_compile tools/analyze_target_controller_fragment_ebm_v27.py
+Write-Host "[V2.7] Compile analyzers"
+python -m py_compile tools/analyze_target_controller_fragment_ebm_v27.py tools/analyze_target_controller_fragment_ebm_v271.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[V2.7] Focused guard tests"
@@ -16,8 +16,8 @@ if ($LASTEXITCODE -ne 0) {
     exit 2
 }
 
-Write-Host "[V2.7] Run laptop-friendly 3s fragment EBM"
-python tools/analyze_target_controller_fragment_ebm_v27.py --horizons 3
+Write-Host "[V2.7] Run laptop-friendly 3s fragment EBM with hardened Prediction freshness"
+python tools/analyze_target_controller_fragment_ebm_v271.py --horizons 3
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[V2.7] Done"
@@ -25,4 +25,4 @@ Write-Host "Report: data/research/target_controller_fragment_ebm_v27_report.json
 Write-Host "Rows:   data/research/target_controller_fragment_ebm_v27_training_rows.csv"
 Write-Host "OOF:    data/research/target_controller_fragment_ebm_v27_local_explanations.csv"
 Write-Host "Optional sensitivity after the first pass:"
-Write-Host "  python tools/analyze_target_controller_fragment_ebm_v27.py --horizons 1,3,5"
+Write-Host "  python tools/analyze_target_controller_fragment_ebm_v271.py --horizons 1,3,5"
