@@ -30,7 +30,7 @@ try {
     Write-Host "Compare: raw Predict + past-only calibrated Predict vs PREDICT_CONTEXT / LEAN_SPOT / FULL_PUBLIC EBM."
     Write-Host "Integrity: market-outcome coverage, Target portfolio-PnL coverage, exact timestamp repair joins."
     Write-Host "Legacy V2 heavy_side_won concordance is diagnostic only and is re-derived canonically for survival audit."
-    Write-Host "Settlement API: transient 429/5xx uses Retry-After or exponential backoff; unresolved markets are retried in cached passes."
+    Write-Host "Settlement API: transient 429/5xx uses Retry-After or exponential backoff; cached passes retry only when diagnostics show a transient cause."
     Write-Host "Research only. No cutoff or live rule promotion."
 
     $PublicDataset = Join-Path $Root "data\research\target_taker_action_burst_hazard_v1.csv"
@@ -89,14 +89,80 @@ try {
                 $settlementIntegrityPassed = $true
                 break
             }
+
+            $reportPayload = $null
+            if (Test-Path $SettlementReport) {
+                try {
+                    $reportPayload = Get-Content -Raw $SettlementReport | ConvertFrom-Json
+                }
+                catch {
+                    Write-Host "  warning: could not parse settlement diagnostics: $($_.Exception.Message)"
+                }
+            }
+
+            $statusSummary = "none"
+            $http429 = 0
+            $http5xx = 0
+            $exceptions = 0
+            $unresolvedKinds = @{}
+            if ($null -ne $reportPayload -and $null -ne $reportPayload.apiDiagnostics) {
+                $diag = $reportPayload.apiDiagnostics
+                if ($null -ne $diag.httpStatusCounts) {
+                    $pairs = @()
+                    foreach ($property in $diag.httpStatusCounts.PSObject.Properties) {
+                        $pairs += "$($property.Name)=$($property.Value)"
+                        $code = 0
+                        if ([int]::TryParse([string]$property.Name, [ref]$code)) {
+                            if ($code -eq 429) { $http429 += [int]$property.Value }
+                            if ($code -ge 500 -and $code -le 599) { $http5xx += [int]$property.Value }
+                        }
+                    }
+                    if ($pairs.Count -gt 0) { $statusSummary = ($pairs -join ", ") }
+                }
+                if ($null -ne $diag.exceptionCounts) {
+                    foreach ($property in $diag.exceptionCounts.PSObject.Properties) {
+                        $exceptions += [int]$property.Value
+                    }
+                }
+                if ($null -ne $diag.unresolvedDetailsFirst100) {
+                    foreach ($item in $diag.unresolvedDetailsFirst100) {
+                        $kind = [string]$item.kind
+                        if ([string]::IsNullOrWhiteSpace($kind)) { $kind = "UNKNOWN" }
+                        if (-not $unresolvedKinds.ContainsKey($kind)) { $unresolvedKinds[$kind] = 0 }
+                        $unresolvedKinds[$kind] += 1
+                    }
+                }
+            }
+
+            $kindSummary = if ($unresolvedKinds.Count -gt 0) {
+                (($unresolvedKinds.GetEnumerator() | Sort-Object Name | ForEach-Object { "$($_.Name)=$($_.Value)" }) -join ", ")
+            } else { "none" }
+            Write-Host "  settlement diagnostics: HTTP[$statusSummary] exceptions=$exceptions unresolvedKinds[$kindSummary]"
+
             if ($pass -lt $passes) {
-                $cooldown = [Math]::Max(0, $SettlementPassCooldownSeconds)
-                Write-Host "  settlement pass $pass did not clear integrity gate; keeping canonical cache and retrying unresolved markets after ${cooldown}s..."
+                $hasTransient = ($http429 -gt 0 -or $http5xx -gt 0 -or $exceptions -gt 0)
+                if (-not $hasTransient) {
+                    Write-Host "  no transient API failure is visible; further cached passes would repeat the same unresolved markets."
+                    break
+                }
+
+                $baseCooldown = [Math]::Max(0, $SettlementPassCooldownSeconds)
+                if ($http429 -gt 0) {
+                    $adaptiveCooldown = [Math]::Min(300, [Math]::Max(60, $baseCooldown * [Math]::Pow(2, $pass - 1)))
+                }
+                elseif ($http5xx -gt 0 -or $exceptions -gt 0) {
+                    $adaptiveCooldown = [Math]::Min(120, [Math]::Max(15, $baseCooldown * [Math]::Pow(2, $pass - 1)))
+                }
+                else {
+                    $adaptiveCooldown = $baseCooldown
+                }
+                $cooldown = [int][Math]::Ceiling($adaptiveCooldown)
+                Write-Host "  transient settlement failure detected; keeping canonical cache and retrying unresolved markets after ${cooldown}s..."
                 if ($cooldown -gt 0) { Start-Sleep -Seconds $cooldown }
             }
         }
         if (-not $settlementIntegrityPassed) {
-            throw "V3.3 settlement integrity failed after $passes cached passes. Inspect data\research\target_maker_survival_settlements_v3_report.json."
+            throw "V3.3 settlement integrity failed. Inspect the printed diagnostics and data\research\target_maker_survival_settlements_v3_report.json."
         }
     }
     else {
