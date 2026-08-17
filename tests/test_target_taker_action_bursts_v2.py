@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE = ROOT / "tools" / "analyze_target_taker_action_bursts_v2.py"
+TOOLS = ROOT / "tools"
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
+MODULE = TOOLS / "analyze_target_taker_action_bursts_v2.py"
 spec = importlib.util.spec_from_file_location("target_bursts_v2", MODULE)
 assert spec and spec.loader
 v2 = importlib.util.module_from_spec(spec)
