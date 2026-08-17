@@ -11,7 +11,8 @@ param(
     [double]$MinSpecialSettlementCoverage = 0.95,
     [double]$MinCanonicalOutcomeCoverage = 0.95,
     [double]$MinTargetPnlCoverage = 0.95,
-    [int]$SettlementApiRetries = 3,
+    [int]$SettlementApiRetries = 8,
+    [int]$SettlementRetryBaseDelayMs = 1000,
     [switch]$RunTests,
     [switch]$SkipSettlementBackfill
 )
@@ -27,6 +28,7 @@ try {
     Write-Host "Compare: raw Predict + past-only calibrated Predict vs PREDICT_CONTEXT / LEAN_SPOT / FULL_PUBLIC EBM."
     Write-Host "Integrity: market-outcome coverage, Target portfolio-PnL coverage, exact timestamp repair joins."
     Write-Host "Legacy V2 heavy_side_won concordance is diagnostic only and is re-derived canonically for survival audit."
+    Write-Host "Settlement API: transient 429/5xx uses Retry-After or exponential backoff; defaults are intentionally conservative."
     Write-Host "Research only. No cutoff or live rule promotion."
 
     $PublicDataset = Join-Path $Root "data\research\target_taker_action_burst_hazard_v1.csv"
@@ -75,7 +77,8 @@ try {
             --min-ordinary-coverage $MinOrdinarySettlementCoverage `
             --min-special-coverage $MinSpecialSettlementCoverage `
             --min-canonical-outcome-coverage $MinCanonicalOutcomeCoverage `
-            --api-retries $SettlementApiRetries
+            --api-retries $SettlementApiRetries `
+            --retry-base-delay-ms $SettlementRetryBaseDelayMs
         if ($LASTEXITCODE -ne 0) {
             throw "V3.3 settlement integrity failed. Inspect data\research\target_maker_survival_settlements_v3_report.json."
         }
