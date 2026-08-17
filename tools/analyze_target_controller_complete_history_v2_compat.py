@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import math
 import sqlite3
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -95,8 +97,42 @@ def _load_source_compat(path: Path, source: str, asset: str) -> tuple[list[dict[
         db.close()
 
 
-# Keep the validated V2 replay / burst / transition logic untouched; replace only its source adapter.
+def _surface_compat(rows: list[dict[str, Any]], feature: str, bins: int = 5) -> list[dict[str, Any]]:
+    """Stable numeric-only sort for decision surfaces; equal feature values must not compare row dicts."""
+    ordered: list[tuple[float, dict[str, Any]]] = []
+    for row in rows:
+        try:
+            value = float(row[feature])
+        except (KeyError, TypeError, ValueError, OverflowError):
+            continue
+        if math.isfinite(value):
+            ordered.append((value, row))
+    ordered.sort(key=lambda item: item[0])
+    if not ordered:
+        return []
+
+    out: list[dict[str, Any]] = []
+    for i in range(bins):
+        lo = len(ordered) * i // bins
+        hi = len(ordered) * (i + 1) // bins
+        chunk_pairs = ordered[lo:hi]
+        if not chunk_pairs:
+            continue
+        chunk = [row for _, row in chunk_pairs]
+        out.append({
+            "bin": i + 1,
+            "rows": len(chunk),
+            "min": chunk_pairs[0][0],
+            "max": chunk_pairs[-1][0],
+            "median": statistics.median(float(row[feature]) for row in chunk),
+            "takerHandoffRate": sum(row["next_actor"] == "TAKER" for row in chunk) / len(chunk),
+        })
+    return out
+
+
+# Keep the validated V2 replay / burst / transition logic untouched; replace only compatibility edges.
 v2._load_source = _load_source_compat
+v2._surface = _surface_compat
 
 
 if __name__ == "__main__":
