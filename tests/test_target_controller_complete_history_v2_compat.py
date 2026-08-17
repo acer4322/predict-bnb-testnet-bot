@@ -84,3 +84,16 @@ def test_official_schema_with_asset_keeps_asset_filter(tmp_path: Path) -> None:
     assert audit["assetColumnPresent"] is True
     assert audit["assetFilterApplied"] is True
     assert audit["assetInjectedFromCli"] is False
+
+
+def test_decision_surface_allows_equal_feature_values_without_dict_comparison() -> None:
+    rows = [
+        {"risk_deficit": 10.0, "next_actor": "TAKER", "market_id": 1},
+        {"risk_deficit": 10.0, "next_actor": "MAKER", "market_id": 2},
+        {"risk_deficit": 20.0, "next_actor": "TAKER", "market_id": 3},
+        {"risk_deficit": 20.0, "next_actor": "MAKER", "market_id": 4},
+        {"risk_deficit": 30.0, "next_actor": "TAKER", "market_id": 5},
+    ]
+    surface = compat._surface_compat(rows, "risk_deficit", bins=2)
+    assert len(surface) == 2
+    assert sum(int(bin_row["rows"]) for bin_row in surface) == len(rows)
