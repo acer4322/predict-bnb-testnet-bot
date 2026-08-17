@@ -152,8 +152,15 @@ def main() -> int:
     ]
     v1._write_csv(args.events_csv, overlap_sequence, event_columns)
 
-    print("[4/5] Build per-second retrospective state using COMPLETE prior parent history...", flush=True)
-    riskset = v1._riskset_rows(frame, all_events)
+    print("[4/5] Build FULL-HISTORY per-second retrospective state...", flush=True)
+    # The continuous hazard trainer needs historical public rows too. Build one annotation
+    # row for every public second, but use only the requested overlap slice in this report.
+    riskset_full = v1._riskset_rows(full_frame, all_events)
+    riskset_window = [
+        row
+        for row in riskset_full
+        if effective_start_ms <= int(row["decision_sampled_at_ms"]) < effective_end_ms
+    ]
     riskset_columns = [
         "market_id",
         "decision_sampled_at_ms",
@@ -174,7 +181,11 @@ def main() -> int:
         "label_next_target_taker_any_2s",
         "label_next_target_taker_any_5s",
     ]
-    v1._write_csv(args.riskset_csv, riskset, riskset_columns)
+    v1._write_csv(args.riskset_csv, riskset_full, riskset_columns)
+    print(
+        f"      full risk-set rows={len(riskset_full):,} | report-window rows={len(riskset_window):,}",
+        flush=True,
+    )
 
     print("[5/5] Aggregate reliable OPEN / MID / TAIL behavior...", flush=True)
     report: dict[str, Any] = {
@@ -211,10 +222,13 @@ def main() -> int:
             "targetParentsInsideEffectiveTimeWindow": len(source_window_sequence),
             "publicAlignedTargetParentsUsedForPhaseStats": len(overlap_sequence),
             "unmatchedTargetParentsExcludedFromPhaseStats": unmatched,
+            "fullHistoryRiskSetRowsWritten": len(riskset_full),
+            "riskSetRowsInsideReportWindow": len(riskset_window),
             "note": (
                 "FIRST_ENTRY / SAME_SIDE_REENTRY / SIDE_FLIP classification is built from "
                 "complete parent history first. OPEN/MID/TAIL statistics and replay events "
-                "then use only parents alignable to the selected public per-second coverage."
+                "then use only parents alignable to the selected public per-second coverage. "
+                "The risk-set CSV intentionally contains full public history for causal model training."
             ),
         },
         "outputs": {
@@ -230,7 +244,7 @@ def main() -> int:
             },
         },
         "events": v1._event_report(overlap_sequence),
-        "riskSet": v1._riskset_report(riskset),
+        "riskSet": v1._riskset_report(riskset_window),
         "nextResearchStep": (
             "Score frozen16 continuously on every public second and compare opening-only, "
             "first-signal-once, and continuous capture of FIRST_ENTRY, SAME_SIDE_REENTRY, "
