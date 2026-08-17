@@ -52,16 +52,16 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'inventory lifecycle prerequisite failed' }
 
         Stamp 'run existing Maker objective/state-machine stress comparison'
-        $objectiveArgs = @(
-            '-Db', $Db,
-            '-PublicDataset', $PublicDataset,
-            '-StressStart', $StressStart,
-            '-StressEnd', $StressEnd,
-            '-MaxPublicLagMs', $MaxPublicLagMs
-        )
-        if ($OrdinaryStart) { $objectiveArgs += @('-OrdinaryStart', $OrdinaryStart) }
-        if ($OrdinaryEnd) { $objectiveArgs += @('-OrdinaryEnd', $OrdinaryEnd) }
-        & .\run-target-maker-objective-state-machine-v1.ps1 @objectiveArgs
+        $objectiveParams = @{
+            Db = $Db
+            PublicDataset = $PublicDataset
+            StressStart = $StressStart
+            StressEnd = $StressEnd
+            MaxPublicLagMs = $MaxPublicLagMs
+        }
+        if ($OrdinaryStart) { $objectiveParams['OrdinaryStart'] = $OrdinaryStart }
+        if ($OrdinaryEnd) { $objectiveParams['OrdinaryEnd'] = $OrdinaryEnd }
+        & .\run-target-maker-objective-state-machine-v1.ps1 @objectiveParams
         if ($LASTEXITCODE -ne 0) { throw 'objective/state-machine prerequisite failed' }
     }
 
