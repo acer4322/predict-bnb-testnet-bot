@@ -14,14 +14,23 @@ REPORT_VERSION = "TARGET_CONTROLLER_PREDICTION_COMMON_SUPPORT_V273B"
 DEFAULT_REPORT = base.ROOT / "data" / "research" / "target_controller_prediction_common_support_v273_report.json"
 DEFAULT_ROWS = base.ROOT / "data" / "research" / "target_controller_prediction_common_support_v273_training_rows.csv"
 CONTROL = v272.feature_specs()["CORE_STATE_PUBLIC_NO_PREDICTION"]
+CURRENT_VALUE_FEATURES = CONTROL + [
+    "micro_prediction_up_mid",
+    "micro_prediction_distance_05",
+]
+CURRENT_PLUS_3S_FEATURES = CURRENT_VALUE_FEATURES + [
+    "micro_prediction_delta_3s",
+    "micro_prediction_range_3s",
+    "micro_prediction_pressure_aligned_delta_3s",
+]
 EXPERIMENTS = {
     "CURRENT_VALUE_COMPLETE_CASE": {
         "required": ["micro_prediction_up_mid", "micro_prediction_distance_05"],
-        "features": CONTROL + ["micro_prediction_up_mid", "micro_prediction_distance_05"],
+        "features": CURRENT_VALUE_FEATURES,
     },
     "CURRENT_PLUS_3S_COMPLETE_CASE": {
         "required": ["micro_prediction_up_mid", "micro_prediction_distance_05", "micro_prediction_delta_3s", "micro_prediction_range_3s", "micro_prediction_pressure_aligned_delta_3s"],
-        "features": CONTROL + ["micro_prediction_up_mid", "micro_prediction_distance_05", "micro_prediction_delta_3s", "micro_prediction_range_3s", "micro_prediction_pressure_aligned_delta_3s"],
+        "features": CURRENT_PLUS_3S_FEATURES,
     },
 }
 
