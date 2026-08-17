@@ -3,7 +3,8 @@ param(
     [string]$SpecialEnd = "",
     [switch]$SkipBuild,
     [switch]$SkipMaker,
-    [switch]$PreflightOnly
+    [switch]$PreflightOnly,
+    [switch]$FastDiscovery
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +17,11 @@ try {
         Write-Host "Special window end:   $SpecialEnd"
     } else {
         Write-Host "Special window end:   latest available data"
+    }
+    if ($FastDiscovery) {
+        Write-Host "Training mode:        FAST DISCOVERY (5s + 2s, 24 fits, progress + ETA)"
+    } else {
+        Write-Host "Training mode:        FULL STRESS HOLDOUT"
     }
 
     python -c "import sys, joblib, pandas, sklearn, interpret; print(f'Python {sys.version.split()[0]} | joblib {joblib.__version__} | interpret {interpret.__version__} | pandas {pandas.__version__} | sklearn {sklearn.__version__}')"
@@ -76,12 +82,31 @@ try {
         return
     }
 
-    Write-Host "`n[2/4] Train/stress-test Target Taker direct eligibility EBM..."
-    $takerArgs = @(
-        ".\tools\run_with_joblib_threading.py",
-        ".\tools\train_target_taker_direct_eligibility_special_regime_v1.py",
-        "--special-start", $SpecialStart
-    )
+    if ($FastDiscovery) {
+        Write-Host "`n[2/4] Fast-discovery Target Taker eligibility EBM..."
+        Write-Host "      horizons: 5s, 2s"
+        Write-Host "      feature sets: frozen16 / special_regime_only / frozen16_plus_special / full_public_plus_special"
+        Write-Host "      splits: normal reference / pre-special -> special / early-special -> late-special"
+        Write-Host "      config: max_rounds=600, outer_bags=3, interactions=10"
+        Write-Host "      progress: per-fit FIT x/24, percent, elapsed, ETA, LogLoss lift, AUC, AP"
+        Write-Host "      checkpoint: data\research\target_taker_direct_eligibility_special_regime_v1_fast_discovery_report.json"
+        $takerArgs = @(
+            ".\tools\run_with_joblib_threading.py",
+            ".\tools\train_target_taker_direct_eligibility_special_regime_fast_v1.py",
+            "--special-start", $SpecialStart,
+            "--horizons", "5,2",
+            "--max-rounds", "600",
+            "--outer-bags", "3",
+            "--interactions", "10"
+        )
+    } else {
+        Write-Host "`n[2/4] Train/stress-test Target Taker direct eligibility EBM..."
+        $takerArgs = @(
+            ".\tools\run_with_joblib_threading.py",
+            ".\tools\train_target_taker_direct_eligibility_special_regime_v1.py",
+            "--special-start", $SpecialStart
+        )
+    }
     if ($SpecialEnd) { $takerArgs += @("--special-end", $SpecialEnd) }
     python @takerArgs
     if ($LASTEXITCODE -ne 0) { throw "Taker special-regime EBM test failed." }
@@ -106,7 +131,11 @@ try {
     }
 
     Write-Host "`nDone."
-    Write-Host "Taker report: .\data\research\target_taker_direct_eligibility_special_regime_v1_report.json"
+    if ($FastDiscovery) {
+        Write-Host "Taker report: .\data\research\target_taker_direct_eligibility_special_regime_v1_fast_discovery_report.json"
+    } else {
+        Write-Host "Taker report: .\data\research\target_taker_direct_eligibility_special_regime_v1_report.json"
+    }
     Write-Host "Taker coverage meta: .\data\research\target_taker_direct_eligibility_special_regime_v1.meta.json"
     if (-not $SkipMaker) {
         Write-Host "Maker report: .\data\research\target_maker_special_regime_v1_report.json"
