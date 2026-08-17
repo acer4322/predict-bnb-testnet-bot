@@ -1,7 +1,7 @@
 param(
     [string]$Db = 'data/wallet_maker_book_inference.db',
     [string]$BookDb = '',
-    [string]$Out = 'target_maker_8778_predict_book_coverage_v2_5b.json',
+    [string]$Out = 'data/research/target_maker_8778_predict_book_coverage_v2_5b.json',
     [string]$SpecialStart = '2026-08-16T00:00:00+08:00',
     [string]$SpecialEnd = '2026-08-16T12:00:00+08:00'
 )
@@ -40,4 +40,4 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-Stamp 'done'
+Stamp "done -> $Out"
