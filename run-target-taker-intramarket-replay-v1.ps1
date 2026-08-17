@@ -35,9 +35,16 @@ try {
     if (-not $SkipSequence) {
         Write-Host "`n[1/2] Reconstruct the full Target Taker intramarket sequence..."
         Write-Host "      FIRST_ENTRY / SAME_SIDE_REENTRY / SIDE_FLIP"
+        Write-Host "      sequence state uses complete parent history before filtering the test window"
+        Write-Host "      phase stats use only Target parents aligned to public per-second coverage"
         Write-Host "      fine phase: 300-240 / 240-180 / 180-120 / 120-60 / 60-30 / 30-0s"
         Write-Host "      macro phase: OPEN >180s / MID 60-180s / TAIL <=60s"
-        python .\tools\analyze_target_taker_intramarket_sequence_v1.py
+        $sequenceArgs = @(
+            ".\tools\analyze_target_taker_intramarket_sequence_v2.py",
+            "--start", $TestStart
+        )
+        if ($TestEnd) { $sequenceArgs += @("--end", $TestEnd) }
+        python @sequenceArgs
         if ($LASTEXITCODE -ne 0) { throw "Intramarket sequence reconstruction failed." }
     } else {
         Write-Host "`n[1/2] Skip sequence reconstruction; reuse existing events/risk-set CSV."
