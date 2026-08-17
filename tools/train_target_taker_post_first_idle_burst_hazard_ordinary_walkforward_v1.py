@@ -248,7 +248,6 @@ def main() -> int:
                 payload = {
                     "experiment": "ORDINARY_HISTORICAL_WALK_FORWARD",
                     "horizon_seconds": horizon,
-                    "fold": fold_number,
                     "market_id": int(row["market_id"]),
                     "decision_sampled_at_ms": int(row["decision_sampled_at_ms"]),
                     "seconds_left": row.get("seconds_left"),
@@ -281,7 +280,6 @@ def main() -> int:
                 flush=True,
             )
 
-        # Aggregate only genuine out-of-fold rows.
         aggregate_test = pd.DataFrame(horizon_scores)
         y_all = pd.to_numeric(aggregate_test["cap2_label"], errors="raise").astype(int)
         p_all = pd.to_numeric(aggregate_test["raw_probability"], errors="raise").to_numpy(dtype=float)
