@@ -29,7 +29,7 @@ os.environ["PREDICT_WALLET_SHADOW_DB"] = os.environ.get(
 )
 
 from .predict_wallet_maker_book_inference_collector_v2_1_impl import *  # noqa: E402,F401,F403
-from .predict_wallet_maker_book_inference_collector_v2_1_impl import main  # noqa: E402
+from .predict_wallet_maker_book_inference_collector_v2_1_responsive import main  # noqa: E402
 
 
 if __name__ == "__main__":
