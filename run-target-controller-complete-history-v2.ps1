@@ -22,13 +22,17 @@ try {
         Write-Host ("[{0:HH:mm:ss} +{1:mm\:ss}] {2}" -f (Get-Date), $elapsed, $Message)
     }
 
-    $Script = '.\tools\analyze_target_controller_complete_history_v2.py'
-    $Test = '.\tests\test_target_controller_complete_history_v2.py'
+    $Script = '.\tools\analyze_target_controller_complete_history_v2_compat.py'
+    $Tests = @(
+        '.\tests\test_target_controller_complete_history_v2.py',
+        '.\tests\test_target_controller_complete_history_v2_compat.py'
+    )
 
     Stamp 'TARGET CONTROLLER COMPLETE HISTORY V2'
     Write-Host 'Source contract:'
     Write-Host "  < $Cutover  => LEGACY only ($LegacyDb)"
     Write-Host "  >= $Cutover => OFFICIAL only ($OfficialDb)"
+    Write-Host '  Legacy schemas without asset column inject the requested --asset value; official schemas retain asset filtering.'
     Write-Host '  Post-cutover legacy fallback is DISABLED; missing collector windows remain hard gaps.'
     Write-Host '  Markets crossing a source boundary or detected hard gap are excluded from lifecycle replay.'
     Write-Host "Burst candidate: Taker idle gap <= ${IdleGapMs}ms, onset cap <= ${BurstCapMs}ms, Maker breaks burst."
@@ -37,13 +41,13 @@ try {
     if (-not (Test-Path $LegacyDb)) { throw "Missing legacy DB: $LegacyDb" }
     if (-not (Test-Path $OfficialDb)) { throw "Missing official DB: $OfficialDb" }
 
-    Stamp 'syntax check version-aware controller analyzer'
+    Stamp 'syntax check version-aware controller analyzer + schema adapter'
     python -m py_compile $Script
     if ($LASTEXITCODE -ne 0) { throw 'syntax check failed' }
 
     if (-not $SkipTests) {
-        Stamp 'run focused source/gap/burst/accounting invariants'
-        python -m pytest -q $Test
+        Stamp 'run focused source/gap/burst/accounting/schema invariants'
+        python -m pytest -q @Tests
         if ($LASTEXITCODE -ne 0) { throw 'focused tests failed' }
     }
 
