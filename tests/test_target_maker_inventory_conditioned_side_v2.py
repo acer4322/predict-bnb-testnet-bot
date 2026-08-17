@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "tools" / "build_target_maker_inventory_conditioned_side_v2.py"
+TOOLS = ROOT / "tools"
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
+MODULE_PATH = TOOLS / "build_target_maker_inventory_conditioned_side_v2.py"
 SPEC = importlib.util.spec_from_file_location("maker_inventory_side_v2_builder_test", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 mod = importlib.util.module_from_spec(SPEC)
