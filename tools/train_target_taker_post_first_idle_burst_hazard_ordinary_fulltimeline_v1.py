@@ -109,7 +109,6 @@ def main() -> int:
     frame["cap2_risk_post_first_idle"] = pd.to_numeric(frame["cap2_risk_post_first_idle"], errors="raise").astype(int)
     frame["cap2_burst_active"] = pd.to_numeric(frame["cap2_burst_active"], errors="raise").astype(int)
 
-    # Strict boundary: any market observed at/after specialStart is excluded entirely.
     special_market_ids = set(
         int(v) for v in frame.loc[frame["decision_sampled_at_ms"] >= int(start_ms), "market_id"].unique().tolist()
     )
@@ -162,6 +161,7 @@ def main() -> int:
             "interactions": interactions,
             "maxRounds": max_rounds,
             "outerBags": outer_bags,
+            "seedPolicy": "matches ordinary walk-forward V1 exactly: 9100 + horizon*100 + fold",
         },
         "rows": {
             "ordinaryFullTimelineRows": int(len(ordinary_full)),
@@ -211,7 +211,7 @@ def main() -> int:
             interactions=min(interactions, max(0, len(features) // 2)),
             max_rounds=max_rounds,
             outer_bags=outer_bags,
-            seed=10100 + horizon * 100 + fold_number,
+            seed=9100 + horizon * 100 + fold_number,
         )
         raw = model.predict_proba(shared._numeric(pd, test_full, features))[:, 1]
         fit_seconds = time.perf_counter() - fit_started
