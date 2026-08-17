@@ -2,7 +2,8 @@ param(
     [string]$SpecialStart = "2026-08-16T00:00:00+08:00",
     [string]$SpecialEnd = "",
     [switch]$SkipBuild,
-    [switch]$SkipMaker
+    [switch]$SkipMaker,
+    [switch]$PreflightOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -68,6 +69,11 @@ try {
         if ($LASTEXITCODE -ne 0) {
             throw "Target Taker official-label preflight failed. Rebuild before training."
         }
+    }
+
+    if ($PreflightOnly) {
+        Write-Host "`nPreflight-only requested. Dataset/label checks passed; EBM training was NOT started."
+        return
     }
 
     Write-Host "`n[2/4] Train/stress-test Target Taker direct eligibility EBM..."
