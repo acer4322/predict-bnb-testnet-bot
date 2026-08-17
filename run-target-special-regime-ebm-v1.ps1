@@ -89,8 +89,10 @@ try {
         Write-Host "      splits: normal reference / pre-special -> special / early-special -> late-special"
         Write-Host "      config: max_rounds=600, outer_bags=3, interactions=10"
         Write-Host "      progress: per-fit FIT x/24, percent, elapsed, ETA, LogLoss lift, AUC, AP"
+        Write-Host "      heartbeat: every 30s while the current EBM fit is still running"
         Write-Host "      checkpoint: data\research\target_taker_direct_eligibility_special_regime_v1_fast_discovery_report.json"
         $takerArgs = @(
+            ".\tools\run_with_progress_heartbeat.py",
             ".\tools\run_with_joblib_threading.py",
             ".\tools\train_target_taker_direct_eligibility_special_regime_fast_v1.py",
             "--special-start", $SpecialStart,
