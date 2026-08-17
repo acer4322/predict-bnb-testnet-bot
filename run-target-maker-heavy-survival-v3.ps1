@@ -9,6 +9,7 @@ param(
     [int]$OuterBags = 4,
     [double]$MinOrdinarySettlementCoverage = 0.95,
     [double]$MinSpecialSettlementCoverage = 0.95,
+    [double]$MinCanonicalOutcomeCoverage = 0.95,
     [int]$SettlementApiRetries = 3,
     [switch]$RunTests,
     [switch]$SkipSettlementBackfill
@@ -18,13 +19,14 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Push-Location $Root
 try {
-    Write-Host "TARGET MAKER HEAVY-SIDE SURVIVAL V3.1 INTEGRITY"
+    Write-Host "TARGET MAKER HEAVY-SIDE SURVIVAL V3.2 SETTLEMENT INTEGRITY + V3.1 MODEL"
     Write-Host "Goal: learn target-blind P(UP wins) from ordinary public state, then orient it to Maker-heavy survival."
     Write-Host "Fit: ordinary only, chronological market walk-forward."
     Write-Host "Audit: 2026-08-16 special cohort is never used for fit or calibration."
     Write-Host "Compare: raw Predict + past-only calibrated Predict vs PREDICT_CONTEXT / LEAN_SPOT / FULL_PUBLIC EBM."
     Write-Host "Primary probability metrics: log-loss + Brier; AUC is secondary."
-    Write-Host "Integrity: per-regime settlement coverage, V2/V3 winner concordance, exact timestamp repair joins."
+    Write-Host "Settlement truth: Predict explicit resolution/outcomes WON first; start/end price is fallback only."
+    Write-Host "Integrity: settlement coverage, canonical outcome coverage, V2/V3 winner concordance, exact timestamp repair joins."
     Write-Host "Research only. No cutoff or live rule promotion."
 
     $PublicDataset = Join-Path $Root "data\research\target_taker_action_burst_hazard_v1.csv"
@@ -39,40 +41,44 @@ try {
         throw "Missing V2 repair risk-set: $RiskCsv`nRun .\run-target-maker-taker-repair-hazard-complete-set-v2.ps1 first."
     }
 
-    Write-Host "`n[1/4] Validate V3/V3.1 scripts..."
+    Write-Host "`n[1/4] Validate V3/V3.1/V3.2 scripts..."
     python -m py_compile `
         .\tools\backfill_target_maker_survival_settlements_v3.py `
+        .\tools\backfill_target_maker_survival_settlements_v3_2.py `
         .\tools\analyze_target_maker_heavy_survival_v3.py `
         .\tools\analyze_target_maker_heavy_survival_v3_1.py
-    if ($LASTEXITCODE -ne 0) { throw "V3.1 syntax check failed." }
+    if ($LASTEXITCODE -ne 0) { throw "V3.2 syntax check failed." }
 
     if ($RunTests) {
-        Write-Host "`n[2/4] Run V3 + V3.1 semantic/leakage/integrity tests..."
+        Write-Host "`n[2/4] Run V3 + V3.1 + V3.2 semantic/leakage/integrity tests..."
         python -m pytest -q `
             .\tests\test_target_maker_heavy_survival_v3.py `
-            .\tests\test_target_maker_heavy_survival_v3_1.py
-        if ($LASTEXITCODE -ne 0) { throw "V3.1 tests failed." }
+            .\tests\test_target_maker_heavy_survival_v3_1.py `
+            .\tests\test_target_maker_survival_settlement_resolution_v3_2.py
+        if ($LASTEXITCODE -ne 0) { throw "V3.2 tests failed." }
     }
     else {
         Write-Host "`n[2/4] Tests skipped (use -RunTests to enable)."
     }
 
     if (-not $SkipSettlementBackfill) {
-        Write-Host "`n[3/4] Backfill official outcomes + enforce ordinary/special coverage guards..."
-        python .\tools\backfill_target_maker_survival_settlements_v3.py `
+        Write-Host "`n[3/4] Refresh canonical official outcomes + enforce settlement integrity guards..."
+        python .\tools\backfill_target_maker_survival_settlements_v3_2.py `
             --public-dataset $PublicDataset `
             --output-db $SettlementDb `
             --report $SettlementReport `
+            --risk-csv $RiskCsv `
             --special-start $SpecialStart `
             --min-ordinary-coverage $MinOrdinarySettlementCoverage `
             --min-special-coverage $MinSpecialSettlementCoverage `
+            --min-canonical-outcome-coverage $MinCanonicalOutcomeCoverage `
             --api-retries $SettlementApiRetries
         if ($LASTEXITCODE -ne 0) {
-            throw "V3.1 settlement integrity failed. Inspect data\research\target_maker_survival_settlements_v3_report.json, especially coverageByRegime and apiDiagnostics."
+            throw "V3.2 settlement integrity failed. Inspect data\research\target_maker_survival_settlements_v3_report.json: canonicalOutcomeAudit, cacheMigration, winnerConcordancePreview, apiDiagnostics."
         }
     }
     else {
-        Write-Host "`n[3/4] Settlement backfill skipped; analyzer integrity preflight will still enforce coverage/concordance."
+        Write-Host "`n[3/4] Settlement refresh skipped; analyzer integrity preflight will still enforce coverage/concordance."
         if (-not (Test-Path $SettlementDb)) {
             throw "Settlement backfill skipped but DB is missing: $SettlementDb"
         }
