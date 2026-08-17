@@ -4,6 +4,8 @@ import argparse
 import json
 import math
 import statistics
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +31,11 @@ FEATURE_SETS = {
     "PUBLIC_PLUS_MAKER_INVENTORY": PUBLIC_PLUS_MAKER,
     "PUBLIC_PLUS_FULL_INVENTORY": PUBLIC_PLUS_INVENTORY,
 }
+QUICK_FEATURE_SETS = {
+    "PUBLIC_ONLY": PUBLIC_ONLY,
+    "PUBLIC_PLUS_MAKER_INVENTORY": PUBLIC_PLUS_MAKER,
+    "PUBLIC_PLUS_FULL_INVENTORY": PUBLIC_PLUS_INVENTORY,
+}
 
 
 def _clean(value: Any) -> Any:
@@ -51,6 +58,13 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     temp.replace(resolved)
 
 
+def _progress(started: float, message: str) -> None:
+    elapsed = time.perf_counter() - started
+    now = datetime.now().strftime("%H:%M:%S")
+    minutes, seconds = divmod(int(elapsed), 60)
+    print(f"[{now} +{minutes:02d}:{seconds:02d}] {message}", flush=True)
+
+
 def _fold_metric_summary(feature_payload: dict[str, Any]) -> dict[str, Any]:
     folds = [row for row in feature_payload.get("folds", []) if row.get("status") == "OK"]
     aucs = [float(row["test"]["rocAuc"]) for row in folds if row.get("test", {}).get("rocAuc") is not None]
@@ -68,6 +82,92 @@ def _fold_metric_summary(feature_payload: dict[str, Any]) -> dict[str, Any]:
         "meanBalancedAccuracy": statistics.fmean(balanced) if balanced else None,
         "positiveAucFoldRate": sum(value > 0.5 for value in aucs) / len(aucs) if aucs else None,
     }
+
+
+def _classification_suite_with_progress(
+    *,
+    shared: Any,
+    deps: dict[str, Any],
+    frame: Any,
+    label: str,
+    feature_sets: dict[str, list[str]],
+    folds: list[dict[str, list[int]]],
+    interactions: int,
+    max_rounds: int,
+    outer_bags: int,
+    seed_base: int,
+    started: float,
+) -> dict[str, Any]:
+    pd = deps["pd"]
+    working = frame[frame[label].notna()].copy()
+    working[label] = pd.to_numeric(working[label], errors="raise").astype(int)
+    task: dict[str, Any] = {
+        "label": label,
+        "rows": int(len(working)),
+        "positiveRate": float(working[label].mean()) if len(working) else None,
+        "featureSets": {},
+    }
+    total_fits = len(feature_sets) * len(folds)
+    fit_index = 0
+    for feature_index, (name, requested) in enumerate(feature_sets.items()):
+        features = maker_v1._usable(requested, working, pd)
+        if not features:
+            continue
+        _progress(started, f"FEATURE {name} start ({len(features)} features)")
+        fold_rows: list[dict[str, Any]] = []
+        feature_started = time.perf_counter()
+        for fold_index, fold in enumerate(folds):
+            fit_index += 1
+            fold_started = time.perf_counter()
+            _progress(
+                started,
+                f"FIT {fit_index}/{total_fits} {name} fold {fold_index + 1}/{len(folds)} "
+                f"train={len(fold['trainMarkets'])} cal={len(fold['calibrationMarkets'])} test={len(fold['testMarkets'])}",
+            )
+            row = shared._classification_fold(
+                deps=deps,
+                frame=working,
+                label=label,
+                features=features,
+                fold=fold,
+                interactions=min(max(0, interactions), max(0, len(features) // 2)),
+                max_rounds=max_rounds,
+                outer_bags=outer_bags,
+                seed=seed_base + feature_index * 20 + fold_index,
+            )
+            fold_rows.append(row)
+            auc = row.get("test", {}).get("rocAuc") if row.get("status") == "OK" else None
+            lift = row.get("logLossLiftVsPrior")
+            _progress(
+                started,
+                f"DONE {name} fold {fold_index + 1}/{len(folds)} "
+                f"status={row.get('status')} AUC={auc} logloss_lift={lift} "
+                f"fit_elapsed={time.perf_counter() - fold_started:.1f}s",
+            )
+        summary = shared._aggregate_classification(fold_rows)
+        summary["features"] = features
+        task["featureSets"][name] = summary
+        _progress(
+            started,
+            f"FEATURE {name} complete meanAUC={summary.get('meanTestRocAuc')} "
+            f"elapsed={time.perf_counter() - feature_started:.1f}s",
+        )
+    task["rankingByMeanLogLossLiftVsPrior"] = sorted(
+        [
+            {
+                "featureSet": name,
+                "meanLogLossLiftVsPrior": values.get("mean_logLossLiftVsPrior"),
+                "positiveFoldRate": values.get("positiveFoldRate_logLossLiftVsPrior"),
+                "meanTestRocAuc": values.get("meanTestRocAuc"),
+                "meanTestAveragePrecision": values.get("meanTestAveragePrecision"),
+            }
+            for name, values in task["featureSets"].items()
+            if values.get("mean_logLossLiftVsPrior") is not None
+        ],
+        key=lambda row: float(row["meanLogLossLiftVsPrior"]),
+        reverse=True,
+    )
+    return task
 
 
 def _term_importances(model: Any, features: list[str], limit: int = 20) -> list[dict[str, Any]]:
@@ -94,6 +194,7 @@ def _special_audit(
     interactions: int,
     max_rounds: int,
     outer_bags: int,
+    started: float,
 ) -> dict[str, Any]:
     pd = deps["pd"]
     if len(special) < 20:
@@ -125,6 +226,8 @@ def _special_audit(
         features = maker_v1._usable(requested, ordinary, pd)
         if not features:
             continue
+        audit_started = time.perf_counter()
+        _progress(started, f"SPECIAL AUDIT {name} start")
         model = shared._fit_classifier(
             deps,
             shared._numeric(pd, train, features),
@@ -156,10 +259,7 @@ def _special_audit(
             )
         first_mask = pd.to_numeric(special["is_first_maker_placement"], errors="coerce").fillna(0).astype(int) == 1
         lifecycle_metrics: dict[str, Any] = {}
-        for label, mask in {
-            "FIRST_MAKER": first_mask,
-            "LATER_MAKER": ~first_mask,
-        }.items():
+        for label, mask in {"FIRST_MAKER": first_mask, "LATER_MAKER": ~first_mask}.items():
             if int(mask.sum()) < 20:
                 continue
             lifecycle_metrics[label] = shared._classification_metrics(
@@ -174,6 +274,11 @@ def _special_audit(
             "firstVsLaterMetrics": lifecycle_metrics,
             "topTermImportances": _term_importances(model, features),
         }
+        _progress(
+            started,
+            f"SPECIAL AUDIT {name} done AUC={metrics.get('rocAuc')} "
+            f"elapsed={time.perf_counter() - audit_started:.1f}s",
+        )
     return result
 
 
@@ -182,14 +287,18 @@ def main() -> int:
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--meta", type=Path, default=DEFAULT_META)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--preset", choices=("quick", "full"), default="quick")
     parser.add_argument("--min-train-markets", type=int, default=60)
-    parser.add_argument("--test-markets", type=int, default=18)
-    parser.add_argument("--max-folds", type=int, default=4)
-    parser.add_argument("--interactions", type=int, default=8)
-    parser.add_argument("--max-rounds", type=int, default=1800)
-    parser.add_argument("--outer-bags", type=int, default=6)
+    parser.add_argument("--test-markets", type=int, default=12)
+    parser.add_argument("--max-folds", type=int, default=2)
+    parser.add_argument("--interactions", type=int, default=4)
+    parser.add_argument("--max-rounds", type=int, default=500)
+    parser.add_argument("--outer-bags", type=int, default=3)
     args = parser.parse_args()
 
+    started = time.perf_counter()
+    _progress(started, f"START preset={args.preset}")
+    active_feature_sets = QUICK_FEATURE_SETS if args.preset == "quick" else FEATURE_SETS
     shared = maker_v1._shared()
     deps = shared._imports()
     pd = deps["pd"]
@@ -221,18 +330,25 @@ def main() -> int:
     interactions = max(0, int(args.interactions))
     max_rounds = max(100, int(args.max_rounds))
     outer_bags = max(2, int(args.outer_bags))
+    _progress(
+        started,
+        f"DATA ready ordinary_rows={len(ordinary)} markets={len(ordinary_markets)} "
+        f"special_rows={len(special)} folds={len(folds)} featuresets={list(active_feature_sets)} "
+        f"rounds={max_rounds} bags={outer_bags}",
+    )
 
-    side_task = maker_v1._classification_suite(
+    side_task = _classification_suite_with_progress(
         shared=shared,
         deps=deps,
         frame=ordinary,
         label="label_side_up",
-        feature_sets=FEATURE_SETS,
+        feature_sets=active_feature_sets,
         folds=folds,
         interactions=interactions,
         max_rounds=max_rounds,
         outer_bags=outer_bags,
         seed_base=7000,
+        started=started,
     )
     summaries = {
         name: _fold_metric_summary(payload)
@@ -246,21 +362,31 @@ def main() -> int:
             if auc is not None and public_auc is not None else None
         )
 
-    special_audit = _special_audit(
-        shared=shared,
-        deps=deps,
-        ordinary=ordinary,
-        special=special,
-        feature_sets=FEATURE_SETS,
-        interactions=interactions,
-        max_rounds=max_rounds,
-        outer_bags=outer_bags,
-    )
+    if args.preset == "full":
+        _progress(started, "Ordinary full screen complete; starting SPECIAL stress audit")
+        special_audit = _special_audit(
+            shared=shared,
+            deps=deps,
+            ordinary=ordinary,
+            special=special,
+            feature_sets=active_feature_sets,
+            interactions=interactions,
+            max_rounds=max_rounds,
+            outer_bags=outer_bags,
+            started=started,
+        )
+    else:
+        special_audit = {
+            "status": "SKIPPED_QUICK_SCREEN",
+            "reason": "Quick preset stops after the shortest ordinary OOF evidence screen. Run preset=full only after reviewing evidence.",
+        }
+        _progress(started, "QUICK gate reached; SPECIAL audit intentionally skipped")
 
     primary = summaries.get("PUBLIC_PLUS_FULL_INVENTORY", {})
     maker_only_combo = summaries.get("PUBLIC_PLUS_MAKER_INVENTORY", {})
     report: dict[str, Any] = {
         "reportVersion": REPORT_VERSION,
+        "preset": args.preset,
         "paperResearchOnly": True,
         "automaticStrategyPromotion": False,
         "causalClaim": False,
@@ -269,6 +395,19 @@ def main() -> int:
         "deploymentBoundary": "Target inventory is used only as a research teacher state. Live deployment must substitute our own strict-past inventory state.",
         "timestampBoundary": "Only official fill events with event_ms < placement_first_ms enter inventory features. Same-timestamp/current placement fills are forbidden.",
         "fitPolicy": "ORDINARY_PRE_SPECIAL only, chronological market walk-forward. SPECIAL never enters fit or calibration.",
+        "quickGatePolicy": (
+            "Quick is the default: PUBLIC_ONLY vs PUBLIC+MAKER vs PUBLIC+FULL inventory, reduced folds/rounds/bags, "
+            "and no SPECIAL audit. Full is manual only after evidence review."
+        ),
+        "runConfig": {
+            "minTrainMarkets": min_train,
+            "testMarkets": test_markets,
+            "maxFolds": max_folds,
+            "interactions": interactions,
+            "maxRounds": max_rounds,
+            "outerBags": outer_bags,
+            "featureSets": list(active_feature_sets),
+        },
         "dataset": str(dataset_path),
         "rows": int(len(frame)),
         "markets": int(frame["market_id"].nunique()),
@@ -277,7 +416,7 @@ def main() -> int:
         "specialRows": int(len(special)),
         "specialMarkets": int(special["market_id"].nunique()) if len(special) else 0,
         "outsideRows": int(len(outside)),
-        "featureSets": FEATURE_SETS,
+        "featureSets": active_feature_sets,
         "walkForwardFolds": folds,
         "ordinarySideTask": side_task,
         "ordinarySummary": summaries,
@@ -298,6 +437,7 @@ def main() -> int:
             "Do not promote a live rule from SPECIAL performance; SPECIAL is untouched stress audit only.",
             "Do not deploy Target inventory features directly. Replace them with the strategy's own inventory state.",
             "Same-timestamp official fills are explicitly excluded from features to prevent current-action leakage.",
+            "Do not run the full preset automatically after quick; review quick evidence first.",
         ],
     }
     meta_path = args.meta.expanduser().resolve()
@@ -308,15 +448,14 @@ def main() -> int:
             report["datasetMetaReadError"] = type(exc).__name__
 
     _write_json(args.report, report)
-    print("TARGET MAKER INVENTORY-CONDITIONED SIDE V2", flush=True)
-    print(f"ordinary rows={len(ordinary)} markets={len(ordinary_markets)} | special rows={len(special)} markets={special['market_id'].nunique() if len(special) else 0}", flush=True)
+    _progress(started, "RESULT SUMMARY")
     for name, summary in summaries.items():
         print(
             f"  {name}: AUC={summary.get('meanAuc')} lift_vs_public={summary.get('aucLiftVsPublicOnly')} "
             f"logloss={summary.get('meanLogLoss')} folds={summary.get('validFolds')}",
             flush=True,
         )
-    print(f"Report: {args.report.expanduser().resolve()}", flush=True)
+    _progress(started, f"DONE report={args.report.expanduser().resolve()}")
     return 0
 
 
