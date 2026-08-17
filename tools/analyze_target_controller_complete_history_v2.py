@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import bisect
 import csv
 import json
 import math
 import sqlite3
 import statistics
 from collections import Counter, defaultdict
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import analyze_target_controller_parameter_extraction_v1 as core
@@ -240,6 +240,7 @@ def _burst_groups(parents: list[dict[str, Any]], idle_gap_ms: int, cap_ms: int) 
 
 def _replay(market_id: int, parents: list[dict[str, Any]], segment_id: int, source: str, idle_gap_ms: int, cap_ms: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     parents = sorted(parents, key=lambda r: (r["first_event_ms"], r["last_event_ms"], r["parent_id"]))
+    start_times = [int(r["first_event_ms"]) for r in parents]
     state = core.PortfolioState()
     before_state: dict[str, core.PortfolioState] = {}
     after_state: dict[str, core.PortfolioState] = {}
@@ -294,14 +295,16 @@ def _replay(market_id: int, parents: list[dict[str, Any]], segment_id: int, sour
             burst_by_parent[parent["parent_id"]] = row
 
     transitions: list[dict[str, Any]] = []
-    for i, parent in enumerate(parents):
+    for parent in parents:
         if parent["role"] != "MAKER":
             continue
         metrics = core._portfolio_metrics(after_state[parent["parent_id"]])
-        future = parents[i + 1] if i + 1 < len(parents) else None
+        completed_ms = int(parent["last_event_ms"])
+        next_index = bisect.bisect_right(start_times, completed_ms)
+        future = parents[next_index] if next_index < len(parents) else None
         row = {
             "market_id": market_id, "segment_id": segment_id, "source_version": source,
-            "maker_parent_id": parent["parent_id"], "maker_completed_ms": parent["last_event_ms"],
+            "maker_parent_id": parent["parent_id"], "maker_completed_ms": completed_ms,
             "risk_deficit": metrics["risk_deficit"], "abs_payoff_gap": metrics["abs_payoff_gap"],
             "maker_abs_payoff_gap": metrics["maker_abs_payoff_gap"], "worst_case_pnl": metrics["worst_case_pnl"],
             "next_actor": "NONE", "next_transition": "END", "next_delay_ms": "", "next_parent_id": "",
@@ -309,7 +312,7 @@ def _replay(market_id: int, parents: list[dict[str, Any]], segment_id: int, sour
         }
         if future is not None:
             row["next_actor"] = future["role"]
-            row["next_delay_ms"] = future["first_event_ms"] - parent["last_event_ms"]
+            row["next_delay_ms"] = future["first_event_ms"] - completed_ms
             row["next_parent_id"] = future["parent_id"]
             if future["role"] == "TAKER":
                 burst = burst_by_parent[future["parent_id"]]
@@ -478,7 +481,9 @@ def main() -> int:
             })
             continue
         b, t, m = _replay(market_id, parents_by_market[market_id], segment_id, source, max(0, args.idle_gap_ms), max(0, args.burst_cap_ms))
-        bursts.extend(b); transitions.extend(t); markets.append(m)
+        bursts.extend(b)
+        transitions.extend(t)
+        markets.append(m)
 
     bursts.sort(key=lambda r: (r["first_event_ms"], r["market_id"], r["burst_id"]))
     transitions.sort(key=lambda r: (r["maker_completed_ms"], r["market_id"], r["maker_parent_id"]))
@@ -504,6 +509,10 @@ def main() -> int:
             "makerBreaksBurst": True,
             "rule": "Consecutive Taker parents are one candidate intervention only when no Maker intervenes, adjacent Taker gap <= idleGapMs, and elapsed time from burst onset <= cap.",
         },
+        "transitionDefinition": {
+            "strictPostMaker": True,
+            "rule": "Next actor must have first_event_ms > maker_completed_ms; already-active/overlapping parents are not counted as a new Maker-to-Taker handoff.",
+        },
         "coverage": {
             "selectedFillLegs": len(events), "parents": len(parents), "markets": len(markets),
             "validLifecycleMarkets": sum(int(r["valid_lifecycle"]) for r in markets),
@@ -527,6 +536,7 @@ def main() -> int:
             "Public Binance/Predict logic features are intentionally excluded in V2; portfolio/execution controller is tested first.",
             "Gap detection uses observed Target inactivity conservatively and never fabricates missing fills.",
             "Markets crossing source boundary or hard gap are excluded from lifecycle state analysis.",
+            "Burst portfolio effects use parent-level observed averages; overlapping fill legs remain an execution-granularity caveat and should be audited before live promotion.",
             "Observed fills do not reveal unfilled/cancelled Maker quotes; explicit fees are not deducted.",
         ],
         "outputs": {"report": str(args.report), "burstsCsv": str(args.bursts), "transitionsCsv": str(args.transitions), "marketsCsv": str(args.markets)},
