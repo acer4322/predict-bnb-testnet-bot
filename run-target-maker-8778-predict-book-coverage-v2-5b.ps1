@@ -1,5 +1,3 @@
-$ErrorActionPreference = 'Stop'
-
 param(
     [string]$Db = 'data/wallet_maker_book_inference.db',
     [string]$BookDb = '',
@@ -7,6 +5,8 @@ param(
     [string]$SpecialStart = '2026-08-16T00:00:00+08:00',
     [string]$SpecialEnd = '2026-08-16T12:00:00+08:00'
 )
+
+$ErrorActionPreference = 'Stop'
 
 $started = Get-Date
 function Stamp([string]$Message) {
