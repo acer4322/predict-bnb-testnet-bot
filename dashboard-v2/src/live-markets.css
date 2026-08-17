@@ -1,0 +1,38 @@
+.live-market-tabs {
+  margin-top: 16px;
+}
+
+.live-asset-pane {
+  padding-top: 4px;
+}
+
+.live-market-tags {
+  margin-bottom: 14px;
+}
+
+.live-market-descriptions {
+  margin-bottom: 14px;
+}
+
+.live-control-alert {
+  margin: 12px 0;
+}
+
+.live-settings-form {
+  margin-top: 12px;
+}
+
+.embedded-settings-card {
+  margin-bottom: 14px;
+  background: #fafcff;
+}
+
+.live-risk-row {
+  margin-top: 12px;
+}
+
+@media (max-width: 767px) {
+  .live-settings-form .ant-form-item {
+    margin-bottom: 12px;
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": ["vite.config.ts", "service-manager-v2.ts", "maker-service-control.ts", "verified-service-control.ts", "legacy-supervisor-recovery.ts", "strategy-test-control.ts"]
+}

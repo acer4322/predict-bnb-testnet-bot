@@ -37,9 +37,19 @@ SNAPSHOT_INTERVAL_MS = max(100, int(os.environ.get("PREDICT_MICRO_SNAPSHOT_INTER
 QUEUE_MAX = max(1_000, int(os.environ.get("PREDICT_MICRO_QUEUE_MAX", "50000")))
 PARSER_VERSION = "microstructure_v2"
 
-SPOT_URL = (
+SPOT_TRADE_URL = (
     "wss://stream.binance.com:9443/stream?streams="
-    "btcusdt@trade/btcusdt@bookTicker/btcusdt@depth10@100ms"
+    "btcusdt@trade"
+)
+SPOT_BOOK_URL = (
+    "wss://stream.binance.com:9443/stream?streams="
+    "btcusdt@bookTicker/btcusdt@depth10@100ms"
+)
+SPOT_TRADE_WATCHDOG_SILENCE_SECONDS = max(
+    4.5, float(os.environ.get("PREDICT_SPOT_TRADE_WATCHDOG_SILENCE_SECONDS", "5.0"))
+)
+SPOT_TRADE_RECONNECT_THROTTLE_SECONDS = max(
+    5.0, float(os.environ.get("PREDICT_SPOT_TRADE_RECONNECT_THROTTLE_SECONDS", "15.0"))
 )
 FUTURES_PUBLIC_URL = (
     "wss://fstream.binance.com/public/stream?streams="
@@ -56,6 +66,48 @@ PREDICTION_ORIENTATION_MIN_ERROR_MARGIN = 0.01
 PREDICTION_ORIENTATION_CONFIRMATIONS = 2
 PREDICTION_ORIENTATION_TIMEOUT_SECONDS = 10.0
 PREDICTION_ORIENTATION_RECONNECT_THROTTLE_SECONDS = 15.0
+PREDICTION_STALE_RECONNECT_SECONDS = 10.0
+PREDICTION_STALE_RECONNECT_THROTTLE_SECONDS = 15.0
+PREDICTION_ROLLOVER_RECONNECT_THROTTLE_SECONDS = max(
+    0.25,
+    float(
+        os.environ.get(
+            "PREDICT_PREDICTION_ROLLOVER_RECONNECT_THROTTLE_SECONDS",
+            "1.0",
+        )
+    ),
+)
+PREDICTION_MARKET_WATCH_SUPERVISOR_SECONDS = max(
+    0.25,
+    float(
+        os.environ.get(
+            "PREDICT_PREDICTION_MARKET_WATCH_SUPERVISOR_SECONDS",
+            "0.5",
+        )
+    ),
+)
+PREDICTION_MARKET_WATCH_HEARTBEAT_STALE_SECONDS = max(
+    1.0,
+    float(
+        os.environ.get(
+            "PREDICT_PREDICTION_MARKET_WATCH_HEARTBEAT_STALE_SECONDS",
+            "2.0",
+        )
+    ),
+)
+PREDICTION_CONTENT_WARNING_AGE_MS = max(
+    250.0,
+    float(
+        os.environ.get(
+            "PREDICT_PREDICTION_CONTENT_WARNING_AGE_MS",
+            "2000",
+        )
+    ),
+)
+PREDICTION_MAX_VERSION_AGE_MS = max(
+    1_000.0,
+    float(os.environ.get("PREDICT_PREDICTION_MAX_VERSION_AGE_MS", "10000")),
+)
 PREDICTION_VERIFIED_ORIENTATIONS = frozenset(
     {"DIRECT_UP_VERIFIED", "INVERTED_TO_UP_VERIFIED"}
 )
@@ -274,9 +326,10 @@ def parse_prediction_message(
     bids = normalize_levels(inner.get("bids"), reverse=True)
     asks = normalize_levels(inner.get("asks"), reverse=False)
     # updateTimestampMs identifies the version/content age of this orderbook.
-    # It is not a server-send timestamp and must never drive transport latency
-    # or local execution freshness.  exchange_event_ms remains populated only
-    # as a transitional database-compatibility alias.
+    # It is not a transport-latency timestamp, but it must gate strategy and
+    # execution freshness: the Prediction stream can replay minute-old books
+    # while frames continue to arrive locally.  exchange_event_ms remains a
+    # transitional database-compatibility alias.
     prediction_book_version_ms = _int(inner.get("updateTimestampMs"))
     event.update(
         market_id=_int(inner.get("marketId")),
@@ -822,6 +875,7 @@ class MicrostructureObserver:
         self.stop_event = threading.Event()
         self.writer_thread: threading.Thread | None = None
         self.socket_threads: list[threading.Thread] = []
+        self.spot_trade_watchdog_thread: threading.Thread | None = None
         self.apps: list[Any] = []
         self.active_apps: dict[str, Any] = {}
         self.prediction_subscription_market_id: int | None = None
@@ -846,14 +900,50 @@ class MicrostructureObserver:
         self.last_eligible_prediction_at: str | None = None
         self.last_prediction_receipt_monotonic_ns = 0
         self.last_prediction_book_version_ms: int | None = None
+        # Transport receipt freshness and exchange content freshness
+        # are deliberately tracked separately. Repeated WSS frames
+        # can be locally fresh while carrying an unchanged book version.
+        self.last_prediction_frame_receipt_monotonic_ns = 0
+        self.last_prediction_unique_version_ms: int | None = None
+        self.last_prediction_unique_version_receipt_monotonic_ns = 0
+        self.last_prediction_unique_version_at: str | None = None
+        self.last_prediction_top_of_book_signature: tuple[Any, ...] | None = None
+        self.last_prediction_top_of_book_change_monotonic_ns = 0
+        self.last_prediction_top_of_book_change_at: str | None = None
+        self.prediction_content_frames = 0
+        self.prediction_unique_version_events = 0
+        self.prediction_same_version_events = 0
+        self.prediction_same_version_consecutive_events = 0
+        self.prediction_top_of_book_change_events = 0
+        self.prediction_top_of_book_unchanged_events = 0
+        self.prediction_top_of_book_unchanged_consecutive_events = 0
+        self.stale_prediction_events = 0
         self.market_watch_thread: threading.Thread | None = None
+        self.prediction_supervisor_thread: threading.Thread | None = None
         self.prediction_rollover_reconnect = threading.Event()
+        self.last_prediction_stale_reconnect_request_ns = 0
+        self.prediction_stale_reconnect_requests = 0
+        self.market_watch_heartbeat_ns = 0
+        self.market_watch_last_iteration_at: str | None = None
+        self.market_watch_failures = 0
+        self.market_watch_last_error: str | None = None
+        self.market_watch_restarts = 0
+        self.market_watch_supervisor_failures = 0
+        self.market_watch_supervisor_last_error: str | None = None
+        self.last_prediction_rollover_request_ns = 0
+        self.prediction_rollover_reconnect_requests = 0
+        self.last_rollover_wanted_market_id: int | None = None
+        self.last_rollover_subscribed_market_id: int | None = None
+        self.last_rollover_reconnect_at: str | None = None
+        self.last_rollover_reconnect_reason: str | None = None
         self.state_lock = threading.RLock()
         self.latest_snapshot: dict[str, Any] = {}
         self.clock_offset_ms = 0.0
         self.dropped_events = 0
         self.dropped_by_stream: dict[str, int] = {
-            name: 0 for name in ("spot", "futures_public", "futures_market", "prediction")
+            name: 0 for name in (
+                "spot_trade", "spot_book", "futures_public", "futures_market", "prediction"
+            )
         }
         self.pending_gap_lock = threading.Lock()
         self.pending_gaps: dict[tuple[str, str], dict[str, Any]] = {}
@@ -868,13 +958,17 @@ class MicrostructureObserver:
         self.writer_last_activity_ns = 0
         self.realtime_sink_errors = 0
         self.realtime_sink_last_error: str | None = None
+        self.spot_trade_reconnect_requests = 0
+        self.last_spot_trade_reconnect_request_ns = 0
         self.stream_stats: dict[str, dict[str, Any]] = {
             name: {
                 "status": "STANDBY", "lastEventAt": None, "error": None,
                 "openedMonotonicNs": None,
                 "times": deque(maxlen=10_000), "latencies": deque(maxlen=200),
             }
-            for name in ("spot", "futures_public", "futures_market", "prediction")
+            for name in (
+                "spot_trade", "spot_book", "futures_public", "futures_market", "prediction"
+            )
         }
 
     def _sync_clock(self) -> None:
@@ -897,7 +991,8 @@ class MicrostructureObserver:
         self.writer_thread = threading.Thread(target=self._writer_loop, name="micro-writer", daemon=True)
         self.writer_thread.start()
         sockets = [
-            ("spot", lambda: SPOT_URL, None),
+            ("spot_trade", lambda: SPOT_TRADE_URL, None),
+            ("spot_book", lambda: SPOT_BOOK_URL, None),
             ("futures_public", lambda: FUTURES_PUBLIC_URL, None),
             ("futures_market", lambda: FUTURES_MARKET_URL, None),
         ]
@@ -915,6 +1010,12 @@ class MicrostructureObserver:
             )
             thread.start()
             self.socket_threads.append(thread)
+        self.spot_trade_watchdog_thread = threading.Thread(
+            target=self._spot_trade_reconnect_watchdog,
+            name="micro-spot-trade-watchdog",
+            daemon=True,
+        )
+        self.spot_trade_watchdog_thread.start()
         if self.api_key and self.api_secret:
             self.market_watch_thread = threading.Thread(
                 target=self._prediction_market_loop,
@@ -922,6 +1023,56 @@ class MicrostructureObserver:
                 daemon=True,
             )
             self.market_watch_thread.start()
+            self.prediction_supervisor_thread = threading.Thread(
+                target=self._prediction_market_watch_supervisor_loop,
+                name="micro-prediction-market-supervisor",
+                daemon=True,
+            )
+            self.prediction_supervisor_thread.start()
+
+    def _spot_trade_reconnect_watchdog(self) -> None:
+        """Reconnect only the trade socket after a throttled silence window.
+
+        The callback updates stream telemetry before putting an event on the
+        archival queue, so this watchdog detects a transport stall, not a
+        slow SQLite writer or a full strategy queue.
+        """
+        silence_ns = int(SPOT_TRADE_WATCHDOG_SILENCE_SECONDS * 1_000_000_000)
+        throttle_ns = int(SPOT_TRADE_RECONNECT_THROTTLE_SECONDS * 1_000_000_000)
+        last_request_ns = 0
+        while not self.stop_event.wait(1.0):
+            now_ns = time.monotonic_ns()
+            with self.state_lock:
+                stats = self.stream_stats["spot_trade"]
+                app = self.active_apps.get("spot_trade")
+                last_event_ns = (
+                    int(stats["times"][-1])
+                    if stats["times"]
+                    else int(stats.get("openedMonotonicNs") or 0)
+                )
+            if app is None or last_event_ns <= 0:
+                continue
+            if now_ns - last_event_ns <= silence_ns:
+                continue
+            if now_ns - last_request_ns < throttle_ns:
+                continue
+            last_request_ns = now_ns
+            with self.state_lock:
+                self.stream_stats["spot_trade"].update(
+                    status="RETRYING",
+                    error=(
+                        "trade socket watchdog reconnect after "
+                        f"{(now_ns - last_event_ns) / 1_000_000:.0f}ms silence"
+                    ),
+                )
+                self.spot_trade_reconnect_requests = (
+                    getattr(self, "spot_trade_reconnect_requests", 0) + 1
+                )
+                self.last_spot_trade_reconnect_request_ns = now_ns
+            try:
+                app.close()
+            except Exception:
+                pass
 
     def _prediction_url(self) -> str:
         assert self.api_secret is not None
@@ -938,27 +1089,162 @@ class MicrostructureObserver:
         self.prediction_subscription_market_id = int(market_id)
         return url
 
+    def _request_prediction_rollover_reconnect(
+        self,
+        *,
+        wanted_market_id: int,
+        subscribed_market_id: int | None,
+        reason: str,
+    ) -> bool:
+        """Invalidate stale state and force the Prediction socket to rebuild."""
+        wanted = int(wanted_market_id)
+        subscribed = (
+            int(subscribed_market_id)
+            if subscribed_market_id is not None
+            else None
+        )
+        now_ns = time.monotonic_ns()
+        throttle_ns = int(
+            PREDICTION_ROLLOVER_RECONNECT_THROTTLE_SECONDS
+            * 1_000_000_000
+        )
+        with self.state_lock:
+            same_pair = (
+                self.last_rollover_wanted_market_id == wanted
+                and self.last_rollover_subscribed_market_id == subscribed
+            )
+            if (
+                same_pair
+                and self.last_prediction_rollover_request_ns > 0
+                and now_ns - self.last_prediction_rollover_request_ns
+                < throttle_ns
+            ):
+                return False
+            self.last_prediction_rollover_request_ns = now_ns
+            self.prediction_rollover_reconnect_requests += 1
+            self.last_rollover_wanted_market_id = wanted
+            self.last_rollover_subscribed_market_id = subscribed
+            self.last_rollover_reconnect_at = _utc_iso_from_ns(
+                time.time_ns()
+            )
+            self.last_rollover_reconnect_reason = str(reason)
+            app = self.active_apps.get("prediction")
+
+        self._invalidate_prediction_state(wanted)
+        self._set_stream(
+            "prediction",
+            status="RETRYING",
+            error=(
+                f"{reason}: Prediction subscription market "
+                f"{subscribed if subscribed is not None else 'unknown'} "
+                f"does not match wanted market {wanted}; reconnecting"
+            ),
+        )
+        self.prediction_rollover_reconnect.set()
+        if app is not None:
+            try:
+                app.close()
+            except Exception:
+                pass
+        return True
+
     def _prediction_market_loop(self) -> None:
-        """Reconnect the dynamic Prediction stream immediately after market rollover."""
+        """Reconnect after rollover without dying on one callback error."""
         while not self.stop_event.wait(0.25):
-            wanted = self.current_market_id()
-            subscribed = self.prediction_subscription_market_id
-            if wanted is None or subscribed is None:
-                continue
-            if int(wanted) == int(subscribed):
-                self._reconnect_unverified_prediction_if_timed_out()
-                continue
-            self._invalidate_prediction_state(int(wanted))
-            # Set this even when the WebSocket is between connection attempts:
-            # it doubles as a wake-up for an in-progress transport backoff.
-            self.prediction_rollover_reconnect.set()
+            now_ns = time.monotonic_ns()
             with self.state_lock:
-                app = self.active_apps.get("prediction")
-            if app is not None:
-                try:
-                    app.close()
-                except Exception:
-                    pass
+                self.market_watch_heartbeat_ns = now_ns
+                self.market_watch_last_iteration_at = _utc_iso_from_ns(
+                    time.time_ns()
+                )
+            try:
+                wanted = self.current_market_id()
+                subscribed = self.prediction_subscription_market_id
+                if wanted is None or subscribed is None:
+                    continue
+                if int(wanted) == int(subscribed):
+                    self._reconnect_unverified_prediction_if_timed_out()
+                    self._reconnect_stale_prediction_if_needed()
+                    continue
+                self._request_prediction_rollover_reconnect(
+                    wanted_market_id=int(wanted),
+                    subscribed_market_id=int(subscribed),
+                    reason="MARKET_WATCH_MARKET_ID_MISMATCH",
+                )
+            except Exception as exc:
+                with self.state_lock:
+                    self.market_watch_failures += 1
+                    self.market_watch_last_error = _safe_error(exc)
+                self._set_stream(
+                    "prediction",
+                    error=(
+                        "Prediction market-watch iteration failed: "
+                        f"{_safe_error(exc)}"
+                    ),
+                )
+
+    def _prediction_market_watch_supervisor_loop(self) -> None:
+        """Restart or backstop the primary Prediction rollover worker."""
+        interval = PREDICTION_MARKET_WATCH_SUPERVISOR_SECONDS
+        heartbeat_limit_ns = int(
+            PREDICTION_MARKET_WATCH_HEARTBEAT_STALE_SECONDS
+            * 1_000_000_000
+        )
+        while not self.stop_event.wait(interval):
+            try:
+                worker = self.market_watch_thread
+                if worker is None or not worker.is_alive():
+                    if self.stop_event.is_set():
+                        break
+                    with self.state_lock:
+                        self.market_watch_restarts += 1
+                        restart_number = self.market_watch_restarts
+                    replacement = threading.Thread(
+                        target=self._prediction_market_loop,
+                        name=(
+                            "micro-prediction-market-watch-restart-"
+                            f"{restart_number}"
+                        ),
+                        daemon=True,
+                    )
+                    self.market_watch_thread = replacement
+                    replacement.start()
+                    continue
+
+                wanted = self.current_market_id()
+                subscribed = self.prediction_subscription_market_id
+                if wanted is None or subscribed is None:
+                    continue
+
+                now_ns = time.monotonic_ns()
+                heartbeat_ns = int(self.market_watch_heartbeat_ns or 0)
+                heartbeat_stale = bool(
+                    heartbeat_ns > 0
+                    and now_ns - heartbeat_ns > heartbeat_limit_ns
+                )
+                if int(wanted) != int(subscribed):
+                    self._request_prediction_rollover_reconnect(
+                        wanted_market_id=int(wanted),
+                        subscribed_market_id=int(subscribed),
+                        reason="SUPERVISOR_MARKET_ID_MISMATCH",
+                    )
+                elif heartbeat_stale:
+                    self._request_prediction_rollover_reconnect(
+                        wanted_market_id=int(wanted),
+                        subscribed_market_id=int(subscribed),
+                        reason="SUPERVISOR_HEARTBEAT_STALE",
+                    )
+            except Exception as exc:
+                with self.state_lock:
+                    self.market_watch_supervisor_failures += 1
+                    self.market_watch_supervisor_last_error = _safe_error(exc)
+                self._set_stream(
+                    "prediction",
+                    error=(
+                        "Prediction market-watch supervisor failed: "
+                        f"{_safe_error(exc)}"
+                    ),
+                )
 
     def _invalidate_prediction_state(self, market_id: int | None) -> None:
         self.engine.reset_prediction(market_id)
@@ -979,6 +1265,20 @@ class MicrostructureObserver:
         )
         self.last_prediction_receipt_monotonic_ns = 0
         self.last_prediction_book_version_ms = None
+        self.last_prediction_frame_receipt_monotonic_ns = 0
+        self.last_prediction_unique_version_ms = None
+        self.last_prediction_unique_version_receipt_monotonic_ns = 0
+        self.last_prediction_unique_version_at = None
+        self.last_prediction_top_of_book_signature = None
+        self.last_prediction_top_of_book_change_monotonic_ns = 0
+        self.last_prediction_top_of_book_change_at = None
+        self.prediction_content_frames = 0
+        self.prediction_unique_version_events = 0
+        self.prediction_same_version_events = 0
+        self.prediction_same_version_consecutive_events = 0
+        self.prediction_top_of_book_change_events = 0
+        self.prediction_top_of_book_unchanged_events = 0
+        self.prediction_top_of_book_unchanged_consecutive_events = 0
         if market_id is not None:
             self.last_prediction_timestamp.pop(int(market_id), None)
         with self.state_lock:
@@ -1013,7 +1313,8 @@ class MicrostructureObserver:
             return
         self.orientation_failure_reason = "ORIENTATION_TIMEOUT"
         if now_ns - self.last_orientation_reconnect_request_ns < int(
-            PREDICTION_ORIENTATION_RECONNECT_THROTTLE_SECONDS * 1_000_000_000
+            PREDICTION_ORIENTATION_RECONNECT_THROTTLE_SECONDS
+            * 1_000_000_000
         ):
             return
         with self.state_lock:
@@ -1023,6 +1324,57 @@ class MicrostructureObserver:
         self.last_orientation_reconnect_request_ns = now_ns
         self.orientation_reconnect_requests += 1
         self.prediction_rollover_reconnect.set()
+        try:
+            app.close()
+        except Exception:
+            pass
+
+    def _reconnect_stale_prediction_if_needed(self) -> None:
+        """Reconnect a verified Prediction socket that silently stopped producing books."""
+        if self.prediction_orientation not in PREDICTION_VERIFIED_ORIENTATIONS:
+            return
+
+        last_receipt_ns = int(self.last_prediction_receipt_monotonic_ns or 0)
+        if last_receipt_ns <= 0:
+            return
+
+        now_ns = time.monotonic_ns()
+        stale_age_ns = now_ns - last_receipt_ns
+
+        if stale_age_ns < int(
+            PREDICTION_STALE_RECONNECT_SECONDS * 1_000_000_000
+        ):
+            return
+
+        if (
+            now_ns - self.last_prediction_stale_reconnect_request_ns
+            < int(
+                PREDICTION_STALE_RECONNECT_THROTTLE_SECONDS
+                * 1_000_000_000
+            )
+        ):
+            return
+
+        with self.state_lock:
+            app = self.active_apps.get("prediction")
+
+        if app is None:
+            return
+
+        self.last_prediction_stale_reconnect_request_ns = now_ns
+        self.prediction_stale_reconnect_requests += 1
+
+        self._set_stream(
+            "prediction",
+            status="STALE",
+            error=(
+                "verified Prediction stream produced no accepted "
+                f"orderbook for {stale_age_ns / 1_000_000:.0f} ms; reconnecting"
+            ),
+        )
+
+        self.prediction_rollover_reconnect.set()
+
         try:
             app.close()
         except Exception:
@@ -1146,6 +1498,71 @@ class MicrostructureObserver:
         event["feature_eligible"] = True
         return previous_orientation not in PREDICTION_VERIFIED_ORIENTATIONS
 
+    def _prediction_version_age_ms(self, event: dict[str, Any]) -> float | None:
+        version_ms = _int(event.get("prediction_book_version_ms"))
+        received_wall_ns = _int(event.get("received_wall_ns"))
+        if version_ms is None or received_wall_ns is None:
+            return None
+        return max(
+            0.0,
+            received_wall_ns / 1_000_000 + self.clock_offset_ms - version_ms,
+        )
+
+    def _observe_prediction_content(
+        self,
+        event: dict[str, Any],
+        version_ms: int | None,
+    ) -> None:
+        # Telemetry only: this method must never make a book eligible.
+        received_mono_ns = int(event.get("received_monotonic_ns") or 0)
+        received_wall_ns = int(event.get("received_wall_ns") or 0)
+        if received_mono_ns <= 0:
+            return
+        normalized_version = (
+            int(version_ms) if version_ms is not None else None
+        )
+        top_signature = (
+            event.get("best_bid"),
+            event.get("best_bid_qty"),
+            event.get("best_ask"),
+            event.get("best_ask_qty"),
+        )
+        with self.state_lock:
+            self.last_prediction_frame_receipt_monotonic_ns = received_mono_ns
+            self.prediction_content_frames += 1
+
+            if normalized_version is not None:
+                if normalized_version != self.last_prediction_unique_version_ms:
+                    self.last_prediction_unique_version_ms = normalized_version
+                    self.last_prediction_unique_version_receipt_monotonic_ns = (
+                        received_mono_ns
+                    )
+                    self.last_prediction_unique_version_at = (
+                        _utc_iso_from_ns(received_wall_ns)
+                        if received_wall_ns > 0
+                        else None
+                    )
+                    self.prediction_unique_version_events += 1
+                    self.prediction_same_version_consecutive_events = 0
+                else:
+                    self.prediction_same_version_events += 1
+                    self.prediction_same_version_consecutive_events += 1
+
+            if top_signature != self.last_prediction_top_of_book_signature:
+                self.last_prediction_top_of_book_signature = top_signature
+                self.last_prediction_top_of_book_change_monotonic_ns = (
+                    received_mono_ns
+                )
+                self.last_prediction_top_of_book_change_at = (
+                    _utc_iso_from_ns(received_wall_ns)
+                    if received_wall_ns > 0
+                    else None
+                )
+                self.prediction_top_of_book_change_events += 1
+                self.prediction_top_of_book_unchanged_consecutive_events = 0
+            else:
+                self.prediction_top_of_book_unchanged_events += 1
+                self.prediction_top_of_book_unchanged_consecutive_events += 1
     def _set_stream(self, name: str, **values: Any) -> None:
         with self.state_lock:
             self.stream_stats[name].update(values)
@@ -1168,7 +1585,7 @@ class MicrostructureObserver:
             def on_open(_: Any) -> None:
                 nonlocal backoff
                 backoff = 1.0
-                if name == "spot":
+                if name == "spot_book":
                     self.last_spot_update = None
                 elif name == "futures_public":
                     self.last_futures_update = None
@@ -1193,7 +1610,7 @@ class MicrostructureObserver:
                             session_id=session_id,
                         )
                     else:
-                        source = "spot" if name == "spot" else "futures"
+                        source = "spot" if name in {"spot_trade", "spot_book"} else "futures"
                         event = parse_combined_message(
                             raw,
                             source=source,
@@ -1252,15 +1669,36 @@ class MicrostructureObserver:
             backoff = min(30.0, backoff * 2.0)
 
     def _accept_event(self, stream_name: str, event: dict[str, Any]) -> None:
+        # Unit-test and replay callers from the pre-split API may still label
+        # Spot trade ingress as "spot".  Normalize that internal alias while
+        # keeping the public health contract split into two streams.
+        if stream_name == "spot":
+            stream_name = "spot_trade"
         if event["source"] == "prediction":
             market_id = event.get("market_id")
             wanted = self.current_market_id()
             if market_id is None or wanted is None or int(market_id) != int(wanted):
                 return
-            just_verified = self._orient_prediction_event(event)
+            version_age_ms = self._prediction_version_age_ms(event)
+            event["prediction_book_version_age_ms"] = version_age_ms
+            if (
+                version_age_ms is None
+                or version_age_ms > PREDICTION_MAX_VERSION_AGE_MS
+            ):
+                just_verified = False
+                event["prediction_orientation"] = "STALE_CONTENT"
+                event["feature_eligible"] = False
+                self.stale_prediction_events += 1
+                self.orientation_failure_reason = "STALE_BOOK_VERSION"
+            else:
+                just_verified = self._orient_prediction_event(event)
             timestamp = event.get("prediction_book_version_ms")
             if timestamp is None:
                 timestamp = event.get("exchange_event_ms")
+            self._observe_prediction_content(
+                event,
+                int(timestamp) if timestamp is not None else None,
+            )
             previous = self.last_prediction_timestamp.get(int(market_id))
             if (
                 timestamp is not None
@@ -1285,7 +1723,7 @@ class MicrostructureObserver:
                 )
             else:
                 self.unverified_prediction_events += 1
-        elif stream_name == "spot" and event["stream"] == "depth":
+        elif stream_name == "spot_book" and event["stream"] == "depth":
             update_id = event.get("update_id")
             if (
                 update_id is not None
@@ -1521,7 +1959,8 @@ class MicrostructureObserver:
             }
 
     def state(self) -> dict[str, Any]:
-        spot = self._public_stream_state(["spot"])
+        spot_trade = self._public_stream_state(["spot_trade"])
+        spot_book = self._public_stream_state(["spot_book"])
         futures = self._public_stream_state(["futures_public", "futures_market"])
         prediction = self._public_stream_state(["prediction"])
         prediction["marketId"] = self.prediction_subscription_market_id
@@ -1540,16 +1979,253 @@ class MicrostructureObserver:
             and orientation_elapsed_ms
             > PREDICTION_ORIENTATION_TIMEOUT_SECONDS * 1_000
         )
-        orientation_healthy = (
-            self.prediction_orientation in PREDICTION_VERIFIED_ORIENTATIONS
+        book_version_age_ms = (
+            max(0.0, now_server_ms - self.last_prediction_book_version_ms)
+            if self.last_prediction_book_version_ms is not None
+            else None
         )
+        transport_receipt_age_ms = (
+            max(
+                0.0,
+                (
+                    now_mono_ns
+                    - self.last_prediction_frame_receipt_monotonic_ns
+                )
+                / 1_000_000,
+            )
+            if self.last_prediction_frame_receipt_monotonic_ns
+            else None
+        )
+        unique_version_receipt_age_ms = (
+            max(
+                0.0,
+                (
+                    now_mono_ns
+                    - self.last_prediction_unique_version_receipt_monotonic_ns
+                )
+                / 1_000_000,
+            )
+            if self.last_prediction_unique_version_receipt_monotonic_ns
+            else None
+        )
+        top_of_book_unchanged_age_ms = (
+            max(
+                0.0,
+                (
+                    now_mono_ns
+                    - self.last_prediction_top_of_book_change_monotonic_ns
+                )
+                / 1_000_000,
+            )
+            if self.last_prediction_top_of_book_change_monotonic_ns
+            else None
+        )
+        same_version_receipt_ratio = (
+            self.prediction_same_version_events
+            / self.prediction_content_frames
+            if self.prediction_content_frames
+            else None
+        )
+        if transport_receipt_age_ms is None:
+            content_freshness_classification = "NO_CURRENT_MARKET_FRAME"
+        elif (
+            transport_receipt_age_ms
+            > PREDICTION_CONTENT_WARNING_AGE_MS
+        ):
+            content_freshness_classification = "TRANSPORT_STALE"
+        elif book_version_age_ms is None:
+            content_freshness_classification = "CONTENT_VERSION_UNAVAILABLE"
+        elif (
+            book_version_age_ms
+            > PREDICTION_CONTENT_WARNING_AGE_MS
+        ):
+            content_freshness_classification = (
+                "CONTENT_VERSION_OLD_TRANSPORT_LIVE"
+            )
+        else:
+            content_freshness_classification = "CONTENT_CURRENT"
+        version_healthy = bool(
+            book_version_age_ms is not None
+            and book_version_age_ms <= PREDICTION_MAX_VERSION_AGE_MS
+        )
+        # Unit tests and offline state inspection may construct an observer
+        # with credentials without calling start(). Thread health becomes
+        # required only after either runtime thread has actually been assigned.
+        market_watch_required = bool(
+            self.api_key
+            and self.api_secret
+            and (
+                self.market_watch_thread is not None
+                or self.prediction_supervisor_thread is not None
+            )
+        )
+        market_watch_alive = bool(
+            self.market_watch_thread is not None
+            and self.market_watch_thread.is_alive()
+        )
+        prediction_supervisor_alive = bool(
+            self.prediction_supervisor_thread is not None
+            and self.prediction_supervisor_thread.is_alive()
+        )
+        market_watch_heartbeat_age_ms = (
+            max(
+                0.0,
+                (now_mono_ns - self.market_watch_heartbeat_ns)
+                / 1_000_000,
+            )
+            if self.market_watch_heartbeat_ns
+            else None
+        )
+        market_watch_heartbeat_healthy = bool(
+            not market_watch_required
+            or (
+                market_watch_alive
+                and market_watch_heartbeat_age_ms is not None
+                and market_watch_heartbeat_age_ms
+                <= PREDICTION_MARKET_WATCH_HEARTBEAT_STALE_SECONDS
+                * 1_000
+            )
+        )
+        try:
+            wanted_prediction_market_id = self.current_market_id()
+            wanted_prediction_market_id = (
+                int(wanted_prediction_market_id)
+                if wanted_prediction_market_id is not None
+                else None
+            )
+        except Exception:
+            wanted_prediction_market_id = None
+        prediction_market_mismatch = bool(
+            wanted_prediction_market_id is not None
+            and self.prediction_subscription_market_id is not None
+            and int(wanted_prediction_market_id)
+            != int(self.prediction_subscription_market_id)
+        )
+        market_watch_healthy = bool(
+            not market_watch_required
+            or (
+                market_watch_alive
+                and prediction_supervisor_alive
+                and market_watch_heartbeat_healthy
+                and not prediction_market_mismatch
+            )
+        )
+        orientation_healthy = bool(
+            self.prediction_orientation in PREDICTION_VERIFIED_ORIENTATIONS
+            and version_healthy
+            and market_watch_healthy
+        )
+        if prediction_market_mismatch:
+            orientation_health_reason = "PREDICTION_MARKET_ID_MISMATCH"
+        elif market_watch_required and not market_watch_alive:
+            orientation_health_reason = "MARKET_WATCH_THREAD_DEAD"
+        elif market_watch_required and not prediction_supervisor_alive:
+            orientation_health_reason = "MARKET_WATCH_SUPERVISOR_DEAD"
+        elif not market_watch_heartbeat_healthy:
+            orientation_health_reason = "MARKET_WATCH_HEARTBEAT_STALE"
+        elif not version_healthy and book_version_age_ms is not None:
+            orientation_health_reason = "STALE_BOOK_VERSION"
+        else:
+            orientation_health_reason = self.orientation_failure_reason
         prediction.update(
             {
-                "bookVersionAgeMs": (
-                    max(0.0, now_server_ms - self.last_prediction_book_version_ms)
-                    if self.last_prediction_book_version_ms is not None
-                    else None
+                "bookVersionAgeMs": book_version_age_ms,
+                "contentVersionAgeMs": book_version_age_ms,
+                "transportReceiptAgeMs": transport_receipt_age_ms,
+                "uniqueVersionReceiptAgeMs": (
+                    unique_version_receipt_age_ms
                 ),
+                "topOfBookUnchangedAgeMs": (
+                    top_of_book_unchanged_age_ms
+                ),
+                "contentWarningAgeMs": (
+                    PREDICTION_CONTENT_WARNING_AGE_MS
+                ),
+                "contentFreshnessClassification": (
+                    content_freshness_classification
+                ),
+                "contentFreshnessHealthy": (
+                    content_freshness_classification
+                    == "CONTENT_CURRENT"
+                ),
+                "lastUniqueBookVersionMs": (
+                    self.last_prediction_unique_version_ms
+                ),
+                "lastUniqueBookVersionAt": (
+                    self.last_prediction_unique_version_at
+                ),
+                "lastTopOfBookChangeAt": (
+                    self.last_prediction_top_of_book_change_at
+                ),
+                "contentFrames": self.prediction_content_frames,
+                "uniqueVersionEvents": (
+                    self.prediction_unique_version_events
+                ),
+                "sameVersionEvents": (
+                    self.prediction_same_version_events
+                ),
+                "sameVersionConsecutiveEvents": (
+                    self.prediction_same_version_consecutive_events
+                ),
+                "sameVersionReceiptRatio": (
+                    same_version_receipt_ratio
+                ),
+                "topOfBookChangeEvents": (
+                    self.prediction_top_of_book_change_events
+                ),
+                "topOfBookUnchangedEvents": (
+                    self.prediction_top_of_book_unchanged_events
+                ),
+                "topOfBookUnchangedConsecutiveEvents": (
+                    self.prediction_top_of_book_unchanged_consecutive_events
+                ),
+                "maxBookVersionAgeMs": PREDICTION_MAX_VERSION_AGE_MS,
+                "staleReconnectRequests": self.prediction_stale_reconnect_requests,
+                "rolloverReconnectRequests": (
+                    self.prediction_rollover_reconnect_requests
+                ),
+                "marketWatchThreadAlive": market_watch_alive,
+                "predictionSupervisorThreadAlive": (
+                    prediction_supervisor_alive
+                ),
+                "marketWatchHealthy": market_watch_healthy,
+                "marketWatchHeartbeatAgeMs": (
+                    market_watch_heartbeat_age_ms
+                ),
+                "marketWatchHeartbeatLimitMs": (
+                    PREDICTION_MARKET_WATCH_HEARTBEAT_STALE_SECONDS
+                    * 1_000
+                ),
+                "marketWatchLastIterationAt": (
+                    self.market_watch_last_iteration_at
+                ),
+                "marketWatchFailures": self.market_watch_failures,
+                "marketWatchLastError": self.market_watch_last_error,
+                "marketWatchRestarts": self.market_watch_restarts,
+                "marketWatchSupervisorFailures": (
+                    self.market_watch_supervisor_failures
+                ),
+                "marketWatchSupervisorLastError": (
+                    self.market_watch_supervisor_last_error
+                ),
+                "wantedMarketId": wanted_prediction_market_id,
+                "subscriptionMarketId": (
+                    self.prediction_subscription_market_id
+                ),
+                "marketIdMismatch": prediction_market_mismatch,
+                "lastRolloverWantedMarketId": (
+                    self.last_rollover_wanted_market_id
+                ),
+                "lastRolloverSubscribedMarketId": (
+                    self.last_rollover_subscribed_market_id
+                ),
+                "lastRolloverReconnectAt": (
+                    self.last_rollover_reconnect_at
+                ),
+                "lastRolloverReconnectReason": (
+                    self.last_rollover_reconnect_reason
+                ),
+                "bookVersionHealthy": version_healthy,
                 "localReceiptAgeMs": (
                     max(
                         0.0,
@@ -1565,6 +2241,10 @@ class MicrostructureObserver:
                     if orientation_healthy
                     else "DEGRADED"
                     if orientation_timed_out
+                    or (
+                        book_version_age_ms is not None
+                        and not version_healthy
+                    )
                     else "PENDING"
                 ),
                 "orientationTimedOut": orientation_timed_out,
@@ -1582,14 +2262,15 @@ class MicrostructureObserver:
                 "orientationReceiptDeltaMs": self.orientation_receipt_delta_ms,
                 "orientationDirectError": self.orientation_direct_error,
                 "orientationInvertedError": self.orientation_inverted_error,
-                "orientationFailureReason": self.orientation_failure_reason,
+                "orientationFailureReason": orientation_health_reason,
                 "orientationReconnectRequests": self.orientation_reconnect_requests,
                 "eligiblePredictionEvents": self.eligible_prediction_events,
                 "unverifiedPredictionEvents": self.unverified_prediction_events,
+                "stalePredictionEvents": self.stale_prediction_events,
                 "lastEligiblePredictionAt": self.last_eligible_prediction_at,
             }
         )
-        groups = (spot, futures, prediction)
+        groups = (spot_trade, spot_book, futures, prediction)
         group_statuses = [str(item["status"]) for item in groups]
         if all(item == "LIVE" for item in group_statuses):
             status = "LIVE"
@@ -1634,7 +2315,17 @@ class MicrostructureObserver:
             db_bytes = 0
         return {
             "status": status,
-            "streams": {"spot": spot, "futures": futures, "prediction": prediction},
+            "streams": {
+                "spot_trade": {
+                    **spot_trade,
+                    "reconnectRequests": self.spot_trade_reconnect_requests,
+                    "watchdogSilenceSeconds": SPOT_TRADE_WATCHDOG_SILENCE_SECONDS,
+                    "reconnectThrottleSeconds": SPOT_TRADE_RECONNECT_THROTTLE_SECONDS,
+                },
+                "spot_book": spot_book,
+                "futures": futures,
+                "prediction": prediction,
+            },
             "metrics": metrics,
             "recentLiquidityEvents": self.engine.recent(),
             "storage": {
@@ -1674,6 +2365,10 @@ class MicrostructureObserver:
                 pass
         for thread in self.socket_threads:
             thread.join(timeout=2)
+        if self.spot_trade_watchdog_thread:
+            self.spot_trade_watchdog_thread.join(timeout=2)
+        if self.prediction_supervisor_thread:
+            self.prediction_supervisor_thread.join(timeout=2)
         if self.market_watch_thread:
             self.market_watch_thread.join(timeout=2)
         if self.writer_thread:

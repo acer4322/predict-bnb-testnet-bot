@@ -105,6 +105,8 @@ def prediction_event(**overrides):
         best_bid_qty=12.0,
         best_ask=0.56,
         best_ask_qty=8.0,
+        prediction_book_version_age_ms=0.0,
+        book_skew_ms=0.0,
     )
     value.update(overrides)
     value.setdefault("prediction_book_version_ms", value.get("update_id"))
@@ -221,6 +223,117 @@ def test_current_verified_prediction_book_uses_monotonic_receipt_age():
     assert book["down_asks"] == [[0.45999999999999996, 12.0], [0.47, 20.0]]
 
 
+def test_direct_rest_prediction_book_preserves_both_outcome_books():
+    from predict_bot.m_realtime import direct_rest_prediction_event
+
+    store = FakeStore()
+    engine = MSeriesRealtimeEngine(store=store, current_market=market_reference)
+    received_wall_ns = time.time_ns()
+    received_monotonic_ns = time.monotonic_ns()
+    now_ms = received_wall_ns // 1_000_000
+    engine._handle(
+        direct_rest_prediction_event(
+            market_id=101,
+            up_book={
+                "bids": [["0.06", "20"]],
+                "asks": [["0.07", "30"]],
+                "updateTimestampMs": now_ms - 100,
+            },
+            down_book={
+                "bids": [["0.93", "40"]],
+                "asks": [["0.94", "50"]],
+                "updateTimestampMs": now_ms - 120,
+            },
+            received_wall_ns=received_wall_ns,
+            received_monotonic_ns=received_monotonic_ns,
+            current_timestamp_ms=now_ms,
+        )
+    )
+
+    book = engine.current_verified_prediction_book()
+    assert book["data_source"] == "dual_token_rest"
+    assert book["up_ask"] == pytest.approx(0.07)
+    assert book["down_ask"] == pytest.approx(0.94)
+    assert book["down_asks"] == [[0.94, 50.0]]
+    assert book["book_age_ms"] >= 120.0
+    assert store.calls[-1][0]["down_ask"] == pytest.approx(0.94)
+    assert store.calls[-1][2]["prediction_sampling_mode"] == "periodic_snapshot"
+
+
+def test_direct_rest_prediction_event_rejects_stale_content_before_strategy():
+    from predict_bot.m_realtime import direct_rest_prediction_event
+
+    now_ms = int(time.time() * 1000)
+    built = direct_rest_prediction_event(
+        market_id=101,
+        up_book={
+            "bids": [["0.40", "20"]],
+            "asks": [["0.41", "30"]],
+            "updateTimestampMs": now_ms - 2_001,
+        },
+        down_book={
+            "bids": [["0.58", "40"]],
+            "asks": [["0.59", "50"]],
+            "updateTimestampMs": now_ms - 2_001,
+        },
+        received_wall_ns=time.time_ns(),
+        received_monotonic_ns=time.monotonic_ns(),
+        current_timestamp_ms=now_ms,
+    )
+
+    assert built["book_age_ms"] == pytest.approx(2_001.0)
+    assert built["feature_eligible"] is False
+
+
+def test_prediction_age_telemetry_separates_strategy_rest_and_exchange_age():
+    from predict_bot.m_realtime import direct_rest_prediction_event
+
+    store = FakeStore()
+    engine = MSeriesRealtimeEngine(store=store, current_market=market_reference)
+    now_ms = int(time.time() * 1000)
+
+    def rest_event(*, content_age_ms: int):
+        return direct_rest_prediction_event(
+            market_id=101,
+            up_book={
+                "bids": [["0.40", "20"]],
+                "asks": [["0.41", "30"]],
+                "updateTimestampMs": now_ms - content_age_ms,
+            },
+            down_book={
+                "bids": [["0.58", "40"]],
+                "asks": [["0.59", "50"]],
+                "updateTimestampMs": now_ms - content_age_ms,
+            },
+            received_wall_ns=time.time_ns(),
+            received_monotonic_ns=time.monotonic_ns(),
+            current_timestamp_ms=now_ms,
+        )
+
+    engine._handle(rest_event(content_age_ms=100))
+    engine._handle(rest_event(content_age_ms=3_000))
+    # A later legacy WSS diagnostic frame must not blank the REST telemetry.
+    engine._handle(prediction_event(feature_eligible=False))
+
+    state = engine.state()
+    assert state["acceptedPredictionEvents"] == 1
+    assert state["rejectedUnverifiedPredictionEvents"] == 2
+    assert state["predictionBookAgeMs"] == pytest.approx(
+        state["predictionStrategyBookAgeMs"]
+    )
+    assert 100 <= state["predictionStrategyBookAgeMs"] < 1_000
+    assert 0 <= state["predictionRestReceiptAgeMs"] < 1_000
+    assert state["predictionExchangeContentAgeMs"] >= 3_000
+    assert state["predictionLatestRestEligible"] is False
+    strategy_book = engine.current_verified_prediction_book()
+    direct_rest_book = engine.current_direct_rest_prediction_book()
+    assert strategy_book is not None
+    assert direct_rest_book is not None
+    assert strategy_book["book_age_ms"] < 1_000
+    assert direct_rest_book["book_age_ms"] >= 3_000
+    assert direct_rest_book["data_source"] == "dual_token_rest"
+
+
 def test_realtime_engine_only_forwards_live_supported_paper_candidates():
     class CandidateStore(FakeStore):
         def maybe_enter_m_series(
@@ -304,6 +417,7 @@ def test_realtime_engine_only_forwards_live_supported_paper_candidates():
             65_000.0
         )
         assert "drawdown_control_spot_price" in candidate
+        assert "drawdown_control_spot_age_ms" in candidate
 
 
 def test_realtime_engine_rejects_unverified_prediction_book():
@@ -350,12 +464,13 @@ def test_orientation_confirmation_reaches_store_once_for_same_book_version(
         realtime_event_sink=engine._handle,
         db_path=tmp_path / "orientation-integration.db",
     )
+    version_ms = received_wall_ns // 1_000_000
 
     def same_version_event(receipt_offset_ns: int):
         return prediction_event(
-            update_id=777,
-            exchange_event_ms=777,
-            prediction_book_version_ms=777,
+            update_id=version_ms,
+            exchange_event_ms=version_ms,
+            prediction_book_version_ms=version_ms,
             received_wall_ns=received_wall_ns + receipt_offset_ns,
             received_monotonic_ns=time.monotonic_ns() + receipt_offset_ns,
         )
@@ -412,7 +527,65 @@ def test_realtime_submit_only_queues_signal_and_execution_streams():
     engine.submit(event("spot", "trade", price=65_001.0))
     engine.submit(event("futures", "aggTrade", price=65_002.0))
     engine.submit(prediction_event())
-    assert engine.events.qsize() == 3
+    assert engine.events.qsize() == 4
+
+
+def test_spot_bookticker_midpoint_is_explicit_fallback_when_trade_is_stale():
+    engine = MSeriesRealtimeEngine(store=FakeStore(), current_market=market_reference)
+    now_ns = time.monotonic_ns()
+    engine.spot_event = event(
+        "spot", "trade", price=65_000.0,
+        received_monotonic_ns=now_ns - 5_000_000_000,
+    )
+    engine.spot_book_event = event(
+        "spot", "bookTicker", best_bid=64_999.0, best_ask=65_001.0,
+        received_monotonic_ns=now_ns - 100_000_000,
+    )
+
+    selected, source = engine._spot_signal_event(now_ns)
+
+    assert source == "bookTicker_midpoint"
+    assert engine._event_price(selected) == pytest.approx(65_000.0)
+
+
+def test_spot_trade_age_tracks_ingress_and_processed_separately():
+    engine = MSeriesRealtimeEngine(store=FakeStore(), current_market=market_reference)
+    now_ns = time.monotonic_ns()
+    engine.spot_trade_ingress_received_ns = now_ns - 100_000_000
+    engine.spot_trade_processed_received_ns = now_ns - 800_000_000
+
+    state = engine.state()
+
+    assert state["spotTradeIngressAgeMs"] == pytest.approx(100.0, abs=30.0)
+    assert state["spotTradeProcessedAgeMs"] == pytest.approx(800.0, abs=30.0)
+
+
+def test_current_spot_reference_exposes_trade_and_book_microprice():
+    engine = MSeriesRealtimeEngine(store=FakeStore(), current_market=market_reference)
+    now_ns = time.monotonic_ns()
+    engine.spot_event = event(
+        "spot", "trade", price=65_010.0,
+        received_monotonic_ns=now_ns - 2_383_000_000,
+    )
+    engine.spot_book_event = event(
+        "spot", "bookTicker",
+        best_bid=64_999.0,
+        best_ask=65_001.0,
+        best_bid_qty=3.0,
+        best_ask_qty=1.0,
+        received_monotonic_ns=now_ns - 30_000_000,
+    )
+
+    reference = engine.current_spot_reference()
+    state = engine.state()
+
+    assert reference["trade_price"] == pytest.approx(65_010.0)
+    assert reference["trade_age_ms"] == pytest.approx(2_383.0, abs=30.0)
+    assert reference["book_midpoint"] == pytest.approx(65_000.0)
+    assert reference["book_microprice"] == pytest.approx(65_000.5)
+    assert reference["book_age_ms"] == pytest.approx(30.0, abs=30.0)
+    assert state["spotTradeAgeMs"] == pytest.approx(2_383.0, abs=30.0)
+    assert state["spotBookAgeMs"] == pytest.approx(30.0, abs=30.0)
 
 
 def test_spot_trade_id_keeps_same_millisecond_events_distinct_for_m4():
@@ -1041,7 +1214,35 @@ def test_realtime_submit_refreshes_observer_before_queued_store_work():
     assert engine.events.qsize() == 2
     assert len(observer.resets) == 2
     assert observer.updates[0]["spot_price"] == pytest.approx(65_001.0)
+    assert observer.updates[1]["require_verified_book_freshness"] is True
+    assert observer.updates[1]["book_age_seconds"] is not None
     assert observer.updates[0]["up_ask"] is None
     assert observer.updates[1]["spot_price"] is None
     assert observer.updates[1]["up_ask"] == pytest.approx(0.29)
     assert "down_ask" not in observer.updates[1]
+
+def test_direct_rest_event_exposes_per_outcome_content_ages():
+    from predict_bot.m_realtime import direct_rest_prediction_event
+
+    event = direct_rest_prediction_event(
+        market_id=42,
+        up_book={
+            "updateTimestampMs": 9_500,
+            "bids": [["0.49", "10"]],
+            "asks": [["0.50", "12"]],
+        },
+        down_book={
+            "updateTimestampMs": 7_000,
+            "bids": [["0.49", "11"]],
+            "asks": [["0.50", "13"]],
+        },
+        received_wall_ns=10_000_000_000,
+        received_monotonic_ns=20_000_000_000,
+        current_timestamp_ms=10_000,
+    )
+
+    assert event["up_book_content_age_ms"] == pytest.approx(500)
+    assert event["down_book_content_age_ms"] == pytest.approx(3_000)
+    assert event["content_version_age_ms"] == pytest.approx(3_000)
+    assert event["book_age_ms"] == pytest.approx(3_000)
+    assert event["feature_eligible"] is False
