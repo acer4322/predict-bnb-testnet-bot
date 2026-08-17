@@ -9,7 +9,8 @@ param(
     [int]$MaxRounds = 500,
     [int]$OuterBags = 3,
     [switch]$RunTests,
-    [switch]$RebuildDirectPlacementV1
+    [switch]$RebuildDirectPlacementV1,
+    [switch]$PreflightOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -52,14 +53,36 @@ try {
     $DatasetV2 = Join-Path $Root "data\research\target_maker_inventory_conditioned_side_v2.csv"
     $MetaV2 = Join-Path $Root "data\research\target_maker_inventory_conditioned_side_v2.meta.json"
     $ReportV2 = Join-Path $Root "data\research\target_maker_inventory_conditioned_side_v2_report.json"
+    $PreflightReport = Join-Path $Root "data\research\target_maker_inventory_conditioned_side_v2_preflight.json"
 
     if (-not (Test-Path $TargetDb)) { throw "Missing official Target DB: $TargetDb" }
     if (-not (Test-Path $PublicDataset)) { throw "Missing frozen public dataset: $PublicDataset" }
+    if (-not (Test-Path $BehaviorV1) -and -not $RebuildDirectPlacementV1) { throw "Missing V1 Maker behavior dataset: $BehaviorV1" }
 
     Invoke-TimedStep "[1/4] Syntax check" {
         python -m py_compile `
+            .\tools\preflight_target_maker_inventory_side_v2.py `
             .\tools\build_target_maker_inventory_conditioned_side_v2.py `
             .\tools\train_target_maker_inventory_conditioned_side_v2.py
+    }
+
+    if ($RebuildDirectPlacementV1 -or -not (Test-Path $BehaviorV1)) {
+        Invoke-TimedStep "[1b/4] Rebuild V1 inferred-placement dataset" {
+            python .\tools\build_target_maker_direct_placement_v1_dataset.py
+        }
+    }
+
+    Invoke-TimedStep "[PREFLIGHT] Market/time overlap diagnostic" {
+        python .\tools\preflight_target_maker_inventory_side_v2.py `
+            --behavior-dataset $BehaviorV1 `
+            --target-db $TargetDb `
+            --report $PreflightReport
+    }
+
+    if ($PreflightOnly) {
+        Write-ProgressLine "PREFLIGHT STOP GATE reached. No dataset build or EBM was started."
+        Write-Host "Review: data\research\target_maker_inventory_conditioned_side_v2_preflight.json"
+        return
     }
 
     if ($RunTests) {
@@ -71,18 +94,7 @@ try {
         Write-ProgressLine "[2/4] Tests skipped (use -RunTests to enable)"
     }
 
-    if ($RebuildDirectPlacementV1 -or -not (Test-Path $BehaviorV1)) {
-        Invoke-TimedStep "[3a/4] Rebuild V1 inferred-placement dataset" {
-            python .\tools\build_target_maker_direct_placement_v1_dataset.py
-        }
-    }
-    else {
-        Write-ProgressLine "[3a/4] Reusing existing V1 inferred-placement dataset"
-    }
-
-    if (-not (Test-Path $BehaviorV1)) { throw "Missing V1 Maker behavior dataset after preflight: $BehaviorV1" }
-
-    Invoke-TimedStep "[3b/4] Attach strict-past official inventory" {
+    Invoke-TimedStep "[3/4] Attach strict-past official inventory" {
         python .\tools\build_target_maker_inventory_conditioned_side_v2.py `
             --behavior-dataset $BehaviorV1 `
             --target-db $TargetDb `
