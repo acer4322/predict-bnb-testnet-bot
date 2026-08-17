@@ -45,6 +45,17 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Taker eligibility dataset build failed." }
     }
 
+    Write-Host "`n[preflight] Verify Target Taker positives exist in the special window..."
+    $preflightArgs = @(
+        ".\tools\preflight_target_taker_special_labels_v1.py",
+        "--special-start", $SpecialStart
+    )
+    if ($SpecialEnd) { $preflightArgs += @("--special-end", $SpecialEnd) }
+    python @preflightArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "Target Taker special-label preflight failed. Do not spend time training this holdout until Target event coverage is fixed."
+    }
+
     Write-Host "`n[2/4] Train/stress-test Target Taker direct eligibility EBM..."
     $takerArgs = @(
         ".\tools\run_with_joblib_threading.py",
