@@ -13,6 +13,8 @@ param(
     [double]$MinTargetPnlCoverage = 0.95,
     [int]$SettlementApiRetries = 8,
     [int]$SettlementRetryBaseDelayMs = 1000,
+    [int]$SettlementBackfillPasses = 3,
+    [int]$SettlementPassCooldownSeconds = 10,
     [switch]$RunTests,
     [switch]$SkipSettlementBackfill
 )
@@ -28,7 +30,7 @@ try {
     Write-Host "Compare: raw Predict + past-only calibrated Predict vs PREDICT_CONTEXT / LEAN_SPOT / FULL_PUBLIC EBM."
     Write-Host "Integrity: market-outcome coverage, Target portfolio-PnL coverage, exact timestamp repair joins."
     Write-Host "Legacy V2 heavy_side_won concordance is diagnostic only and is re-derived canonically for survival audit."
-    Write-Host "Settlement API: transient 429/5xx uses Retry-After or exponential backoff; defaults are intentionally conservative."
+    Write-Host "Settlement API: transient 429/5xx uses Retry-After or exponential backoff; unresolved markets are retried in cached passes."
     Write-Host "Research only. No cutoff or live rule promotion."
 
     $PublicDataset = Join-Path $Root "data\research\target_taker_action_burst_hazard_v1.csv"
@@ -68,19 +70,33 @@ try {
 
     if (-not $SkipSettlementBackfill) {
         Write-Host "`n[3/4] Refresh canonical market outcomes; legacy V2 outcome mismatch is diagnostic only..."
-        python .\tools\backfill_target_maker_survival_settlements_v3_3.py `
-            --public-dataset $PublicDataset `
-            --output-db $SettlementDb `
-            --report $SettlementReport `
-            --risk-csv $RiskCsv `
-            --special-start $SpecialStart `
-            --min-ordinary-coverage $MinOrdinarySettlementCoverage `
-            --min-special-coverage $MinSpecialSettlementCoverage `
-            --min-canonical-outcome-coverage $MinCanonicalOutcomeCoverage `
-            --api-retries $SettlementApiRetries `
-            --retry-base-delay-ms $SettlementRetryBaseDelayMs
-        if ($LASTEXITCODE -ne 0) {
-            throw "V3.3 settlement integrity failed. Inspect data\research\target_maker_survival_settlements_v3_report.json."
+        $settlementIntegrityPassed = $false
+        $passes = [Math]::Max(1, $SettlementBackfillPasses)
+        for ($pass = 1; $pass -le $passes; $pass++) {
+            Write-Host "  canonical settlement pass $pass / $passes"
+            python .\tools\backfill_target_maker_survival_settlements_v3_3.py `
+                --public-dataset $PublicDataset `
+                --output-db $SettlementDb `
+                --report $SettlementReport `
+                --risk-csv $RiskCsv `
+                --special-start $SpecialStart `
+                --min-ordinary-coverage $MinOrdinarySettlementCoverage `
+                --min-special-coverage $MinSpecialSettlementCoverage `
+                --min-canonical-outcome-coverage $MinCanonicalOutcomeCoverage `
+                --api-retries $SettlementApiRetries `
+                --retry-base-delay-ms $SettlementRetryBaseDelayMs
+            if ($LASTEXITCODE -eq 0) {
+                $settlementIntegrityPassed = $true
+                break
+            }
+            if ($pass -lt $passes) {
+                $cooldown = [Math]::Max(0, $SettlementPassCooldownSeconds)
+                Write-Host "  settlement pass $pass did not clear integrity gate; keeping canonical cache and retrying unresolved markets after ${cooldown}s..."
+                if ($cooldown -gt 0) { Start-Sleep -Seconds $cooldown }
+            }
+        }
+        if (-not $settlementIntegrityPassed) {
+            throw "V3.3 settlement integrity failed after $passes cached passes. Inspect data\research\target_maker_survival_settlements_v3_report.json."
         }
     }
     else {
