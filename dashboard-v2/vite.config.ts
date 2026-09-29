@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { Agent as HttpAgent } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -9,6 +10,9 @@ import { makerServiceControlPlugin } from './maker-service-control'
 import { serviceManagerV2Plugin } from './service-manager-v2'
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url))
+// 8781 /state can be large. Never let the dev proxy accumulate thousands of
+// keep-alive upstream sockets when the dashboard polls or a request is aborted.
+const echtgeldProxyAgent = new HttpAgent({ keepAlive: false, maxSockets: 8, maxFreeSockets: 0 })
 
 function isLoopback(address: string | undefined) {
   const value = String(address || '').toLowerCase()
@@ -157,27 +161,79 @@ export default defineConfig({
       '/bridge/echtgeld-health': {
         target: 'http://127.0.0.1:8781',
         changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
         rewrite: () => '/health',
       },
       '/bridge/echtgeld': {
         target: 'http://127.0.0.1:8781',
         changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
         rewrite: () => '/state',
       },
       '/control/echtgeld/pause': {
         target: 'http://127.0.0.1:8781',
         changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
         rewrite: () => '/control/pause',
       },
       '/control/echtgeld/resume': {
         target: 'http://127.0.0.1:8781',
         changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
         rewrite: () => '/control/resume',
+      },
+      '/control/echtgeld/run-next-market-once': {
+        target: 'http://127.0.0.1:8781',
+        changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
+        rewrite: () => '/control/run-next-market-once',
       },
       '/control/echtgeld/settings': {
         target: 'http://127.0.0.1:8781',
         changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
         rewrite: () => '/control/settings',
+      },
+      '/bridge/echtgeld-drill': {
+        target: 'http://127.0.0.1:8781',
+        changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
+        rewrite: () => '/cap100/drill',
+      },
+      '/control/echtgeld/drill-run': {
+        target: 'http://127.0.0.1:8781',
+        changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
+        rewrite: () => '/cap100/drill/run',
+      },
+      '/bridge/echtgeld-stress-exam': {
+        target: 'http://127.0.0.1:8781',
+        changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
+        rewrite: () => '/cap100/stress-exam',
+      },
+      '/control/echtgeld/stress-exam-run': {
+        target: 'http://127.0.0.1:8781',
+        changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
+        rewrite: () => '/cap100/stress-exam/run',
+      },
+      '/control/echtgeld/entry-source': {
+        target: 'http://127.0.0.1:8781',
+        changeOrigin: false,
+        agent: echtgeldProxyAgent,
+        headers: { Connection: 'close' },
+        rewrite: () => '/control/entry-source',
       },
       '/control/btc-live': {
         target: 'http://127.0.0.1:8769',

@@ -25,12 +25,12 @@ TARGET_WALLET = os.environ.get(
     os.environ.get("PREDICT_WALLET_SHADOW_TARGET_ADDRESS", "0x6da6cb464f92ae7ad4ec3d239c81719cb1d0ae03"),
 ).strip().lower()
 PREDICT_OBSERVER_URL = os.environ.get("PREDICT_TARGET_WALLET_PREDICT_OBSERVER_URL", "http://127.0.0.1:8771/state")
-POLL_SECONDS = max(0.25, float(os.environ.get("PREDICT_TARGET_WALLET_POLL_SECONDS", "0.5")))
+POLL_SECONDS = max(0.5, float(os.environ.get("PREDICT_TARGET_WALLET_POLL_SECONDS", "2.0")))
 INITIAL_BACKFILL_PAGES = max(1, min(10, int(os.environ.get("PREDICT_TARGET_WALLET_BACKFILL_PAGES", "4"))))
 SETTLEMENT_POLL_SECONDS = max(2.0, float(os.environ.get("PREDICT_TARGET_WALLET_SETTLEMENT_POLL_SECONDS", "5")))
 PERFORMANCE_WINDOW_DAYS = max(1, int(os.environ.get("PREDICT_TARGET_WALLET_PERFORMANCE_WINDOW_DAYS", "30")))
 VERSION = "TARGET_WALLET_OFFICIAL_V1"
-ASSETS = ("BTC", "ETH")
+ASSETS = ("BTC", "ETH", "BNB")
 WEI = 10**18
 
 
@@ -196,6 +196,7 @@ class TargetWalletOfficialCollector:
         )
         self.local_http = httpx.Client(timeout=httpx.Timeout(1.5, connect=0.4), trust_env=False)
         self.current_markets: dict[str, dict[str, Any]] = {asset: {} for asset in ASSETS}
+        self._market_meta_last_write_ms: dict[str, int] = {}
         self.initialized_roles: set[tuple[str, int, str]] = set()
         self.last_poll_ms: int | None = None
         self.last_fill_ms: int | None = None
@@ -363,23 +364,27 @@ class TargetWalletOfficialCollector:
         with self.lock:
             previous = positive_int(self.current_markets.get(asset, {}).get("marketId"))
             self.current_markets[asset] = dict(market)
-        with self.db_lock:
-            if previous is not None and previous != market_id:
+        last_meta_write = int(self._market_meta_last_write_ms.get(asset, 0))
+        should_write_meta = previous != market_id or at - last_meta_write >= 10_000
+        if should_write_meta:
+            with self.db_lock:
+                if previous is not None and previous != market_id:
+                    self.db.execute(
+                        "UPDATE target_markets SET status='PENDING_SETTLEMENT',last_seen_ms=? WHERE market_id=? AND winner IS NULL",
+                        (at, previous),
+                    )
                 self.db.execute(
-                    "UPDATE target_markets SET status='PENDING_SETTLEMENT',last_seen_ms=? WHERE market_id=? AND winner IS NULL",
-                    (at, previous),
+                    """INSERT INTO target_markets(market_id,asset,title,window_end_ms,first_seen_ms,last_seen_ms,status)
+                       VALUES(?,?,?,?,?,?,'ACTIVE')
+                       ON CONFLICT(market_id) DO UPDATE SET
+                         asset=excluded.asset,title=COALESCE(excluded.title,target_markets.title),
+                         window_end_ms=COALESCE(excluded.window_end_ms,target_markets.window_end_ms),
+                         last_seen_ms=excluded.last_seen_ms,
+                         status=CASE WHEN target_markets.winner IS NULL THEN 'ACTIVE' ELSE target_markets.status END""",
+                    (market_id, asset, market.get("title"), market.get("windowEndMs"), at, at),
                 )
-            self.db.execute(
-                """INSERT INTO target_markets(market_id,asset,title,window_end_ms,first_seen_ms,last_seen_ms,status)
-                   VALUES(?,?,?,?,?,?,'ACTIVE')
-                   ON CONFLICT(market_id) DO UPDATE SET
-                     asset=excluded.asset,title=COALESCE(excluded.title,target_markets.title),
-                     window_end_ms=COALESCE(excluded.window_end_ms,target_markets.window_end_ms),
-                     last_seen_ms=excluded.last_seen_ms,
-                     status=CASE WHEN target_markets.winner IS NULL THEN 'ACTIVE' ELSE target_markets.status END""",
-                (market_id, asset, market.get("title"), market.get("windowEndMs"), at, at),
-            )
-            self.db.commit()
+                self.db.commit()
+            self._market_meta_last_write_ms[asset] = at
 
     def _fetch_matches_page(self, market_id: int, role: str, after: str | None) -> dict[str, Any]:
         params: dict[str, Any] = {
@@ -776,7 +781,7 @@ def main() -> int:
     server = ThreadingHTTPServer((HOST, PORT), handler)
     print(
         f"{VERSION} listening on http://{HOST}:{PORT}/state; target={collector.wallet}; "
-        f"db={collector.db_path}; assets=BTC,ETH; strategyLogic=false; liveOrdersAffected=false",
+        f"db={collector.db_path}; assets=BTC,ETH,BNB; strategyLogic=false; liveOrdersAffected=false",
         flush=True,
     )
     try:

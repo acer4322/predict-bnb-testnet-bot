@@ -1,20 +1,97 @@
 from __future__ import annotations
 
+from typing import Any
+
 from . import wallet_maker_clone_live as core
 from . import wallet_maker_clone_live_v8 as base
 from .wallet_maker_clone_pair_spread_gate import PairMakerSpreadV84Mixin
+
+
+RETIREMENT_KEY = "legacy_execution_retired_to_8781_v1"
 
 
 class PairMakerSpreadBinanceV84WalletMakerCloneEngine(
     PairMakerSpreadV84Mixin,
     base.BoundedRiskPairedWalletMakerCloneEngine,
 ):
-    VERSION = "WALLET_MAKER_CLONE_LIVE_V8_4_PASSIVE_MAKER_SPREAD"
+    VERSION = "WALLET_MAKER_CLONE_LIVE_V8_4_RETIRED_TO_8781"
+
+    def _ensure_defaults(self) -> None:
+        super()._ensure_defaults()
+        first_retirement = self._setting(RETIREMENT_KEY, "0") != "1"
+        self._set_setting("runtime_enabled", "0")
+        self._set_setting(RETIREMENT_KEY, "1")
+        if first_retirement:
+            self._event(
+                "WARN",
+                "LEGACY_EXECUTION_RETIRED_TO_8781",
+                None,
+                None,
+                f"{core.ASSET} wallet maker clone new-order execution retired; 8781 is the only Echtgeld authority",
+            )
+
+    def _settings(self) -> dict[str, Any]:
+        settings = super()._settings()
+        # Keep reconciliation/cancellation available, but never let a persisted DB
+        # value or old UI request make the clone eligible to create new orders.
+        settings["runtimeEnabled"] = False
+        settings["executionRetiredTo8781"] = True
+        return settings
+
+    def update_settings(self, values: dict[str, Any]) -> dict[str, Any]:
+        if values.get("runtimeEnabled") is True:
+            raise ValueError(
+                f"legacy {core.ASSET} maker-clone execution is retired; resume Echtgeld only through 8781"
+            )
+        if "runtimeEnabled" in values:
+            values = dict(values)
+            values["runtimeEnabled"] = False
+        return super().update_settings(values)
+
+    def _place_one(
+        self,
+        order_row_id: int,
+        plan: dict[str, Any],
+        market: dict[str, Any],
+    ) -> dict[str, Any]:
+        # Final write-path guard. Cancellation/reconciliation methods remain intact
+        # so historical resting orders can still be made safe.
+        self._update_order(
+            order_row_id,
+            state="REJECTED",
+            error_kind="LEGACY_EXECUTION_RETIRED_TO_8781",
+            error_message="new venue order blocked; Echtgeld execution authority is 8781",
+        )
+        self.status = "RETIRED_TO_8781"
+        return {
+            "ok": False,
+            "completedAtMs": core._now_ms(),
+            "error": "legacy execution retired to 8781",
+        }
+
+    def _place_pair(self, pair: dict[str, Any], market: dict[str, Any]) -> None:
+        self.status = "RETIRED_TO_8781"
+        return
 
     def snapshot(self):
         payload = super().snapshot()
         payload["executionVenue"] = "BINANCE_PREDICTION"
-        payload["executionPath"] = "BINANCE_PREDICTION_LIMIT_GTC_PASSIVE_MAKER_SPREAD_V84"
+        payload["historicalExecutionPath"] = "BINANCE_PREDICTION_LIMIT_GTC_PASSIVE_MAKER_SPREAD_V84"
+        payload["executionPath"] = "RETIRED_TO_8781_NO_NEW_ORDERS"
+        payload["historicalRealMoney"] = True
+        payload["realMoney"] = False
+        payload["configuredMasterEnabled"] = bool(core.MASTER_ENABLED)
+        payload["masterEnabled"] = False
+        payload["executionAuthority"] = "8781_ONLY"
+        payload["legacyExecutionRetired"] = True
+        payload.setdefault("rules", {}).update(
+            legacyNewOrdersDisabled=True,
+            runtimeResumeRejected=True,
+            persistedRuntimeBitIgnored=True,
+            historicalOrderReconciliationStillAllowed=True,
+            historicalOrderCancellationStillAllowed=True,
+            echtgeldAuthorityPort=8781,
+        )
         return payload
 
 
@@ -25,7 +102,7 @@ def main() -> int:
     server = core.ThreadingHTTPServer((core.HOST, core.PORT), handler)
     print(
         f"{engine.VERSION} {core.ASSET} listening on http://{core.HOST}:{core.PORT}/state; "
-        f"venue=BINANCE; masterEnabled={core.MASTER_ENABLED}; db={core.DB_PATH}",
+        f"venue=BINANCE; execution=RETIRED_TO_8781; db={core.DB_PATH}",
         flush=True,
     )
     try:

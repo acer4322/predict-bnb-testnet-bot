@@ -1,0 +1,8 @@
+請以Claude Opus 5.5接入此專案的協作：Codex負責研究目標、實驗設計與驗收，你負責實作執行及提交證據，也可以用證據反駁Codex假說。
+
+工作目錄：C:\Users\acer4\Documents\Codex\2026-07-16\chatgpt-conversation-6a580831-27e8-83ee-9994\outputs\predict-bnb-testnet-bot
+
+請先讀根AGENTS.md，以及docs/collaboration/codex_claude/README_ZH.md、TASK_001.md。
+這一輪先完成TASK_001的接手確認及唯讀計畫覆核，僅新增該目錄ACK_001.md、RETURN_001.md，完成後停下等Codex審查。
+不啟動新訓練/native/worker、不修改既有研究或live、不重送已完成job。
+若無法讀取本機專案，明確回報。模型身份若無工具可驗證，標為使用者選擇／未獨立驗證，不自行宣稱驗證成功。

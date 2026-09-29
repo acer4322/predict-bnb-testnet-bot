@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -151,3 +153,34 @@ def test_supervisor_loads_time_hardening_in_all_signed_binance_processes() -> No
     assert "predict_bot.poly_gap_live_v19" in source
     # V19 still inherits the V16 time-sync layer through V17/V18.
     assert "predict_bot.poly_gap_live_v16" in source
+
+
+def test_echtgeld_v29_direct_module_start_loads_time_hardening() -> None:
+    probe = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import json,sys; "
+                "import predict_bot.echtgeld_engine_v29 as engine; "
+                "from predict_bot.core import BinancePredictionClient, BinancePredictionTradingClient; "
+                "print(json.dumps({"
+                "'loaded': 'predict_bot.binance_time_sync_hardening' in sys.modules, "
+                "'timestampModule': BinancePredictionClient.server_timestamp_ms.__module__, "
+                "'signedGetModule': BinancePredictionClient.signed_get.__module__, "
+                "'signedPostModule': BinancePredictionTradingClient.signed_post.__module__"
+                "}))"
+            ),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).resolve().parents[1],
+    )
+    observed = json.loads(probe.stdout)
+    assert observed == {
+        "loaded": True,
+        "timestampModule": "predict_bot.binance_time_sync_hardening",
+        "signedGetModule": "predict_bot.binance_time_sync_hardening",
+        "signedPostModule": "predict_bot.binance_time_sync_hardening",
+    }

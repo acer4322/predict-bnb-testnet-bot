@@ -1,0 +1,181 @@
+{
+  "version": "ETH_REPAIR_ALLOCATION_LEDGER_V2_MICROWORLD",
+  "passed": 13,
+  "total": 13,
+  "functionalPass": true,
+  "rows": [
+    {
+      "case": "partial",
+      "ok": true,
+      "result": {
+        "carrier_key": "A",
+        "parent_id": 1,
+        "fill_increment": 2.0,
+        "debt_before": 5.0,
+        "repair_increment": 2.0,
+        "overflow_increment": 0.0,
+        "debt_after": 3.0,
+        "transition_overflow_total": 0.0
+      }
+    },
+    {
+      "case": "crossing",
+      "ok": true,
+      "result": {
+        "carrier_key": "A",
+        "parent_id": 1,
+        "fill_increment": 7.0,
+        "debt_before": 5.0,
+        "repair_increment": 5.0,
+        "overflow_increment": 2.0,
+        "debt_after": 0.0,
+        "transition_overflow_total": 2.0
+      }
+    },
+    {
+      "case": "siblings_passive_then_active",
+      "ok": true,
+      "parent": {
+        "parentId": 10,
+        "initialDebt": 1.2883051451619956,
+        "remainingDebt": 0.0,
+        "repairPaid": 1.2883051451619956,
+        "overflowBorn": 2.1215578685366348,
+        "carriers": [
+          "A",
+          "P"
+        ],
+        "transitionOverflow": 2.1215578685366348
+      }
+    },
+    {
+      "case": "siblings_active_then_passive",
+      "ok": true,
+      "parent": {
+        "parentId": 2,
+        "initialDebt": 1.5,
+        "remainingDebt": 0.0,
+        "repairPaid": 1.5,
+        "overflowBorn": 0.5,
+        "carriers": [
+          "A",
+          "P"
+        ],
+        "transitionOverflow": 0.5
+      }
+    },
+    {
+      "case": "cumulative_idempotence",
+      "ok": true,
+      "parent": {
+        "parentId": 3,
+        "initialDebt": 1.0,
+        "remainingDebt": 0.09999999999999998,
+        "repairPaid": 0.9,
+        "overflowBorn": 0.0,
+        "carriers": [
+          "P"
+        ],
+        "transitionOverflow": 0.0
+      }
+    },
+    {
+      "case": "sibling_cannot_reset_debt",
+      "ok": true,
+      "parent": {
+        "parentId": 4,
+        "initialDebt": 1.0,
+        "remainingDebt": 0.19999999999999996,
+        "repairPaid": 0.8,
+        "overflowBorn": 0.0,
+        "carriers": [
+          "A",
+          "P"
+        ],
+        "transitionOverflow": 0.0
+      }
+    },
+    {
+      "case": "aggregate_transition_overflow",
+      "ok": true,
+      "parent": {
+        "parentId": 5,
+        "initialDebt": 1.0,
+        "remainingDebt": 0.0,
+        "repairPaid": 1.0,
+        "overflowBorn": 4.0,
+        "carriers": [
+          "A",
+          "P"
+        ],
+        "transitionOverflow": 4.0
+      }
+    },
+    {
+      "case": "independent_parents",
+      "ok": true
+    },
+    {
+      "case": "physical_conservation",
+      "ok": true
+    },
+    {
+      "case": "repair_never_exceeds_parent_debt",
+      "ok": true,
+      "parent": {
+        "parentId": 8,
+        "initialDebt": 1.25,
+        "remainingDebt": 0.0,
+        "repairPaid": 1.25,
+        "overflowBorn": 1.75,
+        "carriers": [
+          "A",
+          "P"
+        ],
+        "transitionOverflow": 1.75
+      }
+    },
+    {
+      "case": "pure_overflow_after_settlement",
+      "ok": true,
+      "result": {
+        "carrier_key": "A",
+        "parent_id": 9,
+        "fill_increment": 0.7,
+        "debt_before": 0.0,
+        "repair_increment": 0.0,
+        "overflow_increment": 0.7,
+        "debt_after": 0.0,
+        "transition_overflow_total": 0.7
+      }
+    },
+    {
+      "case": "one_parent_identity",
+      "ok": true,
+      "parent": {
+        "parentId": 9,
+        "initialDebt": 1.0,
+        "remainingDebt": 0.0,
+        "repairPaid": 1.0,
+        "overflowBorn": 0.7,
+        "carriers": [
+          "A",
+          "P"
+        ],
+        "transitionOverflow": 0.7
+      }
+    },
+    {
+      "case": "no_negative_debt",
+      "ok": true
+    }
+  ],
+  "boundary": [
+    "manager debt shared at parent scope",
+    "physical carrier independent of manager debt",
+    "confirmed fill Repair-first overflow-second",
+    "sibling carriers cannot reset debt",
+    "one transition-overflow bucket per parent",
+    "no runtime Target inputs"
+  ]
+}

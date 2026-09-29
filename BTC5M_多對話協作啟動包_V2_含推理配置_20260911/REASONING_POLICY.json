@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "policy_version": "REASONING_ALLOCATION_V1_20260911",
+  "bundle_version": "BTC5M_MULTI_CHAT_STARTER_V2_20260911",
+  "status": "RECOMMENDATION_NOT_APPLIED",
+  "content_basis": "沿用本對話上一則五角色推理配置建議；此次只編修啟動包。",
+  "claim_scope": "PROJECT_WORK_ALLOCATION_NOT_OFFICIAL_MODEL_BENCHMARK_OR_PRODUCT_EQUIVALENCE",
+  "controls_product_settings": false,
+  "modes": {
+    "MEDIUM": {
+      "display_label": "中等",
+      "preferred_model_label": null,
+      "preferred_reasoning_label": "中等",
+      "purpose": "固定規則的狀態查詢與簡單整理"
+    },
+    "HIGH": {
+      "display_label": "高",
+      "preferred_model_label": null,
+      "preferred_reasoning_label": "高",
+      "purpose": "日常工程、整合與依規格實作"
+    },
+    "EXTRA_HIGH": {
+      "display_label": "極高",
+      "preferred_model_label": null,
+      "preferred_reasoning_label": "極高",
+      "purpose": "重大依賴、結構、經濟與驗收設計"
+    },
+    "PRO_REVIEW": {
+      "display_label": "GPT-6 Pro 專項審查",
+      "preferred_model_label": "GPT-6 Pro",
+      "preferred_reasoning_label": null,
+      "purpose": "角色指定的完整專項審查；不是額外一級 reasoning effort",
+      "availability": "VERIFY_FROM_ACTUAL_INTERFACE_OR_CONFIGURATION"
+    }
+  },
+  "roles": {
+    "00": {
+      "name": "總控／系統整合",
+      "default_mode": "HIGH",
+      "initial_mode": "EXTRA_HIGH",
+      "initial_task": "對齊學生 V3、bridge／runner 的版本、依賴與證據範圍，形成共同工作板。",
+      "return_to": "完成首輪版本對齊後，日常整合回到高。",
+      "extra_high": [
+        "跨支線結論矛盾",
+        "整合架構或資料／接口契約變更",
+        "候選是否升級的正式裁決"
+      ],
+      "pro_review": [
+        "可能改變共同研究目標或整個系統架構的方向裁決"
+      ],
+      "routine": "依固定規則查工作板、狀態與收集結果，可交中等模式或既有腳本；矛盾由高／極高裁決。",
+      "deliverable": "版本與證據對齊表、最強衝突／反例、唯一下一個整合實驗及各 lane 接手規格。",
+      "guard": "不要重新包辦 A／B／C／D 的全部研究；不得用較高推理跳過版本相容或独立驗收。",
+      "prompt_file": "PROMPT_00_總控_整合.md"
+    },
+    "A": {
+      "name": "Target 機理／經濟教學",
+      "default_mode": "EXTRA_HIGH",
+      "initial_mode": "PRO_REVIEW",
+      "initial_task": "以 GPT-6 Pro 模式建議進行首輪完整教學／評分審查，集中回答「究竟要教什麼」。",
+      "return_to": "首輪教學方案與反例交付後，日常機理研究以極高接續；不要每次重建整個目標。",
+      "extra_high": [
+        "比較機理與教學假說",
+        "設計可檢驗的整輪評分與來源邊界",
+        "分析新的失敗反例"
+      ],
+      "pro_review": [
+        "定義或更換整輪學習目標",
+        "判別互相競爭的經濟機制",
+        "測試零交易、縮量、多花錢或過度修復能否刷分"
+      ],
+      "routine": "固定表格擷取與既有計算由高／腳本執行，不把例行資料整理當成一次 Pro 研究。",
+      "deliverable": "可供 C 使用的教學／評分接口、可供 D 重算的反例，以及一個能區分假說的實驗。",
+      "guard": "Pro 用於完整目標與證偽，不拆成反覆小指標調參；不得暗中增加資金、時間或 Floor 硬閘門。",
+      "prompt_file": "PROMPT_A_目標機理_經濟教學.md"
+    },
+    "B": {
+      "name": "原生執行／主被動協作",
+      "default_mode": "HIGH",
+      "initial_mode": "EXTRA_HIGH",
+      "initial_task": "以極高確認 bridge／runner 與 V3 的接口、共享責任及狀態機；設計定稿後用高實作。",
+      "return_to": "契約、狀態機與反例測試固定後，高負責隔離 patch、封裝與依規格驗證。",
+      "extra_high": [
+        "責任帳本或共享預留設計",
+        "部分送出、UNKNOWN、晚到成交與取消等待",
+        "Maker／Taker 共同服務同一責任的狀態機變更"
+      ],
+      "pro_review": [],
+      "routine": "語法檢查、既有測試、job status／collect 可交中等模式或腳本；新的帳務矛盾升極高。",
+      "deliverable": "明確狀態轉換、不變式、失敗反例、可實作接口與具名原生驗收；不以使用模型等級代替測試。",
+      "guard": "B 的一般實作不必常駐最高；高階設計定案後回到實作，不重開全系統研究。",
+      "prompt_file": "PROMPT_B_原生執行_主被動協作.md"
+    },
+    "C": {
+      "name": "完整學生／狀態記憶",
+      "default_mode": "EXTRA_HIGH",
+      "initial_mode": "EXTRA_HIGH",
+      "initial_task": "檢查十二參數學生的表達能力、真正使用的自身狀態及歷史資訊；不先換大型模型。",
+      "return_to": "架構與接口固定後，訓練器接線和例行實作用高；新的表達能力問題回到極高。",
+      "extra_high": [
+        "input→policy→action→receipt 表達能力診斷",
+        "持續目標與自身歷史是否有必要進入決策",
+        "同一策略的整輪共同訓練設計"
+      ],
+      "pro_review": [
+        "現有公式是否根本不能表達需要的管理行為",
+        "是否增加記憶／狀態或更換學生架構的重大決策"
+      ],
+      "routine": "已固定規格的模型接線與測試用高；不讓每次實作都變成新架構審查。",
+      "deliverable": "具體的不可表達行為見證、最強反例、最小必要變更與同一學生整輪測試規格。",
+      "guard": "不得只因歷史情境聽起來不同就增加模組；先證明行動需求差異，並保留整個系統的共同評估。",
+      "prompt_file": "PROMPT_C_完整學生_狀態記憶.md"
+    },
+    "D": {
+      "name": "資料／獨立驗收",
+      "default_mode": "HIGH",
+      "initial_mode": "EXTRA_HIGH",
+      "initial_task": "先用極高制定資料支援、畢業考與指標防取巧契約；例行建集、核數回到高。",
+      "return_to": "評估契約固定後，標準資料驗證用高／既有腳本；關鍵升級裁決仍用極高。",
+      "extra_high": [
+        "資料洩漏、時鐘與資料消耗檢查",
+        "畢業考的指標與尺度取巧反例",
+        "推翻看似成功的結果或獨立裁決"
+      ],
+      "pro_review": [],
+      "routine": "固定口徑的收據核數、hash 與欄位檢查可交高／腳本，不反覆變更考試規格。",
+      "deliverable": "獨立重算的驗收結果、有效樣本支援、最強反例，以及是否值得升級的具名結論。",
+      "guard": "关键審查至少採相當的分析深度，不能高階設計、低階只讀摘要；先依原始證據形成判斷，再對比 A／C 解釋。不同聊天或模型本身不構成獨立驗證。",
+      "prompt_file": "PROMPT_D_資料_獨立驗收.md"
+    }
+  },
+  "shared_rules": {
+    "select_model_and_effort_separately": true,
+    "copy_request_into_prompt_does_not_apply_setting": true,
+    "verify_actual_configuration_from_evidence": true,
+    "unknown_actual_model_or_effort_remains_null": true,
+    "do_not_infer_effort_from_latency_style_or_self_report": true,
+    "no_unverified_product_model_mapping": true,
+    "switch_requires_supported_control_not_just_a_statement": true,
+    "upgrade_triggers": [
+      "證據相互矛盾",
+      "現有方案被具体反例擊穿",
+      "擬更換共同目標、架構或核心帳務"
+    ],
+    "not_upgrade_triggers": [
+      "缺少檔案或依賴",
+      "結果尚未收回",
+      "只想延長回答",
+      "單純上下文交接遺失"
+    ],
+    "review_deliverable_order": [
+      "判斷",
+      "支持證據",
+      "最強反例",
+      "能區分假說的下一個實驗",
+      "可交給工程的規格"
+    ],
+    "return_to_execution_after_review": true,
+    "new_hypothesis_or_evidence_required_to_reopen_major_review": true,
+    "reasoning_selection_does_not_change_permissions_or_evidence_gates": true,
+    "reviewer_independence_requires_process_and_evidence_not_model_label": true,
+    "no_new_background_work_from_configuration": true
+  },
+  "fallback": {
+    "when_recommended_mode_unavailable": "記錄實際可選設定與偏差；用已可用且獲授權設定做有界準備或初稿，不聲稱等價。重大裁決需註明待覆核。",
+    "pending_review_label": "REVIEW_PENDING_IF_REQUIRED",
+    "may_claim_recommended_mode_applied": false,
+    "may_bypass_tool_restrictions": false
+  },
+  "worker_policy_preserved": {
+    "heavy_work_location": "SECOND_LAN_WORKER",
+    "coordinator_only_dispatch": true,
+    "proposed_heavy_jobs_concurrent": 1,
+    "proposed_max_threads_per_job": 4,
+    "funding_mode": "VIRTUAL_NONBINDING_RESEARCH",
+    "capital_cap": null,
+    "live_8781_changes_authorized": false,
+    "reasoning_upgrade_changes_worker_budget": false
+  }
+}

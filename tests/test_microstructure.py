@@ -237,6 +237,67 @@ def test_store_uses_independent_wal_database_and_persists_all_three_tables(tmp_p
         assert db.execute("SELECT COUNT(*) FROM microstructure_gap_events").fetchone()[0] == 1
 
 
+def test_store_cleanup_uses_time_indexes_and_preserves_unexpired_rows(tmp_path: Path):
+    store = MicrostructureStore(tmp_path / "microstructure.db")
+    now_ns = time.time_ns()
+    old_ns = 1
+    fresh_event_ns = now_ns
+    event = {
+        "source": "spot", "stream": "trade", "market_id": None,
+        "exchange_event_ms": 1, "exchange_trade_ms": 1,
+        "received_wall_ns": old_ns, "received_monotonic_ns": 3,
+        "enqueued_monotonic_ns": 4, "session_id": "s", "price": 100.0,
+        "quantity": 1.0, "visible_quantity": 1.0, "aggressor": 1,
+        "bids": [], "asks": [], "raw_json": "{}", "parser_version": "test",
+    }
+    with store._connect() as db:
+        store.insert_event(db, event)
+        store.insert_event(db, {**event, "received_wall_ns": fresh_event_ns})
+        store.counts["events"] = 2
+
+        plan = db.execute(
+            """EXPLAIN QUERY PLAN
+               SELECT id FROM microstructure_events INDEXED BY micro_events_receive_idx
+               WHERE received_wall_ns < ? LIMIT ?""",
+            (now_ns - 3_600_000_000_000, 50_000),
+        ).fetchall()
+        assert any("micro_events_receive_idx" in str(row[3]) for row in plan)
+        assert not any("SCAN microstructure_events" in str(row[3]) for row in plan)
+
+        store.cleanup(db, now_ns)
+        remaining = db.execute(
+            "SELECT received_wall_ns FROM microstructure_events ORDER BY received_wall_ns"
+        ).fetchall()
+
+    assert remaining == [(fresh_event_ns,)]
+    assert store.counts["events"] == 1
+
+
+def test_store_bulk_event_insert_preserves_fifo_payloads(tmp_path: Path):
+    store = MicrostructureStore(tmp_path / "microstructure.db")
+    base_event = {
+        "source": "spot", "stream": "trade", "market_id": 42,
+        "exchange_event_ms": 1, "exchange_trade_ms": 1,
+        "received_monotonic_ns": 3, "enqueued_monotonic_ns": 4,
+        "session_id": "s", "quantity": 1.0, "visible_quantity": 1.0,
+        "aggressor": 1, "bids": [], "asks": [], "raw_json": "{}",
+        "parser_version": "test",
+    }
+    events = [
+        {**base_event, "received_wall_ns": index, "price": 100.0 + index}
+        for index in range(1, 4)
+    ]
+
+    with store._connect() as db:
+        store.insert_events(db, events)
+    with sqlite3.connect(store.path) as db:
+        rows = db.execute(
+            "SELECT received_wall_ns, price, raw_json FROM microstructure_events ORDER BY id"
+        ).fetchall()
+
+    assert rows == [(1, 101.0, "{}"), (2, 102.0, "{}"), (3, 103.0, "{}")]
+
+
 def test_observer_filters_other_prediction_markets_and_out_of_order(tmp_path: Path):
     observer = MicrostructureObserver(
         api_key=None, api_secret=None, current_market_id=lambda: 42,

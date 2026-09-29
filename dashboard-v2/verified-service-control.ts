@@ -66,7 +66,7 @@ const SERVICES: Record<string, ServiceDefinition> = {
     id: 'targetTaker',
     label: 'Target Wallet Official',
     rootTokens: [],
-    pidFiles: ['.target-taker-echtgeld-producer.pid', '.target-taker-echtgeld-signal.pid'],
+    pidFiles: ['.target-taker-echtgeld-producer.pid'],
     members: [
       {
         port: 8776,
@@ -78,7 +78,6 @@ const SERVICES: Record<string, ServiceDefinition> = {
           'predict_bot.predict_wallet_shadow_observer_v4_3',
         ],
       },
-      { port: 8777, tokens: ['predict_bot.predict_wallet_taker_signal_collector'] },
     ],
   },
   makerInference: {
@@ -94,6 +93,20 @@ const SERVICES: Record<string, ServiceDefinition> = {
     rootTokens: ['predict_bot.predict_wallet_maker_book_inference_collector_eth5m'],
     pidFiles: ['.wallet-shadow-lab-maker-book-eth5m.pid'],
     members: [{ port: 8779, tokens: ['predict_bot.predict_wallet_maker_book_inference_collector_eth5m'] }],
+  },
+  unifiedController: {
+    id: 'unifiedController',
+    label: 'Unified Controller Base',
+    rootTokens: ['predict_bot.unified_controller_paper_v1'],
+    pidFiles: ['.unified-controller-paper-v1.pid'],
+    members: [{ port: 8784, tokens: ['predict_bot.unified_controller_paper_v1'] }],
+  },
+  unifiedFlash: {
+    id: 'unifiedFlash',
+    label: 'Unified Flash Sandbox',
+    rootTokens: ['predict_bot.unified_controller_flash_sandbox_v1'],
+    pidFiles: ['.unified-flash-v1.pid'],
+    members: [{ port: 8785, tokens: ['predict_bot.unified_controller_flash_sandbox_v1'] }],
   },
   echtgeld: {
     id: 'echtgeld',
@@ -268,7 +281,7 @@ async function echtgeldUnsafeToStop() {
   try {
     const response = await fetch('http://127.0.0.1:8781/state', {
       signal: controller.signal,
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', Connection: 'close' },
       cache: 'no-store',
     })
     if (!response.ok) return `Cannot verify Echtgeld safety state (HTTP ${response.status}). Stop/restart is blocked.`

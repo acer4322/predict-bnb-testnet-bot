@@ -1,0 +1,13 @@
+{
+  "status": "PASS_DIRECT_READ_ONLY_ROUNDTRIP",
+  "session_id": "996bea4a-767f-411a-80c1-9b802a583078",
+  "observed_models": [
+    "claude-opus-5-5"
+  ],
+  "is_error": false,
+  "permission_denials": [],
+  "return_sha256": "18c841693aaaa9c128d6714168d73cf5e40c280558b34171299a624bdacf51e3",
+  "review": "REVIEW_001.md",
+  "research_jobs_submitted": 0,
+  "live_changes": 0
+}

@@ -526,6 +526,75 @@ class BinancePredictionTradingClient(BinancePredictionClient):
             params,
         )
 
+    def batch_cancel_orders_raw(
+        self,
+        *,
+        wallet_address: str,
+        wallet_id: str,
+        order_ids: list[str],
+    ) -> dict[str, Any]:
+        """Cancel Prediction orders using Binance's literal bracket-key wire format.
+
+        The batch-cancel endpoint expects keys such as
+        ``cancelInfoList[0].orderId`` to remain literal in the signed body.
+        A transport failure is intentionally ambiguous so live callers can
+        fail closed and reconcile instead of assuming cancellation.
+        """
+        ids = [str(value) for value in order_ids if str(value)]
+        if not ids:
+            return {"success": True, "orders": []}
+        fields: list[tuple[str, str]] = [
+            ("walletAddress", str(wallet_address)),
+            ("walletId", str(wallet_id)),
+        ]
+        for index, order_id in enumerate(ids):
+            fields.append((f"cancelInfoList[{index}].orderId", order_id))
+        fields.extend(
+            [
+                ("recvWindow", "5000"),
+                ("timestamp", str(self.server_timestamp_ms())),
+            ]
+        )
+        canonical = "&".join(
+            f"{key}={urllib.parse.quote_plus(str(value), safe='')}"
+            for key, value in fields
+        )
+        signature = hmac.new(
+            self.api_secret.encode("utf-8"), canonical.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+        body = f"{canonical}&signature={signature}".encode("utf-8")
+        path = "/sapi/v1/w3w/wallet/prediction/trade/batch-cancel"
+        try:
+            response = self.http_client.post(
+                path,
+                content=body,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "User-Agent": "binance-prediction-live-m0w/0.1",
+                    "X-MBX-APIKEY": self.api_key,
+                },
+            )
+        except httpx.RequestError as exc:
+            raise ApiTransportError(
+                f"Request failed for {self.base_url}{path}: {type(exc).__name__}"
+            ) from exc
+        if response.status_code >= 400:
+            self._raise_http_error(response, path=path)
+        self._capture_rate_limits(response)
+        try:
+            payload = response.json()
+        except json.JSONDecodeError as exc:
+            raise ApiTransportError(
+                f"Invalid JSON response from {self.base_url}{path}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise ApiTransportError(
+                f"Unexpected response type from {self.base_url}{path}"
+            )
+        if payload.get("success") is False:
+            raise ApiError(f"API rejected {self.base_url}{path}: {payload}")
+        return payload
+
     def active_orders(
         self, wallet_address: str, *, market_id: int | None = None, limit: int = 100
     ) -> dict[str, Any]:

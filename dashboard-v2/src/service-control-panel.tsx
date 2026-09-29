@@ -67,7 +67,10 @@ export default function ServiceControlPanel() {
       if (!cancelled && document.visibilityState === 'visible') void refresh()
     }
     tick()
-    const timer = window.setInterval(tick, 5000)
+    // Service status involves OS-level ownership verification. Polling every 5s
+    // kept Windows process inspection continuously busy on slower hosts. Manual
+    // Refresh and post-action refresh remain immediate; background polling is 30s.
+    const timer = window.setInterval(tick, 30000)
     const onVisibility = () => tick()
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
@@ -149,6 +152,17 @@ export default function ServiceControlPanel() {
             {service.runtime?.armed ? 'LIVE ARMED' : service.runtime?.runtimeStatus || 'PAUSED / OFFLINE'}
           </Tag>
           <Text type="secondary" style={{ fontSize: 12 }}>{service.runtime?.version || '—'}</Text>
+        </Space>
+      ) : ['unifiedPublicSource', 'unifiedController', 'unifiedFlash'].includes(service.id) ? (
+        <Space direction="vertical" size={0}>
+          <Tag color={service.runtime?.sourceReady ? 'success' : service.state === 'ONLINE' ? 'gold' : 'default'}>
+            {service.runtime?.runtimeStatus || service.state}
+          </Tag>
+          <Tooltip title={service.runtime?.sourceWaitReason || undefined}>
+            <Text type="secondary" style={{ fontSize: 12, maxWidth: 210 }} ellipsis>
+              {service.runtime?.sourceReady ? 'source ready' : service.runtime?.sourceWaitReason || service.runtime?.version || 'waiting'}
+            </Text>
+          </Tooltip>
         </Space>
       ) : <Text type="secondary">{fmtUptime(service.startedAt)}</Text>,
     },

@@ -18,7 +18,10 @@ install_pair_arb_minimum()
 
 API_RESTART_EXIT_CODE = 75
 SUPERVISOR_GIVE_UP_EXIT_CODE = 76
-RUNTIME_PROFILE = os.environ.get("PREDICT_RUNTIME_PROFILE", "FULL_LAB").strip().upper()
+RUNTIME_PROFILE = os.environ.get("PREDICT_RUNTIME_PROFILE", "CORE_RESEARCH").strip().upper()
+os.environ["PREDICT_RUNTIME_PROFILE"] = RUNTIME_PROFILE
+if RUNTIME_PROFILE == "CORE_RESEARCH":
+    os.environ.setdefault("PREDICT_STRATEGY_RUNTIME_PROFILE", "CORE_RESEARCH")
 
 
 def _positive_int(name: str, default: int) -> int:
@@ -40,6 +43,15 @@ def _enabled(name: str, default: bool = True) -> bool:
     if raw is None:
         return default
     return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _background_popen_kwargs() -> dict[str, int]:
+    # Dashboard starts the supervisor without an interactive console.  On Windows,
+    # a console-mode Python child launched from that detached parent can otherwise
+    # allocate a fresh CMD window of its own.  CREATE_NO_WINDOW keeps the whole
+    # service tree genuinely background-only while preserving inherited log handles.
+    flags = int(getattr(subprocess, "CREATE_NO_WINDOW", 0)) if os.name == "nt" else 0
+    return {"creationflags": flags} if flags else {}
 
 
 def _stop_child(child: subprocess.Popen[bytes] | None) -> None:
@@ -66,7 +78,8 @@ def _start_cross_oracle() -> subprocess.Popen[bytes] | None:
             sys.executable,
             "-m",
             "predict_bot.cross_oracle_storage_retention_v3",
-        ]
+        ],
+        **_background_popen_kwargs(),
     )
 
 
@@ -133,6 +146,7 @@ def _start_cross_oracle_strategies() -> subprocess.Popen[bytes] | None:
             "predict_bot.cross_oracle_strategy_dedicated",
         ],
         env=strategy_child_environment(),
+        **_background_popen_kwargs(),
     )
 
 
@@ -172,12 +186,20 @@ def _start_poly_gap_live() -> subprocess.Popen[bytes] | None:
     # V45 keeps V44 execution policy unchanged and adds a selectable entry gate:
     # normal R_POLY_GAP_SCALP or R_PINNED_BINANCE_POLY_DIVERGENCE.
     print(
-        "API supervisor: starting dedicated Poly live executor V45 on port 8769 "
-        "(V44 idempotency + selectable POLY_GAP / PINNED_DIVERGENCE entry)",
+        "API supervisor: starting legacy Poly compatibility/telemetry V45 on port 8769; "
+        "venue execution is permanently retired to Echtgeld 8781",
         flush=True,
     )
+    env = os.environ.copy()
+    # Legacy 8769 remains online only for compatibility/telemetry. Echtgeld
+    # execution authority moved to 8781; never inherit a persisted/user live
+    # master switch into this child again.
+    env["PREDICT_POLY_GAP_LIVE_ENABLED"] = "false"
+    env["PREDICT_LEGACY_EXECUTION_RETIRED_TO_8781"] = "true"
     return subprocess.Popen(
-        [sys.executable, "-m", "predict_bot.poly_gap_live_v45"]
+        [sys.executable, "-m", "predict_bot.poly_gap_live_v45"],
+        env=env,
+        **_background_popen_kwargs(),
     )
 
 
@@ -202,7 +224,8 @@ def main() -> int:
     try:
         while True:
             child = subprocess.Popen(
-                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v6"]
+                [sys.executable, "-m", "predict_bot.server_binance_prefetch_v6"],
+                **_background_popen_kwargs(),
             )
             try:
                 while True:

@@ -257,7 +257,9 @@ export default function TargetTakerEchtgeldPage() {
   const refreshEngine = useEchtgeldStore((state) => state.refresh)
   const pauseEngine = useEchtgeldStore((state) => state.pause)
   const resumeEngine = useEchtgeldStore((state) => state.resume)
+  const runNextMarketOnce = useEchtgeldStore((state) => state.runNextMarketOnce)
   const updateSettings = useEchtgeldStore((state) => state.updateSettings)
+  const selectEntrySource = useEchtgeldStore((state) => state.selectEntrySource)
   const predictService = usePredictFunStore((state) => state.service)
   const walletService = useWalletShadowStore((state) => state.service)
   const refreshWalletShadow = useWalletShadowStore((state) => state.refresh)
@@ -270,7 +272,9 @@ export default function TargetTakerEchtgeldPage() {
       if (!cancelled && document.visibilityState === 'visible') void refreshEngine()
     }
     tick()
-    const timer = window.setInterval(tick, 1000)
+    // Full 8781 /state is large (~hundreds of KiB); 3s keeps the live console
+    // responsive without creating continuous overlapping upstream pressure.
+    const timer = window.setInterval(tick, 3000)
     const onVisibility = () => tick()
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
@@ -300,6 +304,17 @@ export default function TargetTakerEchtgeldPage() {
   const events = rows(engine.recentEvents)
   const activeOrder = findActiveOrder(engine)
   const armed = engine.armed === true
+  const entrySourceGate = row(engine.entrySourceGate)
+  const selectedEntrySource = text(entrySourceGate.selectedSourceId, '')
+  const r2R21Selected = selectedEntrySource === 'R2_R21_8789'
+  const r3sR31Selected = selectedEntrySource === 'R3S_R31_8790'
+  const strategyExecution = row(engine.strategyExecution ?? engine.cap100Execution)
+  const executionSource = text(strategyExecution.sourceId ?? selectedEntrySource, '未選擇來源')
+  const executionName = text(strategyExecution.displayName, executionSource === 'R3S_R31_8790' ? 'R3-S + R3.1 V1.1.3 WTP1 Continuous Gate Fix' : executionSource === 'R2_R21_8789' ? 'R2 + R2.1 V3.5.2 Autonomous Reassess + Audit Fix' : executionSource === 'CAP100_8787' ? 'CAP100 Frozen Controller' : executionSource)
+  const executionHeartbeatAgeMs = num(strategyExecution.heartbeatAgeMs)
+  const executionActiveOrders = rows(strategyExecution.activeOrders).length
+  const executionFrozen = strategyExecution.entryWriteFrozen === true
+  const singleMarketRun = row(engine.singleMarketRun)
   const selectedProbability = num(signal.selectedProbability)
   const threshold = num(signal.threshold) ?? 0.60
   const selectedAsk = num(decision.ask)
@@ -362,6 +377,20 @@ export default function TargetTakerEchtgeldPage() {
     }
   }
 
+  const doSelectEntrySource = async (sourceId: string | null) => {
+    if (armed) {
+      message.error('請先 PAUSE Echtgeld；8781 只允許在 PAUSED 時切換開單來源。')
+      return
+    }
+    try {
+      await selectEntrySource(sourceId)
+      await refreshEngine()
+      message.success(sourceId ? `8781 已鎖定唯一開單來源：${sourceId}` : '8781 已 BLOCK ALL SOURCES')
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error))
+    }
+  }
+
   const doPause = async () => {
     try {
       await pauseEngine('dashboard-v2 operator pause')
@@ -378,7 +407,20 @@ export default function TargetTakerEchtgeldPage() {
     }
     try {
       await resumeEngine()
-      message.warning('Echtgeld 已 LIVE ARMED；之後符合條件的新 intent 可能送出 Echtgeld')
+      message.warning('Echtgeld 已 ARMED_WAIT_NEXT_MARKET；當前市場不送單，從下一個完整市場開始後持續運行')
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  const doRunNextMarketOnce = async () => {
+    if (!liveSafetyReady || !selectedEntrySource) {
+      message.error('請先完成設定並選擇唯一實單開單來源。')
+      return
+    }
+    try {
+      await runNextMarketOnce()
+      message.warning('一場模式已啟動：當前市場不送單，只跑下一個完整市場；再下一場會由 8781 自動 PAUSE 並撤銷 resting Maker。')
     } catch (error) {
       message.error(error instanceof Error ? error.message : String(error))
     }
@@ -386,6 +428,7 @@ export default function TargetTakerEchtgeldPage() {
 
   const eventColumns = [
     { title: '時間', key: 'time', width: 170, render: (_: unknown, item: RowObject) => when(item.occurred_at_ms) },
+    { title: 'Source', key: 'source', width: 145, render: (_: unknown, item: RowObject) => <Tag>{text(item.entry_source ?? item.source_id, '—')}</Tag> },
     { title: 'Level', dataIndex: 'level', key: 'level', width: 90, render: (value: unknown, item: RowObject) => {
       const recovered = isRecoveredAmbiguousEvent(item, orders)
       return <Tag color={recovered ? 'success' : levelColor(value)}>{recovered ? 'RECOVERED' : text(value)}</Tag>
@@ -401,6 +444,7 @@ export default function TargetTakerEchtgeldPage() {
 
   const orderColumns = [
     { title: '時間', key: 'time', width: 170, render: (_: unknown, item: RowObject) => when(item.attempted_at_ms) },
+    { title: 'Source', key: 'source', width: 145, render: (_: unknown, item: RowObject) => <Tag>{text(item.entry_source ?? row(item.context).entrySource, '—')}</Tag> },
     { title: 'Market', dataIndex: 'market_id', key: 'market', width: 95, render: (value: unknown) => `#${text(value)}` },
     { title: 'Venue', dataIndex: 'venue', key: 'venue', width: 100 },
     { title: 'Side', dataIndex: 'side', key: 'side', width: 75, render: (value: unknown) => <Tag>{text(value)}</Tag> },
@@ -493,8 +537,43 @@ export default function TargetTakerEchtgeldPage() {
         </Col>
       </Row>
 
+
+      <Card className="stack-card" title={<Space><SafetyCertificateOutlined /> 8781 唯一實單開單來源</Space>} extra={<Space><Tag color={selectedEntrySource ? 'processing' : 'error'}>{selectedEntrySource || 'BLOCK ALL SOURCES'}</Tag><Tag color={executionFrozen ? 'error' : 'success'}>{executionFrozen ? 'ENTRY FROZEN' : 'ENTRY CLEAR'}</Tag></Space>}>
+        <Alert type={['CAP100_8787','R2_R21_8789','R3S_R31_8790'].includes(selectedEntrySource) ? 'success' : selectedEntrySource ? 'warning' : 'error'} showIcon message={selectedEntrySource ? `目前只有 ${selectedEntrySource} 可以建立新的 Echtgeld position` : '目前所有 Echtgeld 新開單來源都被封鎖'} description="來源只能在 PAUSED 時切換；8781 在真正 venue write 前會再次檢查。平倉、reconciliation、stop-loss 風控不受這個 entry gate 阻擋。" />
+        <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+          <Col xs={24} lg={10}>
+            <Select
+              value={selectedEntrySource || undefined}
+              placeholder="選擇唯一實單開單來源"
+              disabled={armed || saving || !engineService.ok}
+              style={{ width: '100%' }}
+              options={[
+                { value: 'CAP100_8787', label: '8787 · CAP100 Frozen Controller' },
+                { value: 'R2_R21_8789', label: '8789 · R2 + R2.1 V3.5.2 Autonomous Reassess + Audit Fix' },
+                { value: 'R3S_R31_8790', label: '8790 · R3-S + R3.1 V1.1.3 WTP1 Continuous Gate Fix · AQ2/SA2/SE1/PA2/ER2/TC1/WT1/MBF1/CGF1' },
+                { value: 'TARGET_TAKER_FORWARD', label: 'Target Taker Forward' },
+                { value: 'POLY_GAP_LIVE', label: 'Poly Gap Live' },
+                { value: 'POLY_PINNED_LIVE', label: 'Poly Pinned Live' },
+              ]}
+              onChange={(value) => void doSelectEntrySource(value)}
+            />
+          </Col>
+          <Col xs={24} lg={14}>
+            <Space wrap>
+              <Button type="primary" disabled={armed || saving || !engineService.ok} onClick={() => void doSelectEntrySource('CAP100_8787')}>只允許 CAP100_8787</Button>
+              <Button disabled={armed || saving || !engineService.ok} onClick={() => void doSelectEntrySource('R2_R21_8789')}>選擇 R2 + R2.1</Button>
+              <Button disabled={armed || saving || !engineService.ok} onClick={() => void doSelectEntrySource('R3S_R31_8790')}>選擇 R3-S + R3.1 V1.1.3 WTP1</Button>
+              <Button danger disabled={armed || saving || !engineService.ok} onClick={() => void doSelectEntrySource(null)}>BLOCK ALL SOURCES</Button>
+              <Tag>{executionName} heartbeat {executionHeartbeatAgeMs === null ? '—' : `${Math.round(executionHeartbeatAgeMs)}ms`}</Tag>
+              <Tag>{executionName} active orders {executionActiveOrders}</Tag>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+
       <Card className="stack-card" title={<Space><DollarOutlined /> Echtgeld 設定與控制</Space>} extra={<Space><Tag color={armed ? 'success' : 'default'}>{text(engine.runtimeStatus)}</Tag><Text type="secondary">Engine restart 永遠 PAUSED</Text></Space>}>
-        <Alert type="info" showIcon message="Echtgeld 固定 SIDE_ONLY；金額由你控制" description={`HAZARD_SIDE 仍只保留 paper。每市場 notional 不再使用測試期 1 USDT 硬上限；可在下方自行設定，8781 目前保留 ${MAX_ECHTGELD_NOTIONAL_USDT} USDT 的既有後端安全上限。`} />
+        <Alert type={(r2R21Selected || r3sR31Selected) ? 'warning' : 'info'} showIcon message={r3sR31Selected ? 'R3-S + R3.1 V1.1.3 WTP1 Continuous Gate Fix：Maker 每張固定 10 shares；Taker 使用 AQ2 dynamic sizing；SA2/SE1/PA2/ER2/TC1/WT1 已載入；沒有固定 18-share cap，也沒有 strategy notional cap' : r2R21Selected ? 'R2 + R2.1 V3.5.2 Autonomous Reassess + Audit Fix：Maker 每張固定 10 shares，Taker 不受此份額限制，沒有 strategy notional cap' : 'Echtgeld 固定 SIDE_ONLY；金額由你控制'} description={r3sR31Selected ? '下方 notionalUsdt 是舊 cohort 設定，不會限制 R3S_R31_8790。8781 仍執行最低 1 USDT、source gate、stop-loss、2200ms Taker lifecycle 與 venue reconciliation；R3.1 保持 information-only。' : r2R21Selected ? '下方 notionalUsdt 是舊 cohort 設定，不會限制 R2_R21_8789。實際單筆成本會隨成交價格變動；8781 仍執行最低 1 USDT、source gate、stop-loss 與 venue lifecycle 風控。' : `HAZARD_SIDE 仍只保留 paper。每市場 notional 不再使用測試期 1 USDT 硬上限；可在下方自行設定，8781 目前保留 ${MAX_ECHTGELD_NOTIONAL_USDT} USDT 的既有後端安全上限。`} />
+        <Alert style={{ marginTop: 12 }} type={text(singleMarketRun.status) === 'RUNNING' ? 'warning' : 'info'} showIcon message={`啟動邊界：${text(engine.runtimeStatus)} · 一場模式 ${text(singleMarketRun.status, 'IDLE')}`} description={`普通 RESUME 與「只跑下一場」都會封鎖當前市場。普通 RESUME 從下一場起持續；一場模式只允許 market ${text(singleMarketRun.targetMarketId, '尚未鎖定')}，市場切換後由 8781 自動 PAUSE。`} />
         <Form form={form} layout="vertical" className="echtgeld-control-form">
           <Row gutter={[12, 0]}>
             <Col xs={24} md={8}><Form.Item name="venue" label="Venue" rules={[{ required: true }]}><Select disabled={armed} options={[{ value: 'predictfun', label: 'Predict.fun' }, { value: 'binance', label: 'Binance Prediction' }]} /></Form.Item></Col>
@@ -507,7 +586,10 @@ export default function TargetTakerEchtgeldPage() {
           {armed ? (
             <Popconfirm title="PAUSE Echtgeld 新進場？" description="已送出的持倉不會被刪除；之後新 intent 只會被記錄為 paused。" okText="Pause" cancelText="取消" onConfirm={() => void doPause()}><Button danger icon={<PauseCircleOutlined />} loading={saving}>PAUSE NEW ENTRY</Button></Popconfirm>
           ) : (
-            <Popconfirm title="RESUME Echtgeld？" description={`確認以 ${text(config.venue)} / ${money(config.notionalUsdt, 2, false)} / SIDE_ONLY 讓未來符合條件的新 intent 可以送 Echtgeld。`} okText="LIVE ARMED" cancelText="取消" onConfirm={() => void doResume()}><Button type="primary" icon={<PlayCircleOutlined />} disabled={!engineService.ok || !liveSafetyReady} loading={saving}>RESUME ECHTGELD</Button></Popconfirm>
+            <>
+              <Popconfirm title="持續 RESUME Echtgeld？" description={`當前市場不送單；從下一個完整市場開始，以 ${text(config.venue)} / ${r3sR31Selected ? 'Maker 固定 10 shares、Taker R3 dynamic sizing、無固定 18-share cap、無 strategy notional cap' : r2R21Selected ? '每單固定 10 shares、無 strategy notional cap' : `${money(config.notionalUsdt, 2, false)} / SIDE_ONLY`} 持續運行。`} okText="等待下一場並持續" cancelText="取消" onConfirm={() => void doResume()}><Button type="primary" icon={<PlayCircleOutlined />} disabled={!engineService.ok || !liveSafetyReady || !selectedEntrySource} loading={saving}>持續開始（下一場起）</Button></Popconfirm>
+              <Popconfirm title="只跑下一個完整市場？" description="當前市場不送單；下一個完整市場可以送單，該市場結束／切換後 8781 自動 PAUSE 並走既有 Maker cancel-all。" okText="只跑一場" cancelText="取消" onConfirm={() => void doRunNextMarketOnce()}><Button icon={<PlayCircleOutlined />} disabled={!engineService.ok || !liveSafetyReady || !selectedEntrySource} loading={saving}>只跑下一場</Button></Popconfirm>
+            </>
           )}
           <Text type="secondary">目前 config：{text(config.cohort)} · {money(config.notionalUsdt, 2, false)} · drift {price(config.maxPriceDrift)}</Text>
         </Space>

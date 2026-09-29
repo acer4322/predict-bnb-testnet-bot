@@ -1,0 +1,876 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+import os
+import threading
+import time
+from dataclasses import dataclass, field
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any
+
+import httpx
+
+from . import predict_wallet_maker_ebm_strategy_v1 as maker_ebm
+from .strategy_target_compare_recorder_v1 import StrategyTargetCompareRecorder
+from .unified_controller_paper_v1 import number, phase_from_seconds, simple3
+
+ROOT = Path(__file__).resolve().parents[2]
+VERSION = "UNIFIED_CONTROLLER_FLASH_SANDBOX_V1"
+HOST = os.environ.get("UNIFIED_FLASH_HOST", "127.0.0.1")
+PORT = int(os.environ.get("UNIFIED_FLASH_PORT", "8785"))
+PUBLIC_SOURCE_URL = os.environ.get("UNIFIED_FLASH_PUBLIC_SOURCE_URL", "http://127.0.0.1:8783/state")
+BASE_SOURCE_URL = os.environ.get("UNIFIED_FLASH_BASE_SOURCE_URL", "http://127.0.0.1:8784/state")
+SOURCE_MAX_AGE_MS = max(1_000, int(os.environ.get("UNIFIED_FLASH_SOURCE_MAX_AGE_MS", "3000")))
+POLL_SECONDS = max(0.25, float(os.environ.get("UNIFIED_FLASH_POLL_SECONDS", "0.50")))
+RETENTION_HOURS = max(12.0, float(os.environ.get("UNIFIED_FLASH_RETENTION_HOURS", "48")))
+RETENTION_CLEANUP_INTERVAL_MS = max(60_000, int(float(os.environ.get("UNIFIED_FLASH_RETENTION_CLEANUP_SECONDS", "600")) * 1000))
+RETENTION_BATCH_MARKETS = max(1, min(100, int(os.environ.get("UNIFIED_FLASH_RETENTION_BATCH_MARKETS", "24"))))
+REGISTRY_PATH = Path(os.environ.get("UNIFIED_FLASH_REGISTRY", ROOT / "data" / "research" / "flash_sandbox_registry_v1.json"))
+DB_PATH = Path(os.environ.get("UNIFIED_FLASH_DB", ROOT / "data" / "strategy_target_flash_v1.db"))
+RUNNABLE_STATUSES = {"ACTIVE", "OBSERVE", "PROMOTE_CANDIDATE"}
+
+
+def now_ms() -> int:
+    return int(time.time() * 1000)
+
+
+def dig(root: Any, path: str) -> Any:
+    current = root
+    for part in str(path).split("."):
+        if not part:
+            continue
+        if not isinstance(current, dict) or part not in current:
+            return None
+        current = current[part]
+    return current
+
+
+@dataclass
+class VariantState:
+    experiment_id: str
+    revision: int
+    mode: str
+    config: dict[str, Any]
+    market_id: int | None = None
+    up_shares: float = 0.0
+    down_shares: float = 0.0
+    up_cost: float = 0.0
+    down_cost: float = 0.0
+    orders: dict[tuple[str, int], dict[str, Any]] = field(default_factory=dict)
+    last_closed: dict[tuple[str, int], int] = field(default_factory=dict)
+    decisions: int = 0
+    fills: int = 0
+    markets: int = 0
+    last_decision: dict[str, Any] | None = None
+    activated_at_ms: int | None = None
+
+    @property
+    def strategy_version(self) -> str:
+        return f"FLASH:{self.experiment_id}:R{self.revision}"
+
+    def reset_market(self, market_id: int, at_ms: int) -> None:
+        self.market_id = int(market_id)
+        self.up_shares = self.down_shares = 0.0
+        self.up_cost = self.down_cost = 0.0
+        self.orders.clear()
+        self.last_closed.clear()
+        self.last_decision = None
+        self.markets += 1
+        if self.activated_at_ms is None:
+            self.activated_at_ms = int(at_ms)
+
+    def portfolio(self, direction: dict[str, Any]) -> dict[str, Any]:
+        cost = self.up_cost + self.down_cost
+        net = self.up_shares - self.down_shares
+        settle_up = self.up_shares - cost
+        settle_down = self.down_shares - cost
+        worst = min(settle_up, settle_down)
+        side = str(direction.get("side") or "NEUTRAL")
+        signed = 1.0 if side == "UP" else -1.0 if side == "DOWN" else 0.0
+        alignment_score = signed * net
+        alignment = "FAVORABLE" if alignment_score > 1e-9 else "UNFAVORABLE" if alignment_score < -1e-9 else "NEUTRAL"
+        return {
+            "upShares": self.up_shares,
+            "downShares": self.down_shares,
+            "upCostUsdt": self.up_cost,
+            "downCostUsdt": self.down_cost,
+            "costUsdt": cost,
+            "netShares": net,
+            "grossShares": self.up_shares + self.down_shares,
+            "settleUpPnlUsdt": settle_up,
+            "settleDownPnlUsdt": settle_down,
+            "worstCasePnlUsdt": worst,
+            "riskDeficitUsdt": max(0.0, -worst),
+            "alignment": alignment,
+            "alignmentScore": alignment_score,
+        }
+
+
+class FlashSandboxV1:
+    """Hot-swappable paper sandbox running beside the frozen Unified base.
+
+    Safety boundaries:
+      * never sends live orders;
+      * never reads Target wallet events for decision making;
+      * registry changes are staged and only activate on market rollover;
+      * flash data is written to a separate DB from the stable 8784 recorder;
+      * a flash result may become a promotion candidate but is never auto-promoted.
+    """
+
+    def __init__(self) -> None:
+        self.started_at_ms = now_ms()
+        self.stop_event = threading.Event()
+        self.lock = threading.RLock()
+        self.http = httpx.Client(timeout=httpx.Timeout(2.0, connect=0.5), trust_env=False)
+        self.recorder = StrategyTargetCompareRecorder(DB_PATH)
+        self.retention_hours = RETENTION_HOURS
+        self.last_retention_cleanup_ms: int | None = None
+        self.last_retention_cleanup: dict[str, Any] = {}
+        self._init_retention_schema()
+        self.maker_models = maker_ebm.load_models()
+        self.current_market_id: int | None = None
+        self.excluded_startup_market_id: int | None = None
+        self.active = False
+        self.last_snapshot_ms: int | None = None
+        self.last_loop_ms: int | None = None
+        self.last_error: str | None = None
+        self.source_ready = False
+        self.source_wait_reason: str | None = "STARTING"
+        self.registry_error: str | None = None
+        self.registry_mtime_ns: int | None = None
+        self.pending_registry: dict[str, Any] = self._load_registry()
+        self.applied_registry: dict[str, Any] = {}
+        self.variants: dict[str, VariantState] = {}
+        self.plugins: dict[str, Any] = {}
+        self.sequence = 0
+        self.registry_reloads = 0
+        self.market_rollovers = 0
+
+    def start(self) -> None:
+        threading.Thread(target=self._loop, name="unified-flash-sandbox-v1", daemon=True).start()
+
+    def stop(self) -> None:
+        self.stop_event.set()
+        self.http.close()
+        self.recorder.close()
+
+    def _init_retention_schema(self) -> None:
+        with self.recorder.lock:
+            self.recorder.db.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS flash_market_lifecycle_v1 (
+                    market_id INTEGER PRIMARY KEY,
+                    last_seen_ms INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_flash_market_lifecycle_last_seen
+                    ON flash_market_lifecycle_v1(last_seen_ms);
+                CREATE TABLE IF NOT EXISTS flash_market_compact_summary_v1 (
+                    strategy_version TEXT NOT NULL,
+                    market_id INTEGER NOT NULL,
+                    first_decision_ms INTEGER,
+                    last_decision_ms INTEGER,
+                    decision_count INTEGER NOT NULL,
+                    order_count INTEGER NOT NULL,
+                    fill_count INTEGER NOT NULL,
+                    cancelled_order_count INTEGER NOT NULL,
+                    up_shares REAL NOT NULL,
+                    down_shares REAL NOT NULL,
+                    total_cost_usdt REAL NOT NULL,
+                    settle_up_pnl_usdt REAL NOT NULL,
+                    settle_down_pnl_usdt REAL NOT NULL,
+                    archived_at_ms INTEGER NOT NULL,
+                    PRIMARY KEY(strategy_version, market_id)
+                );
+                """
+            )
+            self.recorder.db.commit()
+
+    def _archive_market_summary_locked(self, market_id: int, at_ms: int) -> int:
+        db = self.recorder.db
+        versions = {
+            str(row[0])
+            for sql in (
+                "SELECT DISTINCT strategy_version FROM our_decisions WHERE market_id=?",
+                "SELECT DISTINCT strategy_version FROM our_orders WHERE market_id=?",
+                "SELECT DISTINCT strategy_version FROM our_fills WHERE market_id=?",
+            )
+            for row in db.execute(sql, (int(market_id),)).fetchall()
+            if row[0] is not None
+        }
+        for version in sorted(versions):
+            decision = db.execute(
+                "SELECT COUNT(*),MIN(decision_ms),MAX(decision_ms) FROM our_decisions WHERE market_id=? AND strategy_version=?",
+                (int(market_id), version),
+            ).fetchone()
+            order = db.execute(
+                "SELECT COUNT(*),SUM(CASE WHEN status='CANCELLED' THEN 1 ELSE 0 END) FROM our_orders WHERE market_id=? AND strategy_version=?",
+                (int(market_id), version),
+            ).fetchone()
+            fill = db.execute(
+                """SELECT COUNT(*),
+                          COALESCE(SUM(CASE WHEN side='UP' THEN shares ELSE 0 END),0),
+                          COALESCE(SUM(CASE WHEN side='DOWN' THEN shares ELSE 0 END),0),
+                          COALESCE(SUM(price*shares),0)
+                   FROM our_fills WHERE market_id=? AND strategy_version=?""",
+                (int(market_id), version),
+            ).fetchone()
+            decision_count = int(decision[0] or 0)
+            first_decision_ms = int(decision[1]) if decision[1] is not None else None
+            last_decision_ms = int(decision[2]) if decision[2] is not None else None
+            order_count = int(order[0] or 0)
+            cancelled = int(order[1] or 0)
+            fill_count = int(fill[0] or 0)
+            up_shares = float(fill[1] or 0.0)
+            down_shares = float(fill[2] or 0.0)
+            total_cost = float(fill[3] or 0.0)
+            db.execute(
+                """INSERT OR REPLACE INTO flash_market_compact_summary_v1(
+                       strategy_version,market_id,first_decision_ms,last_decision_ms,decision_count,order_count,fill_count,
+                       cancelled_order_count,up_shares,down_shares,total_cost_usdt,settle_up_pnl_usdt,
+                       settle_down_pnl_usdt,archived_at_ms) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    version, int(market_id), first_decision_ms, last_decision_ms, decision_count, order_count, fill_count,
+                    cancelled, up_shares, down_shares, total_cost, up_shares-total_cost, down_shares-total_cost, int(at_ms),
+                ),
+            )
+        return len(versions)
+
+    def _record_closed_market_and_cleanup(self, market_id: int, at_ms: int) -> None:
+        with self.recorder.lock:
+            db = self.recorder.db
+            db.execute(
+                "INSERT OR REPLACE INTO flash_market_lifecycle_v1(market_id,last_seen_ms) VALUES(?,?)",
+                (int(market_id), int(at_ms)),
+            )
+            due = self.last_retention_cleanup_ms is None or at_ms - self.last_retention_cleanup_ms >= RETENTION_CLEANUP_INTERVAL_MS
+            if not due:
+                db.commit()
+                return
+            cutoff = int(at_ms - self.retention_hours * 3_600_000)
+            old_ids = [
+                int(row[0])
+                for row in db.execute(
+                    "SELECT market_id FROM flash_market_lifecycle_v1 WHERE last_seen_ms<? ORDER BY last_seen_ms LIMIT ?",
+                    (cutoff, RETENTION_BATCH_MARKETS),
+                ).fetchall()
+            ]
+            archived_versions = 0
+            for old_market_id in old_ids:
+                archived_versions += self._archive_market_summary_locked(old_market_id, at_ms)
+                db.execute("DELETE FROM our_fills WHERE market_id=?", (old_market_id,))
+                db.execute("DELETE FROM our_orders WHERE market_id=?", (old_market_id,))
+                db.execute("DELETE FROM our_decisions WHERE market_id=?", (old_market_id,))
+                db.execute("DELETE FROM flash_market_lifecycle_v1 WHERE market_id=?", (old_market_id,))
+            db.commit()
+            self.last_retention_cleanup_ms = int(at_ms)
+            self.last_retention_cleanup = {
+                "cutoffMs": cutoff,
+                "marketsPruned": len(old_ids),
+                "strategySummariesArchived": archived_versions,
+                "retentionHours": self.retention_hours,
+            }
+
+    def _load_registry(self) -> dict[str, Any]:
+        try:
+            text = REGISTRY_PATH.read_text(encoding="utf-8")
+            data = json.loads(text)
+            if not isinstance(data, dict) or not isinstance(data.get("experiments"), list):
+                raise ValueError("registry must contain experiments[]")
+            if data.get("automaticLivePromotion") is not False or data.get("automaticPromotionToBase") is not False:
+                raise ValueError("registry safety boundary missing")
+            self.registry_error = None
+            try:
+                self.registry_mtime_ns = REGISTRY_PATH.stat().st_mtime_ns
+            except OSError:
+                pass
+            return data
+        except Exception as exc:
+            self.registry_error = f"{type(exc).__name__}: {str(exc)[:400]}"
+            return getattr(self, "pending_registry", {"experiments": []})
+
+    def _maybe_stage_registry(self) -> None:
+        try:
+            mtime = REGISTRY_PATH.stat().st_mtime_ns
+        except OSError:
+            return
+        if self.registry_mtime_ns is None or mtime != self.registry_mtime_ns:
+            self.pending_registry = self._load_registry()
+            self.registry_reloads += 1
+
+    def _fetch_sources(self) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        public_response = self.http.get(PUBLIC_SOURCE_URL)
+        public_response.raise_for_status()
+        public_payload = public_response.json()
+        if not isinstance(public_payload, dict) or public_payload.get("ok") is not True:
+            self.source_ready = False
+            self.source_wait_reason = "PUBLIC_SOURCE_UNAVAILABLE"
+            return None, None
+        public_health = public_payload.get("health") if isinstance(public_payload.get("health"), dict) else {}
+        integrity = public_payload.get("dataIntegrity") if isinstance(public_payload.get("dataIntegrity"), dict) else {}
+        if public_health.get("targetEventsUsedForDecision") is True:
+            raise RuntimeError("PUBLIC_SOURCE_CONTAMINATION_TARGET_EVENTS_USED_FOR_DECISION")
+        if public_health.get("processHealthy") is not True:
+            self.source_ready = False
+            self.source_wait_reason = "PUBLIC_SOURCE_DEGRADED"
+            return None, None
+        if integrity.get("ready") is not True:
+            missing = list(integrity.get("missingFeatures") or [])
+            suffix = ":" + ",".join(str(x) for x in missing) if missing else ""
+            self.source_ready = False
+            self.source_wait_reason = f"PUBLIC_INPUT_INCOMPLETE{suffix}"
+            return None, None
+        snapshot = public_payload.get("latestPublicSnapshot")
+        if not isinstance(snapshot, dict):
+            self.source_ready = False
+            self.source_wait_reason = "PUBLIC_SNAPSHOT_MISSING"
+            return None, None
+        sampled_at = int(number(snapshot.get("sampledAtMs")) or 0)
+        age_ms = now_ms() - sampled_at if sampled_at > 0 else SOURCE_MAX_AGE_MS + 1
+        if sampled_at <= 0 or age_ms > SOURCE_MAX_AGE_MS or age_ms < -1_000:
+            self.source_ready = False
+            self.source_wait_reason = f"PUBLIC_SNAPSHOT_STALE:{age_ms}"
+            return None, None
+
+        base_response = self.http.get(BASE_SOURCE_URL)
+        base_response.raise_for_status()
+        base_payload = base_response.json()
+        if not isinstance(base_payload, dict) or base_payload.get("ok") is not True:
+            self.source_ready = False
+            self.source_wait_reason = "BASE_SOURCE_UNAVAILABLE"
+            return None, None
+        if base_payload.get("targetEventsUsedForDecision") is True or base_payload.get("targetDataRead") is True:
+            raise RuntimeError("BASE_SOURCE_CONTAMINATION")
+        if base_payload.get("sourceReady") is not True:
+            self.source_ready = False
+            self.source_wait_reason = f"BASE_WAITING_SOURCE:{base_payload.get('sourceWaitReason') or 'UNKNOWN'}"
+            return None, None
+        self.source_ready = True
+        self.source_wait_reason = None
+        # Base state is OUR strategy state only. Target data is never consumed here.
+        return dict(snapshot), dict(base_payload)
+
+    def _load_plugin(self, row: dict[str, Any], experiment_id: str, revision: int) -> Any | None:
+        raw = str(row.get("plugin") or "").strip()
+        if not raw:
+            return None
+        plugin_root = (ROOT / "src" / "predict_bot" / "flash_experiments").resolve()
+        candidate = (plugin_root / raw).resolve() if not Path(raw).is_absolute() else Path(raw).resolve()
+        if candidate.suffix.lower() != ".py":
+            candidate = candidate.with_suffix(".py")
+        try:
+            candidate.relative_to(plugin_root)
+        except ValueError as exc:
+            raise RuntimeError(f"flash plugin outside allowed directory: {candidate}") from exc
+        if not candidate.exists():
+            raise FileNotFoundError(f"flash plugin missing: {candidate}")
+        module_name = f"predict_bot.flash_experiments._runtime_{experiment_id.lower()}_r{revision}"
+        spec = importlib.util.spec_from_file_location(module_name, candidate)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"cannot load flash plugin: {candidate}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        if not callable(getattr(module, "evaluate", None)):
+            raise RuntimeError(f"flash plugin must expose evaluate(context): {candidate}")
+        return module
+
+    def _activate_pending_registry(self, market_id: int, at_ms: int) -> None:
+        registry = self.pending_registry if isinstance(self.pending_registry, dict) else {"experiments": []}
+        max_variants = max(1, min(6, int(registry.get("maxConcurrentVariants") or 3)))
+        rows = [row for row in registry.get("experiments", []) if isinstance(row, dict)]
+        runnable = [row for row in rows if str(row.get("status") or "").upper() in RUNNABLE_STATUSES]
+        runnable = runnable[:max_variants]
+        next_variants: dict[str, VariantState] = {}
+        next_plugins: dict[str, Any] = {}
+        for row in runnable:
+            experiment_id = str(row.get("id") or "").strip()
+            if not experiment_id:
+                continue
+            revision = int(row.get("revision") or 1)
+            mode = str(row.get("mode") or "COLLECT_ONLY").upper()
+            config = dict(row.get("config") or {})
+            state = VariantState(experiment_id, revision, mode, config)
+            state.reset_market(market_id, at_ms)
+            next_variants[experiment_id] = state
+            plugin = self._load_plugin(row, experiment_id, revision)
+            if plugin is not None:
+                next_plugins[experiment_id] = plugin
+        self.variants = next_variants
+        self.plugins = next_plugins
+        self.applied_registry = json.loads(json.dumps(registry, default=str))
+
+    def _cancel_all(self, variant: VariantState, at_ms: int, reason: str) -> None:
+        for order in list(variant.orders.values()):
+            try:
+                self.recorder.record_order_cancel(order_id=order["id"], cancelled_at_ms=at_ms, reason=reason)
+            except KeyError:
+                pass
+        variant.orders.clear()
+        variant.last_closed.clear()
+
+    def _roll_market(self, market_id: int, at_ms: int) -> None:
+        if self.current_market_id is not None:
+            self._record_closed_market_and_cleanup(int(self.current_market_id), int(at_ms))
+        for variant in self.variants.values():
+            self._cancel_all(variant, at_ms, "MARKET_ROLLOVER")
+        self.current_market_id = int(market_id)
+        self.last_snapshot_ms = None
+        self.market_rollovers += 1
+        if self.excluded_startup_market_id is None:
+            self.excluded_startup_market_id = int(market_id)
+            self.active = False
+            return
+        self.active = True
+        self._activate_pending_registry(market_id, at_ms)
+
+    def _fill_maker_orders(self, variant: VariantState, snapshot: dict[str, Any], snapshot_ns: int, at_ms: int) -> int:
+        filled = 0
+        direction = simple3(snapshot)
+        for key, order in list(variant.orders.items()):
+            if not maker_ebm.ask_touch_fill(order, snapshot, snapshot_ns=snapshot_ns, now_ms=at_ms):
+                continue
+            side = str(order["side"])
+            shares = float(order["shares"])
+            price = float(order["price"])
+            if side == "UP":
+                variant.up_shares += shares
+                variant.up_cost += price * shares
+            else:
+                variant.down_shares += shares
+                variant.down_cost += price * shares
+            variant.orders.pop(key, None)
+            variant.last_closed[key] = at_ms
+            variant.fills += 1
+            self.recorder.record_order_fill(
+                order_id=order["id"],
+                fill_id=f"{order['id']}:FILL:{at_ms}",
+                filled_at_ms=at_ms,
+                fill_price=price,
+                fill_state={
+                    "snapshot": snapshot,
+                    "direction": direction,
+                    "portfolioAfter": variant.portfolio(direction),
+                    "fillProxy": "STRICT_LATER_ASK_TOUCH",
+                },
+                purpose="FLASH_PASSIVE_MAKER",
+                payload={"paperOnly": True, "queuePriorityClaim": False, "flashExperiment": variant.experiment_id},
+            )
+            filled += 1
+        return filled
+
+    def _apply_maker_orders(
+        self,
+        variant: VariantState,
+        decision_id: str,
+        trace: dict[str, Any],
+        maker_decision: dict[str, Any],
+        snapshot_ns: int,
+        at_ms: int,
+        allow_new: bool,
+    ) -> None:
+        rows = maker_decision.get("orders") if maker_decision.get("decision") == "QUOTE" else []
+        desired = {(str(row["side"]), int(row["priceTick"])): row for row in (rows or [])}
+        for key, order in list(variant.orders.items()):
+            if key in desired:
+                continue
+            self.recorder.record_order_cancel(
+                order_id=order["id"], cancelled_at_ms=at_ms,
+                reason=str(maker_decision.get("reason") or "FLASH_PLAN_CHANGE"),
+            )
+            variant.last_closed[key] = at_ms
+            variant.orders.pop(key, None)
+        if not allow_new:
+            return
+        for key, row in desired.items():
+            if key in variant.orders:
+                continue
+            if at_ms - int(variant.last_closed.get(key, 0)) < maker_ebm.REFILL_COOLDOWN_MS:
+                continue
+            self.sequence += 1
+            order_id = f"{variant.strategy_version}:{variant.market_id}:MAKER:{key[0]}:{key[1]}:{at_ms}:{self.sequence}"
+            order = {
+                "id": order_id,
+                "side": key[0],
+                "priceTick": key[1],
+                "price": float(row["price"]),
+                "shares": float(row["shares"]),
+                "placedAtMs": int(at_ms),
+                "placedSnapshotNs": int(snapshot_ns),
+            }
+            variant.orders[key] = order
+            self.recorder.record_order_placement(
+                order_id=order_id,
+                strategy_version=variant.strategy_version,
+                market_id=int(variant.market_id),
+                placement_decision_id=decision_id,
+                channel="MAKER",
+                side=key[0],
+                quote_type="BID",
+                price=order["price"],
+                shares=order["shares"],
+                placed_at_ms=at_ms,
+                placement_state=trace,
+            )
+
+    def _collect_values(
+        self,
+        row: dict[str, Any],
+        snapshot: dict[str, Any],
+        base_state: dict[str, Any],
+        variant_state: dict[str, Any],
+    ) -> dict[str, Any]:
+        roots = {"snapshot": snapshot, "base": base_state, "variant": variant_state}
+        result: dict[str, Any] = {}
+        for raw in row.get("collect", []) if isinstance(row.get("collect"), list) else []:
+            path = str(raw)
+            root_name, _, subpath = path.partition(".")
+            result[path] = dig(roots.get(root_name), subpath) if root_name in roots else None
+        return result
+
+    def _experiment_row(self, experiment_id: str) -> dict[str, Any]:
+        rows = self.applied_registry.get("experiments", []) if isinstance(self.applied_registry, dict) else []
+        for row in rows:
+            if isinstance(row, dict) and str(row.get("id")) == experiment_id:
+                return row
+        return {}
+
+    def _step_variant(self, variant: VariantState, snapshot: dict[str, Any], base_state: dict[str, Any], snapshot_ns: int, at_ms: int) -> None:
+        direction = simple3(snapshot)
+        filled_this_snapshot = self._fill_maker_orders(variant, snapshot, snapshot_ns, at_ms)
+        portfolio = variant.portfolio(direction)
+        row = self._experiment_row(variant.experiment_id)
+        collection = self._collect_values(row, snapshot, base_state, {"portfolio": portfolio, "lastDecision": variant.last_decision})
+
+        plugin_result: dict[str, Any] = {}
+        taker_fill: dict[str, Any] | None = None
+        if variant.mode == "COLLECT_ONLY":
+            desired_action = "HOLD"
+            execution_choice = "WAIT"
+            primary_reason = "FLASH_COLLECTION_ONLY"
+            maker_decision = {"decision": "IDLE", "reason": "COLLECTION_ONLY", "orders": []}
+        else:
+            maker_enabled = bool(variant.config.get("makerEnabled", True))
+            maker_inventory = maker_ebm.inventory(variant.up_shares, variant.down_shares, variant.up_cost, variant.down_cost)
+            maker_decision = maker_ebm.decide(
+                snapshot,
+                self.maker_models,
+                maker_inventory,
+                cohort=maker_ebm.COMBINED_COHORT,
+                expected_market_id=int(variant.market_id),
+                now_ms=at_ms,
+            ) if maker_enabled else {"decision": "IDLE", "reason": "FLASH_MAKER_DISABLED", "orders": []}
+            if maker_decision.get("decision") == "QUOTE" and maker_decision.get("orders"):
+                desired_action = "PASSIVE_MAINTAIN"
+                execution_choice = "MAKER"
+                primary_reason = str(maker_decision.get("reason") or "FLASH_MAKER_ACTIVE")
+            else:
+                desired_action = "HOLD"
+                execution_choice = "WAIT"
+                primary_reason = str(maker_decision.get("reason") or "FLASH_WAIT")
+
+            plugin = self.plugins.get(variant.experiment_id)
+            if plugin is not None:
+                context = {
+                    "nowMs": at_ms,
+                    "marketId": variant.market_id,
+                    "snapshot": snapshot,
+                    "baseState": base_state,
+                    "direction": direction,
+                    "portfolio": portfolio,
+                    "makerDecision": maker_decision,
+                    "config": variant.config,
+                    "experiment": row,
+                    "previousDecision": variant.last_decision,
+                }
+                raw_result = plugin.evaluate(context)
+                if raw_result is not None and not isinstance(raw_result, dict):
+                    raise RuntimeError(f"flash plugin {variant.experiment_id} returned non-dict")
+                plugin_result = dict(raw_result or {})
+                if isinstance(plugin_result.get("makerDecision"), dict):
+                    maker_decision = dict(plugin_result["makerDecision"])
+                desired_action = str(plugin_result.get("desiredPortfolioAction") or desired_action)
+                execution_choice = str(plugin_result.get("executionChoice") or execution_choice).upper()
+                primary_reason = str(plugin_result.get("primaryReason") or primary_reason)
+                if isinstance(plugin_result.get("takerFill"), dict):
+                    taker_fill = dict(plugin_result["takerFill"])
+                if isinstance(plugin_result.get("collected"), dict):
+                    collection.update(plugin_result["collected"])
+
+        if variant.experiment_id == "NO_OPEN_SEED_V1":
+            seed_policy = "DISABLED_ABLATION"
+        elif plugin_result.get("seedPolicy"):
+            seed_policy = str(plugin_result.get("seedPolicy"))
+        else:
+            seed_policy = "UNSPECIFIED_FLASH_POLICY"
+
+        decision_id = f"{variant.strategy_version}:{variant.market_id}:DECISION:{int(snapshot.get('sampledAtMs') or at_ms)}"
+        trace = {
+            "flashSandboxVersion": VERSION,
+            "experimentId": variant.experiment_id,
+            "revision": variant.revision,
+            "marketId": variant.market_id,
+            "decisionMs": at_ms,
+            "phase": phase_from_seconds(number(snapshot.get("secondsLeft"))),
+            "desiredPortfolioAction": desired_action,
+            "executionChoice": execution_choice,
+            "primaryReason": primary_reason,
+            "direction": direction,
+            "portfolio": portfolio,
+            "makerDecision": maker_decision,
+            "seedPolicy": seed_policy,
+            "collected": collection,
+            "pluginResult": plugin_result,
+            "baseState": {
+                "version": base_state.get("version"),
+                "status": base_state.get("status"),
+                "portfolio": base_state.get("portfolio"),
+                "seed": base_state.get("seed"),
+                "lastDecision": base_state.get("lastDecision"),
+            },
+            "paperOnly": True,
+            "liveOrdersAffected": False,
+            "targetEventsUsedForDecision": False,
+            "automaticPromotion": False,
+        }
+        vetoes = []
+        if variant.experiment_id == "NO_OPEN_SEED_V1":
+            vetoes.append("OPEN_SEED_DISABLED_BY_SINGLE_CHANGE_ABLATION")
+        vetoes.append("MID_LATE_TAKER_NOT_ENABLED_IN_FLASH_V1")
+
+        self.recorder.record_decision(
+            decision_id=decision_id,
+            strategy_version=variant.strategy_version,
+            market_id=int(variant.market_id),
+            decision_ms=at_ms,
+            source_snapshot_ms=int(number(snapshot.get("sampledAtMs")) or at_ms),
+            seconds_left=number(snapshot.get("secondsLeft")),
+            phase=trace["phase"],
+            desired_portfolio_action=desired_action,
+            execution_choice=execution_choice,
+            side=(str(taker_fill.get("side")) if taker_fill else None),
+            size=(float(taker_fill.get("shares") or 0.0) if taker_fill else sum(float(x.get("shares") or 0.0) for x in maker_decision.get("orders") or [])),
+            primary_reason=primary_reason,
+            supporting_reasons={
+                "hypothesis": row.get("hypothesis"),
+                "singleChange": row.get("singleChange"),
+                "direction": direction,
+                "makerHazard": maker_decision.get("hazard"),
+                "makerLevels": maker_decision.get("levels"),
+                "collected": collection,
+            },
+            veto_reasons=vetoes,
+            direction_state=direction,
+            portfolio_state=portfolio,
+            economics_state={
+                "upAsk": number(snapshot.get("predictUpAsk")),
+                "downAsk": number(snapshot.get("predictDownAsk")),
+                "pairAskSum": (
+                    number(snapshot.get("predictUpAsk")) + number(snapshot.get("predictDownAsk"))
+                    if number(snapshot.get("predictUpAsk")) is not None and number(snapshot.get("predictDownAsk")) is not None
+                    else None
+                ),
+            },
+            arbitration_state={
+                "baseExecutionChoice": dig(base_state, "lastDecision.executionChoice"),
+                "basePrimaryReason": dig(base_state, "lastDecision.primaryReason"),
+                "flashExecutionChoice": execution_choice,
+                "flashSeedPolicy": seed_policy,
+            },
+            public_state=snapshot,
+            payload=trace,
+        )
+        variant.decisions += 1
+        variant.last_decision = trace
+
+        if taker_fill is not None and execution_choice == "TAKER":
+            side = str(taker_fill.get("side") or "").upper()
+            price = number(taker_fill.get("price"))
+            shares = number(taker_fill.get("shares"))
+            purpose = str(taker_fill.get("purpose") or "FLASH_TAKER")
+            if side not in {"UP", "DOWN"} or price is None or shares is None or not (0.0 < price <= 1.0) or shares <= 0.0:
+                raise RuntimeError(f"invalid flash taker fill from {variant.experiment_id}: {taker_fill}")
+            if side == "UP":
+                variant.up_shares += shares
+                variant.up_cost += price * shares
+            else:
+                variant.down_shares += shares
+                variant.down_cost += price * shares
+            variant.fills += 1
+            self.recorder.record_taker_fill(
+                fill_id=f"{decision_id}:TAKER_FILL",
+                strategy_version=variant.strategy_version,
+                market_id=int(variant.market_id),
+                decision_id=decision_id,
+                purpose=purpose,
+                side=side,
+                price=price,
+                shares=shares,
+                filled_at_ms=at_ms,
+                decision_state=trace,
+                fill_state={"snapshot": snapshot, "paperOnly": True, "flashPlugin": row.get("plugin")},
+                payload={"experimentId": variant.experiment_id, "revision": variant.revision},
+            )
+
+        if bool(plugin_result.get("cancelMakerOrders")):
+            self._cancel_all(variant, at_ms, "FLASH_PLUGIN_CANCEL_MAKER")
+
+        if variant.mode != "COLLECT_ONLY":
+            self._apply_maker_orders(
+                variant,
+                decision_id,
+                trace,
+                maker_decision,
+                snapshot_ns,
+                at_ms,
+                allow_new=(filled_this_snapshot == 0 and execution_choice != "TAKER"),
+            )
+
+    def _step(self, snapshot: dict[str, Any], base_state: dict[str, Any]) -> None:
+        market_id = int(number(snapshot.get("marketId")) or 0)
+        sampled_at = int(number(snapshot.get("sampledAtMs")) or 0)
+        snapshot_ns = int(number(snapshot.get("timestampNs")) or 0)
+        if market_id <= 0 or sampled_at <= 0 or snapshot_ns <= 0:
+            return
+        at_ms = now_ms()
+        self._maybe_stage_registry()
+        if self.current_market_id != market_id:
+            self._roll_market(market_id, at_ms)
+        if sampled_at == self.last_snapshot_ms:
+            return
+        self.last_snapshot_ms = sampled_at
+        if not self.active:
+            return
+        for variant in list(self.variants.values()):
+            self._step_variant(variant, snapshot, base_state, snapshot_ns, at_ms)
+
+    def _loop(self) -> None:
+        while not self.stop_event.is_set():
+            started = time.monotonic()
+            try:
+                snapshot, base_state = self._fetch_sources()
+                if snapshot and base_state:
+                    with self.lock:
+                        self._step(snapshot, base_state)
+                self.last_error = None
+            except Exception as exc:
+                self.last_error = f"{type(exc).__name__}: {str(exc)[:500]}"
+            self.last_loop_ms = now_ms()
+            elapsed = time.monotonic() - started
+            self.stop_event.wait(max(0.05, POLL_SECONDS - elapsed))
+
+    def snapshot(self) -> dict[str, Any]:
+        at_ms = now_ms()
+        with self.lock:
+            return {
+                "ok": self.last_error is None and self.registry_error is None,
+                "status": (
+                    "DEGRADED" if self.last_error is not None or self.registry_error is not None
+                    else "WAITING_SOURCE" if not self.source_ready
+                    else "ACTIVE" if self.active
+                    else "WAITING_NEXT_COMPLETE_MARKET"
+                ),
+                "version": VERSION,
+                "paperOnly": True,
+                "forwardOnly": True,
+                "liveOrdersAffected": False,
+                "targetEventsUsedForDecision": False,
+                "targetDataRead": False,
+                "automaticPromotionToBase": False,
+                "automaticLivePromotion": False,
+                "publicSourceUrl": PUBLIC_SOURCE_URL,
+                "baseSourceUrl": BASE_SOURCE_URL,
+                "sourceReady": self.source_ready,
+                "sourceWaitReason": self.source_wait_reason,
+                "sourceMaxAgeMs": SOURCE_MAX_AGE_MS,
+                "registryPath": str(REGISTRY_PATH),
+                "recorderDb": str(self.recorder.path),
+                "retention": {
+                    "rawRetentionHours": self.retention_hours,
+                    "cleanupIntervalMs": RETENTION_CLEANUP_INTERVAL_MS,
+                    "batchMarkets": RETENTION_BATCH_MARKETS,
+                    "lastCleanupAtMs": self.last_retention_cleanup_ms,
+                    "lastCleanup": self.last_retention_cleanup,
+                    "summaryTable": "flash_market_compact_summary_v1",
+                },
+                "currentMarketId": self.current_market_id,
+                "excludedStartupMarketId": self.excluded_startup_market_id,
+                "lastSnapshotMs": self.last_snapshot_ms,
+                "lastSnapshotAgeMs": at_ms - self.last_snapshot_ms if self.last_snapshot_ms else None,
+                "lastLoopAgeMs": at_ms - self.last_loop_ms if self.last_loop_ms else None,
+                "lastError": self.last_error,
+                "registryError": self.registry_error,
+                "registryReloads": self.registry_reloads,
+                "marketRollovers": self.market_rollovers,
+                "registryActivationBoundary": "NEXT_COMPLETE_MARKET_ONLY",
+                "activeVariants": {
+                    key: {
+                        "strategyVersion": value.strategy_version,
+                        "mode": value.mode,
+                        "revision": value.revision,
+                        "marketId": value.market_id,
+                        "markets": value.markets,
+                        "decisions": value.decisions,
+                        "fills": value.fills,
+                        "portfolio": value.portfolio(value.last_decision.get("direction", {"side": "NEUTRAL"}) if value.last_decision else {"side": "NEUTRAL"}),
+                        "activeOrders": list(value.orders.values()),
+                        "lastDecision": value.last_decision,
+                    }
+                    for key, value in self.variants.items()
+                },
+                "pendingExperiments": [
+                    {"id": row.get("id"), "revision": row.get("revision"), "status": row.get("status"), "mode": row.get("mode")}
+                    for row in self.pending_registry.get("experiments", []) if isinstance(row, dict)
+                ],
+            }
+
+
+class Handler(BaseHTTPRequestHandler):
+    runtime: FlashSandboxV1
+
+    def log_message(self, *_args: Any) -> None:
+        return
+
+    def _write(self, payload: Any, code: int = 200) -> None:
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def do_GET(self) -> None:  # noqa: N802
+        path = self.path.split("?", 1)[0]
+        if path in {"/", "/state", "/health"}:
+            self._write(self.runtime.snapshot())
+        else:
+            self._write({"ok": False, "error": "not found"}, 404)
+
+
+def main() -> int:
+    runtime = FlashSandboxV1()
+    runtime.start()
+    handler = type("UnifiedFlashSandboxV1Handler", (Handler,), {"runtime": runtime})
+    server = ThreadingHTTPServer((HOST, PORT), handler)
+    print(
+        f"{VERSION} listening on http://{HOST}:{PORT}/state; public={PUBLIC_SOURCE_URL}; base={BASE_SOURCE_URL}; "
+        f"registry={REGISTRY_PATH}; db={DB_PATH}; paperOnly=true; targetDataRead=false; liveOrdersAffected=false",
+        flush=True,
+    )
+    try:
+        server.serve_forever(poll_interval=0.25)
+    except KeyboardInterrupt:
+        return 130
+    finally:
+        server.shutdown()
+        server.server_close()
+        runtime.stop()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -12,7 +12,7 @@ from . import target_wallet_official_v1 as v1
 
 VERSION = "TARGET_WALLET_OFFICIAL_V2_LEGACY_HISTORY"
 LEGACY_HISTORY_TABLE = "wallet_shadow_target_market_results"
-HISTORY_CACHE_MS = 5_000
+HISTORY_CACHE_MS = 60_000
 HISTORY_RECENT_LIMIT = 100
 
 
@@ -255,18 +255,16 @@ class TargetWalletOfficialCollector(v1.TargetWalletOfficialCollector):
         return payload
 
     def health_snapshot(self) -> dict[str, Any]:
+        # Health must stay constant-time. Historical performance is intentionally
+        # available from /state; recomputing legacy/current ledgers on every
+        # Diagnostics heartbeat previously made /health take multiple seconds.
         payload = super().health_snapshot()
         payload["version"] = VERSION
-        history = self._historical_performance()
-        legacy = history.get("sources", {}).get("legacy", {})
         payload["historicalTargetResults"] = {
             "restored": True,
             "strategyInput": False,
             "legacyReadOnly": True,
-            "legacyAvailable": bool(legacy.get("available")),
-            "legacyRows": int(legacy.get("rows") or 0),
-            "legacyError": legacy.get("error"),
-            "combinedSettledMarkets": int(history.get("settledMarkets") or 0),
+            "detailsEndpoint": "/state",
         }
         return payload
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 import os
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -20,15 +22,20 @@ os.environ["PREDICT_WALLET_SHADOW_DB"] = os.environ.get(
     "PREDICT_TARGET_WALLET_OFFICIAL_DB",
     str(root / "data" / "target_wallet_official_v1.db"),
 )
+os.environ.setdefault(
+    "PREDICT_WALLET_MAKER_BOOK_STATE_CACHE_REFRESH_MS",
+    os.environ.get("PREDICT_WALLET_MAKER_BOOK_ETH_STATE_CACHE_REFRESH_MS", "30000"),
+)
 
 from . import predict_wallet_maker_book_inference_collector as base  # noqa: E402
 from . import predict_wallet_maker_book_inference_collector_v2_1_impl as lifecycle  # noqa: E402
+from . import predict_wallet_maker_book_inference_collector_v2_1_responsive as responsive  # noqa: E402
 
 
 VERSION = "TARGET_MAKER_BOOK_INFERENCE_ETH_5M_V2_1_CONSUMABLE_LIFECYCLE_FORWARD_ONLY"
 
 
-class OfficialLedgerEthMakerCollector(lifecycle.MakerBookConsumableLifecycleCollector):
+class OfficialLedgerEthMakerCollector(responsive.ResponsiveMakerBookConsumableLifecycleCollector):
     """ETH target activity plus BTC-parity consumable Maker lifecycle inference.
 
     All retained ETH MAKER/TAKER legs from 8776 are recorded in targetActivity.
@@ -284,16 +291,14 @@ class OfficialLedgerEthMakerCollector(lifecycle.MakerBookConsumableLifecycleColl
         if backlog:
             self._reconcile_market(backlog[0])
 
-    def snapshot(self) -> dict[str, Any]:
-        # Mirror the BTC V2.1 presentation while keeping the ETH service version
-        # and making the role boundary explicit.
-        payload = base.MakerBookInferenceCollector.snapshot(self)
+    @staticmethod
+    def _decorate_eth_snapshot(reader: Any, payload: dict[str, Any]) -> dict[str, Any]:
         payload["version"] = VERSION
         payload["roleSeparation"] = {
             "MAKER": "retained; MAKER BID entries feed public-book lifecycle/depth inference",
             "TAKER": "retained separately in targetActivity; excluded from Maker lifecycle/depth inference",
         }
-        lifecycle_snapshot = self._v21_snapshot()
+        lifecycle_snapshot = lifecycle.MakerBookConsumableLifecycleCollector._v21_snapshot(reader)
         lifecycle_snapshot["version"] = VERSION
         lifecycle_snapshot["asset"] = "ETH"
         payload["lifecycleInference"] = lifecycle_snapshot
@@ -303,20 +308,58 @@ class OfficialLedgerEthMakerCollector(lifecycle.MakerBookConsumableLifecycleColl
         }
         return payload
 
+    def _build_snapshot_from_reader(self) -> dict[str, Any]:
+        """Build ETH summaries off the writer lock and cache them for HTTP polls."""
+        uri = f"file:{self.db_path.resolve()}?mode=ro"
+        con = sqlite3.connect(uri, uri=True, timeout=1.0, check_same_thread=False)
+        con.row_factory = sqlite3.Row
+        try:
+            con.execute("PRAGMA query_only=ON")
+            con.execute("PRAGMA busy_timeout=1000")
+            reader = copy.copy(self)
+            reader.db = con
+            reader.db_lock = threading.RLock()
+            reader.v21_cache = None
+            reader.v21_cache_at = 0
+            payload = base.MakerBookInferenceCollector.snapshot(reader)
+            return self._decorate_eth_snapshot(reader, payload)
+        finally:
+            con.close()
+
+    def health_snapshot(self) -> dict[str, Any]:
+        payload = super().health_snapshot()
+        payload["version"] = VERSION
+        payload["ordersSupported"] = False
+        payload["liveOrdersAffected"] = False
+        payload["targetEventsDriveStrategy"] = False
+        payload["roleSeparation"] = {
+            "MAKER": "retained; MAKER BID entries feed public-book lifecycle/depth inference",
+            "TAKER": "retained separately in targetActivity; excluded from Maker lifecycle/depth inference",
+        }
+        lifecycle_state = payload.get("lifecycleInference")
+        if isinstance(lifecycle_state, dict):
+            lifecycle_state["version"] = VERSION
+            lifecycle_state["asset"] = "ETH"
+        return payload
+
+    def snapshot(self) -> dict[str, Any]:
+        return responsive.ResponsiveMakerBookConsumableLifecycleCollector.snapshot(self)
+
 
 def main() -> int:
     collector = OfficialLedgerEthMakerCollector(base.DB_PATH, base.TARGET_DB_PATH)
     collector.start()
     handler = type(
         "MakerBookInferenceEth5mV21Handler",
-        (base.Handler,),
+        (responsive.ResponsiveHandler,),
         {"collector": collector},
     )
     server = base.ThreadingHTTPServer((base.HOST, base.PORT), handler)
     print(
         f"{VERSION} listening on http://{base.HOST}:{base.PORT}/state; asset=ETH; "
         f"targetSource={base.TARGET_DB_PATH}; makerTakerSeparated=true; "
-        "consumableQuantityAllocation=true; readOnly=true; liveOrdersAffected=false",
+        "consumableQuantityAllocation=true; responsiveHealth=true; cachedState=true; "
+        "readOnly=true; liveOrdersAffected=false",
         flush=True,
     )
     try:

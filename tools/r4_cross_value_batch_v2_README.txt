@@ -1,0 +1,1 @@
+Run tools/launch_r4_cross_value_batch_v2.py. Check progress with tools/r4_cross_value_batch_status_v2.py. Scanner checkpoints every market; fork collector checkpoints every treatment. Do not use latest 12-market holdout for training.

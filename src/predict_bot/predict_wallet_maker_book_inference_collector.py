@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -13,6 +14,8 @@ from typing import Any
 
 import httpx
 
+from .execution_tape_archive_v1 import archive_market_to_xz
+from .execution_tape_quality_v1 import ensure_schema as ensure_execution_quality_schema, record_quality as record_execution_quality
 from .predict_wallet_shadow_observer_v2 import normalize_match_leg
 
 try:
@@ -23,11 +26,12 @@ except ImportError:  # pragma: no cover - surfaced through /state.
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSET = str(os.environ.get("PREDICT_WALLET_MAKER_BOOK_ASSET", "BTC")).strip().upper()
-if ASSET not in {"BTC", "ETH"}:
+if ASSET not in {"BTC", "ETH", "BNB"}:
     raise ValueError(f"unsupported Maker book inference asset: {ASSET}")
 COHORT = "TARGET_MAKER_BOOK_INFERENCE_V1" if ASSET == "BTC" else f"TARGET_MAKER_BOOK_INFERENCE_{ASSET}_5M_V1"
 DEFAULT_DB_NAME = "wallet_maker_book_inference.db" if ASSET == "BTC" else f"wallet_maker_book_inference_{ASSET.lower()}5m.db"
 DB_PATH = Path(os.environ.get("PREDICT_WALLET_MAKER_BOOK_DB", ROOT / "data" / DEFAULT_DB_NAME))
+EXECUTION_TAPE_ARCHIVE_DIR = ROOT / "data" / "execution_tape_v1" / "markets"
 TARGET_DB_PATH = Path(os.environ.get("PREDICT_WALLET_SHADOW_DB", ROOT / "data" / "predict_wallet_shadow.db"))
 PREDICT_STATE_URL = os.environ.get("PREDICT_WALLET_MAKER_BOOK_STATE_URL", "http://127.0.0.1:8771/state")
 WS_URL = os.environ.get("PREDICT_FUN_WS_URL", "wss://ws.predict.fun/ws")
@@ -101,10 +105,16 @@ def parse_full_book(payload: Any) -> dict[str, Any] | None:
     asks = normalize_levels(body.get("asks"))
     if not bids and not asks:
         return None
+    pending = record(body.get("settlementsPending"))
     return {
         "marketId": positive_int(body.get("marketId")),
         "sourceTimestampMs": positive_int(body.get("updateTimestampMs")),
         "orderCount": positive_int(body.get("orderCount")) or 0,
+        "lastOrderSettled": record(body.get("lastOrderSettled")) or None,
+        "settlementsPending": {
+            "bids": normalize_levels(pending.get("bids")),
+            "asks": normalize_levels(pending.get("asks")),
+        },
         "bids": bids,
         "asks": asks,
     }
@@ -162,6 +172,9 @@ class MakerBookInferenceCollector:
             headers={"x-api-key": self.api_key} if self.api_key else None,
         )
         self.target_initialized_roles: set[tuple[int, str]] = set()
+        self.target_inference_enabled = str(
+            os.environ.get("PREDICT_WALLET_MAKER_TARGET_INFERENCE_ENABLED", "true")
+        ).strip().lower() not in {"0", "false", "no", "off"}
         self.ws: Any = None
         self.ws_generation = 0
         self.ws_status = "CONFIG_REQUIRED" if not self.api_key else "WAITING_MARKET"
@@ -174,7 +187,10 @@ class MakerBookInferenceCollector:
         self.last_source_ms: int | None = None
         self.last_received_ms: int | None = None
         self.previous_book: dict[str, dict[float, float]] | None = None
+        self.previous_execution_meta: dict[str, Any] | None = None
         self.last_checkpoint_ms: int | None = None
+        self.book_commit_interval_ms = max(50, int(os.environ.get("PREDICT_WALLET_MAKER_BOOK_COMMIT_INTERVAL_MS", "500")))
+        self.last_book_commit_ms = self.started_at_ms
         self.updates_written_run = 0
         self.checkpoints_written_run = 0
         self.level_changes_written_run = 0
@@ -280,9 +296,45 @@ class MakerBookInferenceCollector:
                 );
                 CREATE INDEX IF NOT EXISTS idx_maker_book_wallet_events_market_time
                     ON maker_book_inference_wallet_events(market_id,event_ms,role);
+                CREATE TABLE IF NOT EXISTS maker_execution_orderbook_meta_v1 (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    market_id INTEGER NOT NULL,
+                    source_timestamp_ms INTEGER NOT NULL,
+                    received_at_ms INTEGER NOT NULL,
+                    order_count INTEGER NOT NULL,
+                    last_order_settled_z BLOB,
+                    settlements_pending_z BLOB NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_execution_book_meta_market_time
+                    ON maker_execution_orderbook_meta_v1(market_id,source_timestamp_ms,received_at_ms);
+                CREATE TABLE IF NOT EXISTS maker_execution_matches_v1 (
+                    match_key TEXT PRIMARY KEY,
+                    market_id INTEGER NOT NULL,
+                    settlement_id TEXT,
+                    transaction_hash TEXT,
+                    executed_at TEXT NOT NULL,
+                    executed_at_ms INTEGER NOT NULL,
+                    amount_filled TEXT,
+                    price_executed TEXT,
+                    raw_json_z BLOB NOT NULL,
+                    fetched_at_ms INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_execution_matches_market_time
+                    ON maker_execution_matches_v1(market_id,executed_at_ms);
+                CREATE TABLE IF NOT EXISTS maker_execution_archive_manifest_v1 (
+                    market_id INTEGER PRIMARY KEY,
+                    archive_path TEXT NOT NULL,
+                    archive_bytes INTEGER NOT NULL,
+                    l2_rows INTEGER NOT NULL,
+                    meta_rows INTEGER NOT NULL,
+                    match_rows INTEGER NOT NULL,
+                    archived_at_ms INTEGER NOT NULL,
+                    version TEXT NOT NULL
+                );
                 """
             )
             self.db.commit()
+            ensure_execution_quality_schema(self.db)
 
     def _target_max_rowid(self) -> int:
         if not self.target_db_path.exists():
@@ -336,7 +388,12 @@ class MakerBookInferenceCollector:
         if not self.api_key:
             return
         threading.Thread(target=self._market_loop, name="maker-book-market", daemon=True).start()
-        threading.Thread(target=self._target_loop, name="maker-book-target", daemon=True).start()
+        # Raw L2 capture is the 24/7 canonical responsibility of this service.
+        # Target-wallet matching/reconciliation is optional because it can be
+        # reconstructed later from the permanently retained raw book + Target
+        # Official ledgers and is substantially more CPU intensive.
+        if self.target_inference_enabled:
+            threading.Thread(target=self._target_loop, name="maker-book-target", daemon=True).start()
         threading.Thread(target=self._retention_loop, name="maker-book-retention", daemon=True).start()
 
     def stop(self) -> None:
@@ -374,6 +431,7 @@ class MakerBookInferenceCollector:
             excluded = market_id
         active = market_id != excluded
         with self.lock:
+            previous_market_id = self.current_market_id
             changed = market_id != self.current_market_id
             self.current_market_id = market_id
             self.current_title = title
@@ -381,6 +439,7 @@ class MakerBookInferenceCollector:
             self.current_window_end_ms = window_end_ms
             if changed:
                 self.previous_book = None
+                self.previous_execution_meta = None
                 self.last_checkpoint_ms = None
                 self.last_source_ms = None
                 self.last_received_ms = None
@@ -396,7 +455,85 @@ class MakerBookInferenceCollector:
                     (market_id, title, self.current_precision, now_ms(), window_end_ms),
                 )
                 self.db.commit()
+        if changed and previous_market_id is not None and int(previous_market_id) != market_id:
+            threading.Thread(
+                target=self._backfill_market_matches_v1,
+                args=(int(previous_market_id),),
+                name=f"execution-match-backfill-{int(previous_market_id)}",
+                daemon=True,
+            ).start()
         return active
+
+    def _backfill_market_matches_v1(self, market_id: int) -> int:
+        if not self.api_key or market_id <= 0:
+            return 0
+        rows: list[dict[str, Any]] = []
+        after: str | None = None
+        for _page in range(100):
+            params: dict[str, Any] = {"first": 500, "marketId": int(market_id)}
+            if after:
+                params["after"] = after
+            response = None
+            for attempt in range(8):
+                try:
+                    response = self.predict_http.get(f"{PREDICT_API_BASE}/v1/orders/matches", params=params)
+                    if response.status_code not in {429, 500, 502, 503, 504}:
+                        break
+                    retry = response.headers.get("retry-after")
+                    delay = float(retry) if retry else min(20.0, 2.0 * (attempt + 1))
+                except Exception:
+                    delay = min(20.0, 2.0 * (attempt + 1))
+                if self.stop_event.wait(max(1.0, delay)):
+                    return 0
+            if response is None:
+                return 0
+            response.raise_for_status()
+            payload = record(response.json())
+            if payload.get("success") is False:
+                raise RuntimeError(f"Predict matches rejected for market {market_id}")
+            data = [item for item in payload.get("data", []) if isinstance(item, dict)] if isinstance(payload.get("data"), list) else []
+            rows.extend(data)
+            cursor = str(payload.get("cursor") or "").strip() or None
+            if not data or not cursor or cursor == after:
+                break
+            after = cursor
+            if self.stop_event.wait(0.20):
+                return 0
+        fetched = now_ms()
+        inserts: list[tuple[Any, ...]] = []
+        from datetime import datetime, timezone
+        for raw in rows:
+            executed = str(raw.get("executedAt") or "").strip()
+            if not executed:
+                continue
+            try:
+                dt = datetime.fromisoformat(executed.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                executed_ms = int(dt.timestamp() * 1000)
+            except Exception:
+                continue
+            canonical = json.dumps(raw, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+            match_key = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+            inserts.append((match_key, int(market_id), str(raw.get("settlementId") or "") or None, str(raw.get("transactionHash") or "") or None, executed, executed_ms, str(raw.get("amountFilled") or "") or None, str(raw.get("priceExecuted") or "") or None, encode_json(raw), fetched))
+        if inserts:
+            with self.db_lock:
+                self.db.executemany(
+                    """INSERT OR IGNORE INTO maker_execution_matches_v1(
+                           match_key,market_id,settlement_id,transaction_hash,executed_at,executed_at_ms,
+                           amount_filled,price_executed,raw_json_z,fetched_at_ms
+                       ) VALUES (?,?,?,?,?,?,?,?,?,?)""", inserts)
+                self.db.commit()
+        try:
+            archived = archive_market_to_xz(
+                self.db_path, int(market_id), EXECUTION_TAPE_ARCHIVE_DIR, overwrite=True
+            )
+            record_execution_quality(
+                self.db_path, Path(str(archived["path"])), partial_market_ids=None
+            )
+        except Exception as exc:
+            self.last_error = f"execution archive/quality {market_id}: {type(exc).__name__}: {str(exc)[:300]}"
+        return len(inserts)
 
     def _market_loop(self) -> None:
         last_subscribed: int | None = None
@@ -524,8 +661,15 @@ class MakerBookInferenceCollector:
             before = self.previous_book or {"bids": {}, "asks": {}}
             bid_changes = level_changes(before["bids"], book["bids"])
             ask_changes = level_changes(before["asks"], book["asks"])
+            execution_meta = {
+                "orderCount": int(book["orderCount"]),
+                "lastOrderSettled": book.get("lastOrderSettled"),
+                "settlementsPending": book.get("settlementsPending") or {"bids": {}, "asks": {}},
+            }
+            metadata_changed = execution_meta != self.previous_execution_meta
             checkpoint = self.previous_book is None or self.last_checkpoint_ms is None or received - self.last_checkpoint_ms >= CHECKPOINT_MS
-            if not bid_changes and not ask_changes and not checkpoint:
+            self.previous_execution_meta = execution_meta
+            if not bid_changes and not ask_changes and not metadata_changed and not checkpoint:
                 self.last_source_ms = source
                 self.last_received_ms = received
                 return None
@@ -536,6 +680,12 @@ class MakerBookInferenceCollector:
             self.last_received_ms = received
         changes = {"bids": bid_changes, "asks": ask_changes}
         with self.db_lock:
+            self.db.execute(
+                """INSERT INTO maker_execution_orderbook_meta_v1(
+                       market_id,source_timestamp_ms,received_at_ms,order_count,last_order_settled_z,settlements_pending_z
+                   ) VALUES (?,?,?,?,?,?)""",
+                (int(market_id), source, received, int(book["orderCount"]), encode_json(book.get("lastOrderSettled")) if book.get("lastOrderSettled") else None, encode_json(book.get("settlementsPending") or {"bids": {}, "asks": {}})),
+            )
             cursor = self.db.execute(
                 """INSERT OR IGNORE INTO maker_book_inference_updates(
                        market_id,source_timestamp_ms,received_at_ms,order_count,is_checkpoint,
@@ -548,7 +698,13 @@ class MakerBookInferenceCollector:
                     encode_json(changes), len(book["bids"]), len(book["asks"]),
                 ),
             )
-            self.db.commit()
+            # Batch WAL commits so every full-book websocket message does not
+            # force its own transaction boundary. Event timestamps/order remain
+            # unchanged; at crash time at most book_commit_interval_ms of the
+            # newest uncommitted rows can be lost.
+            if received - self.last_book_commit_ms >= self.book_commit_interval_ms or checkpoint:
+                self.db.commit()
+                self.last_book_commit_ms = received
             update_id = int(cursor.lastrowid or 0)
         if update_id:
             self.updates_written_run += 1
@@ -915,10 +1071,23 @@ class MakerBookInferenceCollector:
                     self.db.execute("DELETE FROM maker_book_inference_wallet_events WHERE event_ms<?", (cutoff,))
                     self.db.execute("DELETE FROM maker_book_inference_source_legs WHERE observed_at_ms<?", (cutoff,))
                     self.db.execute("DELETE FROM maker_book_inference_target_events WHERE target_event_ms<?", (cutoff,))
-                    self.db.execute("DELETE FROM maker_book_inference_updates WHERE received_at_ms<?", (cutoff,))
+                    # Execution L2/meta may be pruned only after a durable per-market archive exists.
+                    self.db.execute(
+                        """DELETE FROM maker_book_inference_updates
+                            WHERE received_at_ms<?
+                              AND market_id IN (SELECT market_id FROM maker_execution_archive_manifest_v1)""",
+                        (cutoff,),
+                    )
+                    self.db.execute(
+                        """DELETE FROM maker_execution_orderbook_meta_v1
+                            WHERE received_at_ms<?
+                              AND market_id IN (SELECT market_id FROM maker_execution_archive_manifest_v1)""",
+                        (cutoff,),
+                    )
                     self.db.execute(
                         """DELETE FROM maker_book_inference_markets WHERE first_seen_ms<?
-                             AND market_id NOT IN (SELECT DISTINCT market_id FROM maker_book_inference_updates)""",
+                             AND market_id NOT IN (SELECT DISTINCT market_id FROM maker_book_inference_updates)
+                             AND market_id IN (SELECT market_id FROM maker_execution_archive_manifest_v1)""",
                         (cutoff,),
                     )
                     self.db.commit()
@@ -956,6 +1125,21 @@ class MakerBookInferenceCollector:
                           COALESCE(SUM(CASE WHEN role='TAKER' THEN shares ELSE 0 END),0) taker_shares,
                           MAX(event_ms) latest_event_ms
                      FROM maker_book_inference_wallet_events"""
+            ).fetchone())
+            execution_tape = dict(self.db.execute(
+                """SELECT
+                       (SELECT COUNT(*) FROM maker_execution_orderbook_meta_v1) orderbook_meta_rows,
+                       (SELECT COUNT(DISTINCT market_id) FROM maker_execution_orderbook_meta_v1) orderbook_meta_markets,
+                       (SELECT COUNT(*) FROM maker_execution_matches_v1) match_rows,
+                       (SELECT COUNT(DISTINCT market_id) FROM maker_execution_matches_v1) match_markets,
+                       (SELECT MAX(executed_at_ms) FROM maker_execution_matches_v1) latest_match_ms,
+                       (SELECT COUNT(*) FROM maker_execution_archive_manifest_v1) archived_markets,
+                       (SELECT COALESCE(SUM(archive_bytes),0) FROM maker_execution_archive_manifest_v1) archive_bytes,
+                       (SELECT COUNT(*) FROM maker_execution_market_quality_v1) quality_markets,
+                       (SELECT COALESCE(SUM(quality_status='COMPLETE_FORWARD_V1'),0) FROM maker_execution_market_quality_v1) quality_complete_forward,
+                       (SELECT COALESCE(SUM(quality_status='PARTIAL_RESTART' OR quality_status='INCOMPLETE_FORWARD'),0) FROM maker_execution_market_quality_v1) quality_incomplete_forward,
+                       (SELECT COALESCE(SUM(quality_status='LEGACY_NO_SETTLEMENT_META'),0) FROM maker_execution_market_quality_v1) quality_legacy_replay
+                """
             ).fetchone())
             recent_activity = [dict(row) for row in self.db.execute(
                 """SELECT source_leg_id,market_id,role,quote_type,side,order_hash,event_ms,
@@ -1004,11 +1188,21 @@ class MakerBookInferenceCollector:
                 "databaseBytes": self.db_path.stat().st_size if self.db_path.exists() else 0,
                 "retentionHours": RETENTION_HOURS,
                 "checkpointMs": CHECKPOINT_MS,
+                "commitIntervalMs": self.book_commit_interval_ms,
                 "updatesWrittenThisRun": self.updates_written_run,
                 "checkpointsWrittenThisRun": self.checkpoints_written_run,
                 "levelChangesWrittenThisRun": self.level_changes_written_run,
             },
+            "executionTapeV1": {
+                **execution_tape,
+                "orderbookMetadata": ["orderCount", "lastOrderSettled", "settlementsPending"],
+                "matchPayload": "full raw /v1/orders/matches payload compressed per event",
+                "strategyDecisionInput": False,
+                "liveOrdersAffected": False,
+            },
             "targetInference": {
+                "enabledThisRun": bool(self.target_inference_enabled),
+                "mode": "LIVE_MATCH_AND_RECONCILE" if self.target_inference_enabled else "DISABLED_RAW_CAPTURE_ONLY",
                 **target,
                 "eventsSeenThisRun": self.target_events_seen_run,
                 "matchesWrittenThisRun": self.matches_written_run,
@@ -1042,8 +1236,22 @@ class Handler(BaseHTTPRequestHandler):
         return
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path.split("?", 1)[0] not in {"/", "/state", "/health", "/api/state"}:
+        path = self.path.split("?", 1)[0]
+        if path not in {"/", "/state", "/health", "/api/state"}:
             self._send(404, {"ok": False, "error": "not found"})
+            return
+        if path == "/health":
+            self._send(200, {
+                "ok": bool(self.collector.api_key),
+                "status": "ONLINE" if self.collector.api_key and self.collector.last_error is None else "DEGRADED",
+                "version": str(getattr(self.collector, "version", VERSION)),
+                "asset": self.collector.asset,
+                "currentMarketId": self.collector.current_market_id,
+                "wsStatus": self.collector.ws_status,
+                "targetInferenceEnabled": bool(getattr(self.collector, "target_inference_enabled", True)),
+                "captureMode": "FULL_INFERENCE" if getattr(self.collector, "target_inference_enabled", True) else "RAW_CAPTURE_ONLY",
+                "lastError": self.collector.last_error,
+            })
             return
         self._send(200, {"ok": True, "state": self.collector.snapshot()})
 
@@ -1052,8 +1260,15 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            return
+        except OSError as exc:
+            if getattr(exc, "winerror", None) in {10053, 10054, 10038}:
+                return
+            raise
 
 
 def main() -> int:

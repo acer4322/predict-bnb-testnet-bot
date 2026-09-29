@@ -1,0 +1,13 @@
+from pathlib import Path
+src=Path('tools/worker_r4_target_episodic_semantic_guard_v5.py')
+dst=Path('tools/worker_r4_target_episodic_auc_ba_guard_v51.py')
+s=src.read_text(encoding='utf-8')
+s=s.replace('from sklearn.metrics import roc_auc_score,recall_score','from sklearn.metrics import roc_auc_score,recall_score,balanced_accuracy_score')
+s=s.replace("return {'auc':float(roc_auc_score(y,p)) if len(np.unique(y))>1 else None,\n         'r0':float(recall_score(y,z,pos_label=0,zero_division=0)),\n         'r1':float(recall_score(y,z,pos_label=1,zero_division=0))}","return {'auc':float(roc_auc_score(y,p)) if len(np.unique(y))>1 else None,\n         'ba':float(balanced_accuracy_score(y,z)) if len(np.unique(y))>1 else None,\n         'r0':float(recall_score(y,z,pos_label=0,zero_division=0)),\n         'r1':float(recall_score(y,z,pos_label=1,zero_division=0))}")
+s=s.replace("accept[k]=bool(teacher and q1['auc']>=q0['auc'] and q1['r0']>=q0['r0'] and q1['r1']>=q0['r1'])","accept[k]=bool(teacher and q1['auc']>=q0['auc'] and q1['ba']>=q0['ba'])")
+s=s.replace("for met in ['auc','r0','r1']:ok=ok and g['hazard'][z][met]>=prev['hazard'][z][met]","for met in ['auc','ba']:ok=ok and g['hazard'][z][met]>=prev['hazard'][z][met]")
+s=s.replace("'version':'R4_TARGET_EPISODIC_SEMANTIC_GUARD_V5_RESULT'","'version':'R4_TARGET_EPISODIC_AUC_BA_GUARD_V5_1_RESULT'")
+s=s.replace("'version':'R4_TARGET_EPISODIC_SEMANTIC_GUARD_V5_CHAMPION'","'version':'R4_TARGET_EPISODIC_AUC_BA_GUARD_V5_1_CHAMPION'")
+s=s.replace("'AUC + both class recalls nondecreasing per accepted head'","'AUC + balanced accuracy nondecreasing per accepted head'")
+dst.write_text(s,encoding='utf-8')
+print(dst)

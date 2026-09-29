@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from typing import Any
+
+# The core 8766 process is also the canonical HFT order-flow archive.  A strategy
+# runtime profile may trim unused strategy engines, but must not silently turn off
+# raw microstructure capture after a restart.  Explicit operator overrides remain
+# authoritative.
+os.environ.setdefault("PREDICT_MICROSTRUCTURE_RAW_EVENT_ARCHIVE_ENABLED", "1")
+os.environ.setdefault("PREDICT_MICROSTRUCTURE_LIQUIDITY_ARCHIVE_ENABLED", "1")
 
 # Install the optional lightweight observer patch before importing any server
 # wrapper. server.py binds MicrostructureObserver at import time, so doing this

@@ -1,0 +1,241 @@
+{
+  "scope": "frozen FULL v29, 10 consumed markets, call-attempt weighted",
+  "not_a_counterfactual": true,
+  "reserve_floor": "0.25 * inherited global peak_G; not a new threshold",
+  "limitations": [
+    "Repeated calls may describe similar states; not unique orders.",
+    "Pending can reduce headroom even when it does not solely cross the floor.",
+    "G is a branch payoff, not spendable cash; classifications do not prove a private intent.",
+    "Relaxing a predicate changes later states; these counts cannot predict fills or payoff."
+  ],
+  "totals": {
+    "attempts": 16390,
+    "rejected": 16364,
+    "margin_failed": 7410,
+    "margin_negative_worst_margin": 7399,
+    "allowed": 26,
+    "reserve_failed": 8954,
+    "reserve_candidate_exceeds_headroom": 4228,
+    "margin_nonnegative_worst_margin": 11,
+    "reserve_G_nonpositive": 1213,
+    "reserve_positive_G_below_floor": 3513
+  },
+  "origins": {
+    "NATIVE_PRE_RESERVE_PASSIVE": {
+      "attempts": 15932,
+      "rejected": 15909
+    },
+    "ORIGINAL_general_finite_active": {
+      "attempts": 6,
+      "rejected": 3
+    },
+    "ORIGINAL_active_opportunity": {
+      "attempts": 452,
+      "rejected": 452
+    }
+  },
+  "per_market": [
+    {
+      "market": 2628553,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2628553/restoration_trace.json.gz",
+      "sha256": "f12e2635d3d320d50e0759165e986e2ab9b7653f319109a214ecb84f2b39a997",
+      "counts": {
+        "attempts": 1661,
+        "rejected": 1659,
+        "margin_failed": 746,
+        "margin_negative_worst_margin": 745,
+        "allowed": 2,
+        "reserve_failed": 913,
+        "reserve_candidate_exceeds_headroom": 109,
+        "margin_nonnegative_worst_margin": 1,
+        "reserve_G_nonpositive": 11,
+        "reserve_positive_G_below_floor": 793
+      }
+    },
+    {
+      "market": 2628769,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2628769/restoration_trace.json.gz",
+      "sha256": "6b68fb845918df01e39b7854a94a09952310618d18c1855312b767c32a3cc458",
+      "counts": {
+        "attempts": 2116,
+        "rejected": 2112,
+        "margin_failed": 876,
+        "margin_negative_worst_margin": 870,
+        "reserve_failed": 1236,
+        "reserve_candidate_exceeds_headroom": 72,
+        "allowed": 4,
+        "margin_nonnegative_worst_margin": 6,
+        "reserve_G_nonpositive": 107,
+        "reserve_positive_G_below_floor": 1057
+      }
+    },
+    {
+      "market": 2629133,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2629133/restoration_trace.json.gz",
+      "sha256": "fff44f149fec0bb8bf6058aefd7be26fd94ffad0cb7aff56325ba1df6c2f3bd4",
+      "counts": {
+        "attempts": 1442,
+        "rejected": 1442,
+        "margin_failed": 638,
+        "margin_negative_worst_margin": 638,
+        "reserve_failed": 804,
+        "reserve_candidate_exceeds_headroom": 534,
+        "reserve_G_nonpositive": 270
+      }
+    },
+    {
+      "market": 2629199,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2629199/restoration_trace.json.gz",
+      "sha256": "0792721e6eaa1a18dce0f0b537f3921961ec6bd2fff0b91d5e41e81a2eea0b82",
+      "counts": {
+        "attempts": 2113,
+        "rejected": 2100,
+        "margin_failed": 894,
+        "margin_negative_worst_margin": 891,
+        "allowed": 13,
+        "margin_nonnegative_worst_margin": 3,
+        "reserve_failed": 1206,
+        "reserve_G_nonpositive": 187,
+        "reserve_positive_G_below_floor": 1019
+      }
+    },
+    {
+      "market": 2628653,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2628653/restoration_trace.json.gz",
+      "sha256": "a3f25fc085c2e6ad50895c242cf1e5751923859f67166e1b602bb31cb4a99d15",
+      "counts": {
+        "attempts": 890,
+        "rejected": 890,
+        "margin_failed": 172,
+        "margin_negative_worst_margin": 172,
+        "reserve_failed": 718,
+        "reserve_candidate_exceeds_headroom": 134,
+        "reserve_G_nonpositive": 406,
+        "reserve_positive_G_below_floor": 178
+      }
+    },
+    {
+      "market": 2628410,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2628410/restoration_trace.json.gz",
+      "sha256": "36b53bca7a277e6738a525f80eb31f861c1e2acbb061967dd60063670b19b401",
+      "counts": {
+        "attempts": 1357,
+        "rejected": 1354,
+        "margin_failed": 847,
+        "margin_negative_worst_margin": 847,
+        "reserve_failed": 507,
+        "reserve_candidate_exceeds_headroom": 507,
+        "allowed": 3
+      }
+    },
+    {
+      "market": 2629019,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2629019/restoration_trace.json.gz",
+      "sha256": "d0253747ae6eeb794d6d4180cb751b7af73778726adac4ee73ddf6ef14652b8e",
+      "counts": {
+        "attempts": 2167,
+        "rejected": 2164,
+        "margin_failed": 842,
+        "margin_negative_worst_margin": 842,
+        "allowed": 3,
+        "reserve_failed": 1322,
+        "reserve_candidate_exceeds_headroom": 1322
+      }
+    },
+    {
+      "market": 2628557,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2628557/restoration_trace.json.gz",
+      "sha256": "15b056c6f2fa5c30c71e8c3596b497d29712d006c5dd51338080c5844f095fd6",
+      "counts": {
+        "attempts": 2136,
+        "rejected": 2135,
+        "margin_failed": 894,
+        "margin_negative_worst_margin": 893,
+        "allowed": 1,
+        "reserve_failed": 1241,
+        "reserve_candidate_exceeds_headroom": 543,
+        "margin_nonnegative_worst_margin": 1,
+        "reserve_G_nonpositive": 232,
+        "reserve_positive_G_below_floor": 466
+      }
+    },
+    {
+      "market": 2628721,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2628721/restoration_trace.json.gz",
+      "sha256": "65031d22cf97a709a23fc181da29db228d2ece43c97a27a6609506346fd0d16e",
+      "counts": {
+        "attempts": 1688,
+        "rejected": 1688,
+        "margin_failed": 681,
+        "margin_negative_worst_margin": 681,
+        "reserve_failed": 1007,
+        "reserve_candidate_exceeds_headroom": 1007
+      }
+    },
+    {
+      "market": 2628999,
+      "source": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_NATIVE_GATE_ON_2628999/restoration_trace.json.gz",
+      "sha256": "4c42632c0a7f60dca306316771c3744ea1167635c4ee380c556f9516cf31bce7",
+      "counts": {
+        "attempts": 820,
+        "rejected": 820,
+        "margin_failed": 820,
+        "margin_negative_worst_margin": 820
+      }
+    }
+  ],
+  "baseline_failure_subcheck_parity": [
+    {
+      "market": 2628553,
+      "safety_gate_equal": true,
+      "failed_checks": [
+        "active_matches_opportunity"
+      ],
+      "sources": [
+        {
+          "path": "data/research/lan_worker_returns/btc5m-v12g-active-repair4-small-20260927-v28/arms/v12g28_AR4_R25_2628553/result.json.gz",
+          "sha256": "0d1cb2ce361847f99123d864c4254ed70c997e7dec60f889b205d5305f246984"
+        },
+        {
+          "path": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_BASE_OFF_CHECK_2628553/result.json.gz",
+          "sha256": "4f2a318bbfdcf2ae2b053af84508b2149713850afefa82619455e55ac6a82ac5"
+        }
+      ]
+    },
+    {
+      "market": 2628769,
+      "safety_gate_equal": true,
+      "failed_checks": [
+        "active_matches_opportunity"
+      ],
+      "sources": [
+        {
+          "path": "data/research/lan_worker_returns/btc5m-v12g-active-repair4-small-20260927-v28/arms/v12g28_AR4_R25_2628769/result.json.gz",
+          "sha256": "4448dd3250f6728bb02aabed591a6aaddf61f160d6a584949875afbe91082216"
+        },
+        {
+          "path": "data/research/lan_worker_returns/btc5m-v12g-native-admission-probe-20260927-v29/arms/v12g29_BASE_OFF_CHECK_2628769/result.json.gz",
+          "sha256": "129e071fa8ea260c8874648632e11c8ff84ef37b85ac4b2a5c9d66ff39252df7"
+        }
+      ]
+    }
+  ],
+  "unrounded_row_aggregates": {
+    "ON": {
+      "N": 10,
+      "mean_cost": 692.1031698031722,
+      "sum_P": 111.89277394435086,
+      "sum_L": 2327.805460930547,
+      "rows_sha256": "6c99f30087864f448de7aa687bb8fa772e9b262047c7cb9b6bbc86c835f0af00"
+    },
+    "OFF": {
+      "N": 10,
+      "mean_cost": 1998.3157281594074,
+      "sum_P": 193.2031267310657,
+      "sum_L": 3244.4317298452715,
+      "rows_sha256": "347cb0fe129ba0c7598b4f0e32393b277ef1ae6769b69768a267d5a8c234c9d4"
+    }
+  },
+  "pooled_cost_ratio": 0.3463432529956861,
+  "mean_market_cost_ratio": 0.3682921867573866
+}

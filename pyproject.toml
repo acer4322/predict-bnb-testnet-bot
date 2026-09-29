@@ -16,10 +16,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+mcp = ["fastmcp>=3.4,<4"]
 research = [
     "interpret>=0.7,<1",
     "pandas>=2.2,<4",
     "scikit-learn>=1.5,<2",
+    "duckdb>=1.1,<2",
 ]
 
 [project.scripts]

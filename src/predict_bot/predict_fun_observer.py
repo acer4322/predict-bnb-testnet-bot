@@ -143,10 +143,16 @@ def parse_predict_orderbook(payload: Any, *, decimal_precision: int) -> dict[str
             return (bid + ask) / 2.0
         return bid if bid is not None else ask
 
+    settlements_pending = _record(data.get("settlementsPending"))
     return {
         "marketId": _positive_int(data.get("marketId")),
         "updateTimestampMs": _positive_int(data.get("updateTimestampMs")),
         "orderCount": _positive_int(data.get("orderCount")) or 0,
+        "lastOrderSettled": _record(data.get("lastOrderSettled")) or None,
+        "settlementsPending": {
+            "asks": settlements_pending.get("asks") if isinstance(settlements_pending.get("asks"), list) else [],
+            "bids": settlements_pending.get("bids") if isinstance(settlements_pending.get("bids"), list) else [],
+        },
         "upBid": up_bid,
         "upAsk": up_ask,
         "upMid": mid(up_bid, up_ask),
@@ -456,7 +462,8 @@ class PredictFunObserver:
                             "upBid": None, "upAsk": None, "upMid": None,
                             "downBid": None, "downAsk": None, "downMid": None,
                             "sourceTimestampMs": None, "receivedTimestampMs": None,
-                            "orderCount": 0,
+                            "orderCount": 0, "lastOrderSettled": None,
+                            "settlementsPending": {"asks": [], "bids": []},
                         }
                         state["trajectory"].clear()
                         self._load_trajectory_locked(asset, candidate["id"])
@@ -701,6 +708,8 @@ class PredictFunObserver:
                     "receiptAgeMs": receipt_age,
                     "transportAgeMs": (received_ms - source_ms) if source_ms is not None and received_ms is not None else None,
                     "orderCount": book.get("orderCount"),
+                    "lastOrderSettled": book.get("lastOrderSettled"),
+                    "settlementsPending": book.get("settlementsPending"),
                     "trajectory": list(state["trajectory"]),
                 }
         return {

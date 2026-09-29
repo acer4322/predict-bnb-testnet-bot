@@ -1,0 +1,2760 @@
+{
+ "2629199": {
+  "market": 2629199,
+  "sources": {
+   "result": "b88a1b775952d024cae014617dacbdbba10b37c49c7022c1f39a87e17c9297d5",
+   "clock_trace": "43bbe82a0200d47f142edfd9d2ca178eaa7bfc19c4577c741f8d881b85e8ece9",
+   "restoration_trace": "9f4ba142202ba48b70f536ea839082178a79e23adcea6e882d284f23f043625c",
+   "row": "44400c8da91a922157f600490fb44ae58471290363d199a29fc4be2a662cb2db",
+   "public": "e147c870b83c9fd48c34625658b24288ba390538e448b5f1e23395c9ae511d7f"
+  },
+  "gate": {
+   "AR_NOGATE": "1 (job env)",
+   "admissions_recorded": 0,
+   "note": "Context.check returns True before recording when AR_NOGATE is set: gate never evaluated in v28"
+  },
+  "peak_final": 145.7179999999999,
+  "active_fill_by_side_role": {
+   "DOWN|ACTIVE_QUALIFIED_RATIO_RESTORATION": 60.0,
+   "DOWN|V12G_PAYOFF_ADD": 195.0,
+   "UP|ACTIVE_QUALIFIED_RATIO_RESTORATION": 760.5
+  },
+  "events": [
+   {
+    "t_raw": 1790441415921,
+    "t_rel_s": 15.921,
+    "clock": "frame t (runner SOURCE_EVENT clock)",
+    "event": "DECIDE",
+    "detail": {
+     "to": "UP",
+     "frm": null
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 368.6,
+     "DOWN": 15.0,
+     "cost": 232.67,
+     "P_UP": 135.94,
+     "P_DOWN": -217.67
+    },
+    "upmid_recv": 0.575
+   },
+   {
+    "t_raw": 1790441416069,
+    "t_rel_s": 16.069,
+    "clock": "frame t",
+    "event": "FIRST(ctx.first)",
+    "detail": {
+     "action": "PREPARE",
+     "key": "DOWN_76"
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 371.6,
+     "DOWN": 15.0,
+     "cost": 234.44,
+     "P_UP": 137.17,
+     "P_DOWN": -219.44
+    }
+   },
+   {
+    "t_raw": 1790441416069,
+    "t_rel_s": 16.069,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "DOWN",
+     "price": 0.43000000000000005,
+     "qty": 60.0,
+     "G_strong": 137.17,
+     "H_weak": -219.44,
+     "peak_G": 137.17,
+     "retained_floor": 34.29,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": null,
+     "last_H_same_branch": null
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 371.6,
+     "DOWN": 15.0,
+     "cost": 234.44,
+     "P_UP": 137.17,
+     "P_DOWN": -219.44
+    }
+   },
+   {
+    "t_raw": 1790441416069,
+    "t_rel_s": 16.069,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_76",
+     "side": "DOWN",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.43000000000000005,
+     "filled_qty": 60.0,
+     "last_fill_rel_s": 16.698
+    },
+    "chosen_after": "UP"
+   },
+   {
+    "t_raw": 1790441417682,
+    "t_rel_s": 17.682,
+    "clock": "frame t (runner SOURCE_EVENT clock)",
+    "event": "FLIP",
+    "detail": {
+     "to": "DOWN",
+     "frm": "UP"
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 446.6,
+     "DOWN": 75.0,
+     "cost": 300.89,
+     "P_UP": 145.72,
+     "P_DOWN": -225.89
+    },
+    "upmid_recv": 0.365
+   },
+   {
+    "t_raw": 1790441418514,
+    "t_rel_s": 18.514,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_91",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.7,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 19.134
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441420678,
+    "t_rel_s": 20.678,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_103",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.69,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 21.271
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441422731,
+    "t_rel_s": 22.731,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_114",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.69,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 23.266
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441424911,
+    "t_rel_s": 24.911,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_120",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.7,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 25.545
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441427085,
+    "t_rel_s": 27.085,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_122",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.69,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 27.676
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441429287,
+    "t_rel_s": 29.287,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_124",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.7,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 29.895
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441431294,
+    "t_rel_s": 31.294,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_129",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.7,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 31.897
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441435539,
+    "t_rel_s": 35.539,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_153",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.6699999999999999,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 36.093
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441437920,
+    "t_rel_s": 37.92,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_161",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.69,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 38.526
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441440089,
+    "t_rel_s": 40.089,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_173",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.69,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 40.66
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441442285,
+    "t_rel_s": 42.285,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_177",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.6699999999999999,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 42.88
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441444304,
+    "t_rel_s": 44.304,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_185",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.69,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 44.863
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441446524,
+    "t_rel_s": 46.524,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_187",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.69,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 47.871
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441456874,
+    "t_rel_s": 56.874,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.33,
+     "qty": 6.24,
+     "G_strong": 42.99,
+     "H_weak": -424.46,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -219.44,
+     "last_H_same_branch": false
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 512.34,
+     "DOWN": 979.79,
+     "cost": 936.8,
+     "P_UP": -424.46,
+     "P_DOWN": 42.99
+    }
+   },
+   {
+    "t_raw": 1790441456874,
+    "t_rel_s": 56.874,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_194",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.33,
+     "filled_qty": 6.24,
+     "last_fill_rel_s": 57.461
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441457918,
+    "t_rel_s": 57.918,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.34,
+     "qty": 46.39,
+     "G_strong": 56.23,
+     "H_weak": -449.98,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -424.46,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 518.58,
+     "DOWN": 1024.79,
+     "cost": 968.56,
+     "P_UP": -449.98,
+     "P_DOWN": 56.23
+    }
+   },
+   {
+    "t_raw": 1790441457918,
+    "t_rel_s": 57.918,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_200",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.34,
+     "filled_qty": 46.39,
+     "last_fill_rel_s": 58.449
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441458449,
+    "t_rel_s": 58.449,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.33,
+     "qty": 12.78,
+     "G_strong": 40.65,
+     "H_weak": -419.17,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -449.98,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 564.97,
+     "DOWN": 1024.79,
+     "cost": 984.33,
+     "P_UP": -419.36,
+     "P_DOWN": 40.46
+    }
+   },
+   {
+    "t_raw": 1790441458449,
+    "t_rel_s": 58.449,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_201",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.33,
+     "filled_qty": 12.78,
+     "last_fill_rel_s": 59.108
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441460875,
+    "t_rel_s": 60.875,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.34,
+     "qty": 15.88,
+     "G_strong": 46.33,
+     "H_weak": -430.71,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -419.17,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 577.75,
+     "DOWN": 1054.79,
+     "cost": 1008.65,
+     "P_UP": -430.9,
+     "P_DOWN": 46.14
+    }
+   },
+   {
+    "t_raw": 1790441460875,
+    "t_rel_s": 60.875,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_206",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.34,
+     "filled_qty": 15.88,
+     "last_fill_rel_s": 61.474
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441461474,
+    "t_rel_s": 61.474,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.34,
+     "qty": 13.24,
+     "G_strong": 40.93,
+     "H_weak": -420.23,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -430.71,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 593.63,
+     "DOWN": 1054.79,
+     "cost": 1014.05,
+     "P_UP": -420.42,
+     "P_DOWN": 40.74
+    }
+   },
+   {
+    "t_raw": 1790441461474,
+    "t_rel_s": 61.474,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_209",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.34,
+     "filled_qty": 13.24,
+     "last_fill_rel_s": 61.992
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441467462,
+    "t_rel_s": 67.462,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.37,
+     "qty": 38.51,
+     "G_strong": 55.78,
+     "H_weak": -447.14,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -420.23,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 606.87,
+     "DOWN": 1109.79,
+     "cost": 1054.2,
+     "P_UP": -447.33,
+     "P_DOWN": 55.59
+    }
+   },
+   {
+    "t_raw": 1790441467462,
+    "t_rel_s": 67.462,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_215",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.37,
+     "filled_qty": 38.51,
+     "last_fill_rel_s": 68.126
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441482909,
+    "t_rel_s": 82.909,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.36,
+     "qty": 85.78,
+     "G_strong": 72.11,
+     "H_weak": -480.92,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -447.14,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 661.76,
+     "DOWN": 1214.79,
+     "cost": 1142.87,
+     "P_UP": -481.11,
+     "P_DOWN": 71.92
+    }
+   },
+   {
+    "t_raw": 1790441482909,
+    "t_rel_s": 82.909,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_230",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.36,
+     "filled_qty": 85.78,
+     "last_fill_rel_s": 83.457
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441483457,
+    "t_rel_s": 83.457,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.36,
+     "qty": 13.33,
+     "G_strong": 41.23,
+     "H_weak": -426.02,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -480.92,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 747.54,
+     "DOWN": 1214.79,
+     "cost": 1173.75,
+     "P_UP": -426.21,
+     "P_DOWN": 41.04
+    }
+   },
+   {
+    "t_raw": 1790441483457,
+    "t_rel_s": 83.457,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_233",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.36,
+     "filled_qty": 13.33,
+     "last_fill_rel_s": 84.138
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441493911,
+    "t_rel_s": 93.911,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.36,
+     "qty": 3.69,
+     "G_strong": 42.86,
+     "H_weak": -428.43,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": false
+     },
+     "last_H_before": -426.02,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 760.87,
+     "DOWN": 1232.16,
+     "cost": 1189.49,
+     "P_UP": -428.62,
+     "P_DOWN": 42.67
+    }
+   },
+   {
+    "t_raw": 1790441493911,
+    "t_rel_s": 93.911,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_238",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.36,
+     "filled_qty": 3.69,
+     "last_fill_rel_s": 94.479
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441498903,
+    "t_rel_s": 98.903,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.36,
+     "qty": 65.81,
+     "G_strong": 60.12,
+     "H_weak": -457.73,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -428.43,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 764.56,
+     "DOWN": 1282.41,
+     "cost": 1222.48,
+     "P_UP": -457.92,
+     "P_DOWN": 59.93
+    }
+   },
+   {
+    "t_raw": 1790441498903,
+    "t_rel_s": 98.903,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_244",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.36,
+     "filled_qty": 65.81,
+     "last_fill_rel_s": 99.497
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441580916,
+    "t_rel_s": 180.916,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.17,
+     "qty": 20.17,
+     "G_strong": 90.45,
+     "H_weak": -725.04,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": false
+     },
+     "last_H_before": -457.73,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 965.37,
+     "DOWN": 1780.87,
+     "cost": 1690.6,
+     "P_UP": -725.23,
+     "P_DOWN": 90.26
+    }
+   },
+   {
+    "t_raw": 1790441580916,
+    "t_rel_s": 180.916,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_416",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.17,
+     "filled_qty": 20.17,
+     "last_fill_rel_s": 181.501
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441582540,
+    "t_rel_s": 182.54,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.21,
+     "qty": 33.61,
+     "G_strong": 134.1,
+     "H_weak": -922.77,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -725.04,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 985.54,
+     "DOWN": 2042.41,
+     "cost": 1908.5,
+     "P_UP": -922.96,
+     "P_DOWN": 133.91
+    }
+   },
+   {
+    "t_raw": 1790441582540,
+    "t_rel_s": 182.54,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_426",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.21,
+     "filled_qty": 33.61,
+     "last_fill_rel_s": 183.151
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441583151,
+    "t_rel_s": 183.151,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.21,
+     "qty": 51.52,
+     "G_strong": 127.04,
+     "H_weak": -896.22,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -922.77,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1019.15,
+     "DOWN": 2042.41,
+     "cost": 1915.56,
+     "P_UP": -896.41,
+     "P_DOWN": 126.85
+    }
+   },
+   {
+    "t_raw": 1790441583151,
+    "t_rel_s": 183.151,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_430",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.21,
+     "filled_qty": 45.79,
+     "last_fill_rel_s": 184.076
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441588900,
+    "t_rel_s": 188.9,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.2,
+     "qty": 221.87,
+     "G_strong": 114.58,
+     "H_weak": -847.89,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -896.22,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1079.94,
+     "DOWN": 2042.41,
+     "cost": 1928.02,
+     "P_UP": -848.08,
+     "P_DOWN": 114.39
+    }
+   },
+   {
+    "t_raw": 1790441588900,
+    "t_rel_s": 188.9,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_444",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.2,
+     "filled_qty": 221.87,
+     "last_fill_rel_s": 189.579
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441589579,
+    "t_rel_s": 189.579,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.2,
+     "qty": 168.87,
+     "G_strong": 70.2,
+     "H_weak": -670.39,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -847.89,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1301.81,
+     "DOWN": 2042.41,
+     "cost": 1972.4,
+     "P_UP": -670.58,
+     "P_DOWN": 70.01
+    }
+   },
+   {
+    "t_raw": 1790441589579,
+    "t_rel_s": 189.579,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_446",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.2,
+     "filled_qty": 22.38,
+     "last_fill_rel_s": 190.896
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441593950,
+    "t_rel_s": 193.95,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.18,
+     "qty": 115.0,
+     "G_strong": 60.44,
+     "H_weak": -628.39,
+     "peak_G": 145.72,
+     "retained_floor": 36.43,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -670.39,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1353.59,
+     "DOWN": 2042.41,
+     "cost": 1982.16,
+     "P_UP": -628.58,
+     "P_DOWN": 60.25
+    }
+   },
+   {
+    "t_raw": 1790441593950,
+    "t_rel_s": 193.95,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_463",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.18,
+     "filled_qty": 115.0,
+     "last_fill_rel_s": 194.759
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790441700685,
+    "t_rel_s": 300.685,
+    "clock": "frame t (runner SOURCE_EVENT clock)",
+    "event": "FLIP",
+    "detail": {
+     "to": "UP",
+     "frm": "DOWN"
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 1483.59,
+     "DOWN": 2042.41,
+     "cost": 2005.26,
+     "P_UP": -521.68,
+     "P_DOWN": 37.15
+    },
+    "upmid_recv": 0.97
+   }
+  ],
+  "expiry": {
+   "window_start_ms": 1790441400000,
+   "window_end_ms": 1790441700000,
+   "last_book_source_ms": 1790441699498,
+   "last_book_recv_ms": 1790441700685,
+   "news_after_end": [],
+   "fills_after_end": [],
+   "final_from_fills": {
+    "UP": 1483.59,
+    "DOWN": 2042.41,
+    "cost": 2005.26,
+    "P_UP": -521.68,
+    "P_DOWN": 37.15
+   },
+   "final_before_end": {
+    "UP": 1483.59,
+    "DOWN": 2042.41,
+    "cost": 2005.26,
+    "P_UP": -521.68,
+    "P_DOWN": 37.15
+   },
+   "row_final": {
+    "UP": -521.4876063827248,
+    "DOWN": 37.33701472836128,
+    "cost": 2005.0729852716383
+   }
+  }
+ },
+ "2628553": {
+  "market": 2628553,
+  "sources": {
+   "result": "0d1cb2ce361847f99123d864c4254ed70c997e7dec60f889b205d5305f246984",
+   "clock_trace": "860ab1954176c9eae753251357529d984ea594a15610f841232e7cce5d9508ac",
+   "restoration_trace": "70937840c69510f2418133587aeb2c86a3b1788407bfd480f880cb7d5f12d950",
+   "row": "b7769c545c9365fb85d358b0c95e963624bcb25f9da1b664f4fb842da0f2f8ff",
+   "public": "cb03df3ed724d2fadd5ba515cb45ec3b91decb6d68f539ee2a0ca2eb319692b4"
+  },
+  "gate": {
+   "AR_NOGATE": "1 (job env)",
+   "admissions_recorded": 0,
+   "note": "Context.check returns True before recording when AR_NOGATE is set: gate never evaluated in v28"
+  },
+  "peak_final": 137.3673819923364,
+  "active_fill_by_side_role": {
+   "DOWN|ACTIVE_QUALIFIED_RATIO_RESTORATION": 274.7,
+   "DOWN|V12G_PAYOFF_ADD": 75.0,
+   "UP|ACTIVE_QUALIFIED_RATIO_RESTORATION": 1205.8,
+   "UP|V12G_PAYOFF_ADD": 15.0
+  },
+  "events": [
+   {
+    "t_raw": 1790436030020,
+    "t_rel_s": 30.02,
+    "clock": "frame t (runner SOURCE_EVENT clock)",
+    "event": "DECIDE",
+    "detail": {
+     "to": "UP",
+     "frm": null
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 115.0,
+     "DOWN": 91.49,
+     "cost": 102.84,
+     "P_UP": 12.16,
+     "P_DOWN": -11.35
+    },
+    "upmid_recv": 0.535
+   },
+   {
+    "t_raw": 1790436048849,
+    "t_rel_s": 48.849,
+    "clock": "frame t",
+    "event": "FIRST(ctx.first)",
+    "detail": {
+     "action": "PREPARE",
+     "key": "DOWN_122"
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 205.0,
+     "DOWN": 153.47,
+     "cost": 187.28,
+     "P_UP": 17.72,
+     "P_DOWN": -33.81
+    }
+   },
+   {
+    "t_raw": 1790436048849,
+    "t_rel_s": 48.849,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "DOWN",
+     "price": 0.26,
+     "qty": 26.46,
+     "G_strong": 17.72,
+     "H_weak": -33.81,
+     "peak_G": 28.95,
+     "retained_floor": 7.24,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": null,
+     "last_H_same_branch": null
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 205.0,
+     "DOWN": 153.47,
+     "cost": 187.28,
+     "P_UP": 17.72,
+     "P_DOWN": -33.81
+    }
+   },
+   {
+    "t_raw": 1790436048849,
+    "t_rel_s": 48.849,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_122",
+     "side": "DOWN",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.26,
+     "filled_qty": 7.59,
+     "last_fill_rel_s": 49.393
+    },
+    "chosen_after": "UP"
+   },
+   {
+    "t_raw": 1790436052792,
+    "t_rel_s": 52.792,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "DOWN",
+     "price": 0.36,
+     "qty": 14.88,
+     "G_strong": 15.9,
+     "H_weak": -43.05,
+     "peak_G": 42.15,
+     "retained_floor": 10.54,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -33.81,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 295.0,
+     "DOWN": 236.06,
+     "cost": 279.1,
+     "P_UP": 15.9,
+     "P_DOWN": -43.05
+    }
+   },
+   {
+    "t_raw": 1790436052792,
+    "t_rel_s": 52.792,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_146",
+     "side": "DOWN",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.36,
+     "filled_qty": 14.88,
+     "last_fill_rel_s": 53.416
+    },
+    "chosen_after": "UP"
+   },
+   {
+    "t_raw": 1790436064063,
+    "t_rel_s": 64.063,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "DOWN",
+     "price": 0.37,
+     "qty": 184.94,
+     "G_strong": 97.24,
+     "H_weak": -185.06,
+     "peak_G": 97.24,
+     "retained_floor": 24.31,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -43.05,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 535.0,
+     "DOWN": 252.7,
+     "cost": 437.76,
+     "P_UP": 97.24,
+     "P_DOWN": -185.06
+    }
+   },
+   {
+    "t_raw": 1790436064063,
+    "t_rel_s": 64.063,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_171",
+     "side": "DOWN",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.37,
+     "filled_qty": 184.94,
+     "last_fill_rel_s": 64.618
+    },
+    "chosen_after": "UP"
+   },
+   {
+    "t_raw": 1790436065798,
+    "t_rel_s": 65.798,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "DOWN",
+     "price": 0.61,
+     "qty": 33.0,
+     "G_strong": 68.71,
+     "H_weak": -133.65,
+     "peak_G": 97.24,
+     "retained_floor": 24.31,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -185.06,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 640.0,
+     "DOWN": 437.64,
+     "cost": 571.29,
+     "P_UP": 68.71,
+     "P_DOWN": -133.65
+    }
+   },
+   {
+    "t_raw": 1790436065798,
+    "t_rel_s": 65.798,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_178",
+     "side": "DOWN",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.61,
+     "filled_qty": 33.0,
+     "last_fill_rel_s": 66.463
+    },
+    "chosen_after": "UP"
+   },
+   {
+    "t_raw": 1790436066463,
+    "t_rel_s": 66.463,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "DOWN",
+     "price": 0.55,
+     "qty": 30.25,
+     "G_strong": 51.22,
+     "H_weak": -118.14,
+     "peak_G": 97.24,
+     "retained_floor": 24.31,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -133.65,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 640.0,
+     "DOWN": 470.64,
+     "cost": 591.42,
+     "P_UP": 48.58,
+     "P_DOWN": -120.78
+    }
+   },
+   {
+    "t_raw": 1790436066463,
+    "t_rel_s": 66.463,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_179",
+     "side": "DOWN",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.55,
+     "filled_qty": 30.25,
+     "last_fill_rel_s": 67.203
+    },
+    "chosen_after": "UP"
+   },
+   {
+    "t_raw": 1790436067878,
+    "t_rel_s": 67.878,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "DOWN",
+     "price": 0.54,
+     "qty": 4.02,
+     "G_strong": 26.49,
+     "H_weak": -97.63,
+     "peak_G": 97.24,
+     "retained_floor": 24.31,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -118.14,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 640.0,
+     "DOWN": 515.89,
+     "cost": 616.15,
+     "P_UP": 23.85,
+     "P_DOWN": -100.27
+    }
+   },
+   {
+    "t_raw": 1790436067878,
+    "t_rel_s": 67.878,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_182",
+     "side": "DOWN",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.54,
+     "filled_qty": 4.02,
+     "last_fill_rel_s": 68.41
+    },
+    "chosen_after": "UP"
+   },
+   {
+    "t_raw": 1790436074810,
+    "t_rel_s": 74.81,
+    "clock": "frame t (runner SOURCE_EVENT clock)",
+    "event": "FLIP",
+    "detail": {
+     "to": "DOWN",
+     "frm": "UP"
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 640.0,
+     "DOWN": 549.91,
+     "cost": 633.17,
+     "P_UP": 6.83,
+     "P_DOWN": -83.27
+    },
+    "upmid_recv": 0.355
+   },
+   {
+    "t_raw": 1790436074810,
+    "t_rel_s": 74.81,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_187",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.6699999999999999,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 75.41
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436076815,
+    "t_rel_s": 76.815,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_198",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.5800000000000001,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 77.424
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436078817,
+    "t_rel_s": 78.817,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_210",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.5800000000000001,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 79.827
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436081047,
+    "t_rel_s": 81.047,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_217",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.5800000000000001,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 81.591
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436083214,
+    "t_rel_s": 83.214,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "DOWN_219",
+     "side": "DOWN",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.5800000000000001,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 83.796
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436091789,
+    "t_rel_s": 91.789,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.45,
+     "qty": 90.23,
+     "G_strong": 71.37,
+     "H_weak": -208.98,
+     "peak_G": 97.24,
+     "retained_floor": 24.31,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": false
+     },
+     "last_H_before": -97.63,
+     "last_H_same_branch": false
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 640.0,
+     "DOWN": 920.34,
+     "cost": 851.7,
+     "P_UP": -211.7,
+     "P_DOWN": 68.64
+    }
+   },
+   {
+    "t_raw": 1790436091789,
+    "t_rel_s": 91.789,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_238",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.45,
+     "filled_qty": 90.23,
+     "last_fill_rel_s": 92.404
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436094803,
+    "t_rel_s": 94.803,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.47,
+     "qty": 204.84,
+     "G_strong": 137.37,
+     "H_weak": -284.17,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": false
+     },
+     "last_H_before": -208.98,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 730.23,
+     "DOWN": 1151.77,
+     "cost": 1017.12,
+     "P_UP": -286.89,
+     "P_DOWN": 134.65
+    }
+   },
+   {
+    "t_raw": 1790436094803,
+    "t_rel_s": 94.803,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_249",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.47,
+     "filled_qty": 180.0,
+     "last_fill_rel_s": 95.608
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436097241,
+    "t_rel_s": 97.241,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.49,
+     "qty": 99.49,
+     "G_strong": 90.15,
+     "H_weak": -229.26,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -284.17,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 910.23,
+     "DOWN": 1229.64,
+     "cost": 1142.21,
+     "P_UP": -231.98,
+     "P_DOWN": 87.43
+    }
+   },
+   {
+    "t_raw": 1790436097241,
+    "t_rel_s": 97.241,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_260",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.49,
+     "filled_qty": 99.49,
+     "last_fill_rel_s": 97.793
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436116429,
+    "t_rel_s": 116.429,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.55,
+     "qty": 154.64,
+     "G_strong": 127.35,
+     "H_weak": -257.57,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -229.26,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1054.72,
+     "DOWN": 1439.64,
+     "cost": 1315.01,
+     "P_UP": -260.29,
+     "P_DOWN": 124.63
+    }
+   },
+   {
+    "t_raw": 1790436116429,
+    "t_rel_s": 116.429,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_293",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.55,
+     "filled_qty": 154.64,
+     "last_fill_rel_s": 117.014
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436120193,
+    "t_rel_s": 120.193,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.54,
+     "qty": 31.11,
+     "G_strong": 58.79,
+     "H_weak": -201.49,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -257.57,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1239.36,
+     "DOWN": 1499.64,
+     "cost": 1443.57,
+     "P_UP": -204.21,
+     "P_DOWN": 56.07
+    }
+   },
+   {
+    "t_raw": 1790436120193,
+    "t_rel_s": 120.193,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_308",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.54,
+     "filled_qty": 31.11,
+     "last_fill_rel_s": 120.804
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436120804,
+    "t_rel_s": 120.804,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.54,
+     "qty": 14.17,
+     "G_strong": 41.99,
+     "H_weak": -187.17,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -201.49,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1270.47,
+     "DOWN": 1499.64,
+     "cost": 1460.37,
+     "P_UP": -189.9,
+     "P_DOWN": 39.27
+    }
+   },
+   {
+    "t_raw": 1790436120804,
+    "t_rel_s": 120.804,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_312",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.54,
+     "filled_qty": 14.17,
+     "last_fill_rel_s": 121.404
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436136853,
+    "t_rel_s": 136.853,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.23,
+     "qty": 62.0,
+     "G_strong": 51.74,
+     "H_weak": -313.26,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -187.17,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1359.64,
+     "DOWN": 1724.64,
+     "cost": 1675.62,
+     "P_UP": -315.98,
+     "P_DOWN": 49.02
+    }
+   },
+   {
+    "t_raw": 1790436136853,
+    "t_rel_s": 136.853,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_356",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.23,
+     "filled_qty": 46.94,
+     "last_fill_rel_s": 137.43
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436139658,
+    "t_rel_s": 139.658,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.22,
+     "qty": 15.01,
+     "G_strong": 37.65,
+     "H_weak": -265.41,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -313.26,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1436.58,
+     "DOWN": 1739.64,
+     "cost": 1704.71,
+     "P_UP": -268.13,
+     "P_DOWN": 34.92
+    }
+   },
+   {
+    "t_raw": 1790436139658,
+    "t_rel_s": 139.658,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_366",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.22,
+     "filled_qty": 8.08,
+     "last_fill_rel_s": 140.199
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436142809,
+    "t_rel_s": 142.809,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.24,
+     "qty": 51.35,
+     "G_strong": 49.97,
+     "H_weak": -305.0,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": false
+     },
+     "last_H_before": -265.41,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1444.67,
+     "DOWN": 1799.64,
+     "cost": 1752.39,
+     "P_UP": -307.72,
+     "P_DOWN": 47.25
+    }
+   },
+   {
+    "t_raw": 1790436142809,
+    "t_rel_s": 142.809,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_374",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.24,
+     "filled_qty": 51.35,
+     "last_fill_rel_s": 143.389
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436147392,
+    "t_rel_s": 147.392,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.26,
+     "qty": 39.04,
+     "G_strong": 47.94,
+     "H_weak": -295.68,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -305.0,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1496.02,
+     "DOWN": 1839.64,
+     "cost": 1794.42,
+     "P_UP": -298.4,
+     "P_DOWN": 45.22
+    }
+   },
+   {
+    "t_raw": 1790436147392,
+    "t_rel_s": 147.392,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_385",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.26,
+     "filled_qty": 39.04,
+     "last_fill_rel_s": 148.018
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436149995,
+    "t_rel_s": 149.995,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.26,
+     "qty": 20.84,
+     "G_strong": 44.54,
+     "H_weak": -285.04,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -295.68,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1535.06,
+     "DOWN": 1864.64,
+     "cost": 1822.82,
+     "P_UP": -287.76,
+     "P_DOWN": 41.82
+    }
+   },
+   {
+    "t_raw": 1790436149995,
+    "t_rel_s": 149.995,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_392",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.26,
+     "filled_qty": 20.84,
+     "last_fill_rel_s": 150.597
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436152017,
+    "t_rel_s": 152.017,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.38,
+     "qty": 78.11,
+     "G_strong": 69.42,
+     "H_weak": -344.32,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -285.04,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1555.9,
+     "DOWN": 1969.64,
+     "cost": 1902.94,
+     "P_UP": -347.04,
+     "P_DOWN": 66.7
+    }
+   },
+   {
+    "t_raw": 1790436152017,
+    "t_rel_s": 152.017,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_403",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.38,
+     "filled_qty": 78.11,
+     "last_fill_rel_s": 152.623
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436157399,
+    "t_rel_s": 157.399,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.36,
+     "qty": 30.41,
+     "G_strong": 50.09,
+     "H_weak": -315.54,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -344.32,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1664.01,
+     "DOWN": 2029.64,
+     "cost": 1982.27,
+     "P_UP": -318.26,
+     "P_DOWN": 47.37
+    }
+   },
+   {
+    "t_raw": 1790436157399,
+    "t_rel_s": 157.399,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_413",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.36,
+     "filled_qty": 30.41,
+     "last_fill_rel_s": 158.053
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436158053,
+    "t_rel_s": 158.053,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.36,
+     "qty": 13.34,
+     "G_strong": 39.14,
+     "H_weak": -296.08,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -315.54,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1694.42,
+     "DOWN": 2029.64,
+     "cost": 1993.21,
+     "P_UP": -298.8,
+     "P_DOWN": 36.42
+    }
+   },
+   {
+    "t_raw": 1790436158053,
+    "t_rel_s": 158.053,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_416",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.36,
+     "filled_qty": 13.34,
+     "last_fill_rel_s": 158.593
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436187600,
+    "t_rel_s": 187.6,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.3,
+     "qty": 154.16,
+     "G_strong": 80.59,
+     "H_weak": -432.41,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -296.08,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1803.63,
+     "DOWN": 2316.64,
+     "cost": 2238.77,
+     "P_UP": -435.13,
+     "P_DOWN": 77.87
+    }
+   },
+   {
+    "t_raw": 1790436187600,
+    "t_rel_s": 187.6,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_490",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.3,
+     "filled_qty": 154.16,
+     "last_fill_rel_s": 188.242
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436200001,
+    "t_rel_s": 200.001,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.32,
+     "qty": 48.13,
+     "G_strong": 103.94,
+     "H_weak": -479.9,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": true,
+      "stranded": true
+     },
+     "last_H_before": -432.41,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 1972.79,
+     "DOWN": 2556.64,
+     "cost": 2455.42,
+     "P_UP": -482.62,
+     "P_DOWN": 101.22
+    }
+   },
+   {
+    "t_raw": 1790436200001,
+    "t_rel_s": 200.001,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_508",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.32,
+     "filled_qty": 48.13,
+     "last_fill_rel_s": 200.601
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436202820,
+    "t_rel_s": 202.82,
+    "clock": "frame t",
+    "event": "RESTORATION_SUBMITTED",
+    "detail": {
+     "weak_side": "UP",
+     "price": 0.31,
+     "qty": 145.8,
+     "G_strong": 79.54,
+     "H_weak": -426.17,
+     "peak_G": 137.37,
+     "retained_floor": 34.34,
+     "partial": true,
+     "trigger": {
+      "cheap": false,
+      "deficit": false,
+      "stranded": true
+     },
+     "last_H_before": -479.9,
+     "last_H_same_branch": true
+    },
+    "chosen_after": "DOWN",
+    "state": {
+     "UP": 2050.92,
+     "DOWN": 2556.64,
+     "cost": 2479.82,
+     "P_UP": -428.89,
+     "P_DOWN": 76.82
+    }
+   },
+   {
+    "t_raw": 1790436202820,
+    "t_rel_s": 202.82,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_511",
+     "side": "UP",
+     "role": "ACTIVE_QUALIFIED_RATIO_RESTORATION",
+     "price": 0.31,
+     "filled_qty": 145.8,
+     "last_fill_rel_s": 203.389
+    },
+    "chosen_after": "DOWN"
+   },
+   {
+    "t_raw": 1790436242397,
+    "t_rel_s": 242.397,
+    "clock": "frame t (runner SOURCE_EVENT clock)",
+    "event": "FLIP",
+    "detail": {
+     "to": "UP",
+     "frm": "DOWN"
+    },
+    "chosen_after": "UP",
+    "state": {
+     "UP": 2301.72,
+     "DOWN": 2556.64,
+     "cost": 2549.77,
+     "P_UP": -248.04,
+     "P_DOWN": 6.87
+    },
+    "upmid_recv": 0.705
+   },
+   {
+    "t_raw": 1790436244451,
+    "t_rel_s": 244.451,
+    "clock": "plan t (NEW)",
+    "event": "ACTIVE_ORDER_FILLED",
+    "detail": {
+     "key": "UP_524",
+     "side": "UP",
+     "role": "V12G_PAYOFF_ADD",
+     "price": 0.79,
+     "filled_qty": 15.0,
+     "last_fill_rel_s": 245.064
+    },
+    "chosen_after": "UP"
+   }
+  ],
+  "expiry": {
+   "window_start_ms": 1790436000000,
+   "window_end_ms": 1790436300000,
+   "last_book_source_ms": 1790436297834,
+   "last_book_recv_ms": 1790436299012,
+   "news_after_end": [],
+   "fills_after_end": [],
+   "final_from_fills": {
+    "UP": 2316.72,
+    "DOWN": 2556.64,
+    "cost": 2561.62,
+    "P_UP": -244.89,
+    "P_DOWN": -4.98
+   },
+   "final_before_end": {
+    "UP": 2316.72,
+    "DOWN": 2556.64,
+    "cost": 2561.62,
+    "P_UP": -244.89,
+    "P_DOWN": -4.98
+   },
+   "row_final": {
+    "UP": -242.1710304731755,
+    "DOWN": -2.2570423947968266,
+    "cost": 2558.8959930555206
+   }
+  }
+ },
+ "first_vs_decide": [
+  {
+   "job": "v28",
+   "market": 2628769,
+   "decide_rel_s": 20.855,
+   "first_rel_s": 21.431,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2628553,
+   "decide_rel_s": 30.02,
+   "first_rel_s": 48.849,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2628653,
+   "decide_rel_s": 17.843,
+   "first_rel_s": 29.636,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2628721,
+   "decide_rel_s": 15.831,
+   "first_rel_s": 60.834,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2628410,
+   "decide_rel_s": 17.481,
+   "first_rel_s": 29.572,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2628999,
+   "decide_rel_s": 30.05,
+   "first_rel_s": 30.05,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2628557,
+   "decide_rel_s": 8.825,
+   "first_rel_s": 18.242,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2629133,
+   "decide_rel_s": 8.905,
+   "first_rel_s": 22.886,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2629019,
+   "decide_rel_s": 12.931,
+   "first_rel_s": 27.465,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v28",
+   "market": 2629199,
+   "decide_rel_s": 15.921,
+   "first_rel_s": 16.069,
+   "first_action": "PREPARE",
+   "first_before_decide": false
+  },
+  {
+   "job": "v25",
+   "market": 2628147,
+   "decide_rel_s": 30.036,
+   "first_rel_s": 2.029,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 978,
+   "admissions_blocked": 977
+  },
+  {
+   "job": "v25",
+   "market": 2628206,
+   "decide_rel_s": 30.063,
+   "first_rel_s": 2.027,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 150,
+   "admissions_blocked": 145
+  },
+  {
+   "job": "v25",
+   "market": 2628410,
+   "decide_rel_s": 30.049,
+   "first_rel_s": 5.889,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 963,
+   "admissions_blocked": 962
+  },
+  {
+   "job": "v25",
+   "market": 2628432,
+   "decide_rel_s": 30.161,
+   "first_rel_s": 2.548,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 373,
+   "admissions_blocked": 373
+  },
+  {
+   "job": "v25",
+   "market": 2628210,
+   "decide_rel_s": 30.018,
+   "first_rel_s": 14.915,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 45,
+   "admissions_blocked": 44
+  },
+  {
+   "job": "v25",
+   "market": 2628450,
+   "decide_rel_s": 30.036,
+   "first_rel_s": 2.862,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 646,
+   "admissions_blocked": 646
+  },
+  {
+   "job": "v25",
+   "market": 2628429,
+   "decide_rel_s": 30.061,
+   "first_rel_s": 46.715,
+   "first_action": "PREPARE",
+   "first_before_decide": false,
+   "admissions": 1592,
+   "admissions_blocked": 1591
+  },
+  {
+   "job": "v25",
+   "market": 2628653,
+   "decide_rel_s": 30.043,
+   "first_rel_s": 4.491,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 976,
+   "admissions_blocked": 975
+  },
+  {
+   "job": "v25",
+   "market": 2628534,
+   "decide_rel_s": 5.26,
+   "first_rel_s": 2.913,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 2230,
+   "admissions_blocked": 2227
+  },
+  {
+   "job": "v25",
+   "market": 2628695,
+   "decide_rel_s": 30.003,
+   "first_rel_s": 4.001,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 930,
+   "admissions_blocked": 925
+  },
+  {
+   "job": "v25",
+   "market": 2628553,
+   "decide_rel_s": 30.02,
+   "first_rel_s": 16.238,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 659,
+   "admissions_blocked": 659
+  },
+  {
+   "job": "v25",
+   "market": 2628723,
+   "decide_rel_s": 30.01,
+   "first_rel_s": 2.83,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 1095,
+   "admissions_blocked": 1088
+  },
+  {
+   "job": "v25",
+   "market": 2628557,
+   "decide_rel_s": 6.235,
+   "first_rel_s": 4.819,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 1980,
+   "admissions_blocked": 1976
+  },
+  {
+   "job": "v25",
+   "market": 2628575,
+   "decide_rel_s": 25.397,
+   "first_rel_s": 24.781,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 867,
+   "admissions_blocked": 864
+  },
+  {
+   "job": "v25",
+   "market": 2628721,
+   "decide_rel_s": 14.22,
+   "first_rel_s": 12.907,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 1466,
+   "admissions_blocked": 1460
+  },
+  {
+   "job": "v25",
+   "market": 2628791,
+   "decide_rel_s": 30.044,
+   "first_rel_s": 2.903,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 24,
+   "admissions_blocked": 24
+  },
+  {
+   "job": "v25",
+   "market": 2628769,
+   "decide_rel_s": 16.84,
+   "first_rel_s": 13.876,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 818,
+   "admissions_blocked": 817
+  },
+  {
+   "job": "v25",
+   "market": 2628851,
+   "decide_rel_s": 30.028,
+   "first_rel_s": 2.833,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 976,
+   "admissions_blocked": 974
+  },
+  {
+   "job": "v25",
+   "market": 2628917,
+   "decide_rel_s": 30.054,
+   "first_rel_s": 3.799,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 211,
+   "admissions_blocked": 211
+  },
+  {
+   "job": "v25",
+   "market": 2628981,
+   "decide_rel_s": 30.098,
+   "first_rel_s": 2.25,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 861,
+   "admissions_blocked": 860
+  },
+  {
+   "job": "v25",
+   "market": 2629019,
+   "decide_rel_s": 30.082,
+   "first_rel_s": 3.115,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 857,
+   "admissions_blocked": 857
+  },
+  {
+   "job": "v25",
+   "market": 2628787,
+   "decide_rel_s": 19.814,
+   "first_rel_s": 19.814,
+   "first_action": "PREPARE",
+   "first_before_decide": false,
+   "admissions": 1652,
+   "admissions_blocked": 1648
+  },
+  {
+   "job": "v25",
+   "market": 2628999,
+   "decide_rel_s": 30.05,
+   "first_rel_s": 7.853,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 3,
+   "admissions_blocked": 3
+  },
+  {
+   "job": "v25",
+   "market": 2629199,
+   "decide_rel_s": 30.135,
+   "first_rel_s": 3.958,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 850,
+   "admissions_blocked": 850
+  },
+  {
+   "job": "v25",
+   "market": 2628974,
+   "decide_rel_s": 27.911,
+   "first_rel_s": 9.896,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 907,
+   "admissions_blocked": 907
+  },
+  {
+   "job": "v25",
+   "market": 2629050,
+   "decide_rel_s": 28.863,
+   "first_rel_s": 18.855,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 905,
+   "admissions_blocked": 899
+  },
+  {
+   "job": "v25",
+   "market": 2629133,
+   "decide_rel_s": 12.159,
+   "first_rel_s": 4.703,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 1892,
+   "admissions_blocked": 1887
+  },
+  {
+   "job": "v25",
+   "market": 2629205,
+   "decide_rel_s": 12.483,
+   "first_rel_s": 6.279,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 1989,
+   "admissions_blocked": 1984
+  },
+  {
+   "job": "v25",
+   "market": 2629271,
+   "decide_rel_s": 30.181,
+   "first_rel_s": 8.216,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 955,
+   "admissions_blocked": 952
+  },
+  {
+   "job": "v25",
+   "market": 2629281,
+   "decide_rel_s": 4.6,
+   "first_rel_s": 3.752,
+   "first_action": "PREPARE",
+   "first_before_decide": true,
+   "admissions": 2280,
+   "admissions_blocked": 2278
+  }
+ ]
+}

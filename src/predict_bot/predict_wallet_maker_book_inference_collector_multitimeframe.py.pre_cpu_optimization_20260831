@@ -1,0 +1,654 @@
+from __future__ import annotations
+
+"""Forward-only Target wallet + public full-book collector for non-5m crypto markets.
+
+This module intentionally reuses the BTC/ETH 5m Maker-book schema and V2.1
+consumable lifecycle inference so downstream research can consume nearly the
+same fields.  One process owns exactly one asset/timeframe pair.  Market
+selection is strict on category duration, so BTC 1H does not depend on a guessed
+slug (Predict currently uses human-readable hourly category slugs).
+
+Retention is intentionally rolling: DB rows, per-market execution archives and
+Target fills expire together after the configured retention window.  Raw L2 is
+only pruned after the per-market archive exists, then the archive itself is
+removed when it becomes older than the same window.  SQLite incremental vacuum
+and WAL truncation are used so deleted rows actually release disk pages.
+"""
+
+import json
+import math
+import os
+import sqlite3
+import threading
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[2]
+ASSET = str(os.environ.get("PREDICT_TARGET_MTF_ASSET", "BTC")).strip().upper()
+TIMEFRAME = str(os.environ.get("PREDICT_TARGET_MTF_TIMEFRAME", "15M")).strip().upper()
+PORT = int(os.environ.get("PREDICT_TARGET_MTF_PORT", "8793"))
+RETENTION_HOURS = max(24.0, float(os.environ.get("PREDICT_TARGET_MTF_RETENTION_HOURS", "72")))
+TARGET_POLL_SECONDS = max(0.75, float(os.environ.get("PREDICT_TARGET_MTF_TARGET_POLL_SECONDS", "2.0")))
+DISCOVERY_SECONDS = max(2.0, float(os.environ.get("PREDICT_TARGET_MTF_DISCOVERY_SECONDS", "5.0")))
+
+TIMEFRAME_SECONDS = {"15M": 15 * 60, "1H": 60 * 60}
+TIMEFRAME_QUERY = {"15M": "15m", "1H": "1h"}
+if ASSET not in {"BTC", "ETH"}:
+    raise ValueError(f"unsupported multi-timeframe asset: {ASSET}")
+if TIMEFRAME not in TIMEFRAME_SECONDS:
+    raise ValueError(f"unsupported multi-timeframe interval: {TIMEFRAME}")
+if ASSET == "ETH" and TIMEFRAME == "1H":
+    # Not launched by the current project request, but keeping the module guard
+    # explicit prevents an accidental unsupported service identity.
+    raise ValueError("ETH 1H is not enabled by the current collector bundle")
+
+LABEL = f"{ASSET.lower()}{TIMEFRAME.lower()}"
+DEFAULT_DB = ROOT / "data" / f"wallet_maker_book_inference_{LABEL}.db"
+DB_PATH = Path(os.environ.get("PREDICT_TARGET_MTF_DB", str(DEFAULT_DB)))
+ARCHIVE_DIR = ROOT / "data" / "execution_tape_multitimeframe_v1" / LABEL / "markets"
+
+# Freeze the inherited service identity before importing the generic 5m code.
+os.environ["PREDICT_WALLET_MAKER_BOOK_ASSET"] = ASSET
+os.environ["PREDICT_WALLET_MAKER_BOOK_PORT"] = str(PORT)
+os.environ["PREDICT_WALLET_MAKER_BOOK_DB"] = str(DB_PATH)
+os.environ["PREDICT_WALLET_MAKER_BOOK_RETENTION_HOURS"] = str(RETENTION_HOURS)
+os.environ["PREDICT_WALLET_MAKER_TARGET_INFERENCE_ENABLED"] = "true"
+os.environ.setdefault("PREDICT_WALLET_MAKER_BOOK_STATE_CACHE_REFRESH_MS", "15000")
+
+from . import predict_wallet_maker_book_inference_collector as base  # noqa: E402
+from . import predict_wallet_maker_book_inference_collector_v2_1_impl as lifecycle  # noqa: E402
+from . import predict_wallet_maker_book_inference_collector_v2_1_responsive as responsive  # noqa: E402
+
+VERSION = f"TARGET_MAKER_BOOK_INFERENCE_{ASSET}_{TIMEFRAME}_V1_ROLLING_RETENTION"
+COHORT = f"TARGET_MAKER_BOOK_INFERENCE_{ASSET}_{TIMEFRAME}_V1"
+
+# These globals are process-local.  Repointing them lets the proven 5m archive,
+# matching and V2.1 lifecycle code operate against this service's isolated DB.
+base.COHORT = COHORT
+base.VERSION = VERSION
+base.DB_PATH = DB_PATH
+base.PORT = PORT
+base.RETENTION_HOURS = RETENTION_HOURS
+base.EXECUTION_TAPE_ARCHIVE_DIR = ARCHIVE_DIR
+lifecycle.VERSION = VERSION
+
+
+def _record(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _rows(value: Any) -> list[dict[str, Any]]:
+    return [row for row in value if isinstance(row, dict)] if isinstance(value, list) else []
+
+
+def _finite(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _positive_int(value: Any) -> int | None:
+    try:
+        number = int(float(value))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if number > 0 else None
+
+
+def _iso_ms(value: Any) -> int | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return int(datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp() * 1000)
+    except ValueError:
+        return None
+
+
+def _asset_matches(text: str) -> bool:
+    low = text.lower()
+    if ASSET == "BTC":
+        return "bitcoin" in low or "btc" in low
+    return "ethereum" in low or "eth" in low
+
+
+def _winner(market: dict[str, Any]) -> str | None:
+    for outcome in _rows(market.get("outcomes")):
+        status = str(outcome.get("status") or "").upper()
+        name = str(outcome.get("name") or outcome.get("outcome") or "").upper()
+        if outcome.get("isWinner") is True or outcome.get("won") is True or status == "WON":
+            if "UP" in name:
+                return "UP"
+            if "DOWN" in name:
+                return "DOWN"
+    resolution = _record(market.get("resolution"))
+    name = str(resolution.get("name") or resolution.get("outcome") or "").upper()
+    status = str(resolution.get("status") or "").upper()
+    if status in {"WON", "RESOLVED", "SETTLED"}:
+        if "UP" in name:
+            return "UP"
+        if "DOWN" in name:
+            return "DOWN"
+    variant = _record(market.get("variantData"))
+    start = _finite(variant.get("startPrice"))
+    end = _finite(variant.get("endPrice"))
+    if start is not None and end is not None and abs(end - start) > 1e-15:
+        return "UP" if end > start else "DOWN"
+    return None
+
+
+class MultiTimeframeTargetCollector(responsive.ResponsiveMakerBookConsumableLifecycleCollector):
+    def __init__(self, db_path: Path = DB_PATH, target_db_path: Path = base.TARGET_DB_PATH) -> None:
+        self.timeframe = TIMEFRAME
+        self.interval_seconds = TIMEFRAME_SECONDS[TIMEFRAME]
+        self.search_query = f"{ASSET} Up or Down {TIMEFRAME_QUERY[TIMEFRAME]}"
+        self.last_discovery_ms: int | None = None
+        self.last_discovery_error: str | None = None
+        self.archives_deleted_run = 0
+        self.archive_bytes_deleted_run = 0
+        self.retention_rows_deleted_run = 0
+        self.last_retention_ms: int | None = None
+        self.last_retention_error: str | None = None
+        super().__init__(db_path, target_db_path)
+        self.version = VERSION
+        self.cohort = COHORT
+        ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+        self._create_multitimeframe_schema()
+        self._enable_incremental_vacuum()
+        self._rewrite_policy()
+
+    def _create_multitimeframe_schema(self) -> None:
+        with self.db_lock:
+            self.db.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS target_multitimeframe_market_meta_v1 (
+                    market_id INTEGER PRIMARY KEY,
+                    asset TEXT NOT NULL,
+                    timeframe TEXT NOT NULL,
+                    title TEXT,
+                    category_slug TEXT,
+                    window_start_ms INTEGER,
+                    window_end_ms INTEGER,
+                    discovered_at_ms INTEGER NOT NULL,
+                    raw_market_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS target_multitimeframe_market_results_v1 (
+                    market_id INTEGER PRIMARY KEY,
+                    asset TEXT NOT NULL,
+                    timeframe TEXT NOT NULL,
+                    title TEXT,
+                    winner TEXT NOT NULL,
+                    resolved_at_ms INTEGER NOT NULL,
+                    fill_count INTEGER NOT NULL,
+                    buy_notional_usdt REAL NOT NULL,
+                    sell_proceeds_usdt REAL NOT NULL,
+                    payout_usdt REAL NOT NULL,
+                    net_pnl_usdt REAL NOT NULL,
+                    up_position_shares REAL NOT NULL,
+                    down_position_shares REAL NOT NULL,
+                    raw_market_json TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_target_mtf_result_resolved
+                    ON target_multitimeframe_market_results_v1(resolved_at_ms);
+                """
+            )
+            self.db.commit()
+
+    def _enable_incremental_vacuum(self) -> None:
+        try:
+            with self.db_lock:
+                mode = int(self.db.execute("PRAGMA auto_vacuum").fetchone()[0] or 0)
+                if mode != 2:
+                    self.db.execute("PRAGMA auto_vacuum=INCREMENTAL")
+                    self.db.commit()
+                    self.db.execute("VACUUM")
+                    self.db.commit()
+        except sqlite3.Error as exc:
+            self.last_retention_error = f"auto_vacuum: {type(exc).__name__}: {str(exc)[:250]}"
+
+    def _rewrite_policy(self) -> None:
+        policy = {
+            "cohort": COHORT,
+            "asset": ASSET,
+            "timeframe": TIMEFRAME,
+            "readOnly": True,
+            "forwardOnly": True,
+            "historicalBackfill": False,
+            "targetEventsDriveStrategy": False,
+            "liveOrdersAffected": False,
+            "source": "public Predict.fun CLOB full-book websocket + direct target-wallet /v1/orders/matches polling",
+            "storage": "5m-parity compressed level deltas/checkpoints + execution metadata + Target Maker/Taker fills + consumable lifecycle",
+            "checkpointMs": base.CHECKPOINT_MS,
+            "retentionHours": RETENTION_HOURS,
+            "archiveRetentionHours": RETENTION_HOURS,
+            "spaceRelease": "archive delete + SQLite incremental vacuum + WAL truncate",
+        }
+        with self.db_lock:
+            self.db.execute(
+                "UPDATE maker_book_inference_meta SET policy_json=? WHERE cohort=?",
+                (json.dumps(policy, separators=(",", ":")), COHORT),
+            )
+            self.db.commit()
+
+    def _search_payload(self) -> dict[str, Any]:
+        response = self.predict_http.get(
+            f"{base.PREDICT_API_BASE}/v1/search",
+            params={"query": self.search_query, "includeResolved": "false", "limit": 30},
+        )
+        response.raise_for_status()
+        payload = _record(response.json())
+        if payload.get("success") is False:
+            raise RuntimeError(f"Predict search rejected query={self.search_query}")
+        return payload
+
+    def _discover_market(self) -> dict[str, Any] | None:
+        now = base.now_ms()
+        self.last_discovery_ms = now
+        payload = self._search_payload()
+        data = _record(payload.get("data")) if isinstance(payload.get("data"), dict) else payload
+        candidates: list[tuple[int, dict[str, Any], dict[str, Any], int, int]] = []
+        wanted_ms = self.interval_seconds * 1000
+        for raw_category in _rows(data.get("categories")):
+            category = _record(raw_category)
+            starts = _iso_ms(category.get("startsAt"))
+            ends = _iso_ms(category.get("endsAt"))
+            if starts is None or ends is None:
+                continue
+            duration = ends - starts
+            if abs(duration - wanted_ms) > 5_000:
+                continue
+            # Strictly select the currently active time bucket. A small grace on
+            # the left handles clock skew without selecting the previous bucket.
+            if not starts - 2_000 <= now < ends:
+                continue
+            category_text = " ".join(
+                str(category.get(key) or "") for key in ("slug", "title", "description")
+            )
+            if not _asset_matches(category_text) or "up or down" not in category_text.lower():
+                continue
+            variant = _record(category.get("variantData"))
+            for market in _rows(category.get("markets")):
+                market_id = _positive_int(market.get("id"))
+                if market_id is None:
+                    continue
+                if str(market.get("tradingStatus") or "OPEN").upper() not in {"OPEN", "TRADING"}:
+                    continue
+                if market.get("isVisible") is False:
+                    continue
+                text = " ".join(
+                    str(market.get(key) or "") for key in ("title", "question", "description")
+                )
+                combined = f"{category_text} {text}"
+                if not _asset_matches(combined):
+                    continue
+                score = 1000
+                if starts <= now < ends:
+                    score += 300
+                slug = str(category.get("slug") or market.get("categorySlug") or "").lower()
+                if TIMEFRAME == "15M" and "updown-15m" in slug:
+                    score += 200
+                if str(market.get("tradingStatus") or "").upper() == "OPEN":
+                    score += 40
+                candidates.append((score, market, category, starts, ends))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: (item[0], _positive_int(item[1].get("id")) or 0), reverse=True)
+        _, market, category, starts, ends = candidates[0]
+        variant = _record(market.get("variantData")) or _record(category.get("variantData"))
+        precision = _positive_int(market.get("decimalPrecision"))
+        if precision is None:
+            try:
+                precision = int(market.get("decimalPrecision") or 3)
+            except (TypeError, ValueError):
+                precision = 3
+        precision = max(0, min(12, int(precision)))
+        return {
+            "id": int(market["id"]),
+            "title": str(market.get("title") or category.get("title") or self.search_query),
+            "categorySlug": str(category.get("slug") or market.get("categorySlug") or "") or None,
+            "decimalPrecision": precision,
+            "windowStartMs": starts,
+            "windowEndMs": ends,
+            "priceFeedSymbol": str(variant.get("priceFeedSymbol") or "") or None,
+            "raw": market,
+        }
+
+    def _persist_market_meta(self, market: dict[str, Any]) -> None:
+        with self.db_lock:
+            self.db.execute(
+                """INSERT INTO target_multitimeframe_market_meta_v1(
+                       market_id,asset,timeframe,title,category_slug,window_start_ms,window_end_ms,
+                       discovered_at_ms,raw_market_json
+                   ) VALUES(?,?,?,?,?,?,?,?,?)
+                   ON CONFLICT(market_id) DO UPDATE SET
+                       title=excluded.title,category_slug=excluded.category_slug,
+                       window_start_ms=excluded.window_start_ms,window_end_ms=excluded.window_end_ms,
+                       raw_market_json=excluded.raw_market_json""",
+                (
+                    int(market["id"]), ASSET, TIMEFRAME, market.get("title"), market.get("categorySlug"),
+                    market.get("windowStartMs"), market.get("windowEndMs"), base.now_ms(),
+                    json.dumps(market.get("raw") or {}, separators=(",", ":"), default=str),
+                ),
+            )
+            self.db.commit()
+
+    def _market_loop(self) -> None:
+        subscribed: int | None = None
+        previous_active: int | None = None
+        while not self.stop_event.is_set():
+            try:
+                candidate = self._discover_market()
+                if candidate is None:
+                    self.last_discovery_error = f"no strict current Predict.fun {ASSET} {TIMEFRAME} category"
+                    self.last_error = f"market: {self.last_discovery_error}"
+                else:
+                    market_id = int(candidate["id"])
+                    self._persist_market_meta(candidate)
+                    active = self._activate_market(
+                        market_id,
+                        title=candidate.get("title"),
+                        precision=int(candidate.get("decimalPrecision") or 3),
+                        window_end_ms=_positive_int(candidate.get("windowEndMs")),
+                    )
+                    if active and market_id != subscribed:
+                        if previous_active is not None and previous_active != market_id:
+                            threading.Thread(
+                                target=self._settle_market_when_ready,
+                                args=(previous_active,),
+                                name=f"mtf-settle-{previous_active}",
+                                daemon=True,
+                            ).start()
+                        previous_active = market_id
+                        subscribed = market_id
+                        self._restart_ws(market_id)
+                    elif not active:
+                        self.ws_status = "WAITING_NEXT_COMPLETE_MARKET"
+                    self.last_discovery_error = None
+                    self.last_error = None
+            except Exception as exc:
+                self.last_discovery_error = f"{type(exc).__name__}: {str(exc)[:320]}"
+                self.last_error = f"market: {self.last_discovery_error}"
+            self.stop_event.wait(DISCOVERY_SECONDS)
+
+    def _target_loop(self) -> None:
+        # Unlike BTC5M, these markets are not in the 8776 official 5m observer,
+        # so both BTC and ETH are collected directly from Predict matches.
+        while not self.stop_event.is_set():
+            try:
+                self._poll_current_target_events()
+                self._match_pending_events()
+            except Exception as exc:
+                self.last_error = f"target-direct: {type(exc).__name__}: {str(exc)[:320]}"
+            self.stop_event.wait(TARGET_POLL_SECONDS)
+
+    def _settle_market_when_ready(self, market_id: int) -> None:
+        # Resolution can lag the category end slightly. Retry without blocking
+        # the live market/book threads.
+        for attempt in range(24):
+            if self.stop_event.wait(5.0 if attempt else 2.0):
+                return
+            try:
+                response = self.predict_http.get(f"{base.PREDICT_API_BASE}/v1/markets/{int(market_id)}")
+                response.raise_for_status()
+                payload = _record(response.json())
+                market = _record(payload.get("data")) if isinstance(payload.get("data"), dict) else payload
+                winner = _winner(market)
+                if winner not in {"UP", "DOWN"}:
+                    continue
+                self._store_result(market_id, market, winner)
+                return
+            except Exception as exc:
+                if attempt == 23:
+                    self.last_error = f"settlement {market_id}: {type(exc).__name__}: {str(exc)[:260]}"
+
+    def _store_result(self, market_id: int, market: dict[str, Any], winner: str) -> None:
+        with self.db_lock:
+            fills = [dict(row) for row in self.db.execute(
+                """SELECT role,side,quote_type,price,shares
+                     FROM maker_book_inference_wallet_events
+                    WHERE market_id=? ORDER BY event_ms,source_leg_id""",
+                (int(market_id),),
+            )]
+            meta = self.db.execute(
+                "SELECT title FROM target_multitimeframe_market_meta_v1 WHERE market_id=?",
+                (int(market_id),),
+            ).fetchone()
+        buy = 0.0
+        sell = 0.0
+        position = {"UP": 0.0, "DOWN": 0.0}
+        for row in fills:
+            shares = float(row["shares"])
+            price = float(row["price"])
+            side = str(row["side"])
+            if str(row["quote_type"]) == "BID":
+                buy += price * shares
+                position[side] += shares
+            elif str(row["quote_type"]) == "ASK":
+                sell += price * shares
+                position[side] -= shares
+        payout = position[winner]
+        pnl = sell + payout - buy
+        resolved = base.now_ms()
+        title = str(market.get("title") or market.get("question") or (meta["title"] if meta else "")) or None
+        with self.db_lock:
+            self.db.execute(
+                """INSERT INTO target_multitimeframe_market_results_v1(
+                       market_id,asset,timeframe,title,winner,resolved_at_ms,fill_count,buy_notional_usdt,
+                       sell_proceeds_usdt,payout_usdt,net_pnl_usdt,up_position_shares,down_position_shares,raw_market_json
+                   ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                   ON CONFLICT(market_id) DO UPDATE SET
+                       title=excluded.title,winner=excluded.winner,resolved_at_ms=excluded.resolved_at_ms,
+                       fill_count=excluded.fill_count,buy_notional_usdt=excluded.buy_notional_usdt,
+                       sell_proceeds_usdt=excluded.sell_proceeds_usdt,payout_usdt=excluded.payout_usdt,
+                       net_pnl_usdt=excluded.net_pnl_usdt,up_position_shares=excluded.up_position_shares,
+                       down_position_shares=excluded.down_position_shares,raw_market_json=excluded.raw_market_json""",
+                (
+                    int(market_id), ASSET, TIMEFRAME, title, winner, resolved, len(fills), buy, sell, payout, pnl,
+                    position["UP"], position["DOWN"], json.dumps(market, separators=(",", ":"), default=str),
+                ),
+            )
+            self.db.commit()
+
+    def _retention_loop(self) -> None:
+        while not self.stop_event.wait(60.0):
+            cutoff = base.now_ms() - int(RETENTION_HOURS * 3_600_000)
+            try:
+                archive_paths: list[tuple[int, str, int]] = []
+                deleted_rows = 0
+                with self.db_lock:
+                    # Fetch archives first. Their manifest is required to prove
+                    # raw L2 has a durable copy before L2/meta deletion.
+                    archive_paths = [
+                        (int(row["market_id"]), str(row["archive_path"]), int(row["archive_bytes"] or 0))
+                        for row in self.db.execute(
+                            "SELECT market_id,archive_path,archive_bytes FROM maker_execution_archive_manifest_v1 WHERE archived_at_ms<?",
+                            (cutoff,),
+                        )
+                    ]
+                    statements = [
+                        ("DELETE FROM maker_book_inference_wallet_events WHERE event_ms<?", (cutoff,)),
+                        ("DELETE FROM maker_book_inference_source_legs WHERE observed_at_ms<?", (cutoff,)),
+                        ("DELETE FROM maker_book_inference_target_events WHERE target_event_ms<?", (cutoff,)),
+                        ("DELETE FROM maker_execution_matches_v1 WHERE executed_at_ms<?", (cutoff,)),
+                        (
+                            """DELETE FROM maker_book_inference_updates
+                                WHERE received_at_ms<?
+                                  AND market_id IN (SELECT market_id FROM maker_execution_archive_manifest_v1)""",
+                            (cutoff,),
+                        ),
+                        (
+                            """DELETE FROM maker_execution_orderbook_meta_v1
+                                WHERE received_at_ms<?
+                                  AND market_id IN (SELECT market_id FROM maker_execution_archive_manifest_v1)""",
+                            (cutoff,),
+                        ),
+                        ("DELETE FROM target_multitimeframe_market_results_v1 WHERE resolved_at_ms<?", (cutoff,)),
+                    ]
+                    for sql, params in statements:
+                        cursor = self.db.execute(sql, params)
+                        deleted_rows += max(0, int(cursor.rowcount or 0))
+                    # Market/metadata rows only disappear after the live raw L2
+                    # is gone; result rows above use the same cutoff.
+                    cursor = self.db.execute(
+                        """DELETE FROM maker_book_inference_markets WHERE first_seen_ms<?
+                             AND market_id NOT IN (SELECT DISTINCT market_id FROM maker_book_inference_updates)
+                             AND market_id IN (SELECT market_id FROM maker_execution_archive_manifest_v1)""",
+                        (cutoff,),
+                    )
+                    deleted_rows += max(0, int(cursor.rowcount or 0))
+                    if archive_paths:
+                        ids = [row[0] for row in archive_paths]
+                        placeholders = ",".join("?" for _ in ids)
+                        cursor = self.db.execute(
+                            f"DELETE FROM target_multitimeframe_market_meta_v1 WHERE market_id IN ({placeholders})",
+                            ids,
+                        )
+                        deleted_rows += max(0, int(cursor.rowcount or 0))
+                    self.db.commit()
+
+                deleted_archives: list[int] = []
+                for market_id, raw_path, archive_bytes in archive_paths:
+                    path = Path(raw_path)
+                    try:
+                        if path.exists():
+                            actual = int(path.stat().st_size)
+                            path.unlink()
+                            self.archive_bytes_deleted_run += actual
+                        else:
+                            self.archive_bytes_deleted_run += max(0, archive_bytes)
+                        deleted_archives.append(market_id)
+                    except OSError:
+                        continue
+
+                with self.db_lock:
+                    if deleted_archives:
+                        placeholders = ",".join("?" for _ in deleted_archives)
+                        self.db.execute(
+                            f"DELETE FROM maker_execution_archive_manifest_v1 WHERE market_id IN ({placeholders})",
+                            deleted_archives,
+                        )
+                        try:
+                            self.db.execute(
+                                f"DELETE FROM maker_execution_market_quality_v1 WHERE market_id IN ({placeholders})",
+                                deleted_archives,
+                            )
+                        except sqlite3.OperationalError:
+                            pass
+                    self.db.commit()
+                    # Incremental vacuum reclaims free pages without the long
+                    # blocking full VACUUM normally required by SQLite.
+                    self.db.execute("PRAGMA incremental_vacuum(4096)")
+                    self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                    self.db.commit()
+
+                self.retention_rows_deleted_run += deleted_rows
+                self.archives_deleted_run += len(deleted_archives)
+                self.last_retention_ms = base.now_ms()
+                self.last_retention_error = None
+            except Exception as exc:
+                self.last_retention_error = f"{type(exc).__name__}: {str(exc)[:300]}"
+                self.last_error = f"retention: {self.last_retention_error}"
+
+    def _decorate_state(self, payload: dict[str, Any]) -> dict[str, Any]:
+        payload["version"] = VERSION
+        payload["cohort"] = COHORT
+        payload["asset"] = ASSET
+        payload["timeframe"] = TIMEFRAME
+        payload["marketDiscovery"] = {
+            "mode": "Predict /v1/search strict active category duration",
+            "query": self.search_query,
+            "intervalSeconds": self.interval_seconds,
+            "lastAttemptMs": self.last_discovery_ms,
+            "lastError": self.last_discovery_error,
+        }
+        storage = payload.setdefault("storage", {})
+        storage["retentionHours"] = RETENTION_HOURS
+        storage["archiveRetentionHours"] = RETENTION_HOURS
+        storage["archiveDirectory"] = str(ARCHIVE_DIR)
+        storage["spaceRelease"] = {
+            "policy": "delete expired DB rows and per-market archives, incremental vacuum, truncate WAL",
+            "lastCleanupMs": self.last_retention_ms,
+            "lastError": self.last_retention_error,
+            "rowsDeletedThisRun": self.retention_rows_deleted_run,
+            "archivesDeletedThisRun": self.archives_deleted_run,
+            "archiveBytesDeletedThisRun": self.archive_bytes_deleted_run,
+        }
+        activity = payload.get("targetActivity")
+        if isinstance(activity, dict):
+            activity["scope"] = f"forward-only Target wallet Maker/Taker fills for {ASSET} {TIMEFRAME}"
+            activity["source"] = "direct Predict /v1/orders/matches polling"
+        lifecycle_state = payload.get("lifecycleInference")
+        if isinstance(lifecycle_state, dict):
+            lifecycle_state["version"] = VERSION
+            lifecycle_state["asset"] = ASSET
+            lifecycle_state["timeframe"] = TIMEFRAME
+        return payload
+
+    def _build_snapshot_from_reader(self) -> dict[str, Any]:
+        uri = f"file:{self.db_path.resolve()}?mode=ro"
+        con = sqlite3.connect(uri, uri=True, timeout=1.0, check_same_thread=False)
+        con.row_factory = sqlite3.Row
+        try:
+            con.execute("PRAGMA query_only=ON")
+            con.execute("PRAGMA busy_timeout=1000")
+            import copy
+            reader = copy.copy(self)
+            reader.db = con
+            reader.db_lock = threading.RLock()
+            reader.v21_cache = None
+            reader.v21_cache_at = 0
+            payload = base.MakerBookInferenceCollector.snapshot(reader)
+            if getattr(self, "target_inference_enabled", True):
+                payload["lifecycleInference"] = lifecycle.MakerBookConsumableLifecycleCollector._v21_snapshot(reader)
+            return self._decorate_state(payload)
+        finally:
+            con.close()
+
+    def health_snapshot(self) -> dict[str, Any]:
+        payload = super().health_snapshot()
+        payload["version"] = VERSION
+        payload["cohort"] = COHORT
+        payload["asset"] = ASSET
+        payload["timeframe"] = TIMEFRAME
+        payload["retentionHours"] = RETENTION_HOURS
+        payload["lastRetentionCleanupMs"] = self.last_retention_ms
+        payload["retentionError"] = self.last_retention_error
+        payload["marketDiscoveryError"] = self.last_discovery_error
+        return payload
+
+    def snapshot(self) -> dict[str, Any]:
+        return self._decorate_state(super().snapshot())
+
+
+def main() -> int:
+    collector = MultiTimeframeTargetCollector(DB_PATH, base.TARGET_DB_PATH)
+    collector.start()
+    handler = type(
+        f"TargetMakerBook{ASSET}{TIMEFRAME}Handler",
+        (responsive.ResponsiveHandler,),
+        {"collector": collector},
+    )
+    server = base.ThreadingHTTPServer((base.HOST, PORT), handler)
+    print(
+        f"{VERSION} listening on http://{base.HOST}:{PORT}/state; asset={ASSET}; timeframe={TIMEFRAME}; "
+        f"retentionHours={RETENTION_HOURS:g}; directTargetPolling=true; consumableLifecycle=true; "
+        "readOnly=true; liveOrdersAffected=false",
+        flush=True,
+    )
+    try:
+        server.serve_forever(poll_interval=0.25)
+    except KeyboardInterrupt:
+        return 130
+    finally:
+        server.shutdown()
+        server.server_close()
+        collector.stop()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

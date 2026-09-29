@@ -1,0 +1,140 @@
+{
+  "scope": "FROZEN_OBSERVED_TRAJECTORY_ONLY",
+  "markets": 10,
+  "trigger_entries": 951,
+  "legacy_submissions": 183,
+  "differences": 0,
+  "per_market": [
+    {
+      "market": 2628410,
+      "trigger_entries": 105,
+      "legacy_submissions": 12,
+      "differences": [],
+      "first_side_examples": [],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2628410\\restoration_trace.json.gz",
+      "source_sha256": "3d69cc629b1a3375e6e45e80b70d9ef0868fdf8d5a0470cd2e21562ab3a42b70"
+    },
+    {
+      "market": 2628553,
+      "trigger_entries": 99,
+      "legacy_submissions": 23,
+      "differences": [],
+      "first_side_examples": [
+        {
+          "t": 1790436091789,
+          "side": "UP",
+          "H": -208.97664878128342,
+          "previous_legacy_H": -97.62760689655215,
+          "previous_side_H": null,
+          "old_deficit": true,
+          "new_deficit": true
+        }
+      ],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2628553\\restoration_trace.json.gz",
+      "source_sha256": "70937840c69510f2418133587aeb2c86a3b1788407bfd480f880cb7d5f12d950"
+    },
+    {
+      "market": 2628557,
+      "trigger_entries": 46,
+      "legacy_submissions": 18,
+      "differences": [],
+      "first_side_examples": [
+        {
+          "t": 1790436454257,
+          "side": "DOWN",
+          "H": -492.84825138063525,
+          "previous_legacy_H": -173.71098404878057,
+          "previous_side_H": null,
+          "old_deficit": true,
+          "new_deficit": true
+        }
+      ],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2628557\\restoration_trace.json.gz",
+      "source_sha256": "e054787659f42eeb35f2820851f11d0c21627926a04c884d199024a97379c441"
+    },
+    {
+      "market": 2628653,
+      "trigger_entries": 67,
+      "legacy_submissions": 7,
+      "differences": [],
+      "first_side_examples": [],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2628653\\restoration_trace.json.gz",
+      "source_sha256": "130d90aecadc44b7b995896680b18e55a0e0115011a36c3a6e3b9547dfd6e78b"
+    },
+    {
+      "market": 2628721,
+      "trigger_entries": 2,
+      "legacy_submissions": 2,
+      "differences": [],
+      "first_side_examples": [],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2628721\\restoration_trace.json.gz",
+      "source_sha256": "db74c2615299c30fb2becab3b393ab613de2b89565388d764973c7a8d5f9df2f"
+    },
+    {
+      "market": 2628769,
+      "trigger_entries": 56,
+      "legacy_submissions": 28,
+      "differences": [],
+      "first_side_examples": [
+        {
+          "t": 1790438167414,
+          "side": "UP",
+          "H": -287.3415466931216,
+          "previous_legacy_H": -108.60979437037037,
+          "previous_side_H": null,
+          "old_deficit": true,
+          "new_deficit": true
+        }
+      ],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2628769\\restoration_trace.json.gz",
+      "source_sha256": "93c3a34132176319f62c25d94d0c869943bf4915a6c1bd2c59dbc53edce2452a"
+    },
+    {
+      "market": 2628999,
+      "trigger_entries": 15,
+      "legacy_submissions": 9,
+      "differences": [],
+      "first_side_examples": [],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2628999\\restoration_trace.json.gz",
+      "source_sha256": "cd48906be792bd8e261bac3e774a2ad548f591904a99c4f2150be71488f77846"
+    },
+    {
+      "market": 2629019,
+      "trigger_entries": 409,
+      "legacy_submissions": 36,
+      "differences": [],
+      "first_side_examples": [],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2629019\\restoration_trace.json.gz",
+      "source_sha256": "ef859a4d8247dc6d1280ee020f49f0d2a2c04cf94970be561ffdd1d7896f9fc7"
+    },
+    {
+      "market": 2629133,
+      "trigger_entries": 76,
+      "legacy_submissions": 31,
+      "differences": [],
+      "first_side_examples": [],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2629133\\restoration_trace.json.gz",
+      "source_sha256": "f86a1a63d8164adea70954d38115e318e02f6b5d03d0dd6c69031613875f973c"
+    },
+    {
+      "market": 2629199,
+      "trigger_entries": 76,
+      "legacy_submissions": 17,
+      "differences": [],
+      "first_side_examples": [
+        {
+          "t": 1790441456874,
+          "side": "UP",
+          "H": -424.4623093571421,
+          "previous_legacy_H": -219.4359215686275,
+          "previous_side_H": null,
+          "old_deficit": true,
+          "new_deficit": true
+        }
+      ],
+      "source": "data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2629199\\restoration_trace.json.gz",
+      "source_sha256": "9f4ba142202ba48b70f536ea839082178a79e23adcea6e882d284f23f043625c"
+    }
+  ],
+  "limitation": "No native rerun or new trajectory. No peak or initialization changes."
+}

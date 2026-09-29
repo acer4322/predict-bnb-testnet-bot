@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from . import microstructure as micro
-from . import predict_wallet_taker_signal_collector as base
+from . import predict_wallet_taker_signal_collector_legacy_base as base
 
 
 ROOT = Path(__file__).resolve().parents[2]

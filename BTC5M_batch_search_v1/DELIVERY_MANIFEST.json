@@ -1,0 +1,18 @@
+{
+  "version": "BTC5M_BATCH_SEARCH_DELIVERY_V1",
+  "files": {
+    "ENGINEERING_VERIFICATION.json": "1f217e162df6a83f35e0b4bf1952c5311510ff49ccf96c785c499723ced8f571",
+    "TEST_LOG.txt": "51f177ed6b34b5e072d9478637acb904a543dd1b978b2b96c93cbfa0a19d7565",
+    "README_BATCH_SEARCH_ZH.md": "803d3458bf9a47c9ca5a383bad697001b2bf46c429c8948bb779024d3e38229d",
+    "tools/btc5m_batch_search_v1.py": "2b284a1ded346d4c4e432ccf20d67dce780fb6ee4a9504032284f64f9350f736",
+    "tests/test_btc5m_batch_search_v1.py": "aac2625d49acba7e25e7735b416bf421b418a3b34523c0dcce9cc6847e9758fd",
+    "tools/btc5m_batch_search_lib/default_spec.json": "475089360d53a115bb9ec569c2d89dce5f803898ede5592c7f73f66104edf06a",
+    "tools/btc5m_batch_search_lib/controller_overlay.py": "26f9160db137960bf547f4fbab3c5fea7323161186b648553a5b3957b08e4e0f",
+    "tools/btc5m_batch_search_lib/engine.py": "25dc9cd768b70e6e34fe4c283fa1173d218c8dc0a574ba675c9416a8cc1ff3f2",
+    "tools/btc5m_batch_search_lib/attempt_memory.py": "4f3bc96c71cb6db27cd3b716a785d019b62c812e543eae00625c3198c1aef1e4",
+    "tools/btc5m_batch_search_lib/component_checks.py": "4ab2ba47c83cf99a2eb9b557fb0d7b34342147ebf9ad4681d303afbefbf8c8af",
+    "tools/btc5m_batch_search_lib/worker_template.py": "8ead052de91a4707b0ff2f81c76b39bfecc3894283b199cf83b85fcc53611b0c",
+    "tools/btc5m_batch_search_lib/__init__.py": "02f31e365b0b783df21ee8baee98994384dacd23752c48389e27b5aa7d1c57d8",
+    "tools/btc5m_batch_search_lib/prepare.py": "568de2ca8513b303d0754f99e634a315d511d7787ad66c5861700ddf66694f4c"
+  }
+}

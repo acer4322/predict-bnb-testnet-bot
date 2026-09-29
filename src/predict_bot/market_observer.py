@@ -421,7 +421,23 @@ class MarketStateObserver:
                 else float(touch_threshold)
             )
             if spot_price is not None and spot_price > 0:
-                self.spot_price_history.append((now_ts, spot_price))
+                # Crossover detection below still sees every tick, while ER only
+                # needs a causal one-second price path.  Keeping every trade in a
+                # fixed-size deque can make 3,600 points cover much less than the
+                # required 60-second window during a burst.  ER then has no anchor,
+                # returns None, and is retried on every subsequent trade.  Keep the
+                # latest price inside each one-second bucket without advancing the
+                # bucket timestamp, so the rolling path remains both bounded and
+                # long enough for 30/60-second ER.
+                if (
+                    not self.spot_price_history
+                    or now_ts - float(self.spot_price_history[-1][0])
+                    >= ER_SAMPLE_INTERVAL_SECONDS
+                ):
+                    self.spot_price_history.append((now_ts, spot_price))
+                else:
+                    bucket_ts = float(self.spot_price_history[-1][0])
+                    self.spot_price_history[-1] = (bucket_ts, spot_price)
                 self._last_spot_update_ts = float(now_ts)
 
                 # ── Legacy crossover (no deadband) ──────────────────────────
@@ -959,7 +975,7 @@ class MarketStateObserver:
         recent_rounds = self.get_recent_rounds(self.window_size)
         state_name, reason, metrics = self.classify_state(recent_rounds)
         self._classification_cache = (
-            now,
+            time.monotonic(),
             recent_rounds,
             state_name,
             reason,

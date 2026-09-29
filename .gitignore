@@ -1,4 +1,6 @@
 .venv/
+.mcp/
+.tools/
 __pycache__/
 .pytest_cache/
 *.pyc

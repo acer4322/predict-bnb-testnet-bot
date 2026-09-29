@@ -1224,12 +1224,25 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            # Local diagnostics/state clients intentionally use bounded timeouts.
+            # A client disappearing after the response was prepared is not a
+            # service failure and must not spam socketserver tracebacks.
+            return
+        except OSError as exc:
+            if getattr(exc, "winerror", None) in {10053, 10054, 10038}:
+                return
+            raise
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path not in {"/state", "/health", "/api/state"}:
             self._send(404, {"ok": False, "error": "not found"})
+            return
+        if self.path == "/health":
+            self._send(200, {"ok": True, "status": "ONLINE", "version": str(getattr(self.engine, "VERSION", "WALLET_MAKER_CLONE"))})
             return
         self._send(200, {"ok": True, "state": self.engine.snapshot()})
 

@@ -25,7 +25,9 @@ type EchtgeldStore = {
   refresh: () => Promise<void>
   pause: (reason?: string) => Promise<void>
   resume: () => Promise<void>
+  runNextMarketOnce: () => Promise<void>
   updateSettings: (values: Record<string, unknown>) => Promise<void>
+  selectEntrySource: (sourceId: string | null) => Promise<void>
 }
 
 let refreshInFlight: Promise<void> | null = null
@@ -72,6 +74,21 @@ async function control(path: string, body: Record<string, unknown>): Promise<unk
     throw new Error(message)
   }
   return unwrap(payload)
+}
+
+function applyState(set: (partial: Partial<EchtgeldStore>) => void, get: () => EchtgeldStore, state: unknown) {
+  const previous = get().service
+  set({
+    service: {
+      ...previous,
+      ok: true,
+      loading: false,
+      data: state,
+      error: null,
+      updatedAt: Date.now(),
+    },
+    saving: false,
+  })
 }
 
 export const useEchtgeldStore = create<EchtgeldStore>((set, get) => ({
@@ -127,18 +144,7 @@ export const useEchtgeldStore = create<EchtgeldStore>((set, get) => ({
     set({ saving: true, saveError: null })
     try {
       const state = await control('/control/echtgeld/pause', { reason })
-      const previous = get().service
-      set({
-        service: {
-          ...previous,
-          ok: true,
-          loading: false,
-          data: state,
-          error: null,
-          updatedAt: Date.now(),
-        },
-        saving: false,
-      })
+      applyState(set, get, state)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       set({ saving: false, saveError: message })
@@ -150,18 +156,19 @@ export const useEchtgeldStore = create<EchtgeldStore>((set, get) => ({
     set({ saving: true, saveError: null })
     try {
       const state = await control('/control/echtgeld/resume', {})
-      const previous = get().service
-      set({
-        service: {
-          ...previous,
-          ok: true,
-          loading: false,
-          data: state,
-          error: null,
-          updatedAt: Date.now(),
-        },
-        saving: false,
-      })
+      applyState(set, get, state)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      set({ saving: false, saveError: message })
+      throw error
+    }
+  },
+
+  runNextMarketOnce: async () => {
+    set({ saving: true, saveError: null })
+    try {
+      const state = await control('/control/echtgeld/run-next-market-once', {})
+      applyState(set, get, state)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       set({ saving: false, saveError: message })
@@ -173,18 +180,19 @@ export const useEchtgeldStore = create<EchtgeldStore>((set, get) => ({
     set({ saving: true, saveError: null })
     try {
       const state = await control('/control/echtgeld/settings', values)
-      const previous = get().service
-      set({
-        service: {
-          ...previous,
-          ok: true,
-          loading: false,
-          data: state,
-          error: null,
-          updatedAt: Date.now(),
-        },
-        saving: false,
-      })
+      applyState(set, get, state)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      set({ saving: false, saveError: message })
+      throw error
+    }
+  },
+
+  selectEntrySource: async (sourceId) => {
+    set({ saving: true, saveError: null })
+    try {
+      const state = await control('/control/echtgeld/entry-source', { sourceId })
+      applyState(set, get, state)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       set({ saving: false, saveError: message })

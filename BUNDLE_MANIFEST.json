@@ -1,0 +1,45 @@
+{
+  "proposal_only": true,
+  "files": {
+    "PROMPT_C_完整學生_狀態記憶.md": {
+      "bytes": 3691,
+      "sha256": "29c2f7073646aa4942d7318e910823390e57f42ff3803df6a906237501d0b192"
+    },
+    "WORKBOARD.template.json": {
+      "bytes": 2546,
+      "sha256": "f3ac2c300abfe831147aa41316897cce3ecd3b4068cb1a1cd7079c87b2f9528e"
+    },
+    "SOURCE_SNAPSHOT.json": {
+      "bytes": 5167,
+      "sha256": "594d1b64c02888791ab1d7279ec454c1b69b2ff460efc1b103d824858b38e960"
+    },
+    "PROMPT_D_資料_獨立驗收.md": {
+      "bytes": 3812,
+      "sha256": "a7a0701f5d43be149d4d2c7e5fe284c7023e9993fa314d35615b784929602c03"
+    },
+    "PROMPT_B_原生執行_主被動協作.md": {
+      "bytes": 3651,
+      "sha256": "928d129fb259e023c795884fa4681746b45503a537fca18941cb4bb959a372de"
+    },
+    "HANDOFF.template.json": {
+      "bytes": 1219,
+      "sha256": "8afdc04202f5562021b9bf66d2caa3696f7168564392bc531efe442a7a98c377"
+    },
+    "PROMPT_00_總控_整合.md": {
+      "bytes": 3654,
+      "sha256": "382d69cd7b140fd80f1b5d241e175be74935b89f7d7e92b6252a1d4adce59ed0"
+    },
+    "PROMPT_A_目標機理_經濟教學.md": {
+      "bytes": 3652,
+      "sha256": "baa94a05df2efc020f8ebfdcb6fe85c8c9fccf379b73008652fe90fb97d8691d"
+    },
+    "README_協作方案.md": {
+      "bytes": 12574,
+      "sha256": "8c919d9f7b1910a4eb26a0dec75717b7274ed4a099f3f5376eebbf4110538ea7"
+    },
+    "核對來源與版本落差.md": {
+      "bytes": 2823,
+      "sha256": "92dd9166dc7c276a8010b058d0dd09dd69612985a62d7c8636e4a537ae9d4f1c"
+    }
+  }
+}

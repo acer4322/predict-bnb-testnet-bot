@@ -28,6 +28,13 @@ os.environ["PREDICT_WALLET_SHADOW_DB"] = os.environ.get(
     str(root / "data" / "target_wallet_official_v1.db"),
 )
 
+# 24/7 BTC service is the canonical raw L2 recorder. Target lifecycle inference
+# is deliberately offline/on-demand by default to avoid burning a full CPU core
+# while preserving every book update needed to reconstruct it later.
+os.environ["PREDICT_WALLET_MAKER_TARGET_INFERENCE_ENABLED"] = os.environ.get(
+    "PREDICT_WALLET_MAKER_BTC_TARGET_INFERENCE_ENABLED", "false"
+)
+
 from .predict_wallet_maker_book_inference_collector_v2_1_impl import *  # noqa: E402,F401,F403
 from .predict_wallet_maker_book_inference_collector_v2_1_responsive import main  # noqa: E402
 

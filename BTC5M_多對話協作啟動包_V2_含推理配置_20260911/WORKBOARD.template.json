@@ -1,0 +1,258 @@
+{
+  "status": "TEMPLATE_NOT_ACTIVATED",
+  "revision": 0,
+  "coordinator": "UNASSIGNED",
+  "baseline": {
+    "profile": "MINIMAL_TRAINING_NONBINDING_FUNDING_V1",
+    "funding_mode": "VIRTUAL_NONBINDING_RESEARCH",
+    "capital_cap": null,
+    "runtime_path": "tools/open_funding_recovery_runtime_v3.py",
+    "runtime_sha256": null,
+    "policy_sha256": "55a2719518c87541a40a0156c8c0635f8a953ee540d3db531eaa0207a55474e0",
+    "native_sha256": "7de2335528234bea9381bea4208a90594a7bec9795d09b913f430ff1f8cf8ebf",
+    "action_scope": "PASSIVE_NATIVE; ACTIVE_UNIMPLEMENTED",
+    "schema_revision": "MUST_PIN_BEFORE_JOB"
+  },
+  "proposed_scheduling": {
+    "heavy_jobs_concurrent": 1,
+    "max_threads_per_job": 4,
+    "dispatcher": "COORDINATOR_ONLY",
+    "is_service_installed": false
+  },
+  "tasks": [
+    {
+      "id": "A1_ECONOMIC_TEACHING",
+      "owner": "A",
+      "status": "PROPOSED",
+      "depends_on": [
+        "BASELINE_ALIGNMENT"
+      ],
+      "write_scope": "lane A only",
+      "job_id": null,
+      "reasoning_plan": {
+        "policy_version": "REASONING_ALLOCATION_V1_20260911",
+        "role_policy_ref": "REASONING_POLICY.json#/roles/A",
+        "role_default_mode": "EXTRA_HIGH",
+        "phase": "INITIAL_DESIGN_OR_REVIEW",
+        "task_setting": {
+          "requested_mode": "PRO_REVIEW",
+          "requested_model_label": "GPT-6 Pro",
+          "requested_reasoning_label": null,
+          "actual_platform": null,
+          "actual_model_label": null,
+          "actual_reasoning_label": null,
+          "configuration_status": "UNKNOWN",
+          "configuration_source": "UNCONFIRMED",
+          "evidence_reference": null,
+          "confirmed_at": null,
+          "deviation_from_recommendation": null
+        },
+        "escalation_reason": null,
+        "configuration_change_history": [],
+        "is_client_setting_applied": false,
+        "does_not_start_or_resubmit_jobs": true
+      }
+    },
+    {
+      "id": "B1_RUNTIME_BRIDGE_ALIGNMENT",
+      "owner": "B",
+      "status": "PROPOSED",
+      "depends_on": [
+        "BASELINE_ALIGNMENT"
+      ],
+      "write_scope": "lane B isolated patches",
+      "job_id": null,
+      "reasoning_plan": {
+        "policy_version": "REASONING_ALLOCATION_V1_20260911",
+        "role_policy_ref": "REASONING_POLICY.json#/roles/B",
+        "role_default_mode": "HIGH",
+        "phase": "INITIAL_DESIGN_OR_REVIEW",
+        "task_setting": {
+          "requested_mode": "EXTRA_HIGH",
+          "requested_model_label": null,
+          "requested_reasoning_label": "極高",
+          "actual_platform": null,
+          "actual_model_label": null,
+          "actual_reasoning_label": null,
+          "configuration_status": "UNKNOWN",
+          "configuration_source": "UNCONFIRMED",
+          "evidence_reference": null,
+          "confirmed_at": null,
+          "deviation_from_recommendation": null
+        },
+        "escalation_reason": null,
+        "configuration_change_history": [],
+        "is_client_setting_applied": false,
+        "does_not_start_or_resubmit_jobs": true
+      }
+    },
+    {
+      "id": "B2_NATIVE_ACTIVE_SHARED_OBJECTIVE",
+      "owner": "B",
+      "status": "BLOCKED_DEPENDENCY",
+      "depends_on": [
+        "B1_RUNTIME_BRIDGE_ALIGNMENT"
+      ],
+      "job_id": null,
+      "reasoning_plan": {
+        "policy_version": "REASONING_ALLOCATION_V1_20260911",
+        "role_policy_ref": "REASONING_POLICY.json#/roles/B",
+        "role_default_mode": "HIGH",
+        "phase": "EXTRA_HIGH_DESIGN_THEN_HIGH_IMPLEMENTATION",
+        "task_setting": {
+          "requested_mode": "EXTRA_HIGH",
+          "requested_model_label": null,
+          "requested_reasoning_label": "極高",
+          "actual_platform": null,
+          "actual_model_label": null,
+          "actual_reasoning_label": null,
+          "configuration_status": "UNKNOWN",
+          "configuration_source": "UNCONFIRMED",
+          "evidence_reference": null,
+          "confirmed_at": null,
+          "deviation_from_recommendation": null
+        },
+        "escalation_reason": null,
+        "configuration_change_history": [],
+        "is_client_setting_applied": false,
+        "does_not_start_or_resubmit_jobs": true
+      }
+    },
+    {
+      "id": "C1_POLICY_STATE_EXPRESSIVITY",
+      "owner": "C",
+      "status": "PROPOSED",
+      "depends_on": [
+        "BASELINE_ALIGNMENT"
+      ],
+      "write_scope": "lane C actor candidate only",
+      "job_id": null,
+      "reasoning_plan": {
+        "policy_version": "REASONING_ALLOCATION_V1_20260911",
+        "role_policy_ref": "REASONING_POLICY.json#/roles/C",
+        "role_default_mode": "EXTRA_HIGH",
+        "phase": "INITIAL_DESIGN_OR_REVIEW",
+        "task_setting": {
+          "requested_mode": "EXTRA_HIGH",
+          "requested_model_label": null,
+          "requested_reasoning_label": "極高",
+          "actual_platform": null,
+          "actual_model_label": null,
+          "actual_reasoning_label": null,
+          "configuration_status": "UNKNOWN",
+          "configuration_source": "UNCONFIRMED",
+          "evidence_reference": null,
+          "confirmed_at": null,
+          "deviation_from_recommendation": null
+        },
+        "escalation_reason": null,
+        "configuration_change_history": [],
+        "is_client_setting_applied": false,
+        "does_not_start_or_resubmit_jobs": true
+      }
+    },
+    {
+      "id": "D1_DATA_AND_INDEPENDENT_EVAL",
+      "owner": "D",
+      "status": "PROPOSED",
+      "depends_on": [
+        "BASELINE_ALIGNMENT"
+      ],
+      "write_scope": "lane D evaluation outputs",
+      "job_id": null,
+      "reasoning_plan": {
+        "policy_version": "REASONING_ALLOCATION_V1_20260911",
+        "role_policy_ref": "REASONING_POLICY.json#/roles/D",
+        "role_default_mode": "HIGH",
+        "phase": "INITIAL_DESIGN_OR_REVIEW",
+        "task_setting": {
+          "requested_mode": "EXTRA_HIGH",
+          "requested_model_label": null,
+          "requested_reasoning_label": "極高",
+          "actual_platform": null,
+          "actual_model_label": null,
+          "actual_reasoning_label": null,
+          "configuration_status": "UNKNOWN",
+          "configuration_source": "UNCONFIRMED",
+          "evidence_reference": null,
+          "confirmed_at": null,
+          "deviation_from_recommendation": null
+        },
+        "escalation_reason": null,
+        "configuration_change_history": [],
+        "is_client_setting_applied": false,
+        "does_not_start_or_resubmit_jobs": true
+      }
+    },
+    {
+      "id": "INTEGRATION_1",
+      "owner": "COORDINATOR",
+      "status": "BLOCKED_DEPENDENCY",
+      "depends_on": [
+        "A1_ECONOMIC_TEACHING",
+        "B1_RUNTIME_BRIDGE_ALIGNMENT",
+        "C1_POLICY_STATE_EXPRESSIVITY",
+        "D1_DATA_AND_INDEPENDENT_EVAL"
+      ],
+      "capability_scope": "Explicitly choose PASSIVE or validated new routes; never silently mix.",
+      "job_id": null,
+      "reasoning_plan": {
+        "policy_version": "REASONING_ALLOCATION_V1_20260911",
+        "role_policy_ref": "REASONING_POLICY.json#/roles/00",
+        "role_default_mode": "HIGH",
+        "phase": "INTEGRATION_DECISION",
+        "task_setting": {
+          "requested_mode": "EXTRA_HIGH",
+          "requested_model_label": null,
+          "requested_reasoning_label": "極高",
+          "actual_platform": null,
+          "actual_model_label": null,
+          "actual_reasoning_label": null,
+          "configuration_status": "UNKNOWN",
+          "configuration_source": "UNCONFIRMED",
+          "evidence_reference": null,
+          "confirmed_at": null,
+          "deviation_from_recommendation": null
+        },
+        "escalation_reason": null,
+        "configuration_change_history": [],
+        "is_client_setting_applied": false,
+        "does_not_start_or_resubmit_jobs": true
+      }
+    }
+  ],
+  "authoritative_jobs": [],
+  "notes": [
+    "No new job has been submitted by generating this template.",
+    "New user instructions are binding, but engineering evidence remains version scoped.",
+    "V2 adds reasoning recommendations only; no client/model setting has been changed or verified.",
+    "Use null/UNKNOWN for actual model or effort without evidence. Record each phase separately when changing settings.",
+    "Reasoning depth does not change data access, writer ownership, execution permissions or worker limits.",
+    "Merge new fields into an existing active board; do not replace its status, tasks, revision or job records with this blank template."
+  ],
+  "template_version": 2,
+  "reasoning_policy_ref": "REASONING_POLICY.json",
+  "coordinator_reasoning_plan": {
+    "policy_version": "REASONING_ALLOCATION_V1_20260911",
+    "role_policy_ref": "REASONING_POLICY.json#/roles/00",
+    "role_default_mode": "HIGH",
+    "phase": "INITIAL_DESIGN_OR_REVIEW",
+    "task_setting": {
+      "requested_mode": "EXTRA_HIGH",
+      "requested_model_label": null,
+      "requested_reasoning_label": "極高",
+      "actual_platform": null,
+      "actual_model_label": null,
+      "actual_reasoning_label": null,
+      "configuration_status": "UNKNOWN",
+      "configuration_source": "UNCONFIRMED",
+      "evidence_reference": null,
+      "confirmed_at": null,
+      "deviation_from_recommendation": null
+    },
+    "escalation_reason": null,
+    "configuration_change_history": [],
+    "is_client_setting_applied": false,
+    "does_not_start_or_resubmit_jobs": true
+  }
+}

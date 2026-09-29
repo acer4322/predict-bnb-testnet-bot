@@ -1,0 +1,283 @@
+{
+  "status": "PASS_LINKS_SOURCE_HASHES_AND_KEY_FACTS",
+  "scope": "V34 handoff boundary through V58; no new experiment",
+  "handoff_file": "docs/handoffs/CODEX_TO_CLAUDE_V12G_V35_V58_HANDOFF_20260928_ZH.md",
+  "handoff_sha256": "e827909fe124b27ff2955a4d400163e2c734ff254e368fe6002878f969fc4335",
+  "source_hashes": {
+    "docs/handoffs/V12G_VERSIONS_HANDOFF_20260927_ZH.md": "96b906d7ac49d231d8a26490ff038d98856ee68ec9149f8dc4660ff27da5bbfb",
+    "AGENTS.md": "efc768daec156ff44f5f8a0fc62efb475e32cdeca0135441c59c765487054481",
+    "docs/agents/research.md": "a2237d6b80ed282b2d806c26f13005f9ca0b617a0405a40a8ba9d46f21b25a24",
+    "docs/agents/RESEARCH_CURRENT.md": "c3246e0da19724f6f8546db5d1c0de2a28a5717da9e6c7106659dbb772f52511",
+    "data/research/v12g_original_scale_stop290_20260928_v58/CURRENT.md": "bf4b3db75ac21ef01578c82b7e309b4aa186a6396f47d472944f0774efb4450b",
+    "data/research/v12g_original_scale_stop290_20260928_v58/REPORT_ZH.md": "b4b3707f6e3a8b2f86e57b897cb50a9e3acf3f9315c0c6d7e226a0e1d2c06c6b",
+    "data/research/v12g_original_scale_stop290_20260928_v58/VERIFIED.json": "368a0aadcb22aaab466662cf0e5abcbdc55dcf30a3a616a3fc9c04a1b1c3d476",
+    "data/research/v12g_original_scale_stop290_20260928_v58/NEXT_MECHANISM_DESIGN_ZH.md": "edc84fbad554db847e99ac4d04ce5d0a460c0a2e3c50d3c426c6b8e3b89ed31c",
+    "data/research/v12g_affordability_decomposition_20260927_v51/REPORT_ZH.md": "37efe1c7aba64d12fd8fd9656bc543d061d6af645430a1bc21665f0e67a70b25",
+    "data/research/v12g_postflip_money_repair_20260927_v40/REPORT_ZH.md": "c15fe5b56e78d65aaac03065b8d2ec550864d0a22e589e397451737e9d702468",
+    "docs/agents/development.md": "303dd816bb6085cd6bddabfc37b247e62f6aaedef2cfaef0989544746ae4a712",
+    "docs/agents/worker.md": "00b43dd29ca264c5729a5fcce9a720c8cf352ff76ca82cf99dfe776c5992d19a",
+    "data/research/v12g_original_scale_stop290_20260928_v58/WORKER_AFTER.json": "96e6e4eea76e828441c9efcb0466842a39ba518f40b597bb93954e6c3a8311ef",
+    "data/research/v12g_original_scale_stop290_20260928_v58/PROTOCOL.json": "abb7d14b56d775de5bf1ee71677883e2fbb2f68f3c694cb4313e5bdd0784a7b5",
+    "data/research/v12g_original_scale_stop290_20260928_v58/overlay/run_variant.py": "cc8e95f501fb752b4fb7fc8eef701a296605d64bc3748e2fb8f440d0d9c80edb",
+    "data/research/v12g_original_scale_stop290_20260928_v58/CANDIDATE.json": "19003c2cb0ea0a830fbea1a446bd753dca9275196e916219a046a1d35a184103",
+    "data/research/v12g_branch_coverage_shadow_20260927_v35/REPORT_ZH.md": "dabf02fc94ad27f7d7e39ca6e0a7a64eca1d6e2c2d1e3fa018b4fd7c9cc5cfb5",
+    "data/research/v12g_whole_plan_repair_20260927_v36/REPORT_ZH.md": "a88b11ecb9144c6a601219aef2b12d1ebc6e19278b828d72884fbdd8e789f88d",
+    "data/research/v12g_ten_market_extension_20260927_v37/REPORT_ZH.md": "edb8d7a0ece4af0940152a233da17fe7768a5740873f33525bab58704cfe8d71",
+    "data/research/v12g_lineage_regime_review_20260927_v38/REPORT_ZH.md": "3068b45a496504f150d42eba8b915c73b35766e5406c224fad8fd5c0362b18c0",
+    "data/research/v12g_repair_entry_audit_20260927_v39/REPORT_ZH.md": "ef41967610f29e8c269abf29a3c01783c08493f987c13feba973139a26cd0b5c",
+    "data/research/v12g_postflip_risk_floor_20260927_v41/REPORT_ZH.md": "6b7b1a78fd86a32e704237bd9544df02ed07378aa5a7690d56d4d5bff4064c1b",
+    "data/research/v12g_debt_and_stall_diagnostic_20260927_v42/REPORT_ZH.md": "aea013ef0e223ca0142ab7350ee2ec06d4cd22f93c44bfa1dd2dcd7d3f1983ee",
+    "data/research/v12g_physical_work_continuation_20260927_v43/REPORT_ZH.md": "2584d6486af4b9742a254d9f54c246f4d9d89389a5abc503c4ef120a04fcfcf4",
+    "data/research/v12g_continuation_demand_20260927_v44/REPORT_ZH.md": "c7c221a4be80319400bdf95b72bd0c07e4c7f6496bae833614bcdf10e406b5f5",
+    "data/research/v12g_fresh30_generalization_20260927_v45/CURRENT.md": "a2cd30a843677a29bf7c40757ae11ebf1170724ff8dbc43ecfca87d316de28df",
+    "data/research/v12g_fresh30_audit_resume_20260927_v46/CURRENT.md": "a2cd30a843677a29bf7c40757ae11ebf1170724ff8dbc43ecfca87d316de28df",
+    "data/research/v12g_fresh30_censor_accounting_20260927_v47/CURRENT.md": "a2cd30a843677a29bf7c40757ae11ebf1170724ff8dbc43ecfca87d316de28df",
+    "data/research/v12g_fresh30_parallel_resume_20260927_v48/REPORT_ZH.md": "3dfe69002522c6c57620c59920bd91008877cddb549923e3c278e09f4a2f732c",
+    "data/research/v12g_preflip_debt_diagnostic_20260927_v49/REPORT_ZH.md": "de4a0dfff75cbdb16b4702be4ec5c7c90ee56d89e6996b24602397919c11feb8",
+    "data/research/v12g_qualified_work_continuation_20260927_v50/REPORT_ZH.md": "8aaf47eb2487c8413a35bea691e3727c68ea107411326dcb016ac1c8865fa33b",
+    "data/research/v12g_postflip_add_and_smallstake_20260928_v52/REPORT_ZH.md": "0a56a641803f5dfaed3a7ce3a71c263ec8d90156a1f7edd6f97d2fa2545c8148",
+    "data/research/v12g_passive_ticket_small300_20260928_v53/REPORT_ZH.md": "06af52cf9b5c61e03225e651e3c7ddf1d3ba73edb279859746667991bf8696cc",
+    "data/research/v12g_small300_opening_diagnostic_20260928_v54/REPORT_ZH.md": "d0c37dd7e933a9a7e201d01f298671678e19d53ba94438e3d8ab1921dd7b4520",
+    "data/research/v12g_passive10_uncapped_20260928_v55/REPORT_ZH.md": "c56f7ce155542cf85849fe79269ef0bfb8ae59d6d119b7a7b9e2c9e7566c6842",
+    "data/research/v12g_small300_demand_scale_audit_resume_20260928_v56r1/REPORT_ZH.md": "8443d9cd1c206f5c36d25064b134a9a7c2bc943534bee1cc17184dd02c67aff4",
+    "data/research/v12g_stop290_cancel_all_20260928_v57/REPORT_ZH.md": "c168af6ec806e0fa2c3a5416858b015cc3acc3bce8376eb046862ccac8262e82",
+    "data/research/v12g_original_scale_stop290_20260928_v58/TAIL_REPAIR_TRADEOFF.json": "9f36f731b4809743679ba88e2a2c4111218252fb4270e65f9887e40ec7589822",
+    "data/research/v12g_original_scale_stop290_20260928_v58/CANCEL_RECEIPT_AUDIT.json": "9ce6c8bf57da567b14bfd5ddd8f9dadaf85c8efd7a52bf806dd4a1608eb0c1e1",
+    "data/research/v12g_original_scale_stop290_20260928_v58/CANCEL_RACE_DETAILS.json": "44ce8d9c91239098da21d467ca598bd6cff1637c90e23235c25eb493a66f436f",
+    "data/research/v12g_original_scale_stop290_20260928_v58/COMPARISON.json": "db8458218a60ec253ed0cff72131574d32f7090b62423131035be500ea53e997",
+    "data/research/v12g_affordability_decomposition_20260927_v51/NEXT_STEP.md": "5018272b00324b7e9df46d63432e677d677ad84e13d79fbbbdee71f4c641fd43",
+    "data/research/lan_worker_returns/btc5m-v12g-original-scale-stop290-20260928-v58/RESULT.json": "563f3e47e08adce9d4c828dc24fb5efeb70e5c8f7a25966938e7bf6d6249f3a5",
+    "data/research/lan_worker_returns/btc5m-v12g-whole-plan-repair-20260927-v36/RESULT.json": "83797c150d4dee1c836290046f6a6a090c7691729e15ed3ecbd9b31f8c134df9",
+    "data/research/lan_worker_returns/btc5m-v12g-ten-market-extension-20260927-v37/RESULT.json": "310fb5a1b8f173b06a433bba0e72137df1aeee3e1ec20dc30b79ba5ff0d0a783",
+    "data/research/lan_worker_returns/btc5m-v12g-postflip-money-repair-20260927-v40/RESULT.json": "acc5509cdf0e38b26db5e29210f5f89af27d27d59774a19728a1213dbd1765eb",
+    "data/research/lan_worker_returns/btc5m-v12g-postflip-risk-floor-20260927-v41/RESULT.json": "9dafe091f4638b4834d3aa626a219601b9322f61bc8db23256fd9319091f929f",
+    "data/research/lan_worker_returns/btc5m-v12g-physical-work-continuation-20260927-v43/RESULT.json": "49f04d01bf31d2303cd72a51952e025c6fb263225a511fd318bec6593b0333fb",
+    "data/research/lan_worker_returns/btc5m-v12g-continuation-demand-20260927-v44/RESULT.json": "8b0b429aa689733c5e4b32bb0c36bccdd55c2937b28322adb48375352a58c166",
+    "data/research/lan_worker_returns/btc5m-v12g-fresh30-generalization-20260927-v45/RESULT.json": "f22db61092abc99cded3a84eeb24526fa1c1f56f9b026cccd4d90f2773f11338",
+    "data/research/lan_worker_returns/btc5m-v12g-fresh30-audit-resume-20260927-v46/RESULT.json": "59b24b5d71d8cb11e581bedde81c4dde3213a262f353c70f45801d992335e7a7",
+    "data/research/lan_worker_returns/btc5m-v12g-fresh30-censor-accounting-20260927-v47/RESULT.json": "a95e0bf290fc0ab1ea20cbdade614a3924ab1149540c3d2e7d9031cb94b6d932",
+    "data/research/lan_worker_returns/btc5m-v12g-fresh30-parallel-resume-20260927-v48/RESULT.json": "eb869b198e6584cf447457ccceefd77c31d728973ca88e8455fa2da6fb65acd6",
+    "data/research/lan_worker_returns/btc5m-v12g-qualified-work-continuation-20260927-v50/RESULT.json": "12b39420eade30e9817311fde1fbafd2c2e8b9173df70773c1f9fc37e8f297cd",
+    "data/research/lan_worker_returns/btc5m-v12g-qualified-work-audit-resume-20260927-v50r1/RESULT.json": "362c0520c6bcaacf57a42870661e3af0a3dabcf581ea8b8460259587f45a251a",
+    "data/research/lan_worker_returns/btc5m-v12g-postflip-add-smallstake-20260928-v52/RESULT.json": "ff86cbe249d27b18c6654e941658c27c2265fd0ff662bd874c4ff89efac4d463",
+    "data/research/lan_worker_returns/btc5m-v12g-passive-ticket-small300-20260928-v53/RESULT.json": "d4c5f722d5031e72bdceabd878c6890472cbaa354b67aec1ccb5c162a4bf1a0e",
+    "data/research/lan_worker_returns/btc5m-v12g-passive10-uncapped-20260928-v55/RESULT.json": "87809c799b216e9be01919a7b2b393a1136c173a372ab060ada3979179e5062c",
+    "data/research/lan_worker_returns/btc5m-v12g-small300-demand-scale-20260928-v56/RESULT.json": "01f0d23bc94069a33434b731361c2834daa590132fb71ba8fdd22c16f7f6a0bd",
+    "data/research/lan_worker_returns/btc5m-v12g-small300-demand-scale-audit-resume-20260928-v56r1/RESULT.json": "de8b4815776735903ba1e4a1922e8c3e0e831184877455e3a23c7cd074f199dc",
+    "data/research/lan_worker_returns/btc5m-v12g-stop290-cancel-all-20260928-v57/RESULT.json": "1936d92c1931e30f1405352cff410a4d6cf316cd19a90431dba887947c270f65",
+    "data/research/v12g_original_scale_stop290_20260928_v58/dispatch.py": "4987b13f16b37f367b01cac2e1205289f60afacadeaca8ad119a60e23d34fc97",
+    "data/research/v12g_original_scale_stop290_20260928_v58/worker.py": "c601df7113de3af36ee10bcea4256b1bd59b22ac7fc1596d85b6f6b7c39f4521"
+  },
+  "packages": [
+    {
+      "version": "35",
+      "package": "data/research/v12g_branch_coverage_shadow_20260927_v35",
+      "job_id": null,
+      "job_note": "No named native job found in this package; see report for read-only scope."
+    },
+    {
+      "version": "36",
+      "package": "data/research/v12g_whole_plan_repair_20260927_v36",
+      "job_id": "btc5m-v12g-whole-plan-repair-20260927-v36",
+      "result_status": "COMPLETE_V36_9",
+      "returned_paths": 9,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-whole-plan-repair-20260927-v36/RESULT.json"
+    },
+    {
+      "version": "37",
+      "package": "data/research/v12g_ten_market_extension_20260927_v37",
+      "job_id": "btc5m-v12g-ten-market-extension-20260927-v37",
+      "result_status": "COMPLETE_V37_EXTENSION_12",
+      "returned_paths": 12,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-ten-market-extension-20260927-v37/RESULT.json"
+    },
+    {
+      "version": "38",
+      "package": "data/research/v12g_lineage_regime_review_20260927_v38",
+      "job_id": null,
+      "job_note": "No named native job found in this package; see report for read-only scope."
+    },
+    {
+      "version": "39",
+      "package": "data/research/v12g_repair_entry_audit_20260927_v39",
+      "job_id": null,
+      "job_note": "No named native job found in this package; see report for read-only scope."
+    },
+    {
+      "version": "40",
+      "package": "data/research/v12g_postflip_money_repair_20260927_v40",
+      "job_id": "btc5m-v12g-postflip-money-repair-20260927-v40",
+      "result_status": "COMPLETE_V40_20",
+      "returned_paths": 20,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-postflip-money-repair-20260927-v40/RESULT.json"
+    },
+    {
+      "version": "41",
+      "package": "data/research/v12g_postflip_risk_floor_20260927_v41",
+      "job_id": "btc5m-v12g-postflip-risk-floor-20260927-v41",
+      "result_status": "COMPLETE_V41_11",
+      "returned_paths": 11,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-postflip-risk-floor-20260927-v41/RESULT.json"
+    },
+    {
+      "version": "42",
+      "package": "data/research/v12g_debt_and_stall_diagnostic_20260927_v42",
+      "job_id": null,
+      "job_note": "No named native job found in this package; see report for read-only scope."
+    },
+    {
+      "version": "43",
+      "package": "data/research/v12g_physical_work_continuation_20260927_v43",
+      "job_id": "btc5m-v12g-physical-work-continuation-20260927-v43",
+      "result_status": "COMPLETE_V43_21",
+      "returned_paths": 21,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-physical-work-continuation-20260927-v43/RESULT.json"
+    },
+    {
+      "version": "44",
+      "package": "data/research/v12g_continuation_demand_20260927_v44",
+      "job_id": "btc5m-v12g-continuation-demand-20260927-v44",
+      "result_status": "COMPLETE_V44_11",
+      "returned_paths": 11,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-continuation-demand-20260927-v44/RESULT.json"
+    },
+    {
+      "version": "45",
+      "package": "data/research/v12g_fresh30_generalization_20260927_v45",
+      "job_id": "btc5m-v12g-fresh30-generalization-20260927-v45",
+      "result_status": "STOPPED",
+      "returned_paths": 7,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-fresh30-generalization-20260927-v45/RESULT.json"
+    },
+    {
+      "version": "46",
+      "package": "data/research/v12g_fresh30_audit_resume_20260927_v46",
+      "job_id": "btc5m-v12g-fresh30-audit-resume-20260927-v46",
+      "result_status": "STOPPED",
+      "returned_paths": 6,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-fresh30-audit-resume-20260927-v46/RESULT.json"
+    },
+    {
+      "version": "47",
+      "package": "data/research/v12g_fresh30_censor_accounting_20260927_v47",
+      "job_id": "btc5m-v12g-fresh30-censor-accounting-20260927-v47",
+      "result_status": "STOPPED",
+      "returned_paths": 20,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-fresh30-censor-accounting-20260927-v47/RESULT.json"
+    },
+    {
+      "version": "48",
+      "package": "data/research/v12g_fresh30_parallel_resume_20260927_v48",
+      "job_id": "btc5m-v12g-fresh30-parallel-resume-20260927-v48",
+      "result_status": "COMPLETE_V48_29",
+      "returned_paths": 29,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-fresh30-parallel-resume-20260927-v48/RESULT.json"
+    },
+    {
+      "version": "49",
+      "package": "data/research/v12g_preflip_debt_diagnostic_20260927_v49",
+      "job_id": null,
+      "job_note": "No named native job found in this package; see report for read-only scope."
+    },
+    {
+      "version": "50",
+      "package": "data/research/v12g_qualified_work_continuation_20260927_v50",
+      "job_id": "btc5m-v12g-qualified-work-continuation-20260927-v50",
+      "result_status": "STOPPED",
+      "returned_paths": 22,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-qualified-work-continuation-20260927-v50/RESULT.json"
+    },
+    {
+      "version": "50r1",
+      "package": "data/research/v12g_qualified_work_audit_resume_20260927_v50r1",
+      "job_id": "btc5m-v12g-qualified-work-audit-resume-20260927-v50r1",
+      "result_status": "COMPLETE_V50R1_8",
+      "returned_paths": 8,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-qualified-work-audit-resume-20260927-v50r1/RESULT.json"
+    },
+    {
+      "version": "51",
+      "package": "data/research/v12g_affordability_decomposition_20260927_v51",
+      "job_id": null,
+      "job_note": "No named native job found in this package; see report for read-only scope."
+    },
+    {
+      "version": "52",
+      "package": "data/research/v12g_postflip_add_and_smallstake_20260928_v52",
+      "job_id": "btc5m-v12g-postflip-add-smallstake-20260928-v52",
+      "result_status": "COMPLETE_V52_88",
+      "returned_paths": 88,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-postflip-add-smallstake-20260928-v52/RESULT.json"
+    },
+    {
+      "version": "53",
+      "package": "data/research/v12g_passive_ticket_small300_20260928_v53",
+      "job_id": "btc5m-v12g-passive-ticket-small300-20260928-v53",
+      "result_status": "COMPLETE_V53_25",
+      "returned_paths": 25,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-passive-ticket-small300-20260928-v53/RESULT.json"
+    },
+    {
+      "version": "54",
+      "package": "data/research/v12g_small300_opening_diagnostic_20260928_v54",
+      "job_id": null,
+      "job_note": "No named native job found in this package; see report for read-only scope."
+    },
+    {
+      "version": "55",
+      "package": "data/research/v12g_passive10_uncapped_20260928_v55",
+      "job_id": "btc5m-v12g-passive10-uncapped-20260928-v55",
+      "result_status": "COMPLETE_V55_7",
+      "returned_paths": 7,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-passive10-uncapped-20260928-v55/RESULT.json"
+    },
+    {
+      "version": "56",
+      "package": "data/research/v12g_small300_demand_scale_20260928_v56",
+      "job_id": "btc5m-v12g-small300-demand-scale-20260928-v56",
+      "result_status": "STOPPED",
+      "returned_paths": 6,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-small300-demand-scale-20260928-v56/RESULT.json"
+    },
+    {
+      "version": "56r1",
+      "package": "data/research/v12g_small300_demand_scale_audit_resume_20260928_v56r1",
+      "job_id": "btc5m-v12g-small300-demand-scale-audit-resume-20260928-v56r1",
+      "result_status": "COMPLETE_V56R1_32",
+      "returned_paths": 32,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-small300-demand-scale-audit-resume-20260928-v56r1/RESULT.json"
+    },
+    {
+      "version": "57",
+      "package": "data/research/v12g_stop290_cancel_all_20260928_v57",
+      "job_id": "btc5m-v12g-stop290-cancel-all-20260928-v57",
+      "result_status": "COMPLETE_V57_11",
+      "returned_paths": 11,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-stop290-cancel-all-20260928-v57/RESULT.json"
+    },
+    {
+      "version": "58",
+      "package": "data/research/v12g_original_scale_stop290_20260928_v58",
+      "job_id": "btc5m-v12g-original-scale-stop290-20260928-v58",
+      "result_status": "COMPLETE_V58_30",
+      "returned_paths": 30,
+      "result_file": "data/research/lan_worker_returns/btc5m-v12g-original-scale-stop290-20260928-v58/RESULT.json"
+    }
+  ],
+  "new_native": 0,
+  "new_fit": 0,
+  "worker_dispatch": 0,
+  "live_changes": 0,
+  "validated_local_links": 70,
+  "unique_linked_sources": 63,
+  "v58_evidence_hashes_verified": 17,
+  "read_only_peer_review": "V35-V49 bounded source review by GPT-6 Luna xhigh; decisive V38/V40/V45-V48 and current settings independently checked by root",
+  "key_fact_checks": [
+    "V58 aggregates and paired counts",
+    "V58 original scale env and FLIP delta semantics",
+    "V45-V48 62 unique returned paths;29 complete pairs plus2629444 UNKNOWN",
+    "V50 and V56 resumed counts",
+    "V50/V57/V58 frozen inputs unchanged",
+    "All local links exist and table rows contiguous"
+  ]
+}

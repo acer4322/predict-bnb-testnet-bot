@@ -24,6 +24,16 @@ except ImportError:  # pragma: no cover - exercised through the public state fal
 
 ROOT = Path(__file__).resolve().parents[2]
 MICRO_DB_PATH = Path(os.environ.get("PREDICT_MICRO_DB", ROOT / "data" / "microstructure.db"))
+RUNTIME_PROFILE = os.environ.get("PREDICT_RUNTIME_PROFILE", "FULL_LAB").strip().upper()
+RAW_EVENT_ARCHIVE_ENABLED = os.environ.get(
+    "PREDICT_MICROSTRUCTURE_RAW_EVENT_ARCHIVE_ENABLED",
+    "0" if RUNTIME_PROFILE == "CORE_RESEARCH" else "1",
+).strip().lower() not in {"0", "false", "no", "off"}
+LIQUIDITY_EVENT_ARCHIVE_ENABLED = os.environ.get(
+    "PREDICT_MICROSTRUCTURE_LIQUIDITY_ARCHIVE_ENABLED",
+    "0" if RUNTIME_PROFILE == "CORE_RESEARCH" else "1",
+).strip().lower() not in {"0", "false", "no", "off"}
+
 RAW_RETENTION_HOURS = max(1.0, float(os.environ.get("PREDICT_MICRO_RAW_RETENTION_HOURS", "6")))
 SNAPSHOT_RETENTION_HOURS = max(
     RAW_RETENTION_HOURS,
@@ -639,6 +649,17 @@ class FeatureEngine:
 
 
 class MicrostructureStore:
+    _EVENT_INSERT_SQL = """INSERT INTO microstructure_events(
+               source, stream, market_id, exchange_event_ms, exchange_trade_ms,
+               prediction_book_version_ms,
+               received_wall_ns, received_monotonic_ns, enqueued_monotonic_ns,
+               written_wall_ns, session_id, update_id, first_update_id,
+               previous_update_id, trade_id, price, quantity, visible_quantity,
+               aggressor, best_bid, best_bid_qty, best_ask, best_ask_qty,
+               bids_json, asks_json, raw_json, parser_version,
+               prediction_orientation, feature_eligible
+           ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -757,34 +778,40 @@ class MicrostructureStore:
             }
 
     @staticmethod
-    def insert_event(db: sqlite3.Connection, event: dict[str, Any]) -> None:
-        db.execute(
-            """INSERT INTO microstructure_events(
-                   source, stream, market_id, exchange_event_ms, exchange_trade_ms,
-                   prediction_book_version_ms,
-                   received_wall_ns, received_monotonic_ns, enqueued_monotonic_ns,
-                   written_wall_ns, session_id, update_id, first_update_id,
-                   previous_update_id, trade_id, price, quantity, visible_quantity,
-                   aggressor, best_bid, best_bid_qty, best_ask, best_ask_qty,
-                   bids_json, asks_json, raw_json, parser_version,
-                   prediction_orientation, feature_eligible
-               ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (
-                event.get("source"), event.get("stream"), event.get("market_id"),
-                event.get("exchange_event_ms"), event.get("exchange_trade_ms"),
-                event.get("prediction_book_version_ms"),
-                event.get("received_wall_ns"), event.get("received_monotonic_ns"),
-                event.get("enqueued_monotonic_ns"), time.time_ns(), event.get("session_id"),
-                event.get("update_id"), event.get("first_update_id"),
-                event.get("previous_update_id"), event.get("trade_id"), event.get("price"),
-                event.get("quantity"), event.get("visible_quantity"), event.get("aggressor"),
-                event.get("best_bid"), event.get("best_bid_qty"), event.get("best_ask"),
-                event.get("best_ask_qty"), json.dumps(event.get("bids") or [], separators=(",", ":")),
-                json.dumps(event.get("asks") or [], separators=(",", ":")), event.get("raw_json"),
-                event.get("parser_version") or PARSER_VERSION,
-                event.get("prediction_orientation"),
-                1 if event.get("feature_eligible", True) else 0,
-            ),
+    def _event_row(event: dict[str, Any], written_wall_ns: int) -> tuple[Any, ...]:
+        return (
+            event.get("source"), event.get("stream"), event.get("market_id"),
+            event.get("exchange_event_ms"), event.get("exchange_trade_ms"),
+            event.get("prediction_book_version_ms"),
+            event.get("received_wall_ns"), event.get("received_monotonic_ns"),
+            event.get("enqueued_monotonic_ns"), written_wall_ns, event.get("session_id"),
+            event.get("update_id"), event.get("first_update_id"),
+            event.get("previous_update_id"), event.get("trade_id"), event.get("price"),
+            event.get("quantity"), event.get("visible_quantity"), event.get("aggressor"),
+            event.get("best_bid"), event.get("best_bid_qty"), event.get("best_ask"),
+            event.get("best_ask_qty"), json.dumps(event.get("bids") or [], separators=(",", ":")),
+            json.dumps(event.get("asks") or [], separators=(",", ":")), event.get("raw_json"),
+            event.get("parser_version") or PARSER_VERSION,
+            event.get("prediction_orientation"),
+            1 if event.get("feature_eligible", True) else 0,
+        )
+
+    @classmethod
+    def insert_event(cls, db: sqlite3.Connection, event: dict[str, Any]) -> None:
+        db.execute(cls._EVENT_INSERT_SQL, cls._event_row(event, time.time_ns()))
+
+    @classmethod
+    def insert_events(
+        cls,
+        db: sqlite3.Connection,
+        events: list[dict[str, Any]],
+    ) -> None:
+        if not events:
+            return
+        written_wall_ns = time.time_ns()
+        db.executemany(
+            cls._EVENT_INSERT_SQL,
+            (cls._event_row(event, written_wall_ns) for event in events),
         )
 
     @staticmethod
@@ -832,16 +859,28 @@ class MicrostructureStore:
         snapshot_cutoff = now_ns - int(SNAPSHOT_RETENTION_HOURS * 3600 * 1e9)
         liquidity_cutoff = now_ns - int(LIQUIDITY_RETENTION_HOURS * 3600 * 1e9)
         jobs = (
-            ("microstructure_events", "received_wall_ns", event_cutoff, "events", 50_000),
-            ("microstructure_snapshots", "timestamp_ns", snapshot_cutoff, "snapshots", 10_000),
-            ("microstructure_liquidity_events", "timestamp_ns", liquidity_cutoff, "liquidity", 10_000),
-            ("microstructure_gap_events", "last_timestamp_ns", liquidity_cutoff, "gaps", 10_000),
+            (
+                "microstructure_events", "received_wall_ns", "micro_events_receive_idx",
+                event_cutoff, "events", 50_000,
+            ),
+            (
+                "microstructure_snapshots", "timestamp_ns", "micro_snapshots_time_idx",
+                snapshot_cutoff, "snapshots", 10_000,
+            ),
+            (
+                "microstructure_liquidity_events", "timestamp_ns", "micro_liquidity_time_idx",
+                liquidity_cutoff, "liquidity", 10_000,
+            ),
+            (
+                "microstructure_gap_events", "last_timestamp_ns", "micro_gap_time_idx",
+                liquidity_cutoff, "gaps", 10_000,
+            ),
         )
-        for table, column, cutoff, count_key, limit in jobs:
+        for table, column, index, cutoff, count_key, limit in jobs:
             cursor = db.execute(
                 f"""DELETE FROM {table} WHERE id IN (
-                        SELECT id FROM {table}
-                        WHERE {column} < ? ORDER BY id LIMIT ?
+                        SELECT id FROM {table} INDEXED BY {index}
+                        WHERE {column} < ? LIMIT ?
                     )""",
                 (cutoff, limit),
             )
@@ -1834,7 +1873,7 @@ class MicrostructureObserver:
         self.writer_status = "STARTING"
         while not self.stop_event.is_set() or not self.events.empty() or self._has_pending_gaps():
             db: sqlite3.Connection | None = None
-            failed_event: dict[str, Any] | None = None
+            failed_events: list[dict[str, Any]] = []
             failed_gaps: list[dict[str, Any]] = []
             try:
                 db = self.store._connect()
@@ -1849,21 +1888,32 @@ class MicrostructureObserver:
                         event = self.events.get(timeout=0.10)
                     except queue.Empty:
                         event = None
-                    failed_event = event
+                    failed_events = [] if event is None else [event]
                     if event is not None:
-                        now_mono_ns = time.monotonic_ns()
-                        self.writer_lag_ms = max(
-                            0.0,
-                            (now_mono_ns - int(event["received_monotonic_ns"])) / 1_000_000,
-                        )
-                        self.store.insert_event(db, event)
-                        self.store.counts["events"] += 1
-                        pending += 1
-                        for item in self.engine.update(event):
-                            self.store.insert_liquidity(db, item)
-                            self.store.counts["liquidity"] += 1
-                            pending += 1
-                        failed_event = None
+                        for _ in range(499):
+                            try:
+                                failed_events.append(self.events.get_nowait())
+                            except queue.Empty:
+                                break
+                        if RAW_EVENT_ARCHIVE_ENABLED:
+                            self.store.insert_events(db, failed_events)
+                            self.store.counts["events"] += len(failed_events)
+                            pending += len(failed_events)
+                        for queued_event in failed_events:
+                            now_mono_ns = time.monotonic_ns()
+                            self.writer_lag_ms = max(
+                                0.0,
+                                (
+                                    now_mono_ns
+                                    - int(queued_event["received_monotonic_ns"])
+                                ) / 1_000_000,
+                            )
+                            for item in self.engine.update(queued_event):
+                                if LIQUIDITY_EVENT_ARCHIVE_ENABLED:
+                                    self.store.insert_liquidity(db, item)
+                                    self.store.counts["liquidity"] += 1
+                                    pending += 1
+                        failed_events = []
                     failed_gaps = self._take_pending_gaps()
                     for item in failed_gaps:
                         self.store.insert_gap(db, item)
@@ -1895,11 +1945,17 @@ class MicrostructureObserver:
             except Exception as exc:
                 self.writer_status = "ERROR"
                 self.writer_error = _safe_error(exc)
-                if failed_event is not None:
-                    self.dropped_events += 1
-                    stream_name = str(failed_event.get("source") or "writer")
-                    self.dropped_by_stream[stream_name] = self.dropped_by_stream.get(stream_name, 0) + 1
-                    self._record_gap(stream_name, "WRITER_ERROR")
+                if failed_events:
+                    failed_by_stream: dict[str, int] = {}
+                    for failed_event in failed_events:
+                        stream_name = str(failed_event.get("source") or "writer")
+                        failed_by_stream[stream_name] = failed_by_stream.get(stream_name, 0) + 1
+                    self.dropped_events += len(failed_events)
+                    for stream_name, count in failed_by_stream.items():
+                        self.dropped_by_stream[stream_name] = (
+                            self.dropped_by_stream.get(stream_name, 0) + count
+                        )
+                        self._record_gap(stream_name, "WRITER_ERROR", count=count)
                 for item in failed_gaps:
                     self._record_gap(
                         str(item["source"]), str(item["reason"]),
@@ -2334,6 +2390,9 @@ class MicrostructureObserver:
                 "snapshotsRows": self.store.counts["snapshots"],
                 "liquidityRows": self.store.counts["liquidity"],
                 "gapRows": self.store.counts["gaps"],
+                "runtimeProfile": RUNTIME_PROFILE,
+                "rawEventArchiveEnabled": RAW_EVENT_ARCHIVE_ENABLED,
+                "liquidityEventArchiveEnabled": LIQUIDITY_EVENT_ARCHIVE_ENABLED,
                 "rawRetentionHours": RAW_RETENTION_HOURS,
                 "snapshotRetentionHours": SNAPSHOT_RETENTION_HOURS,
                 "liquidityRetentionHours": LIQUIDITY_RETENTION_HOURS,

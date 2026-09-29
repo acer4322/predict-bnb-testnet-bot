@@ -1,0 +1,1637 @@
+{
+  "classification_unit": "A directive or tightly related clause group. Line ranges refer to BEFORE source bytes. Explicit ranges override each source default; source defaults classify remaining historical/non-instruction prose. Archived packages are classified in full as reference, not promoted to current authority.",
+  "scope": "45 repository instruction/reference sources plus 2 relevant external memory skills. No registered project SKILL.md, override, Cursor/Claude/Copilot instructions found outside vendor/generated exclusions. Host/global skills and memory are read-only and outside repository write scope.",
+  "source_defaults": {
+    "AGENTS.md": "obsolete/redundant",
+    "data/research/multi_chat_coordination_v1/AGENTS.md": "historical/reference",
+    "SOUL.md": "historical/reference",
+    "USER.md": "historical/reference",
+    "IDENTITY.md": "historical/reference",
+    "TOOLS.md": "historical/reference",
+    "HEARTBEAT.md": "historical/reference",
+    "BTC5M_CODEX_RESEARCH_HANDOFF.md": "historical/reference",
+    "BTC5M_PROJECT_HANDOFF.md": "historical/reference",
+    "BTC5M_LAN_WORKER_V1.md": "historical/reference",
+    "SECOND_PC_DISPATCH_LOCK_20260830.md": "historical/reference",
+    "BTC5M_LAB_GPT6_MONTH_MASTER_HANDOFF_LAUNCHER_20260910.md": "historical/reference",
+    "README_協作方案.md": "historical/reference",
+    "核對來源與版本落差.md": "historical/reference",
+    "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md": "historical/reference",
+    "PROMPT_00_總控_整合.md": "historical/reference",
+    "PROMPT_A_目標機理_經濟教學.md": "historical/reference",
+    "PROMPT_B_原生執行_主被動協作.md": "historical/reference",
+    "PROMPT_C_完整學生_狀態記憶.md": "historical/reference",
+    "PROMPT_D_資料_獨立驗收.md": "historical/reference",
+    "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_D_資料_獨立驗收.md": "historical/reference",
+    "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_C_完整學生_狀態記憶.md": "historical/reference",
+    "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_B_原生執行_主被動協作.md": "historical/reference",
+    "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_A_目標機理_經濟教學.md": "historical/reference",
+    "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_00_總控_整合.md": "historical/reference",
+    "data/research/r4_v0/PARALLEL_LANE_D_TARGET_TEACHER_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/PARALLEL_LANE_C_EXECUTION_CERTAINTY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/PARALLEL_LANE_B_PROTECTION_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_favorable_structure_decomposition_v1_20260906/10_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_favorable_structure_decomposition_v1_20260906/08_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_target_direction_persistence_v1_20260907/10_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_target_direction_persistence_v1_20260907/08_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_target_direction_confidence_sources_v1_20260907/08_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/BTC5M_V12_TO_R54_HANDOFF_20260919/source_snapshots/S0347_AGENTS.md": "historical/reference",
+    "data/research/r4_v0/gpt6_resource_service_round3_b_policy_challenge_v1_20260906/04_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_ms4_marginal_expand_value_pack_v2_20260906/07_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_target_our_system_synthesis_challenge_v1_20260906/10_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_three_failure_system_challenge_v1_20260906/evidence_round2/15_GPT6_ROUND2_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/gpt6_three_failure_system_challenge_v1_20260906/07_GPT6_ENTRY_PROMPT.md": "historical/reference",
+    "data/research/r4_v0/p0_provenance_v1/GPT6_DETAIL_INTELLIGENCE_PACKAGE_V1_LAUNCH_PROMPT_20260905.md": "historical/reference",
+    "data/research/multi_chat_coordination_v1/bundle/PROMPT_D_資料_獨立驗收.md": "historical/reference",
+    "data/research/multi_chat_coordination_v1/bundle/PROMPT_C_完整學生_狀態記憶.md": "historical/reference",
+    "data/research/multi_chat_coordination_v1/bundle/PROMPT_B_原生執行_主被動協作.md": "historical/reference",
+    "data/research/multi_chat_coordination_v1/bundle/PROMPT_A_目標機理_經濟教學.md": "historical/reference",
+    "data/research/multi_chat_coordination_v1/bundle/PROMPT_00_總控_整合.md": "historical/reference"
+  },
+  "entries": [
+    {
+      "source": "AGENTS.md",
+      "start": 3,
+      "end": 3,
+      "classification": "obsolete/redundant",
+      "instruction": "Workspace personification",
+      "resolution": "Remove; no project constraint."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 7,
+      "end": 7,
+      "classification": "obsolete/redundant",
+      "instruction": "First-run identity/bootstrap and deletion",
+      "resolution": "Remove OpenClaw onboarding; no BOOTSTRAP file found; no deletion performed."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 11,
+      "end": 17,
+      "classification": "invariant",
+      "instruction": "Reuse supplied startup context; reread only for missing detail or user request",
+      "resolution": "Keep one root reuse/routing sentence; remove the generic memory/persona file roster."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 21,
+      "end": 24,
+      "classification": "historical/reference",
+      "instruction": "Daily/long-term memory layout",
+      "resolution": "Leave existing memory files untouched; not a Codex startup route."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 26,
+      "end": 26,
+      "classification": "conflicting",
+      "instruction": "Automatically capture decisions and potentially secrets",
+      "resolution": "Use task research artifacts for continuity; account/private data remains protected. No implicit memory write authority."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 30,
+      "end": 30,
+      "classification": "conditional",
+      "instruction": "Main-session-only private memory reading",
+      "resolution": "Host memory policy governs; no new repository memory-loading path."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 31,
+      "end": 33,
+      "classification": "conflicting",
+      "instruction": "Freely update/consolidate personal memory",
+      "resolution": "Remove; current host restricts memory writes to explicit user requests."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 37,
+      "end": 37,
+      "classification": "conflicting",
+      "instruction": "Read and concretely update memory files",
+      "resolution": "Remove automatic memory-maintenance workflow; current host governs authorized writes."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 39,
+      "end": 39,
+      "classification": "conditional",
+      "instruction": "Remember-this request triggers a memory update",
+      "resolution": "Handled by the current host memory workflow; do not duplicate a different path."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 40,
+      "end": 41,
+      "classification": "conflicting",
+      "instruction": "Autonomously rewrite AGENTS/TOOLS after lessons or mistakes",
+      "resolution": "Remove unconditional self-modification; record research results in scoped artifacts."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 45,
+      "end": 45,
+      "classification": "invariant",
+      "instruction": "Do not exfiltrate private data",
+      "resolution": "Retain project-specific account/credential/tape confidentiality."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 46,
+      "end": 46,
+      "classification": "conflicting",
+      "instruction": "Ask before every destructive command",
+      "resolution": "Preserve dirty/frozen data; authorization must cover destructive scope, not a mandatory repeated question when already authorized."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 47,
+      "end": 47,
+      "classification": "conditional",
+      "instruction": "Inspect and preserve configuration/schedulers before changing",
+      "resolution": "Root authorization boundary plus runtime.md."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 48,
+      "end": 48,
+      "classification": "obsolete/redundant",
+      "instruction": "Prefer trash over rm",
+      "resolution": "Remove POSIX command prescription in Windows; host filesystem safety and scoped preservation remain."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 49,
+      "end": 49,
+      "classification": "conflicting",
+      "instruction": "Ask whenever uncertain",
+      "resolution": "Remove blanket clarification trigger; resolve material scope/contract conflicts, otherwise use evidence and existing authorization."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 53,
+      "end": 53,
+      "classification": "conditional",
+      "instruction": "Preflight existing solutions, reject unsuitable options, no unapproved spend",
+      "resolution": "development.md for new subsystems/dependencies; remove mandatory web/plugin search on every routine edit."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 57,
+      "end": 57,
+      "classification": "obsolete/redundant",
+      "instruction": "Generic read/search/workspace/calendar permissions",
+      "resolution": "Remove generic capability checklist; does not authorize unrelated calendar access."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 59,
+      "end": 59,
+      "classification": "conflicting",
+      "instruction": "Ask for every external action/anything leaving machine",
+      "resolution": "Remove blanket network reapproval; preserve authorized scope and private data. No authority to message/publish to others."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 63,
+      "end": 63,
+      "classification": "obsolete/redundant",
+      "instruction": "Do not act as user proxy in groups",
+      "resolution": "Remove chat-platform scaffolding; host policy retains message authorization/privacy."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 67,
+      "end": 73,
+      "classification": "obsolete/redundant",
+      "instruction": "When to speak or stay silent; avoid triple responses",
+      "resolution": "Remove group-chat response heuristics."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 77,
+      "end": 77,
+      "classification": "obsolete/redundant",
+      "instruction": "Use emoji reactions at most once",
+      "resolution": "Remove social-platform behavior scaffolding."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 81,
+      "end": 81,
+      "classification": "conditional",
+      "instruction": "Load relevant skills and keep machine notes in TOOLS",
+      "resolution": "Host skill rules already apply; use relevant workflow routes, not blank/example TOOLS as machine authority."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 83,
+      "end": 83,
+      "classification": "obsolete/redundant",
+      "instruction": "Prefer sag voice storytelling",
+      "resolution": "Remove unrelated TTS recipe."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 85,
+      "end": 89,
+      "classification": "obsolete/redundant",
+      "instruction": "Discord and WhatsApp formatting rules",
+      "resolution": "Remove platform-specific formatting from trading repository."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 93,
+      "end": 95,
+      "classification": "conflicting",
+      "instruction": "Edit HEARTBEAT and choose scheduling from OpenClaw conventions",
+      "resolution": "Remove; a file is not Codex automation authority and this task changes no scheduler."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 97,
+      "end": 109,
+      "classification": "obsolete/redundant",
+      "instruction": "Unrequested email/calendar/weather checks and state JSON",
+      "resolution": "Remove proactive personal monitoring template."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 111,
+      "end": 113,
+      "classification": "obsolete/redundant",
+      "instruction": "Proactive contact/quiet-hour heuristics",
+      "resolution": "Remove; actual requested automations retain their own settings."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 115,
+      "end": 115,
+      "classification": "conflicting",
+      "instruction": "Unconditional proactive memory edits, commit and push",
+      "resolution": "Remove blanket authorization; task scope governs edits and external publication."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 119,
+      "end": 121,
+      "classification": "conflicting",
+      "instruction": "Scheduled memory consolidation and check-ins",
+      "resolution": "Remove unrelated automatic personal-memory workflow."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 125,
+      "end": 125,
+      "classification": "obsolete/redundant",
+      "instruction": "Evolve personality/conventions freely",
+      "resolution": "Remove generic self-evolution instruction."
+    },
+    {
+      "source": "AGENTS.md",
+      "start": 129,
+      "end": 131,
+      "classification": "historical/reference",
+      "instruction": "OpenClaw website-relative reference links",
+      "resolution": "Preserve original in audit archive; do not route from root."
+    },
+    {
+      "source": "SOUL.md",
+      "start": 3,
+      "end": 17,
+      "classification": "obsolete/redundant",
+      "instruction": "Persona, helpfulness, opinions, resourcefulness, respect",
+      "resolution": "Leave verbatim but unroute; Astra/host already provides behavior."
+    },
+    {
+      "source": "SOUL.md",
+      "start": 21,
+      "end": 21,
+      "classification": "obsolete/redundant",
+      "instruction": "Generic privacy reminder",
+      "resolution": "Covered by host and root project-specific privacy."
+    },
+    {
+      "source": "SOUL.md",
+      "start": 22,
+      "end": 24,
+      "classification": "conflicting",
+      "instruction": "Ask on any uncertain external act; group-chat/message quality",
+      "resolution": "Unroute; host authorization and messaging policy applies."
+    },
+    {
+      "source": "SOUL.md",
+      "start": 28,
+      "end": 28,
+      "classification": "obsolete/redundant",
+      "instruction": "Generic tone prescription",
+      "resolution": "Unroute; user/host style applies."
+    },
+    {
+      "source": "SOUL.md",
+      "start": 32,
+      "end": 38,
+      "classification": "conflicting",
+      "instruction": "Read/update memory and self-evolve every session",
+      "resolution": "Unroute; no automatic memory/self-edit authority."
+    },
+    {
+      "source": "SOUL.md",
+      "start": 42,
+      "end": 42,
+      "classification": "historical/reference",
+      "instruction": "OpenClaw personality link",
+      "resolution": "Unrouted reference."
+    },
+    {
+      "source": "USER.md",
+      "start": 3,
+      "end": 3,
+      "classification": "conflicting",
+      "instruction": "Continuously update user profile",
+      "resolution": "Unroute; host memory policy governs writes."
+    },
+    {
+      "source": "USER.md",
+      "start": 5,
+      "end": 13,
+      "classification": "historical/reference",
+      "instruction": "Blank profile fields and prompts to build context",
+      "resolution": "No actual user facts; retain untouched as a template."
+    },
+    {
+      "source": "USER.md",
+      "start": 17,
+      "end": 21,
+      "classification": "obsolete/redundant",
+      "instruction": "Respect user and generic external workspace link",
+      "resolution": "Not a current project workflow."
+    },
+    {
+      "source": "IDENTITY.md",
+      "start": 3,
+      "end": 18,
+      "classification": "obsolete/redundant",
+      "instruction": "Invent identity/avatar at first conversation",
+      "resolution": "Unroute unused onboarding."
+    },
+    {
+      "source": "IDENTITY.md",
+      "start": 22,
+      "end": 25,
+      "classification": "historical/reference",
+      "instruction": "Identity file schema, avatar format and OpenClaw sync precedence",
+      "resolution": "Other-harness reference; no Codex identity/config edits."
+    },
+    {
+      "source": "IDENTITY.md",
+      "start": 29,
+      "end": 29,
+      "classification": "historical/reference",
+      "instruction": "OpenClaw workspace link",
+      "resolution": "Unrouted reference."
+    },
+    {
+      "source": "TOOLS.md",
+      "start": 3,
+      "end": 3,
+      "classification": "historical/reference",
+      "instruction": "Local note categories",
+      "resolution": "Unrouted template; actual worker info is in the runbook."
+    },
+    {
+      "source": "TOOLS.md",
+      "start": 7,
+      "end": 21,
+      "classification": "historical/reference",
+      "instruction": "Example cameras, SSH address and TTS voice",
+      "resolution": "Examples are not real project configuration; retained verbatim."
+    },
+    {
+      "source": "TOOLS.md",
+      "start": 25,
+      "end": 29,
+      "classification": "obsolete/redundant",
+      "instruction": "Generic shared-skill/local-note guidance and add-whatever prompt",
+      "resolution": "Remove from active reading path."
+    },
+    {
+      "source": "TOOLS.md",
+      "start": 33,
+      "end": 33,
+      "classification": "historical/reference",
+      "instruction": "OpenClaw workspace link",
+      "resolution": "Unrouted reference."
+    },
+    {
+      "source": "HEARTBEAT.md",
+      "start": 1,
+      "end": 5,
+      "classification": "historical/reference",
+      "instruction": "Comments-only heartbeat template and scheduling hints",
+      "resolution": "Unrouted; file and schedulers remain unchanged. Not proof of Codex automation state."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/AGENTS.md",
+      "start": 3,
+      "end": 3,
+      "classification": "conditional",
+      "instruction": "Read local CURRENT and WORKBOARD for coordination",
+      "resolution": "Retain unchanged, only in that workflow."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/AGENTS.md",
+      "start": 4,
+      "end": 5,
+      "classification": "conditional",
+      "instruction": "Only 00 writes shared state; lanes have isolated ownership",
+      "resolution": "Retain as genuine nested directory rules."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/AGENTS.md",
+      "start": 6,
+      "end": 7,
+      "classification": "conditional",
+      "instruction": "Bundled prompts are proposals; onboarding cannot dispatch/train/change production",
+      "resolution": "Retain unchanged; root has explicit subtree route for root-started tasks."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/AGENTS.md",
+      "start": 8,
+      "end": 8,
+      "classification": "conditional",
+      "instruction": "Evidence for task/model settings; unknown null",
+      "resolution": "Retain unchanged."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/AGENTS.md",
+      "start": 9,
+      "end": 9,
+      "classification": "conditional",
+      "instruction": "Separate component/native/economic evidence; preserve blocks",
+      "resolution": "Retain nested reminder; root/research rules cover general evidence."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 6,
+      "end": 6,
+      "classification": "conditional",
+      "instruction": "No project 30-minute limit; progress/failure based stopping",
+      "resolution": "research.md and worker.md retain; older memory timer is non-operative."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 9,
+      "end": 9,
+      "classification": "conditional",
+      "instruction": "Bounded queues, attach/dedup, artifact completion, timeout recovery",
+      "resolution": "worker.md; queue-specific details loaded only for multi-job work."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 14,
+      "end": 24,
+      "classification": "conflicting",
+      "instruction": "This dated file is current; default long read order and August references",
+      "resolution": "Replace active route with RESEARCH_CURRENT; keep historical file unchanged."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 26,
+      "end": 26,
+      "classification": "conditional",
+      "instruction": "Read producing artifact/tool for the selected subproblem",
+      "resolution": "research.md."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 30,
+      "end": 38,
+      "classification": "conditional",
+      "instruction": "Realistic HFT evidence; optimistic execution diagnostic only",
+      "resolution": "research.md; does not ban user-authorized microworld screening."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 182,
+      "end": 205,
+      "classification": "historical/reference",
+      "instruction": "Dated mainline, method bans, positive-OOS criterion and pivots",
+      "resolution": "Preserve scope-specific history; not universal current training policy."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 209,
+      "end": 211,
+      "classification": "invariant",
+      "instruction": "Strict-past inputs; offline Target/outcome labels",
+      "resolution": "Root causal boundary; research route labels oracle diagnostics."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 212,
+      "end": 218,
+      "classification": "conditional",
+      "instruction": "Execution-grade evidence, no research orders, frozen theory and sealed holdouts",
+      "resolution": "Root live/frozen boundaries and research.md holdout rules; no frozen rule rewritten."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 219,
+      "end": 219,
+      "classification": "obsolete/redundant",
+      "instruction": "Repeat duration override",
+      "resolution": "One workflow rule retained."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 223,
+      "end": 223,
+      "classification": "invariant",
+      "instruction": "Preserve dirty worktree and unrelated changes",
+      "resolution": "Root invariant."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 225,
+      "end": 225,
+      "classification": "historical/reference",
+      "instruction": "Preferred historical experiment output path",
+      "resolution": "Use selected current run directory; do not repoint old artifacts."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 229,
+      "end": 238,
+      "classification": "conditional",
+      "instruction": "Compact outcome/evidence/next-action report and duration reminder",
+      "resolution": "research.md; exact metrics remain protocol-specific."
+    },
+    {
+      "source": "BTC5M_CODEX_RESEARCH_HANDOFF.md",
+      "start": 240,
+      "end": 1974,
+      "classification": "historical/reference",
+      "instruction": "Accumulated results, evolving policies and dated follow-up research",
+      "resolution": "Search relevant sections only; preserve all original content/hashes. No blanket interpretation as current instructions."
+    },
+    {
+      "source": "SECOND_PC_DISPATCH_LOCK_20260830.md",
+      "start": 3,
+      "end": 8,
+      "classification": "historical/reference",
+      "instruction": "Past explicit dispatch authorization and its date",
+      "resolution": "Keep as authorization history; existing user authorization persists unless revoked."
+    },
+    {
+      "source": "SECOND_PC_DISPATCH_LOCK_20260830.md",
+      "start": 9,
+      "end": 9,
+      "classification": "conditional",
+      "instruction": "Main host lightweight; heavy work second PC",
+      "resolution": "worker.md."
+    },
+    {
+      "source": "SECOND_PC_DISPATCH_LOCK_20260830.md",
+      "start": 10,
+      "end": 10,
+      "classification": "conditional",
+      "instruction": "Revocation stops dispatch",
+      "resolution": "User direction governs, preserved."
+    },
+    {
+      "source": "SECOND_PC_DISPATCH_LOCK_20260830.md",
+      "start": 11,
+      "end": 11,
+      "classification": "conditional",
+      "instruction": "Strict-past, realistic evidence, deterministic protection and live boundary",
+      "resolution": "Retain appropriate current/frozen run scope; do not transplant historical strategy semantics."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 9,
+      "end": 24,
+      "classification": "historical/reference",
+      "instruction": "Documented worker identity/address/hardware/runtime",
+      "resolution": "worker.md retains identity baseline; fresh probe required, no permanent IP assumption."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 32,
+      "end": 46,
+      "classification": "historical/reference",
+      "instruction": "Dispatcher/agent implementation and storage layout",
+      "resolution": "Load relevant runbook section only for commands/paths."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 54,
+      "end": 68,
+      "classification": "historical/reference",
+      "instruction": "Generic resource defaults and runtime environment behavior",
+      "resolution": "Keep tool defaults unchanged; not evidence of live capacity."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 72,
+      "end": 72,
+      "classification": "conditional",
+      "instruction": "Stage/monitor; startup gates are not RAM quota",
+      "resolution": "worker.md capacity/stage/progress workflow."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 78,
+      "end": 87,
+      "classification": "conditional",
+      "instruction": "Bounded wake-up probe; strict host key; submit timeout is status-first",
+      "resolution": "worker.md; no repeated blind submit."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 88,
+      "end": 89,
+      "classification": "conflicting",
+      "instruction": "Old thread/parallel defaults versus current named-job envelope",
+      "resolution": "Current V49: one heavy job, four threads. Other queue profiles remain explicit and resource-scoped."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 91,
+      "end": 158,
+      "classification": "conditional",
+      "instruction": "Probe/smoke/submit/status/tail/cancel CLI examples",
+      "resolution": "Reference syntax only; example IDs do not authorize jobs."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 166,
+      "end": 166,
+      "classification": "conditional",
+      "instruction": "Worker research-only; live authority stays on main host; bounded copies",
+      "resolution": "worker.md."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 174,
+      "end": 202,
+      "classification": "conditional",
+      "instruction": "Local SSD staging and result collection",
+      "resolution": "worker.md; runbook for syntax."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 210,
+      "end": 234,
+      "classification": "historical/reference",
+      "instruction": "GPU command example, historical driver/framework state",
+      "resolution": "Verify only for an actual GPU workflow; no installation/change in this audit."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 240,
+      "end": 242,
+      "classification": "historical/reference",
+      "instruction": "Sleep guard and heartbeat implementation behavior",
+      "resolution": "Keep reference; distinguish runner liveness from progress in worker.md."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 244,
+      "end": 244,
+      "classification": "conditional",
+      "instruction": "Exact-job timeout checks; collect before successors; UTF-8 logs",
+      "resolution": "worker.md; do not duplicate collectors."
+    },
+    {
+      "source": "BTC5M_LAN_WORKER_V1.md",
+      "start": 246,
+      "end": 246,
+      "classification": "historical/reference",
+      "instruction": "Historical patch/rollback evidence",
+      "resolution": "Preserve untouched."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 3,
+      "end": 7,
+      "classification": "historical/reference",
+      "instruction": "Effective date, original broad scope and motivation",
+      "resolution": "Keep historical source; active router reconciles later task-specific constraints."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 10,
+      "end": 13,
+      "classification": "conditional",
+      "instruction": "Heavy second PC; pre-defined independent queues use wave",
+      "resolution": "worker.md, queue runbook only when multiple jobs actually exist."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 14,
+      "end": 14,
+      "classification": "conflicting",
+      "instruction": "Default max_parallel=4",
+      "resolution": "Current V49 envelope is one heavy job/four threads; fewer lanes already permitted by this clause."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 15,
+      "end": 16,
+      "classification": "conditional",
+      "instruction": "Collect/refill finished lanes; harvest existing jobs",
+      "resolution": "worker.md for real authorized queues."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 17,
+      "end": 19,
+      "classification": "conditional",
+      "instruction": "Attach existing job; validate artifact; timeout/status first",
+      "resolution": "worker.md."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 20,
+      "end": 21,
+      "classification": "conditional",
+      "instruction": "Pinned worker interpreter and compact UTF-8 output",
+      "resolution": "worker.md and unchanged dispatcher runbook."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 24,
+      "end": 26,
+      "classification": "conditional",
+      "instruction": "Continue already-defined work in-turn; no background promises",
+      "resolution": "worker.md; not authorization for unspecified research or scheduling."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 29,
+      "end": 33,
+      "classification": "conditional",
+      "instruction": "Artifact-first recovery before replacement",
+      "resolution": "research.md and worker.md."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 36,
+      "end": 41,
+      "classification": "conditional",
+      "instruction": "Strict-past, realistic claims, sealed cohorts and live separation",
+      "resolution": "Root and research.md."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 42,
+      "end": 42,
+      "classification": "conflicting",
+      "instruction": "Reinstate <=180 seconds new-exposure prohibition",
+      "resolution": "Not applicable to current user-authorized learning line: user explicitly rejected this strategy gate. Preserve frozen old experiment semantics only."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 43,
+      "end": 43,
+      "classification": "conditional",
+      "instruction": "No duplicate economic ownership across processes",
+      "resolution": "Root and worker.md."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 46,
+      "end": 50,
+      "classification": "historical/reference",
+      "instruction": "Dispatcher command capabilities",
+      "resolution": "Reference, inspect actual tool before use."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 52,
+      "end": 53,
+      "classification": "historical/reference",
+      "instruction": "Historical speedup observation",
+      "resolution": "Not a current throughput guarantee."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 55,
+      "end": 56,
+      "classification": "conflicting",
+      "instruction": "All future conversations must load the whole old contract",
+      "resolution": "Replace mandatory all-file reading with worker route; queue-specific contract still available."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 59,
+      "end": 69,
+      "classification": "conditional",
+      "instruction": "60-second progress audit, timeout is checkpoint, no between-turn monitoring promise",
+      "resolution": "worker.md."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 71,
+      "end": 72,
+      "classification": "conditional",
+      "instruction": "Check existing jobs before idle/stall claim",
+      "resolution": "worker.md."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 74,
+      "end": 79,
+      "classification": "conditional",
+      "instruction": "Wave progress artifact/postprocess and interruption attachment",
+      "resolution": "Keep queue-only reference; no extra collector setup in docs audit."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 81,
+      "end": 81,
+      "classification": "historical/reference",
+      "instruction": "Historical wave smoke evidence",
+      "resolution": "No transfer to current job success."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 84,
+      "end": 90,
+      "classification": "conditional",
+      "instruction": "Prepared/running/terminal state distinctions; authorized prepared jobs dispatch, existing jobs attach",
+      "resolution": "worker.md plus honest state reporting; no job requested by merely reading a proposal."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 92,
+      "end": 98,
+      "classification": "conditional",
+      "instruction": "Terminal recovery/reporting before unrelated analysis",
+      "resolution": "worker.md; avoid indefinite uncollected success."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 100,
+      "end": 108,
+      "classification": "conditional",
+      "instruction": "Existing auto-collector ownership, idempotent collection and reconcile",
+      "resolution": "Use existing tool behavior; do not add another watcher from a prose command."
+    },
+    {
+      "source": "data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "start": 110,
+      "end": 110,
+      "classification": "historical/reference",
+      "instruction": "Historical auto-collector self-test",
+      "resolution": "Reference only."
+    },
+    {
+      "source": "BTC5M_LAB_GPT6_MONTH_MASTER_HANDOFF_LAUNCHER_20260910.md",
+      "start": 6,
+      "end": 10,
+      "classification": "conditional",
+      "instruction": "Read small entry first; history only as needed",
+      "resolution": "research.md progressive disclosure; dated entry no longer default."
+    },
+    {
+      "source": "BTC5M_LAB_GPT6_MONTH_MASTER_HANDOFF_LAUNCHER_20260910.md",
+      "start": 12,
+      "end": 22,
+      "classification": "historical/reference",
+      "instruction": "Monthly history/registry/manifest pointers",
+      "resolution": "Keep narrow-search references."
+    },
+    {
+      "source": "BTC5M_LAB_GPT6_MONTH_MASTER_HANDOFF_LAUNCHER_20260910.md",
+      "start": 24,
+      "end": 45,
+      "classification": "historical/reference",
+      "instruction": "Dated diagnosis and prohibition on generic classifier training",
+      "resolution": "Scope-specific historical research, not current R68 policy."
+    },
+    {
+      "source": "BTC5M_LAB_GPT6_MONTH_MASTER_HANDOFF_LAUNCHER_20260910.md",
+      "start": 47,
+      "end": 56,
+      "classification": "conditional",
+      "instruction": "Bounded compute, protected live/fresh cohorts, bounded data reads",
+      "resolution": "Current root/research/worker routes retain needed controls; old Extreme setting is not changed."
+    },
+    {
+      "source": "BTC5M_LAB_GPT6_MONTH_MASTER_HANDOFF_LAUNCHER_20260910.md",
+      "start": 58,
+      "end": 59,
+      "classification": "conflicting",
+      "instruction": "5m bot launch instruction and dated current task",
+      "resolution": "Current research is local; no plugin dependency. Keep archived text unchanged."
+    },
+    {
+      "source": "README_協作方案.md",
+      "start": 1,
+      "end": 124,
+      "classification": "historical/reference",
+      "instruction": "September 11 proposed roles, setup, scope, duplicated boundaries and example workflows",
+      "resolution": "Reference only; existing coordination AGENTS/CURRENT/WORKBOARD govern actual selected coordination. No roles/jobs spawned by this refactor."
+    },
+    {
+      "source": "核對來源與版本落差.md",
+      "start": 1,
+      "end": 27,
+      "classification": "historical/reference",
+      "instruction": "Dated evidence/version reconciliation; proposed settings and boundaries",
+      "resolution": "Preserve historical claims; research.md retains evidence separation. It is not a runtime probe."
+    },
+    {
+      "source": "BTC5M_PROJECT_HANDOFF.md",
+      "start": 1,
+      "end": 1188,
+      "classification": "historical/reference",
+      "instruction": "Long chronological handoff with dated results and superseded instructions",
+      "resolution": "Leave exact file unchanged; only retrieve a relevant historical section, not a startup read."
+    },
+    {
+      "source": "PROMPT_00_總控_整合.md",
+      "start": 1,
+      "end": 1,
+      "classification": "conflicting",
+      "instruction": "5m bot plugin launch",
+      "resolution": "Historical proposal; current user explicitly uses local tools."
+    },
+    {
+      "source": "PROMPT_00_總控_整合.md",
+      "start": 2,
+      "end": 2,
+      "classification": "conditional",
+      "instruction": "Continue existing work; do not imply roles/jobs are running",
+      "resolution": "research.md and actual coordination state."
+    },
+    {
+      "source": "PROMPT_00_總控_整合.md",
+      "start": 4,
+      "end": 4,
+      "classification": "conditional",
+      "instruction": "Funding/venue/live/worker/smoke constraints for the named old role",
+      "resolution": "Scope-specific reference; current protocol owns sizing/funding, root/worker preserve physical/legal/live boundaries."
+    },
+    {
+      "source": "PROMPT_00_總控_整合.md",
+      "start": 6,
+      "end": 9,
+      "classification": "historical/reference",
+      "instruction": "Dated mandatory handoff read roster",
+      "resolution": "Do not load by default; actual selected line CURRENT controls."
+    },
+    {
+      "source": "PROMPT_00_總控_整合.md",
+      "start": 11,
+      "end": 11,
+      "classification": "historical/reference",
+      "instruction": "V3 status, actor architecture and consumed markets",
+      "resolution": "Frozen historical evidence, not current model architecture."
+    },
+    {
+      "source": "PROMPT_00_總控_整合.md",
+      "start": 13,
+      "end": 13,
+      "classification": "conditional",
+      "instruction": "Bounded data reads, exact job recovery, no safety bypass",
+      "resolution": "research.md and worker.md."
+    },
+    {
+      "source": "PROMPT_00_總控_整合.md",
+      "start": 15,
+      "end": 15,
+      "classification": "conditional",
+      "instruction": "Lane ownership and provenance-rich handoff",
+      "resolution": "Retained in coordination scope; no general requirement to create roles."
+    },
+    {
+      "source": "PROMPT_00_總控_整合.md",
+      "start": 17,
+      "end": 25,
+      "classification": "historical/reference",
+      "instruction": "Role-specific A/B/C/D/00 tasks, staged deliverables and proposed gates",
+      "resolution": "Historical assignment until explicitly selected; all clauses in this range remain reference, not independent action authority."
+    },
+    {
+      "source": "PROMPT_A_目標機理_經濟教學.md",
+      "start": 1,
+      "end": 1,
+      "classification": "conflicting",
+      "instruction": "5m bot plugin launch",
+      "resolution": "Historical proposal; current user explicitly uses local tools."
+    },
+    {
+      "source": "PROMPT_A_目標機理_經濟教學.md",
+      "start": 2,
+      "end": 2,
+      "classification": "conditional",
+      "instruction": "Continue existing work; do not imply roles/jobs are running",
+      "resolution": "research.md and actual coordination state."
+    },
+    {
+      "source": "PROMPT_A_目標機理_經濟教學.md",
+      "start": 4,
+      "end": 4,
+      "classification": "conditional",
+      "instruction": "Funding/venue/live/worker/smoke constraints for the named old role",
+      "resolution": "Scope-specific reference; current protocol owns sizing/funding, root/worker preserve physical/legal/live boundaries."
+    },
+    {
+      "source": "PROMPT_A_目標機理_經濟教學.md",
+      "start": 6,
+      "end": 9,
+      "classification": "historical/reference",
+      "instruction": "Dated mandatory handoff read roster",
+      "resolution": "Do not load by default; actual selected line CURRENT controls."
+    },
+    {
+      "source": "PROMPT_A_目標機理_經濟教學.md",
+      "start": 11,
+      "end": 11,
+      "classification": "historical/reference",
+      "instruction": "V3 status, actor architecture and consumed markets",
+      "resolution": "Frozen historical evidence, not current model architecture."
+    },
+    {
+      "source": "PROMPT_A_目標機理_經濟教學.md",
+      "start": 13,
+      "end": 13,
+      "classification": "conditional",
+      "instruction": "Bounded data reads, exact job recovery, no safety bypass",
+      "resolution": "research.md and worker.md."
+    },
+    {
+      "source": "PROMPT_A_目標機理_經濟教學.md",
+      "start": 15,
+      "end": 15,
+      "classification": "conditional",
+      "instruction": "Lane ownership and provenance-rich handoff",
+      "resolution": "Retained in coordination scope; no general requirement to create roles."
+    },
+    {
+      "source": "PROMPT_A_目標機理_經濟教學.md",
+      "start": 17,
+      "end": 27,
+      "classification": "historical/reference",
+      "instruction": "Role-specific A/B/C/D/00 tasks, staged deliverables and proposed gates",
+      "resolution": "Historical assignment until explicitly selected; all clauses in this range remain reference, not independent action authority."
+    },
+    {
+      "source": "PROMPT_B_原生執行_主被動協作.md",
+      "start": 1,
+      "end": 1,
+      "classification": "conflicting",
+      "instruction": "5m bot plugin launch",
+      "resolution": "Historical proposal; current user explicitly uses local tools."
+    },
+    {
+      "source": "PROMPT_B_原生執行_主被動協作.md",
+      "start": 2,
+      "end": 2,
+      "classification": "conditional",
+      "instruction": "Continue existing work; do not imply roles/jobs are running",
+      "resolution": "research.md and actual coordination state."
+    },
+    {
+      "source": "PROMPT_B_原生執行_主被動協作.md",
+      "start": 4,
+      "end": 4,
+      "classification": "conditional",
+      "instruction": "Funding/venue/live/worker/smoke constraints for the named old role",
+      "resolution": "Scope-specific reference; current protocol owns sizing/funding, root/worker preserve physical/legal/live boundaries."
+    },
+    {
+      "source": "PROMPT_B_原生執行_主被動協作.md",
+      "start": 6,
+      "end": 9,
+      "classification": "historical/reference",
+      "instruction": "Dated mandatory handoff read roster",
+      "resolution": "Do not load by default; actual selected line CURRENT controls."
+    },
+    {
+      "source": "PROMPT_B_原生執行_主被動協作.md",
+      "start": 11,
+      "end": 11,
+      "classification": "historical/reference",
+      "instruction": "V3 status, actor architecture and consumed markets",
+      "resolution": "Frozen historical evidence, not current model architecture."
+    },
+    {
+      "source": "PROMPT_B_原生執行_主被動協作.md",
+      "start": 13,
+      "end": 13,
+      "classification": "conditional",
+      "instruction": "Bounded data reads, exact job recovery, no safety bypass",
+      "resolution": "research.md and worker.md."
+    },
+    {
+      "source": "PROMPT_B_原生執行_主被動協作.md",
+      "start": 15,
+      "end": 15,
+      "classification": "conditional",
+      "instruction": "Lane ownership and provenance-rich handoff",
+      "resolution": "Retained in coordination scope; no general requirement to create roles."
+    },
+    {
+      "source": "PROMPT_B_原生執行_主被動協作.md",
+      "start": 17,
+      "end": 25,
+      "classification": "historical/reference",
+      "instruction": "Role-specific A/B/C/D/00 tasks, staged deliverables and proposed gates",
+      "resolution": "Historical assignment until explicitly selected; all clauses in this range remain reference, not independent action authority."
+    },
+    {
+      "source": "PROMPT_C_完整學生_狀態記憶.md",
+      "start": 1,
+      "end": 1,
+      "classification": "conflicting",
+      "instruction": "5m bot plugin launch",
+      "resolution": "Historical proposal; current user explicitly uses local tools."
+    },
+    {
+      "source": "PROMPT_C_完整學生_狀態記憶.md",
+      "start": 2,
+      "end": 2,
+      "classification": "conditional",
+      "instruction": "Continue existing work; do not imply roles/jobs are running",
+      "resolution": "research.md and actual coordination state."
+    },
+    {
+      "source": "PROMPT_C_完整學生_狀態記憶.md",
+      "start": 4,
+      "end": 4,
+      "classification": "conditional",
+      "instruction": "Funding/venue/live/worker/smoke constraints for the named old role",
+      "resolution": "Scope-specific reference; current protocol owns sizing/funding, root/worker preserve physical/legal/live boundaries."
+    },
+    {
+      "source": "PROMPT_C_完整學生_狀態記憶.md",
+      "start": 6,
+      "end": 9,
+      "classification": "historical/reference",
+      "instruction": "Dated mandatory handoff read roster",
+      "resolution": "Do not load by default; actual selected line CURRENT controls."
+    },
+    {
+      "source": "PROMPT_C_完整學生_狀態記憶.md",
+      "start": 11,
+      "end": 11,
+      "classification": "historical/reference",
+      "instruction": "V3 status, actor architecture and consumed markets",
+      "resolution": "Frozen historical evidence, not current model architecture."
+    },
+    {
+      "source": "PROMPT_C_完整學生_狀態記憶.md",
+      "start": 13,
+      "end": 13,
+      "classification": "conditional",
+      "instruction": "Bounded data reads, exact job recovery, no safety bypass",
+      "resolution": "research.md and worker.md."
+    },
+    {
+      "source": "PROMPT_C_完整學生_狀態記憶.md",
+      "start": 15,
+      "end": 15,
+      "classification": "conditional",
+      "instruction": "Lane ownership and provenance-rich handoff",
+      "resolution": "Retained in coordination scope; no general requirement to create roles."
+    },
+    {
+      "source": "PROMPT_C_完整學生_狀態記憶.md",
+      "start": 17,
+      "end": 27,
+      "classification": "historical/reference",
+      "instruction": "Role-specific A/B/C/D/00 tasks, staged deliverables and proposed gates",
+      "resolution": "Historical assignment until explicitly selected; all clauses in this range remain reference, not independent action authority."
+    },
+    {
+      "source": "PROMPT_D_資料_獨立驗收.md",
+      "start": 1,
+      "end": 1,
+      "classification": "conflicting",
+      "instruction": "5m bot plugin launch",
+      "resolution": "Historical proposal; current user explicitly uses local tools."
+    },
+    {
+      "source": "PROMPT_D_資料_獨立驗收.md",
+      "start": 2,
+      "end": 2,
+      "classification": "conditional",
+      "instruction": "Continue existing work; do not imply roles/jobs are running",
+      "resolution": "research.md and actual coordination state."
+    },
+    {
+      "source": "PROMPT_D_資料_獨立驗收.md",
+      "start": 4,
+      "end": 4,
+      "classification": "conditional",
+      "instruction": "Funding/venue/live/worker/smoke constraints for the named old role",
+      "resolution": "Scope-specific reference; current protocol owns sizing/funding, root/worker preserve physical/legal/live boundaries."
+    },
+    {
+      "source": "PROMPT_D_資料_獨立驗收.md",
+      "start": 6,
+      "end": 9,
+      "classification": "historical/reference",
+      "instruction": "Dated mandatory handoff read roster",
+      "resolution": "Do not load by default; actual selected line CURRENT controls."
+    },
+    {
+      "source": "PROMPT_D_資料_獨立驗收.md",
+      "start": 11,
+      "end": 11,
+      "classification": "historical/reference",
+      "instruction": "V3 status, actor architecture and consumed markets",
+      "resolution": "Frozen historical evidence, not current model architecture."
+    },
+    {
+      "source": "PROMPT_D_資料_獨立驗收.md",
+      "start": 13,
+      "end": 13,
+      "classification": "conditional",
+      "instruction": "Bounded data reads, exact job recovery, no safety bypass",
+      "resolution": "research.md and worker.md."
+    },
+    {
+      "source": "PROMPT_D_資料_獨立驗收.md",
+      "start": 15,
+      "end": 15,
+      "classification": "conditional",
+      "instruction": "Lane ownership and provenance-rich handoff",
+      "resolution": "Retained in coordination scope; no general requirement to create roles."
+    },
+    {
+      "source": "PROMPT_D_資料_獨立驗收.md",
+      "start": 17,
+      "end": 27,
+      "classification": "historical/reference",
+      "instruction": "Role-specific A/B/C/D/00 tasks, staged deliverables and proposed gates",
+      "resolution": "Historical assignment until explicitly selected; all clauses in this range remain reference, not independent action authority."
+    },
+    {
+      "source": "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_D_資料_獨立驗收.md",
+      "start": 1,
+      "end": 47,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_C_完整學生_狀態記憶.md",
+      "start": 1,
+      "end": 47,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_B_原生執行_主被動協作.md",
+      "start": 1,
+      "end": 45,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_A_目標機理_經濟教學.md",
+      "start": 1,
+      "end": 47,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "BTC5M_多對話協作啟動包_V2_含推理配置_20260911/PROMPT_00_總控_整合.md",
+      "start": 1,
+      "end": 45,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/PARALLEL_LANE_D_TARGET_TEACHER_PROMPT.md",
+      "start": 1,
+      "end": 21,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/PARALLEL_LANE_C_EXECUTION_CERTAINTY_PROMPT.md",
+      "start": 1,
+      "end": 20,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/PARALLEL_LANE_B_PROTECTION_PROMPT.md",
+      "start": 1,
+      "end": 20,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_favorable_structure_decomposition_v1_20260906/10_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 7,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_favorable_structure_decomposition_v1_20260906/08_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 36,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_target_direction_persistence_v1_20260907/10_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 7,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_target_direction_persistence_v1_20260907/08_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 46,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_target_direction_confidence_sources_v1_20260907/08_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 212,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/BTC5M_V12_TO_R54_HANDOFF_20260919/source_snapshots/S0347_AGENTS.md",
+      "start": 1,
+      "end": 131,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_resource_service_round3_b_policy_challenge_v1_20260906/04_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 27,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_ms4_marginal_expand_value_pack_v2_20260906/07_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 82,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_target_our_system_synthesis_challenge_v1_20260906/10_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 30,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_three_failure_system_challenge_v1_20260906/evidence_round2/15_GPT6_ROUND2_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 14,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/gpt6_three_failure_system_challenge_v1_20260906/07_GPT6_ENTRY_PROMPT.md",
+      "start": 1,
+      "end": 75,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/r4_v0/p0_provenance_v1/GPT6_DETAIL_INTELLIGENCE_PACKAGE_V1_LAUNCH_PROMPT_20260905.md",
+      "start": 1,
+      "end": 110,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/bundle/PROMPT_D_資料_獨立驗收.md",
+      "start": 1,
+      "end": 47,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/bundle/PROMPT_C_完整學生_狀態記憶.md",
+      "start": 1,
+      "end": 47,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/bundle/PROMPT_B_原生執行_主被動協作.md",
+      "start": 1,
+      "end": 45,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/bundle/PROMPT_A_目標機理_經濟教學.md",
+      "start": 1,
+      "end": 47,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "data/research/multi_chat_coordination_v1/bundle/PROMPT_00_總控_整合.md",
+      "start": 1,
+      "end": 45,
+      "classification": "historical/reference",
+      "instruction": "Archived entry prompt, role copy, compatibility pointer or snapshotted AGENTS",
+      "resolution": "Preserve exact bytes. All embedded read/role/compute/model directives apply only as historical reference unless the user explicitly selects that scoped workflow; no automatic startup route."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 1,
+      "end": 7,
+      "classification": "historical/reference",
+      "instruction": "External skill frontmatter, old allowed-tools and trigger metadata",
+      "resolution": "Outside repository and read-only; actual host tool/skill registration governs. New repo routes are not auto-registered skills."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 1,
+      "end": 7,
+      "classification": "historical/reference",
+      "instruction": "External skill frontmatter, old allowed-tools and trigger metadata",
+      "resolution": "Outside repository and read-only; actual host tool/skill registration governs. New repo routes are not auto-registered skills."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 13,
+      "end": 13,
+      "classification": "conditional",
+      "instruction": "Authorized named native/HFT only, no host heavy work or new-experiment authority",
+      "resolution": "worker.md; existing authorization sufficient."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 17,
+      "end": 17,
+      "classification": "conflicting",
+      "instruction": "Always read current, workboard and role bindings",
+      "resolution": "worker.md narrows coordination documents to actual coordination work."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 18,
+      "end": 19,
+      "classification": "conditional",
+      "instruction": "Named-job authorization, mainline/blocker and identity verification",
+      "resolution": "worker.md."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 23,
+      "end": 28,
+      "classification": "conditional",
+      "instruction": "Probe, existing status, stage/load-only, one job/four threads, timeout recovery, terminal audit",
+      "resolution": "worker.md preserves the sequence and evidence."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 32,
+      "end": 34,
+      "classification": "conditional",
+      "instruction": "Reuse handoff, compact output and stop for genuine preflight blockers",
+      "resolution": "worker.md."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 38,
+      "end": 39,
+      "classification": "obsolete/redundant",
+      "instruction": "Repeated timeout and ended runner-error advice",
+      "resolution": "Consolidated once in worker.md."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 40,
+      "end": 40,
+      "classification": "historical/reference",
+      "instruction": "C4 overlay example",
+      "resolution": "Historical component-only evidence; not a promotion claim."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 41,
+      "end": 41,
+      "classification": "invariant",
+      "instruction": "Same-plan cancellation is not terminal release",
+      "resolution": "Root pending/ownership invariant; diagnostic details remain external reference."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 45,
+      "end": 47,
+      "classification": "obsolete/redundant",
+      "instruction": "Repeated identity/submission/accounting checklist",
+      "resolution": "Consolidated worker procedure."
+    },
+    {
+      "source": "external:btc5m-worker-dispatch",
+      "start": 48,
+      "end": 48,
+      "classification": "conditional",
+      "instruction": "Preserve native failure frame/receipt prefix/source index before repair",
+      "resolution": "worker.md. External skill itself unchanged."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 13,
+      "end": 13,
+      "classification": "conditional",
+      "instruction": "Only authorized changes requiring restart; never enable unknown trading state",
+      "resolution": "runtime.md."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 17,
+      "end": 19,
+      "classification": "conditional",
+      "instruction": "Verify scope and capture real pre-restart enabled/armed/strategy/stake state",
+      "resolution": "runtime.md, no hardcoded root path requirement."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 23,
+      "end": 23,
+      "classification": "conditional",
+      "instruction": "Focused Python/dashboard validation",
+      "resolution": "development.md; affected package only, dashboard-v2 separately verified."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 24,
+      "end": 27,
+      "classification": "conditional",
+      "instruction": "Existing launcher, readiness and exact state parity; restore only prior authorization, no fake order",
+      "resolution": "runtime.md, launcher applies to its owning service only."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 31,
+      "end": 32,
+      "classification": "conditional",
+      "instruction": "Compact snapshots and narrow ledger endpoint",
+      "resolution": "runtime.md."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 33,
+      "end": 33,
+      "classification": "conditional",
+      "instruction": "Stop after relevant checks; distinguish baseline failure",
+      "resolution": "runtime.md and development.md."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 37,
+      "end": 40,
+      "classification": "obsolete/redundant",
+      "instruction": "Repeated pause/quote-access/stake/restart pitfalls",
+      "resolution": "Consolidated into runtime procedure; no safety rule lost."
+    },
+    {
+      "source": "external:preserve-live-runtime",
+      "start": 44,
+      "end": 47,
+      "classification": "obsolete/redundant",
+      "instruction": "Repeated health/state/quote-access verification checklist",
+      "resolution": "Consolidated into runtime procedure. External skill unchanged."
+    }
+  ]
+}

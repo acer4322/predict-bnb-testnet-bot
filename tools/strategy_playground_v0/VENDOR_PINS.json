@@ -1,0 +1,12 @@
+{
+  "source": "data\\research\\v49_incremental_cycle_value_micro_20260921_r78",
+  "files": {
+    "base_kernel.py": "4a07f510758a7b6d0503c113a92181b39eff1caac2b082b17a017324370cb762",
+    "r58_kernel.py": "4a4684d0e68bf89c4f87000c3ed81b07032db92b0968fd91050f67bade2b4825",
+    "r59_kernel.py": "83722abec79a5d816c594d54ca53f6d64918a800fe834b1632ad8f289354fae0",
+    "r60_kernel.py": "ce6527ee93242d0d63f7d5edd647828527838bb60d94c147e34cdee80395d8a3",
+    "kernel.py": "930b914cfb81d7485e1ffe442a5480f31f455572a81ab7f2fbfe47d17c1f0ce3",
+    "grid_encoding.py": "fac4c9a509db55a6b6dd609628d46159f877fe0360ff00064d9700b78090a128"
+  },
+  "roots_sha256": "6c0b31d4635f3fde310183a18d961640514169209e7b248b33160b9a0c15c915"
+}

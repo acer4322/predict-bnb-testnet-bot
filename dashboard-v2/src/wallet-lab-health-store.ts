@@ -11,6 +11,15 @@ const blank = (): ServiceSnapshot => ({
   latencyMs: null,
 })
 
+const retired8777 = (): ServiceSnapshot => ({
+  ok: true,
+  loading: false,
+  data: { status: 'RETIRED', retired: true, dataCollectionEnabled: false, replacement: '8776 Target Wallet Official V2' },
+  error: null,
+  updatedAt: Date.now(),
+  latencyMs: 0,
+})
+
 function unwrap(value: unknown): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value
   const record = value as Record<string, unknown>
@@ -55,20 +64,19 @@ async function read(url: string, previous: ServiceSnapshot): Promise<ServiceSnap
 
 export const useWalletLabHealthStore = create<WalletLabHealthStore>((set, get) => ({
   observer8776: blank(),
-  collector8777: blank(),
+  collector8777: retired8777(),
   makerBook8778: blank(),
   makerBookEth8779: blank(),
   refresh: async () => {
     if (refreshInFlight) return refreshInFlight
     refreshInFlight = (async () => {
       const previous = get()
-      const [observer8776, collector8777, makerBook8778, makerBookEth8779] = await Promise.all([
+      const [observer8776, makerBook8778, makerBookEth8779] = await Promise.all([
         read('/bridge/wallet-shadow-health', previous.observer8776),
-        read('/bridge/wallet-taker-signals', previous.collector8777),
         read('/bridge/wallet-maker-book-inference', previous.makerBook8778),
         read('/bridge/wallet-maker-book-inference-eth5m', previous.makerBookEth8779),
       ])
-      set({ observer8776, collector8777, makerBook8778, makerBookEth8779 })
+      set({ observer8776, collector8777: retired8777(), makerBook8778, makerBookEth8779 })
     })()
     try {
       await refreshInFlight

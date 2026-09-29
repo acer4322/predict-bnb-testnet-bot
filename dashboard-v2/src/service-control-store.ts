@@ -33,6 +33,8 @@ export type ManagedServiceStatus = {
     armed?: boolean
     runtimeStatus?: string | null
     version?: string | null
+    sourceReady?: boolean
+    sourceWaitReason?: string | null
   } | null
   ports: ServicePortStatus[]
 }

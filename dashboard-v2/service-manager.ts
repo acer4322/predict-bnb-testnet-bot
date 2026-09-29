@@ -134,7 +134,7 @@ const SERVICES: ServiceDefinition[] = [
   {
     id: 'targetTaker',
     label: 'EBM Target Taker Producer',
-    description: '8776 v4.23 intent producer + 8777 public signal collector. Producer remains paper-only.',
+    description: '8776 Target Wallet Official V2 truth collector. 8777 retired and removed.',
     mode: 'script',
     members: [
       {
@@ -143,17 +143,10 @@ const SERVICES: ServiceDefinition[] = [
         healthPath: '/health',
         expectedProcessToken: 'predict_wallet_shadow_observer_v4_23',
       },
-      {
-        port: 8777,
-        label: 'Taker signal collector',
-        healthPath: '/state',
-        expectedProcessToken: 'predict_wallet_taker_signal_collector',
-      },
     ],
     script: 'start-target-taker-echtgeld-producer-v1.ps1',
     legacyPidFiles: [
       { file: '.target-taker-echtgeld-producer.pid', expectedProcessToken: 'predict_wallet_shadow_observer_v4_23' },
-      { file: '.target-taker-echtgeld-signal.pid', expectedProcessToken: 'predict_wallet_taker_signal_collector' },
     ],
     safetyNote: 'Target wallet events never trigger Echtgeld orders; this service only emits localhost TradeIntent events.',
   },
@@ -194,6 +187,28 @@ const SERVICES: ServiceDefinition[] = [
     legacyPidFiles: [{ file: '.wallet-shadow-lab-maker-book-eth5m.pid', expectedProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_eth5m' }],
   },
   {
+    id: 'makerInferenceBnb',
+    label: 'Maker Book Inference · BNB 5M',
+    description: '8788 forward-only BNB 5M compressed full-book / lifecycle / Execution Tape collector.',
+    mode: 'direct',
+    members: [{ port: 8788, label: 'Maker book inference BNB 5M', healthPath: '/health', expectedProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_bnb5m' }],
+    rootProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_bnb5m',
+    command: 'python',
+    args: ['-m', 'predict_bot.predict_wallet_maker_book_inference_collector_bnb5m'],
+    legacyPidFiles: [{ file: '.target-bnb5m-maker-book.pid', expectedProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_bnb5m' }],
+  },
+  {
+    id: 'publicResearchBnb',
+    label: 'Public Fair Value · BNB 5M',
+    description: '8797 target-blind compact BNB public fair-value archive; 500ms snapshots, no raw websocket persistence.',
+    mode: 'direct',
+    members: [{ port: 8797, label: 'BNB public fair-value archive', healthPath: '/health', expectedProcessToken: 'predict_bot.public_research_archive_bnb5m_v1' }],
+    rootProcessToken: 'predict_bot.public_research_archive_bnb5m_v1',
+    command: 'python',
+    args: ['-m', 'predict_bot.public_research_archive_bnb5m_v1'],
+    legacyPidFiles: [{ file: '.target-bnb5m-public.pid', expectedProcessToken: 'predict_bot.public_research_archive_bnb5m_v1' }],
+  },
+  {
     id: 'echtgeld',
     label: 'Echtgeld Engine',
     description: 'Independent 8781 execution engine. A newly started engine must remain PAUSED/DISARMED.',
@@ -215,12 +230,12 @@ const SERVICES: ServiceDefinition[] = [
 const GROUPS: Record<string, { label: string; start: string[]; stop: string[] }> = {
   core: { label: 'Core', start: ['core'], stop: ['core'] },
   market: { label: 'Market Stack', start: ['core', 'multi', 'predict'], stop: ['predict', 'multi', 'core'] },
-  research: { label: 'Maker Research', start: ['predict', 'makerInference', 'makerInferenceEth'], stop: ['makerInferenceEth', 'makerInference', 'predict'] },
+  research: { label: 'Maker Research', start: ['predict', 'makerInference', 'makerInferenceEth', 'makerInferenceBnb', 'publicResearchBnb'], stop: ['publicResearchBnb', 'makerInferenceBnb', 'makerInferenceEth', 'makerInference', 'predict'] },
   ebm: { label: 'EBM Echtgeld Stack', start: ['predict', 'targetTaker', 'echtgeld'], stop: ['echtgeld', 'targetTaker', 'predict'] },
   all: {
     label: 'All Managed Services',
-    start: ['core', 'multi', 'predict', 'makerInference', 'makerInferenceEth', 'targetTaker', 'echtgeld'],
-    stop: ['echtgeld', 'targetTaker', 'makerInferenceEth', 'makerInference', 'predict', 'multi', 'core'],
+    start: ['core', 'multi', 'predict', 'makerInference', 'makerInferenceEth', 'makerInferenceBnb', 'publicResearchBnb', 'targetTaker', 'echtgeld'],
+    stop: ['echtgeld', 'targetTaker', 'publicResearchBnb', 'makerInferenceBnb', 'makerInferenceEth', 'makerInference', 'predict', 'multi', 'core'],
   },
 }
 

@@ -1,0 +1,26 @@
+{
+  "status": "PASS_LOCAL_SETUP_NOT_CONNECTED",
+  "verified": [
+    "CLI version and help",
+    "Official model ID documented",
+    "No-login blocks dispatch",
+    "No task state changed on blocked dispatch"
+  ],
+  "unverified": [
+    "Authenticated model roundtrip",
+    "Actual Opus5.5 model identity",
+    "Resume",
+    "Desktop display",
+    "Research execution"
+  ],
+  "research_jobs_submitted": 0,
+  "model_requests_sent": 0,
+  "live_changes": 0,
+  "files_sha256": {
+    "tools\\claude_collaboration_bridge.py": "afa69850d482e2a32a2f0be144c91e2cb070726401ceb1408840f77424767d51",
+    "docs\\collaboration\\codex_claude\\README_ZH.md": "b45fe10f1247589b7e07cefcc4a023fb19eac113fdb664176a289ca9ae432419",
+    "docs\\collaboration\\codex_claude\\TASK_001.md": "c9fa17ca20e6f5935a7c0dcf87470d83267e5de97d729a9a56347a7eda261e1a",
+    "docs\\collaboration\\codex_claude\\CLAUDE_BOOTSTRAP.txt": "7e2c1aaa6700a6a26586c319cfa066e053e0181420671e16df033147838958bf",
+    "docs\\collaboration\\codex_claude\\CURRENT.json": "42a7af3492733eec6455cedcc6228a8503df7d97a06e6bee5f515496c0e24aee"
+  }
+}

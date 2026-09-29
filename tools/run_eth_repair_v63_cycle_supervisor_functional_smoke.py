@@ -1,0 +1,79 @@
+from __future__ import annotations
+import argparse,json,tempfile,zipfile,shutil,sys,threading,time,importlib.util,joblib,math
+from pathlib import Path
+ROOT=Path.cwd().resolve() if (Path.cwd()/'tools').exists() else Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
+def sib(name,file):
+ p=Path(__file__).with_name(file);s=importlib.util.spec_from_file_location(name,p);m=importlib.util.module_from_spec(s);sys.modules[name]=m;s.loader.exec_module(m);return m
+v62=sib('eth_v62_for_v63','run_eth_repair_v62_bound_residual_obligation_smoke.py');v53=v62.v53;v38=v62.v38;EPS=1e-9
+
+class V63CycleSupervisor(v62.V62BoundResidual):
+ def __init__(self,*a,**kw):
+  super().__init__(*a,**kw);self.v63Issued=set();self.v63Keys=set();self.v63Submits=0;self.v63FillSeen={};self.v63FillQty=0.;self.v63Events=[]
+ def _satisfied_by_passive(self,expand_key):
+  return any(e.get('event')=='RESIDUAL_SATISFIED' and e.get('expandKey')==expand_key and e.get('byRole')=='PASSIVE_REPAIR' for e in self.v62Events)
+ def _unresolved_cycle_expand(self,t):
+  self._refresh_carrier_ledger(t)
+  for k in self.v63Keys:
+   e=self.carrierLedger.get(k,{})
+   if float(e.get('submittedQty') or 0)-float(e.get('actualFilled') or 0)>EPS and not bool(e.get('terminalConfirmed')):return True
+  return False
+ def _maybe_reopen_cycle(self,t):
+  if int(self.capEnd)-int(t)<=180000:return
+  for k,ob in sorted(self.v62Obs.items(),key=lambda z:z[1]['expandT']):
+   if ob.get('state')!='SATISFIED' or k in self.v63Issued or not self._satisfied_by_passive(k):continue
+   if self._unresolved_cycle_expand(t):return
+   th=getattr(self,'thesis',None);side=th.get('side') if th else None
+   if side not in ('UP','DOWN'):return
+   qv=v38.v36.v34.v30.v1.quotes(self.book)
+   if not qv or qv.get(side,{}).get('bid') is None:return
+   px=float(qv[side]['bid']);qty=1.0/px if px>EPS else math.inf
+   if px<=EPS or not math.isfinite(qty) or qty>12.+EPS:return
+   oid=self._new_objective('EXPAND',side)['id'];n0=self.n;self._pendingAuthorizedRole='EXPAND';self._pendingAuthorizedObjectiveId=oid;self._pendingParentId=None;self._pendingLane='V63_CYCLE_SUPERVISOR';ok=self.submit(t,side,px,qty)
+   if ok:
+    nk=f'{side}_{n0}';self.v63Keys.add(nk);self.v63Issued.add(k);self.v63Submits+=1;self.v63Events.append({'t':int(t),'event':'CYCLE_REOPEN_EXPAND_SUBMIT','paidObligation':k,'key':nk,'side':side,'price':px,'qty':qty})
+   return
+ def _sync_v63_fills(self,t):
+  self._refresh_carrier_ledger(t)
+  for k in self.v63Keys:
+   cur=float(self.carrierLedger.get(k,{}).get('actualFilled') or 0.0);old=float(self.v63FillSeen.get(k,0.0))
+   if cur>old+EPS:
+    inc=cur-old;self.v63FillQty+=inc;self.v63Events.append({'t':int(t),'event':'CYCLE_REOPEN_EXPAND_FILL','key':k,'incQty':inc,'cumQty':cur})
+   self.v63FillSeen[k]=cur
+ def process(self,t):
+  super().process(t);self._sync_v63_fills(t);self._maybe_reopen_cycle(t)
+ def run_exam_v63(self,models,winner):
+  r=super().run_exam_v62(models,winner);self._sync_v63_fills(int(self.capEnd));ev=sorted(self.v53Fills,key=lambda x:(x['t'],x['key']));cs=self._cycle_stats(ev);counts={}
+  for x in ev:counts[x['role']]=counts.get(x['role'],0)+1
+  # Attribution: a V63 expansion is a generated strict round if PASSIVE_REPAIR precedes it and ACTIVE_REPAIR follows before next EXPAND.
+  generated_strict=0;generated_repaired=0
+  for i,x in enumerate(ev):
+   if x['key'] not in self.v63Keys or x['role'] not in ('PASSIVE_EXPAND','ACTIVE_EXPAND'):continue
+   pre=ev[:i];nxt=next((j for j in range(i+1,len(ev)) if ev[j]['role'] in ('PASSIVE_EXPAND','ACTIVE_EXPAND')),len(ev));post=ev[i+1:nxt]
+   if pre and pre[-1]['role']=='PASSIVE_REPAIR' and any(z['role']=='ACTIVE_REPAIR' for z in post):generated_strict+=1
+   if any(z['role'] in ('PASSIVE_REPAIR','ACTIVE_REPAIR') for z in post):generated_repaired+=1
+  r.update({'v63Submits':self.v63Submits,'v63FillQty':self.v63FillQty,'v63Keys':sorted(self.v63Keys),'v63Events':self.v63Events[:160],'v63RoleCounts':counts,'v63Rounds':cs['repairExpandRepairRounds'],'v63StrictRounds':cs['passiveRepairExpandActiveRepairRounds'],'v63GeneratedStrictRounds':generated_strict,'v63GeneratedExpandThenRepair':generated_repaired,'v63CompressedSequence':cs['compressedSequence'][:100]});return r
+
+def main():
+ ap=argparse.ArgumentParser()
+ for n in ['bundle','lifecycle-model','capability-model','dagger-cache','timing-model','economic-model','price-model','surplus-model','v44-model','v47-model','market-ids']:ap.add_argument('--'+n,required=True)
+ ap.add_argument('--output',required=True);a=ap.parse_args();tmp=Path(tempfile.mkdtemp(prefix='eth_v63_'));stop=threading.Event()
+ def hb():
+  while not stop.wait(10):print(json.dumps({'heartbeat':'V63','ts':time.time()}),flush=True)
+ threading.Thread(target=hb,daemon=True).start();print(json.dumps({'heartbeat':'V63_START'}),flush=True)
+ try:
+  zipfile.ZipFile(a.bundle).extractall(tmp);co=json.load(open(tmp/'cohort.json',encoding='utf-8'))['rows'];by={int(r['marketId']):r for r in co};models,life,cap,tim,econ,price,sur=v38.v36.v34.v30.load_runtime(a);t44=joblib.load(a.v44_model)['models']['EVENT_VALUE_NORM'];t47=joblib.load(a.v47_model)['models']['GENERATION_AWARE_NORM'];rows=[]
+  for mid in [int(x) for x in a.market_ids.split(',') if x.strip()]:
+   cr=by[mid];tape=tmp/'tapes'/f'{mid}.json.xz';b=v53.V53MultiCycleAudit(tape,'BOOK_IMBALANCE',models,life,0,0,capability=cap,timing=tim,economic=econ,price_envelope=price,surplus_value=sur,teacher=t44,genTeacher=t47)
+   try:br=b.run_exam_v53(models,cr['winner'])
+   finally:b.close()
+   c=V63CycleSupervisor(tape,'BOOK_IMBALANCE',models,life,0,0,capability=cap,timing=tim,economic=econ,price_envelope=price,surplus_value=sur,teacher=t44,genTeacher=t47)
+   try:rr=c.run_exam_v63(models,cr['winner'])
+   finally:c.close()
+   rows.append({'marketId':mid,'baseline':br,'candidate':rr});print(json.dumps({'marketId':mid,'cycleSubmits':rr['v63Submits'],'cycleFillQty':rr['v63FillQty'],'rounds':[br['repairExpandRepairRounds'],rr['v63Rounds']],'strict':[br['passiveRepairExpandActiveRepairRounds'],rr['v63StrictRounds']],'generatedStrict':rr['v63GeneratedStrictRounds'],'generatedRepaired':rr['v63GeneratedExpandThenRepair'],'roles':rr['v63RoleCounts']},ensure_ascii=False),flush=True)
+  def sm(side,k):return sum(float(x[side].get(k) or 0) for x in rows)
+  agg={'markets':len(rows),'cycleSubmits':int(sm('candidate','v63Submits')),'cycleFillQty':sm('candidate','v63FillQty'),'baselineRounds':int(sm('baseline','repairExpandRepairRounds')),'candidateRounds':int(sm('candidate','v63Rounds')),'roundGain':int(sm('candidate','v63Rounds')-sm('baseline','repairExpandRepairRounds')),'baselineStrict':int(sm('baseline','passiveRepairExpandActiveRepairRounds')),'candidateStrict':int(sm('candidate','v63StrictRounds')),'generatedStrict':int(sm('candidate','v63GeneratedStrictRounds')),'generatedRepaired':int(sm('candidate','v63GeneratedExpandThenRepair')),'markets2PlusRounds':sum(x['candidate']['v63Rounds']>=2 for x in rows),'truthMismatch':sm('candidate','authorizedSubmitWithTruthRoleMismatch'),'overOwned':sm('candidate','overOwnedSubmitViolations'),'repairDrift':sm('candidate','repairToExpandAtFirstFill'),'responsibilityOverfill':sm('candidate','v51ResponsibilityOverfill')}
+  gates={'cycleExpandActuallyFilled':agg['cycleFillQty']>EPS,'roundCountImproved':agg['roundGain']>0,'multiRoundExercised':agg['markets2PlusRounds']>0,'generatedCycleRepaired':agg['generatedRepaired']>0,'zeroTruthMismatch':agg['truthMismatch']==0,'zeroOverOwned':agg['overOwned']==0,'zeroRepairDrift':agg['repairDrift']==0,'zeroResponsibilityOverfill':agg['responsibilityOverfill']<=EPS}
+  out={'version':'ETH_REPAIR_V63_CYCLE_SUPERVISOR_FUNCTIONAL_SMOKE','researchOnly':True,'behaviorChange':True,'actionAuthority':'FUNCTIONAL_SMOKE_ONLY','aggregate':agg,'gates':gates,'functionalPass':all(gates.values()),'rows':rows,'boundary':['only PASSIVE_REPAIR-satisfied residual obligation can reopen same-thesis EXPAND','venue-min passive Maker expansion only','one unresolved V63 expansion at a time','<=180s no-new-exposure preserved','new expansion re-enters V62 residual obligation ledger','active remains V62 event-routed, never forced','small-scale only','no PnL/winner/threshold/qty/delay tuning','no H100/no 8781']};Path(a.output).write_text(json.dumps(out,indent=2),encoding='utf-8');print(json.dumps({'ok':True,'functionalPass':out['functionalPass'],'aggregate':agg,'gates':gates},ensure_ascii=False),flush=True)
+ finally:stop.set();shutil.rmtree(tmp,ignore_errors=True)
+if __name__=='__main__':main()

@@ -121,6 +121,7 @@ function Stop-VerifiedResearchListeners {
 }
 
 Save-WalletShadowWarmCache
+try { & (Join-Path $Root "stop-target-multitimeframe-collectors-v1.ps1") -Quiet } catch { if (-not $Quiet) { Write-Warning "Could not stop multi-timeframe Target collectors: $_" } }
 Stop-OwnedTree ".wallet-shadow-lab-web.pid" "Wallet Shadow Dashboard"
 Stop-VerifiedDashboardVite
 Stop-OwnedTree ".wallet-shadow-lab-observer.pid" "Wallet Shadow observer"

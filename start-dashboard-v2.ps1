@@ -56,10 +56,15 @@ function Get-DashboardV2WebStatus {
     try {
         $Process = Get-Process -Id $ListeningPid -ErrorAction Stop
         $ViteConfig = Get-Item (Join-Path $Dashboard "vite.config.ts") -ErrorAction Stop
-        $ServiceManager = Get-Item (Join-Path $Dashboard "service-manager.ts") -ErrorAction SilentlyContinue
+        $ControlFiles = @(
+            (Get-Item (Join-Path $Dashboard "service-manager-v2.ts") -ErrorAction SilentlyContinue),
+            (Get-Item (Join-Path $Dashboard "verified-service-control.ts") -ErrorAction SilentlyContinue)
+        ) | Where-Object { $_ }
         $NewestConfigWrite = $ViteConfig.LastWriteTimeUtc
-        if ($ServiceManager -and $ServiceManager.LastWriteTimeUtc -gt $NewestConfigWrite) {
-            $NewestConfigWrite = $ServiceManager.LastWriteTimeUtc
+        foreach ($ControlFile in $ControlFiles) {
+            if ($ControlFile.LastWriteTimeUtc -gt $NewestConfigWrite) {
+                $NewestConfigWrite = $ControlFile.LastWriteTimeUtc
+            }
         }
         if ($NewestConfigWrite -gt $Process.StartTime.ToUniversalTime()) {
             return @{
@@ -164,7 +169,7 @@ if (-not (Test-LocalService "http://127.0.0.1:4320" 3)) {
 Write-Host ""
 Write-Host "Dashboard V2 is ready: http://127.0.0.1:4320"
 Write-Host "Backend services are intentionally NOT required at Dashboard startup."
-Write-Host "Open Diagnostics / Services to start, stop, or restart managed services (8766-8781)."
+Write-Host "Open Diagnostics / Services to start, stop, or restart managed services, including Public Source 8783, Promoted Paper 8784, and Flash Sandbox 8785."
 Write-Host "Echtgeld 8781 remains PAUSED/DISARMED after process startup; Resume is still a separate action."
 
 if (-not $NoBrowser) {

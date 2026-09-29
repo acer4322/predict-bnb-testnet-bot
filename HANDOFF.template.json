@@ -1,0 +1,41 @@
+{
+  "task_id": "FILL_TASK_ID",
+  "lane": "A/B/C/D",
+  "status": "PROPOSED",
+  "input_revision": {
+    "coordination_revision": null,
+    "profile": null,
+    "runtime_sha256": null,
+    "policy_sha256": null,
+    "native_sha256": null,
+    "schema_revision": null,
+    "cohort_manifest_sha256": null
+  },
+  "question": "One specific claim this task can resolve.",
+  "change_scope": [],
+  "dependencies_consumed": [],
+  "jobs": [],
+  "job_state": "NOT_SUBMITTED",
+  "collection_state": "NOT_APPLICABLE",
+  "evidence_level": "DESIGN_ONLY",
+  "evidence_counts": {
+    "unique_markets": 0,
+    "native_attempts": 0,
+    "native_complete": 0,
+    "model_updates": 0,
+    "effective_actions": 0
+  },
+  "artifacts": [],
+  "result": "Do not equate command success, unit pass, native pass and economics.",
+  "limitations": [],
+  "regression_checks": [],
+  "contract_changes_requested": [],
+  "next_consumer": "COORDINATOR",
+  "next_action": "One bounded action.",
+  "no_claims": {
+    "native_from_unit_tests": true,
+    "profitability_from_imitation_metric": true,
+    "live_from_paper": true
+  },
+  "scope_not_an_authorization": "This template grants no tool, live-trading, market-access, or background execution authority."
+}

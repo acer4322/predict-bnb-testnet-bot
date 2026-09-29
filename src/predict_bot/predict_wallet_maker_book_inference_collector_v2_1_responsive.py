@@ -102,10 +102,14 @@ class ResponsiveMakerBookConsumableLifecycleCollector(impl.MakerBookConsumableLi
             },
             "lifecycleInference": {
                 "version": impl.VERSION,
-                "enabled": True,
+                "enabled": bool(getattr(self, "target_inference_enabled", True)),
                 "readOnly": True,
                 "consumableQuantityAllocation": True,
-                "status": "CACHED" if cache_ready else "WARMING_CACHE",
+                "status": (
+                    "CACHED" if getattr(self, "target_inference_enabled", True) and cache_ready else
+                    "WARMING_CACHE" if getattr(self, "target_inference_enabled", True) else
+                    "DISABLED_RAW_CAPTURE_ONLY"
+                ),
             },
             "lastError": last_error,
             "checkedAtMs": now,
@@ -124,8 +128,11 @@ class ResponsiveMakerBookConsumableLifecycleCollector(impl.MakerBookConsumableLi
                     "databaseBytes": self.db_path.stat().st_size if self.db_path.exists() else 0,
                     "snapshotCached": False,
                 },
-                "targetInference": {"status": "WARMING_SNAPSHOT_CACHE"},
-                "targetActivity": {"status": "WARMING_SNAPSHOT_CACHE"},
+                "targetInference": {
+                    "enabledThisRun": bool(getattr(self, "target_inference_enabled", True)),
+                    "status": "WARMING_SNAPSHOT_CACHE" if getattr(self, "target_inference_enabled", True) else "DISABLED_RAW_CAPTURE_ONLY",
+                },
+                "targetActivity": {"status": "WARMING_SNAPSHOT_CACHE" if getattr(self, "target_inference_enabled", True) else "OFFLINE_INFERENCE_SOURCE_PRESERVED"},
                 "lifecycleInferenceV2Retired": {
                     "status": "RETIRED_MANY_TO_ONE_EVIDENCE_REUSE",
                     "historicalTablesPreserved": True,
@@ -157,7 +164,15 @@ class ResponsiveMakerBookConsumableLifecycleCollector(impl.MakerBookConsumableLi
             payload = base.MakerBookInferenceCollector.snapshot(reader)
             payload["version"] = impl.VERSION if self.asset == "BTC" else payload.get("version")
             if self.asset == "BTC":
-                payload["lifecycleInference"] = impl.MakerBookConsumableLifecycleCollector._v21_snapshot(reader)
+                if getattr(self, "target_inference_enabled", True):
+                    payload["lifecycleInference"] = impl.MakerBookConsumableLifecycleCollector._v21_snapshot(reader)
+                else:
+                    payload["lifecycleInference"] = {
+                        "version": impl.VERSION,
+                        "enabled": False,
+                        "status": "DISABLED_RAW_CAPTURE_ONLY",
+                        "historicalTablesPreserved": True,
+                    }
                 payload["lifecycleInferenceV2Retired"] = {
                     "status": "RETIRED_MANY_TO_ONE_EVIDENCE_REUSE",
                     "historicalTablesPreserved": True,

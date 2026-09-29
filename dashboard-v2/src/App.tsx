@@ -14,6 +14,7 @@ import {
   Menu,
   Progress,
   Row,
+  Select,
   Space,
   Statistic,
   Table,
@@ -106,6 +107,7 @@ function useModel() {
   const polyGap = nestedState(services.polyGap.data)
   const crossOracle = services.crossOracle.data
   const multiMarket = services.multiMarket.data
+  const echtgeld = nestedState(services.echtgeld.data)
 
   const marketId = getPath(
     polyGap,
@@ -178,6 +180,7 @@ function useModel() {
     polyGap,
     crossOracle,
     multiMarket,
+    echtgeld,
     marketId,
     secondsLeft,
     polyUp,
@@ -259,22 +262,153 @@ function OverviewPage() {
 
 function LivePage() {
   const m = useModel()
-  const reentry = getPath(m.polyGap, 'reversalReentryV40')
-  const tpLock = getPath(m.polyGap, 'takeProfitMarketLockV42')
-  const source = getPath(m.polyGap, 'sourceFreshnessV41')
+  const refresh = useDashboardStore((state) => state.refresh)
+  const [controlToken, setControlToken] = useState<string | null>(null)
+  const [selectedSource, setSelectedSource] = useState('CAP100_8787')
+  const [busy, setBusy] = useState(false)
+  const [actionMessage, setActionMessage] = useState('')
+
+  const armed = Boolean(getPath(m.echtgeld, 'armed'))
+  const runtimeStatus = asText(getPath(m.echtgeld, 'runtimeStatus'), armed ? 'LIVE ARMED' : 'PAUSED')
+  const gateSource = asText(getPath(m.echtgeld, 'entrySourceGate.selectedSourceId'), '')
+  const execution = getPath(m.echtgeld, 'strategyExecution', 'cap100Execution')
+  const executionSource = asText(getPath(execution, 'sourceId'), gateSource || '未選擇來源')
+  const executionName = asText(getPath(execution, 'displayName'), executionSource === 'R3S_R31_8790' ? 'R3-S + R3.1 V1.1.3 WTP1 Continuous Gate Fix' : executionSource === 'R2_R21_8789' ? 'R2 + R2.1 V3.5.2 Autonomous Reassess + Audit Fix' : executionSource === 'CAP100_8787' ? 'CAP100 Frozen Controller' : executionSource)
+  const heartbeatAge = asNumber(getPath(execution, 'heartbeatAgeMs'))
+  const activeOrdersRaw = getPath(execution, 'activeOrders')
+  const activeOrders = Array.isArray(activeOrdersRaw) ? activeOrdersRaw.length : 0
+  const unknownFrozen = Boolean(getPath(execution, 'entryWriteFrozen'))
+  const latestExam = getPath(m.echtgeld, 'cap100PreflightStressExam.latest.report', 'cap100PreflightStressExam.latest', 'cap100PreLiveStressExam.latest.report', 'cap100PreLiveStressExam.latest')
+  const examStatus = asText(getPath(latestExam, 'status'), '尚未執行')
+  const examGrade = asText(getPath(latestExam, 'safetyGrade', 'grade'), '—')
+  const examViolations = asNumber(getPath(latestExam, 'safety.violationCount', 'safetyViolations', 'violations'))
+  const examRecommendation = asText(getPath(latestExam, 'admissionRecommendation', 'recommendation'), '—')
+  const nextMarketGate = getPath(m.echtgeld, 'nextMarketArmGate')
+  const waitingNextMarket = Boolean(getPath(nextMarketGate, 'waitingNextMarket'))
+  const activationMarketId = getPath(nextMarketGate, 'activationMarketId')
+  const liveMarketId = getPath(nextMarketGate, 'liveMarketId')
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/control/session', { cache: 'no-store' })
+      .then(async (res) => {
+        const body = await res.json()
+        if (!res.ok || !body.token) throw new Error(body.error || 'control unavailable')
+        if (!cancelled) setControlToken(String(body.token))
+      })
+      .catch(() => { if (!cancelled) setControlToken(null) })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (gateSource) setSelectedSource(gateSource)
+  }, [gateSource])
+
+  async function controlPost(path: string, payload: Record<string, unknown>) {
+    if (!controlToken) throw new Error('只有 localhost 控制端可以修改 Echtgeld')
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-BTC-LAB-CONTROL': controlToken },
+      body: JSON.stringify(payload),
+    })
+    const body = await res.json()
+    if (!res.ok || body.ok === false) throw new Error(body.error || `HTTP ${res.status}`)
+    return body
+  }
+
+  async function chooseSource(sourceId: string | null) {
+    setBusy(true)
+    setActionMessage('套用中…')
+    try {
+      await controlPost('/control/echtgeld/entry-source', { sourceId })
+      await refresh()
+      const current = asText(getPath(useDashboardStore.getState().services.echtgeld.data, 'entrySourceGate.selectedSourceId'), '')
+      if ((sourceId || '') !== current) throw new Error(`8781 回讀不一致：預期 ${sourceId || 'BLOCK ALL'}，實際 ${current || 'BLOCK ALL'}`)
+      setActionMessage(sourceId ? `8781 已鎖定 ${sourceId}` : '8781 已 BLOCK ALL SOURCES')
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function setArmed(next: boolean) {
+    const label = next ? 'RESUME Echtgeld' : 'PAUSE Echtgeld'
+    if (!window.confirm(`${label}？\n目前來源：${gateSource || 'BLOCK ALL'}\nActive ${executionName} orders：${activeOrders}`)) return
+    setBusy(true)
+    setActionMessage(`${label} 中…`)
+    try {
+      await controlPost(next ? '/control/echtgeld/resume' : '/control/echtgeld/pause', next ? {} : { reason: 'dashboard-v2 operator' })
+      await refresh()
+      const currentGate = getPath(useDashboardStore.getState().services.echtgeld.data, 'nextMarketArmGate')
+      const waiting = Boolean(getPath(currentGate, 'waitingNextMarket'))
+      setActionMessage(next ? (waiting ? `8781 已 ARMED，等待下一輪市場；本輪 #${asText(getPath(currentGate, 'activationMarketId'))} 禁止開單` : '8781 已 LIVE ARMED') : '8781 已 PAUSED')
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
-      <PageHeading title="Echtgeld" subtitle="只顯示實單 engine 的狀態與持倉；V2 第一階段沒有任何寫入控制。" />
-      <Alert type="info" showIcon message="Dashboard V2 目前沒有 Runtime、Stake、Strategy、Manual SELL、Shotgun 或 Leader Guard 寫入按鈕。" />
+      <PageHeading title="Echtgeld" subtitle="UI BUILD ENTRY-SOURCE-V1 · 8781 實單引擎控制中心；來源選擇採 exclusive fail-closed，切換後會從 8781 回讀確認。" />
+
+      <Card
+        title={<Space><SafetyCertificateOutlined /> 8781 LIVE ENTRY SOURCE CONTROL</Space>}
+        extra={<Space><Tag color={armed ? 'error' : 'success'}>{runtimeStatus}</Tag><Tag color={gateSource ? 'processing' : 'error'}>{gateSource || 'BLOCK ALL SOURCES'}</Tag></Space>}
+        style={{ marginBottom: 12 }}
+      >
+        <Alert
+          type={['CAP100_8787','R2_R21_8789','R3S_R31_8790'].includes(gateSource) ? 'success' : gateSource ? 'warning' : 'error'}
+          showIcon
+          message={gateSource ? `目前只有 ${gateSource} 可以建立新的 Echtgeld position` : '目前所有新 Echtgeld entry 都被封鎖'}
+          description={waitingNextMarket ? `已按 RESUME，但本輪市場 #${asText(activationMarketId)} 仍禁止任何新 entry；8781 只會在下一輪 marketId 出現後才正式開放。` : '來源只能在 PAUSED 時切換；選定 controller 按 RESUME 後也不會立即開單，必須等下一輪市場。排隊後在真正 venue write 前 8781 仍會再次檢查。'}
+          style={{ marginBottom: 14 }}
+        />
+        <Row gutter={[12, 12]} align="bottom">
+          <Col xs={24} lg={10}>
+            <Text type="secondary">唯一 Entry Source · 8781</Text>
+            <Select
+              style={{ width: '100%', marginTop: 6 }}
+              value={selectedSource}
+              disabled={!controlToken || armed || busy}
+              onChange={setSelectedSource}
+              options={[
+                { value: 'CAP100_8787', label: '8787 · CAP100 Frozen Controller' },
+                { value: 'R2_R21_8789', label: '8789 · R2 + R2.1 V3.5.2 Autonomous Reassess + Audit Fix' },
+                { value: 'R3S_R31_8790', label: '8790 · R3-S + R3.1 V1.1.3 WTP1 Continuous Gate Fix · AQ2/SA2/SE1/PA2/ER2/TC1/WT1/MBF1/CGF1' },
+                { value: 'TARGET_TAKER_FORWARD', label: 'Target Taker Forward' },
+                { value: 'POLY_GAP_LIVE', label: 'Poly Gap Live' },
+                { value: 'POLY_PINNED_LIVE', label: 'Poly Pinned Live' },
+              ]}
+            />
+          </Col>
+          <Col xs={24} lg={14}>
+            <Space wrap>
+              <Button type="primary" disabled={!controlToken || armed || busy} loading={busy} onClick={() => void chooseSource(selectedSource)}>只允許此來源</Button>
+              <Button danger disabled={!controlToken || armed || busy} onClick={() => void chooseSource(null)}>BLOCK ALL SOURCES</Button>
+              <Button danger={armed} type={armed ? 'default' : 'primary'} disabled={!controlToken || busy || (!armed && !gateSource)} onClick={() => void setArmed(!armed)}>{armed ? 'PAUSE NEW ENTRY' : 'RESUME ECHTGELD'}</Button>
+            </Space>
+          </Col>
+        </Row>
+        <div style={{ marginTop: 10 }}><Text type={actionMessage.includes('不一致') || actionMessage.includes('Error') ? 'danger' : 'secondary'}>{controlToken ? actionMessage || 'LOCAL CONTROL READY' : 'VIEW ONLY：需從 localhost 開啟 Dashboard 才能操作'}</Text></div>
+      </Card>
+
       <Row gutter={[12, 12]} className="section-row">
-        <Col xs={24} md={8}><MetricCard title="Engine" value={asText(m.version)} detail={asText(m.status)} /></Col>
-        <Col xs={24} md={8}><MetricCard title="Position" value={asText(m.positionSide, 'FLAT')} detail={`${fmtPrice(m.shares, 4)} shares`} /></Col>
-        <Col xs={24} md={8}><MetricCard title="PnL" value={fmtMoney(m.pnl)} detail={`Entry ${fmtPrice(m.entry)}`} /></Col>
+        <Col xs={24} md={6}><MetricCard title="8781 Engine" value={runtimeStatus} detail={waitingNextMarket ? `等待下一輪 · anchor #${asText(activationMarketId)}` : asText(getPath(m.echtgeld, 'version'))} /></Col>
+        <Col xs={24} md={6}><MetricCard title={`${executionName} Heartbeat`} value={heartbeatAge === null ? '—' : `${Math.round(heartbeatAge)} ms`} detail={`${executionSource} · ${heartbeatAge !== null && heartbeatAge <= 3500 ? 'fresh' : 'STALE / unavailable'}`} /></Col>
+        <Col xs={24} md={6}><MetricCard title={`${executionName} Active Orders`} value={String(activeOrders)} detail={unknownFrozen ? 'ENTRY FROZEN · unknown write' : 'no unresolved venue-write freeze'} /></Col>
+        <Col xs={24} md={6}><MetricCard title="Pre-Live Exam" value={`${examStatus} · ${examGrade}`} detail={`${examViolations ?? '—'} violations · ${examRecommendation}`} /></Col>
       </Row>
+
+      {waitingNextMarket ? <Alert type="info" showIcon message="ARMED · WAIT NEXT MARKET" description={`目前市場 #${asText(activationMarketId)} 不會送任何新單；下一輪首次 entry request 才會解除 gate。Live market：${asText(liveMarketId, '尚未啟用')}`} style={{ marginBottom: 12 }} /> : null}
+
+      {unknownFrozen ? <Alert type="error" showIcon message={`${executionName} ENTRY WRITE FROZEN`} description="8781 有尚未確認的 venue-write 狀態；不得重新送單，必須先完成 reconciliation / manual review。" style={{ marginBottom: 12 }} /> : null}
+
       <Row gutter={[12, 12]}>
-        <Col xs={24} lg={8}><Card title="V40 Re-entry"><RawJson value={reentry ?? { status: 'not exposed' }} /></Card></Col>
-        <Col xs={24} lg={8}><Card title="V41/V43 Freshness"><RawJson value={source ?? { status: 'not exposed' }} /></Card></Col>
-        <Col xs={24} lg={8}><Card title="V42 TP Lock"><RawJson value={tpLock ?? { status: 'not exposed' }} /></Card></Col>
+        <Col xs={24} xl={12}><Card title={`${executionName} Execution`}><RawJson value={execution ?? { status: 'not exposed' }} /></Card></Col>
+        <Col xs={24} xl={12}><Card title="Entry Source Gate"><RawJson value={getPath(m.echtgeld, 'entrySourceGate') ?? { status: 'not exposed' }} /></Card></Col>
       </Row>
     </>
   )
@@ -369,6 +503,7 @@ function DiagnosticsPage() {
     ['8767 · cross-oracle', m.services.crossOracle, m.crossOracle],
     ['8769 · V44 live', m.services.polyGap, m.polyGap],
     ['8770 · multi-market', m.services.multiMarket, m.multiMarket],
+    ['8781 · Echtgeld', m.services.echtgeld, m.echtgeld],
   ]
   return (
     <>
@@ -470,6 +605,7 @@ function Shell() {
             <ServiceTag label="8767" service={services.crossOracle} />
             <ServiceTag label="8769" service={services.polyGap} />
             <ServiceTag label="8770" service={services.multiMarket} />
+            <ServiceTag label="8781" service={services.echtgeld} />
           </Space>
         </Header>
         <Content className="app-content">

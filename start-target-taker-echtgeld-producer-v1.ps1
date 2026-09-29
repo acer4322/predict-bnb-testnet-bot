@@ -94,27 +94,9 @@ if (-not (Test-LocalService "http://127.0.0.1:8771/state")) {
     Wait-LocalService "8771 Predict.fun observer" "http://127.0.0.1:8771/state" 45 (Join-Path $Data "target-official-predict.stderr.log")
 }
 
-# Temporary compatibility only: the current Dashboard service definition still
-# expects 8777 as a second member. New 8776 does not consume anything from 8777.
-if (-not (Test-LocalService "http://127.0.0.1:8777/state")) {
-    $Pid8777 = Get-ListeningProcessId 8777
-    if ($Pid8777) {
-        $Command = Get-ProcessCommandLine $Pid8777
-        if (-not $Command.ToLowerInvariant().Contains("predict_bot.predict_wallet_taker_signal_collector")) {
-            throw "Port 8777 is occupied by an unrecognized process. PID=$Pid8777 command=$Command"
-        }
-    }
-    else {
-        Write-Host "Target Official: starting temporary 8777 compatibility collector."
-        $Process = Start-Process -FilePath "python" `
-            -ArgumentList @("-m", "predict_bot.predict_wallet_taker_signal_collector") `
-            -WorkingDirectory $Root -WindowStyle Hidden `
-            -RedirectStandardOutput (Join-Path $Data "target-official-8777-compat.stdout.log") `
-            -RedirectStandardError (Join-Path $Data "target-official-8777-compat.stderr.log") -PassThru
-        $Process.Id | Set-Content (Join-Path $Root ".target-taker-echtgeld-signal.pid")
-    }
-    Wait-LocalService "8777 compatibility collector" "http://127.0.0.1:8777/state" 45 (Join-Path $Data "target-official-8777-compat.stderr.log")
-}
+# 8777 retired compatibility stub removed. Target Official V2 has no dependency on 8777.
+
+
 
 $Existing = Get-ListeningProcessId 8776
 if ($Existing) {
@@ -151,7 +133,7 @@ if ([bool]$Health.liveOrdersAffected -or [bool]$Health.strategyLogic) {
 }
 
 Write-Host "Target Wallet Official V2 is running on 8776."
-Write-Host "  BTC5M + ETH5M target fills = enabled"
+Write-Host "  BTC5M + ETH5M + BNB5M target fills = enabled"
 Write-Host "  Parent Orders / Inventory / Official Performance = enabled"
 Write-Host "  Legacy Target win/loss history = read-only display source"
 Write-Host "  DB = $($Health.dbPath)"

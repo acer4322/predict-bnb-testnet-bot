@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$NoBrowser
 )
 
@@ -50,7 +50,7 @@ if ($ListenerPid) {
     if ($Health -and [bool]$Health.armed) {
         throw "8781 is LIVE ARMED. Pause Echtgeld before migrating/restarting the engine. PID=$ListenerPid version=$($Health.version)"
     }
-    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with V19 ghost ENTRY_PENDING fix + restored 4310 state machine."
+    Write-Host "Replacing PAUSED/old Echtgeld engine PID=$ListenerPid with V29 next-complete-market-once + V28 CAP100 PnL/ledger bridge + V27 live replay recorder + V26 next-market arm gate."
     & taskkill.exe /PID $ListenerPid /T /F | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to stop old Echtgeld engine PID=$ListenerPid" }
     Start-Sleep -Milliseconds 500
@@ -59,7 +59,7 @@ if ($ListenerPid) {
 $Stdout = Join-Path $Data "echtgeld-engine-v2.stdout.log"
 $Stderr = Join-Path $Data "echtgeld-engine-v2.stderr.log"
 $Process = Start-Process -FilePath "python" `
-    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v19") `
+    -ArgumentList @("-m", "predict_bot.echtgeld_engine_v30") `
     -WorkingDirectory $Root -WindowStyle Hidden `
     -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr -PassThru
 $Process.Id | Set-Content (Join-Path $Root ".echtgeld-engine-v2.pid")
@@ -77,7 +77,46 @@ do {
 if (-not (Test-Health)) { throw "Echtgeld Engine did not become healthy on $Base. Check $Stderr" }
 
 $Health = Get-Json "$Base/health"
-if (-not ([string]$Health.version).Contains("GHOST_ENTRY_PENDING_FIX")) { throw "Unexpected Echtgeld version: $($Health.version)" }
+if ([string]$Health.version -ne "ECHTGELD_ENGINE_V30_R3S_R31_SOURCE_V1") { throw "Unexpected Echtgeld version: $($Health.version)" }
+if (-not [bool]$Health.cap100ExecutionAdapter) { throw "8781 CAP100 execution adapter is not enabled." }
+if (-not [bool]$Health.cap100SettlementAuthority) { throw "8781 CAP100 official settlement authority is not enabled." }
+if (-not [bool]$Health.cap100SettlementExplicitWinnerOnly) { throw "8781 CAP100 settlement must require explicit official winner evidence." }
+if (-not [bool]$Health.cap100SettlementFailClosed) { throw "8781 CAP100 settlement gap is not fail-closed." }
+if (-not [bool]$Health.cap100PnlStopLossBridge) { throw "8781 CAP100 PnL is not bridged into stop loss." }
+if (-not [bool]$Health.cap100DurableOrderProjection) { throw "8781 CAP100 durable order projection is missing." }
+if (-not [bool]$Health.cap100PermanentTradeMessageProjection) { throw "8781 CAP100 permanent trade message projection is missing." }
+if (-not [bool]$Health.cap100ResumeWaitsNextMarket) { throw "8781 CAP100 Resume does not wait for the next market." }
+if (-not [bool]$Health.cap100SameMarketEntryBlockedAfterResume) { throw "8781 does not hard-block same-market CAP100 entries after Resume." }
+if (-not [bool]$Health.cap100NextMarketGateEngineSide) { throw "8781 next-market activation gate is not enforced engine-side." }
+if (-not [bool]$Health.cap100SingleNextMarketRun) { throw "8781 one-complete-market run control is missing." }
+if (-not [bool]$Health.cap100SingleRunSecondMarketBlockedEngineSide) { throw "8781 one-market mode does not block second-market entries engine-side." }
+if (-not [bool]$Health.cap100SingleRunAutoPauseCancelsMaker) { throw "8781 one-market mode does not reuse pause Maker cancel-all." }
+if (-not [bool]$Health.binancePredictionTimeSyncHardened) { throw "8781 Binance Prediction signed API time-sync hardening is not loaded." }
+if ([string]$Health.strategyExecutionVenue -ne "BINANCE_PREDICTION") { throw "8781 strategy execution venue is not Binance Prediction: $($Health.strategyExecutionVenue)" }
+if ([string]$Health.strategyExecutionApiBase -ne "https://api.binance.com") { throw "8781 strategy execution API is not Binance: $($Health.strategyExecutionApiBase)" }
+if ([string]$Health.strategyMarketVendor -ne "PREDICT_FUN") { throw "8781 Binance Prediction market vendor provenance is missing: $($Health.strategyMarketVendor)" }
+if (-not [bool]$Health.cap100FailureDrill) { throw "8781 CAP100 failure drill is not enabled." }
+if ([bool]$Health.cap100FailureDrillVenueWrites) { throw "8781 drill must never perform venue writes." }
+if (-not [bool]$Health.cap100FailureDrillProductionLedgerIsolated) { throw "8781 drill is not isolated from production ledger." }
+if (-not [bool]$Health.cap100VenueFillFeedback) { throw "8781 CAP100 venue fill feedback is not enabled." }
+if (-not [bool]$Health.cap100UnknownSubmissionFreezesEntries) { throw "8781 CAP100 unknown-write freeze is missing." }
+if (-not [bool]$Health.cap100PauseCancelsRestingMaker) { throw "8781 pause does not cancel CAP100 resting Maker." }
+if (-not [bool]$Health.cap100StopLossCancelsRestingMaker) { throw "8781 stop-loss does not cancel CAP100 resting Maker." }
+if (-not [bool]$Health.cap100HeartbeatFailSafe) { throw "8781 CAP100 heartbeat fail-safe is missing." }
+if (-not [bool]$Health.cap100DynamicSourceAttribution) { throw "8781 CAP100 source attribution is not dynamic." }
+if (-not [bool]$Health.cap100EventSourceProjection) { throw "8781 CAP100 event source projection is missing." }
+if (-not [bool]$Health.cap100MakerMinNotionalPreflight) { throw "8781 CAP100 Maker minimum-notional preflight is missing." }
+if ([int]$Health.r2R21TakerConfirmTimeoutMs -ne 2200) { throw "8781 R2+R2.1 Taker confirmation timeout must be exactly 2200ms." }
+if (-not [bool]$Health.r2R21TakerTimeoutCancelWaitsTerminal) { throw "8781 R2+R2.1 Taker timeout cancellation must retain ownership until terminal reconciliation." }
+if (-not [bool]$Health.entrySourceGateFailClosed) { throw "8781 entry-source gate is not fail-closed." }
+if (-not [bool]$Health.entrySourceGatePreVenueRecheck) { throw "8781 entry-source gate has no pre-venue recheck." }
+if ($null -ne $Health.entrySourceGate.selectedSourceId) { throw "8781 startup must clear the selected live entry source." }
+$Cap100State = Get-Json "$Base/cap100/state"
+$Cap100AllowedSources = @($Cap100State.cap100.allowedSources | ForEach-Object { [string]$_ })
+if ($Cap100AllowedSources -notcontains "R2_R21_8789") { throw "8781 did not load the R2+R2.1 entry source." }
+if ($Cap100AllowedSources -notcontains "R3S_R31_8790") { throw "8781 did not load the R3-S+R3.1 entry source." }
+if ([string]$Cap100State.cap100.r3sR31StrategyVersion -ne "R3S_R31_V1_1_2_WTP1_MAKER_BRIDGE_FIX_ECHTGELD") { throw "8781 R3-S strategy version mismatch: $($Cap100State.cap100.r3sR31StrategyVersion)" }
+if ($Cap100AllowedSources -notcontains "R3S_R31_8790") { throw "8781 did not load the R3-S+R3.1 entry source." }
 if (-not [bool]$Health.polyFastGatewayEnabled) { throw "Poly Fast gateway is not enabled." }
 if (-not [bool]$Health.polyFastRoundLifecycle) { throw "Poly Fast round lifecycle is not enabled." }
 if (-not [bool]$Health.polyAwareRedeem) { throw "Poly-aware 4310 redeem is not enabled." }
@@ -106,9 +145,15 @@ if (-not [bool]$Health.polyExitFreshPositionRetry) { throw "8781 old-4310 fresh-
 if (-not [bool]$Health.polyGhostEntryPendingFix) { throw "8781 ghost ENTRY_PENDING fix is not enabled." }
 if (-not [bool]$Health.polyRoundCreatedAfterDurableIntentAcceptance) { throw "8781 still creates Poly rounds before durable intent acceptance." }
 if (-not [bool]$Health.polyV10MultiStrategyAdapterRestored) { throw "8781 V10 GAP/PINNED strategy adapter is not restored." }
+if (-not [bool]$Health.genericAmbiguousOrderHistoryReconciliation) { throw "8781 generic AMBIGUOUS order-history reconciliation is not enabled." }
+if (-not [bool]$Health.ambiguousOrderHistoryNeverRetriesVenue) { throw "8781 generic AMBIGUOUS reconciliation must remain read-only/no-retry." }
+if (-not [bool]$Health.ambiguousRecoveryFeedsPnlStopLoss) { throw "8781 recovered AMBIGUOUS fills are not feeding PnL/stop-loss." }
+if (-not [bool]$Health.genericAmbiguousReconcileWorkerAlive) { throw "8781 generic AMBIGUOUS reconciliation worker is not alive." }
+if (-not [bool]$Health.targetTakerCurrentSettlementAuthority) { throw "8781 current Target Taker settlement authority is not enabled." }
+if (-not [bool]$Health.targetTakerSettlementWinnerRequiresSettled) { throw "8781 Target Taker settlement authority does not require SETTLED winner evidence." }
 if ([bool]$Health.armed) { throw "New Echtgeld engine unexpectedly started ARMED." }
 
-Write-Host "Echtgeld Engine V19 ghost ENTRY_PENDING fix is ready and PAUSED: $Base/state"
+Write-Host "Echtgeld Engine V30 R3-S/R3.1 source support is ready, PAUSED, and BLOCK-ALL: $Base/state"
 Write-Host "  Poly entry : BTC + ETH only; NEW BNB entries remain blocked in 8781"
 Write-Host "  Admission  : V10 GAP/PINNED adapter restored; durable intent must be accepted before engine_poly_rounds is attached"
 Write-Host "  Ghost prune: startup removes only Poly round rows that have no engine_intent and no engine_order; they cannot represent venue writes"
@@ -117,8 +162,21 @@ Write-Host "  Poly token : legacy repair can fill a missing token but can never 
 Write-Host "  Exit state : SELL success -> SUBMITTED -> 500ms fresh-position sync -> FLAT or OPEN fresh-position retry"
 Write-Host "  Exit retry : after bounded sync, real remaining shares return OPEN; any later TP/reversal reads and sells only fresh remaining shares"
 Write-Host "  Ambiguous  : uncertain venue-write/transport states remain fail-closed and are never blindly retried"
+Write-Host "  Reconcile  : every Binance AMBIGUOUS order with vendorOrderId is polled read-only from order history; FILLED -> SUBMITTED with actual fill amounts; terminal no-fill -> REJECTED"
+Write-Host "  Risk feed  : recovered filledUsdtAmount/filledShareQty immediately re-enter settled PnL and stop-loss accounting"
+Write-Host "  Settlement : current Target Taker PnL reads exact source marketId from target_wallet_official_v1.target_markets, SETTLED + UP/DOWN only"
 Write-Host "  Exit flat  : FILLED 100% SELL + 3 consecutive HTTP-200 empty token-position responses may reconcile FLAT read-only"
 Write-Host "  Settlement : detached expired rounds remain tracked by 4310 claim/redeem + PnL + stop-loss accounting"
-Write-Host "  Safety     : 8781 remains the only venue owner; startup is always PAUSED"
+Write-Host "  Entry gate : Resume requires one explicit source; CAP100 enters ARMED_WAIT_NEXT_MARKET and same-market entries are hard-blocked"
+Write-Host "  One market : opt-in run waits the same next-market gate, admits one complete market, then engine-side PAUSE + Maker cancel-all"
+Write-Host "  CAP100     : venue-confirmed cumulative fill deltas drive inventory + PNL; partial fills supported"
+Write-Host "  Venue      : signed reads/writes use Binance Prediction SAPI; PREDICT_FUN is market-vendor provenance only"
+Write-Host "  CAP100 PnL : engine_cap100_orders -> Predict official resolved winner -> combined Echtgeld PnL -> stop loss"
+Write-Host "  CAP100 UI  : engine_cap100_orders projected into Durable Echtgeld Order Ledger + permanent trade messages"
+Write-Host "  CAP100 risk: UNKNOWN_SUBMISSION freezes new entries; cancel ACK is never terminal; pause/stop-loss/heartbeat-loss cancel resting Maker"
+Write-Host "  R2+R2.1 Taker: unfinished remainder is canceled after the fixed 2200ms confirmation horizon; ownership releases only on terminal reconciliation"
+Write-Host "  Drill      : isolated CAP100 failure matrix; zero venue writes; production ledger/PNL untouched"
+Write-Host "  Stress exam: randomized pre-live execution/risk exam; synthetic PnL report; zero venue writes"
+Write-Host "  Safety     : 8781 remains the only venue owner; entry source is rechecked immediately before venue write"
 
 if (-not $NoBrowser) { Write-Host "Dashboard control page: http://127.0.0.1:4320/echtgeld.html" }

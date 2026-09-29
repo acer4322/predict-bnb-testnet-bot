@@ -216,6 +216,11 @@ try {
     }
     else { Write-Host "Wallet Shadow Lab: reusing the current forward-only 8779 ETH 5M Maker book collector." }
 
+    # Additional Target research horizons use the same Maker-book/full-depth schema
+    # with independent rolling-retention DBs. The helper is idempotent and never
+    # touches unrelated listeners.
+    & (Join-Path $Root "start-target-multitimeframe-collectors-v1.ps1") -Quiet
+
     Assert-KnownListener 8777 "predict_bot.predict_wallet_taker_signal_collector" "Taker signal collector"
     if (-not (Test-LocalService "http://127.0.0.1:8777/state")) {
         Write-Host "Wallet Shadow Lab: starting public-data Taker signal collector on 8777."
@@ -298,6 +303,9 @@ try {
         @{ Name = "8771 Predict.fun"; Url = "http://127.0.0.1:8771/state" },
         @{ Name = "8778 Maker book inference"; Url = "http://127.0.0.1:8778/state" },
         @{ Name = "8779 ETH 5M Maker book inference"; Url = "http://127.0.0.1:8779/state" },
+        @{ Name = "8801 BTC 15M Target collector"; Url = "http://127.0.0.1:8801/health" },
+        @{ Name = "8802 ETH 15M Target collector"; Url = "http://127.0.0.1:8802/health" },
+        @{ Name = "8803 BTC 1H Target collector"; Url = "http://127.0.0.1:8803/health" },
         @{ Name = "8777 Taker signals"; Url = "http://127.0.0.1:8777/state" },
         @{ Name = "8776 Wallet Shadow"; Url = "http://127.0.0.1:8776/health" },
         @{ Name = "4320 Dashboard"; Url = "http://127.0.0.1:4320" },
@@ -328,7 +336,7 @@ try {
     }
 
     Write-Host "Wallet Shadow Lab ready: http://localhost:4320/wallet-shadow"
-    Write-Host "Started research path: 8771 + 8778 BTC lifecycle inference + 8779 ETH book + 8777 public Taker signals + 8776 v4.21 + 4320."
+    Write-Host "Started research path: 8771 + 8778 BTC5M + 8779 ETH5M + 8801 BTC15M + 8802 ETH15M + 8803 BTC1H + 8777 public Taker signals + 8776 v4.21 + 4320."
     Write-Host "8776 version=$($ShadowState.version); Target Taker runtime=$($ShadowState.targetTakerLiveV1.runtimeStatus); public-side paper cohorts and Auto Bankroll remain active."
     Write-Host "Target Taker Echtgeld is PAUSED by default and can only be resumed through localhost Dashboard control."
     if (-not $NoBrowser) { Start-Process "http://localhost:4320/wallet-shadow" }

@@ -267,7 +267,8 @@ async function startMaker(root: string, def: MakerDefinition) {
     exitCode = code
   })
 
-  const deadline = Date.now() + 45_000
+  const startupTimeoutMs = def.id === 'makerInferenceEth' ? 120_000 : 45_000
+  const deadline = Date.now() + startupTimeoutMs
   while (Date.now() < deadline) {
     if (exited) {
       await fs.unlink(pidFile).catch(() => undefined)
@@ -306,7 +307,7 @@ async function startMaker(root: string, def: MakerDefinition) {
   const info = await processInfo(launched.pid)
   if (!info) await fs.unlink(pidFile).catch(() => undefined)
   throw new Error(
-    `${def.label} did not open port ${def.port} within 45 seconds. ` +
+    `${def.label} did not open port ${def.port} within ${Math.round(startupTimeoutMs / 1000)} seconds. ` +
     `Process ${info ? 'is still running' : 'has exited'}; check ${launched.stderrPath}`,
   )
 }

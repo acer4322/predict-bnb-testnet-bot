@@ -1,0 +1,2026 @@
+{
+  "source": "R77 consumed historical native diagnostic",
+  "markets": [
+    {
+      "market_id": 2312515,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789565700000,
+      "window_end_ms": 1789566000000,
+      "l2_rows": 1490,
+      "match_rows": 2928,
+      "title": "Bitcoin Up or Down - September 16, 9:35AM-9:40AM ET",
+      "tape_sha256": "e6b5306a257c28d875d459821df7e4a87b3d1b03863e08d4b9956c378a5d7753",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312518,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789566000000,
+      "window_end_ms": 1789566300000,
+      "l2_rows": 1316,
+      "match_rows": 1395,
+      "title": "Bitcoin Up or Down - September 16, 9:40AM-9:45AM ET",
+      "tape_sha256": "902df361d51f945f24da1235f2a73f8570944d557c1a4a9e5e146cf26a9cb21e",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312580,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789566300000,
+      "window_end_ms": 1789566600000,
+      "l2_rows": 1483,
+      "match_rows": 2302,
+      "title": "Bitcoin Up or Down - September 16, 9:45AM-9:50AM ET",
+      "tape_sha256": "3f4dca87805c7ae32a823e47a8d6c5498012d9c611ab65c897eb401b588b2fc8",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312596,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789566600000,
+      "window_end_ms": 1789566900000,
+      "l2_rows": 1426,
+      "match_rows": 1974,
+      "title": "Bitcoin Up or Down - September 16, 9:50AM-9:55AM ET",
+      "tape_sha256": "2e8401fcfc8178330efa4f1b8032c19646d66c8e6b42ce2b85b4a299187fa882",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312603,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789566900000,
+      "window_end_ms": 1789567200000,
+      "l2_rows": 1439,
+      "match_rows": 2205,
+      "title": "Bitcoin Up or Down - September 16, 9:55AM-10AM ET",
+      "tape_sha256": "1b47e1e3279d6eefd5885c718b0ede215bdf4e344021487c87f60ee9fdc8e450",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312754,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789567200000,
+      "window_end_ms": 1789567500000,
+      "l2_rows": 1463,
+      "match_rows": 1930,
+      "title": "Bitcoin Up or Down - September 16, 10AM-10:05AM ET",
+      "tape_sha256": "5c438b465f2e8229ab8bdb4fd95ba8ed1c14f58b9ab297b3b8dd4804d108e817",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312758,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789567500000,
+      "window_end_ms": 1789567800000,
+      "l2_rows": 1497,
+      "match_rows": 2882,
+      "title": "Bitcoin Up or Down - September 16, 10:05AM-10:10AM ET",
+      "tape_sha256": "5f2dcddfb1679852f4bf8c4f46880139d5dadfd5f9f2ed1ae3c3e58f3067e687",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312942,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789567800000,
+      "window_end_ms": 1789568100000,
+      "l2_rows": 1500,
+      "match_rows": 1661,
+      "title": "Bitcoin Up or Down - September 16, 10:10AM-10:15AM ET",
+      "tape_sha256": "d084bb0b617ef30a11def465d2b3d933d646c79623dca27f7de443ce11deb793",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312954,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789568100000,
+      "window_end_ms": 1789568400000,
+      "l2_rows": 1498,
+      "match_rows": 2012,
+      "title": "Bitcoin Up or Down - September 16, 10:15AM-10:20AM ET",
+      "tape_sha256": "427f6152cb5743335cf65bb8edf22b27eb9796e83bfe3b3a8fc81574b0256bb0",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312964,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789568400000,
+      "window_end_ms": 1789568700000,
+      "l2_rows": 1474,
+      "match_rows": 1689,
+      "title": "Bitcoin Up or Down - September 16, 10:20AM-10:25AM ET",
+      "tape_sha256": "ed9f85f3a87ce84ec47f3f03c570ff9d1aaa76dc0fd52805e4d93e2c110fad86",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312976,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789568700000,
+      "window_end_ms": 1789569000000,
+      "l2_rows": 1295,
+      "match_rows": 1602,
+      "title": "Bitcoin Up or Down - September 16, 10:25AM-10:30AM ET",
+      "tape_sha256": "ad1a80c5ab6a7ef3e52b2d270f281c30eef87139a603b6eb1329c8eecee7545c",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2312996,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789569000000,
+      "window_end_ms": 1789569300000,
+      "l2_rows": 1463,
+      "match_rows": 1741,
+      "title": "Bitcoin Up or Down - September 16, 10:30AM-10:35AM ET",
+      "tape_sha256": "c29b08695eac760f9729db242f537b3652c72db9ec9849c52adf1208d9727bcb",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313167,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789569300000,
+      "window_end_ms": 1789569600000,
+      "l2_rows": 1473,
+      "match_rows": 2284,
+      "title": "Bitcoin Up or Down - September 16, 10:35AM-10:40AM ET",
+      "tape_sha256": "e551904d64f96c576241f9bc1ae48215a7b36ee97e63c24c20670f531c9fa8f4",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313230,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789569600000,
+      "window_end_ms": 1789569900000,
+      "l2_rows": 1421,
+      "match_rows": 1803,
+      "title": "Bitcoin Up or Down - September 16, 10:40AM-10:45AM ET",
+      "tape_sha256": "42622a0d7871fc33f22193cee0fd6dbfdb48ada3d5781e44f1f6a2fb0bf246cd",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313283,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789569900000,
+      "window_end_ms": 1789570200000,
+      "l2_rows": 1329,
+      "match_rows": 1379,
+      "title": "Bitcoin Up or Down - September 16, 10:45AM-10:50AM ET",
+      "tape_sha256": "66412884c813b763fe47facb521f6f53acf4c98b69c15a042e86b20577c153a7",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313287,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789570200000,
+      "window_end_ms": 1789570500000,
+      "l2_rows": 1495,
+      "match_rows": 2710,
+      "title": "Bitcoin Up or Down - September 16, 10:50AM-10:55AM ET",
+      "tape_sha256": "38e351ea0dad212b45d6f8c20d6cb232f2040c8d03176ff45b89d30aa487c449",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313790,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789570500000,
+      "window_end_ms": 1789570800000,
+      "l2_rows": 1467,
+      "match_rows": 2016,
+      "title": "Bitcoin Up or Down - September 16, 10:55AM-11AM ET",
+      "tape_sha256": "6387589424d1b0bed78cd39ad4417b25a2c8ff1409e23ae2dfb4480b7c1ceb3c",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313823,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789570800000,
+      "window_end_ms": 1789571100000,
+      "l2_rows": 1493,
+      "match_rows": 2488,
+      "title": "Bitcoin Up or Down - September 16, 11AM-11:05AM ET",
+      "tape_sha256": "08b4c16633ace979fc61e105032316b140eb69b3428046d800bbc4bc370e6346",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313841,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789571100000,
+      "window_end_ms": 1789571400000,
+      "l2_rows": 1491,
+      "match_rows": 2402,
+      "title": "Bitcoin Up or Down - September 16, 11:05AM-11:10AM ET",
+      "tape_sha256": "51b59150b74c51c2c8044fb9bf00ba925b3fca7ea1b03fa350c4d64462e19af3",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313844,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789571400000,
+      "window_end_ms": 1789571700000,
+      "l2_rows": 1498,
+      "match_rows": 2318,
+      "title": "Bitcoin Up or Down - September 16, 11:10AM-11:15AM ET",
+      "tape_sha256": "90a3b772f16d6b0457c95d5bdd8bc9842f3a5bf4670b052381da23be803b4859",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313866,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789571700000,
+      "window_end_ms": 1789572000000,
+      "l2_rows": 1480,
+      "match_rows": 1713,
+      "title": "Bitcoin Up or Down - September 16, 11:15AM-11:20AM ET",
+      "tape_sha256": "fa26780f37354fb4ba852f1bb8832740f5617f0308f1b045f47644232cf7b0ed",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313869,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789572000000,
+      "window_end_ms": 1789572300000,
+      "l2_rows": 1481,
+      "match_rows": 1830,
+      "title": "Bitcoin Up or Down - September 16, 11:20AM-11:25AM ET",
+      "tape_sha256": "8c52d44af6f8625945aae8a214d3cc436f69e471db3a7770616a418c5f5bda87",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313873,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789572300000,
+      "window_end_ms": 1789572600000,
+      "l2_rows": 1446,
+      "match_rows": 1973,
+      "title": "Bitcoin Up or Down - September 16, 11:25AM-11:30AM ET",
+      "tape_sha256": "a19ac0743be773d2020971a3fc36395097403f54726152bedc99ef92685469f8",
+      "negative_source_receive": 0
+    },
+    {
+      "market_id": 2313893,
+      "quality_status": "COMPLETE_FORWARD_V1",
+      "eligible_execution_training": 1,
+      "window_start_ms": 1789572600000,
+      "window_end_ms": 1789572900000,
+      "l2_rows": 1493,
+      "match_rows": 2546,
+      "title": "Bitcoin Up or Down - September 16, 11:30AM-11:35AM ET",
+      "tape_sha256": "96840fbce2d669e7fe64308b048ca0e7307e2640908ee114cb4be8b3b214f0f8",
+      "negative_source_receive": 0
+    }
+  ],
+  "rows": [
+    {
+      "market": 2313230,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r74_native_physical_clock\\r74_2313230_UP_R65_S20260920_P50",
+      "artifacts": {
+        "r74_2313230_UP_R65_S20260920_P50__result.json": "db872da940d892f5573ac9e3c4206e5179e3d3c9700ba4a258e5ef2d51e18bff",
+        "r74_2313230_UP_R65_S20260920_P50__clock_trace.json.gz": "ebb91717a1f0fcad4870d691c73825ca64b6b926cbdb410dbce3486c08fbb1cc",
+        "r74_2313230_UP_R65_S20260920_P50__joint_operator_trace.json.gz": "c08b9dcc6c6bbd41b457ae14795a3739f092cd80191b5d5be8dd689d7eb6d624",
+        "r74_2313230_UP_R65_S20260920_P50__neural_trace.json.gz": "81490a59a50590713130065f0be7609ce35dff17ba5802f2a9906ab807686020",
+        "r74_2313230_UP_R65_S20260920_P50__SYSTEM_TRANSFORMATION.json": "9fab25c3f88fca372e0b5b5c9f08ee68a90a50c2bb128c6a10b0f8a7568d9c79",
+        "r74_2313230_UP_R65_S20260920_P50__AUDIT_R70.json": "2f2721dfe48bc17e3f893b77b2a78d83c9b266115cc2b5490248b44b9d421ff9",
+        "r74_2313230_UP_R65_S20260920_P50__PROCESS.json": "bb9e26b8e4a2b74c490403fbc38e494a4b4ac3350f44fefec9b100fb3f805877",
+        "r74_2313230_UP_R65_S20260920_P50__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r74_2313230_UP_R65_S20260920_P50__ACTIVE_COMPAT_EXECUTION.json": "02f08d82b76fe9d87fc4a52108cfaf6afaccabc67abadefc2d2d70e703b6b8ec",
+        "r74_2313230_UP_R65_S20260920_P50__LAST_NATIVE_PRECOMMIT.json.gz": "95f9329ea5d5e8128ba636e905f2b35e5e71fd356207d90e30a3e870dfb26351",
+        "r74_2313230_UP_R65_S20260920_P50__NEURAL_EXIT_SNAPSHOT.json.gz": "bf749f25b7f81b2abca1cde0ad50c3e2ac82e0fb2d3ca3f48e55a69b690c5655"
+      }
+    },
+    {
+      "market": 2313230,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r74_native_physical_clock\\r74_2313230_UP_R65_S20260921_P50",
+      "artifacts": {
+        "r74_2313230_UP_R65_S20260921_P50__result.json": "4448631da89066cf7b9997277f8e2d249389e91a10b21efcc2b3abc58a5fdb23",
+        "r74_2313230_UP_R65_S20260921_P50__clock_trace.json.gz": "df2806b0c9219b7ac1c94e97827b84d37771582c6df3d0e065d9adc0c63ab354",
+        "r74_2313230_UP_R65_S20260921_P50__joint_operator_trace.json.gz": "3ce56cf412e46558e56d8a9c07d5a55ea3fefa11c7e3315056e157a84348a173",
+        "r74_2313230_UP_R65_S20260921_P50__neural_trace.json.gz": "072bb3922a054031f9f7dbd1f6aa601a954ad5fcb0c9fe5bf8eda9f12c15b444",
+        "r74_2313230_UP_R65_S20260921_P50__SYSTEM_TRANSFORMATION.json": "9fab25c3f88fca372e0b5b5c9f08ee68a90a50c2bb128c6a10b0f8a7568d9c79",
+        "r74_2313230_UP_R65_S20260921_P50__AUDIT_R70.json": "c9449c995ae0a0c5a7b980ca40cbb6ef2201e0266db12eb7faccd7cd6b3fa711",
+        "r74_2313230_UP_R65_S20260921_P50__PROCESS.json": "fb2907180ea23ca05781e446ef7281375017368eaf5195f43017013aa0b6b4b1",
+        "r74_2313230_UP_R65_S20260921_P50__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r74_2313230_UP_R65_S20260921_P50__ACTIVE_COMPAT_EXECUTION.json": "e45a82d04bec5698a19b702d2bd5e69151760110f87a2f89e04aab2908011d2d",
+        "r74_2313230_UP_R65_S20260921_P50__LAST_NATIVE_PRECOMMIT.json.gz": "f20a828f030a9f8818f622577250bb9a721d53c0fdcd9614f5def7559f3a9aca",
+        "r74_2313230_UP_R65_S20260921_P50__NEURAL_EXIT_SNAPSHOT.json.gz": "9a34f7be0a61c5f47f86843ebf16ee7f0d323d9b54b7225818312fe9ebd262ca"
+      }
+    },
+    {
+      "market": 2313893,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r74_native_physical_clock\\r74_2313893_UP_R65_S20260920_P50",
+      "artifacts": {
+        "r74_2313893_UP_R65_S20260920_P50__result.json": "34d76d172c526fad8d079a773270e4447397b5f21ab8fbc04a4f38cedce5053c",
+        "r74_2313893_UP_R65_S20260920_P50__clock_trace.json.gz": "eec054453f3f824e54486a1d51c518599029401d73ac95f6a664f3711bdab1b5",
+        "r74_2313893_UP_R65_S20260920_P50__joint_operator_trace.json.gz": "6a3e685c7b12d0c703895290e97358e483fec0785c710a4e972d321fe88848d5",
+        "r74_2313893_UP_R65_S20260920_P50__neural_trace.json.gz": "b6e3d8ac863c8e72ee6e27bdd5d7d639ba6e1dabd1f189d0bb2b0ef8c821ebd1",
+        "r74_2313893_UP_R65_S20260920_P50__SYSTEM_TRANSFORMATION.json": "9fab25c3f88fca372e0b5b5c9f08ee68a90a50c2bb128c6a10b0f8a7568d9c79",
+        "r74_2313893_UP_R65_S20260920_P50__AUDIT_R70.json": "d53e9a3650b73867d9ea567a95d959bf40427f9290ccd1578cfc8cc22f9a7730",
+        "r74_2313893_UP_R65_S20260920_P50__PROCESS.json": "0f9545b0a5e1962e1ad1975d043e250c6734b18efea661726335cc808d737611",
+        "r74_2313893_UP_R65_S20260920_P50__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r74_2313893_UP_R65_S20260920_P50__ACTIVE_COMPAT_EXECUTION.json": "e0803884a5f8f3ff00f05cb36d5f018a83065bceac99410b78cf8707f9147f9e",
+        "r74_2313893_UP_R65_S20260920_P50__LAST_NATIVE_PRECOMMIT.json.gz": "7ed6e4f1b7857d64883b2a3b98eeef30620a3bf89c84599c105d7e865f963e19",
+        "r74_2313893_UP_R65_S20260920_P50__NEURAL_EXIT_SNAPSHOT.json.gz": "37a6c4668cff49148d3406a49ddcc20aae1d2449c8978e93c27e703d4334504d"
+      }
+    },
+    {
+      "market": 2313893,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r74_native_physical_clock\\r74_2313893_UP_R65_S20260921_P50",
+      "artifacts": {
+        "r74_2313893_UP_R65_S20260921_P50__result.json": "ef83e59c636b0feb46ab690ab0c14b3789ca3f1803039c1aa7aa8caeb04f4a84",
+        "r74_2313893_UP_R65_S20260921_P50__clock_trace.json.gz": "02ad6d47fc63cdebf4ae4003a37310251f7cd78e17129f92a6a55ba0046147ba",
+        "r74_2313893_UP_R65_S20260921_P50__joint_operator_trace.json.gz": "9d620741cf875f73588f7ba7dfbf7b7215f664502750b1b08af99740100c48bd",
+        "r74_2313893_UP_R65_S20260921_P50__neural_trace.json.gz": "cb322be3bc21581b9c0592ac162a6c189646a62c2deb1a4c45d42c4611fd4f0b",
+        "r74_2313893_UP_R65_S20260921_P50__SYSTEM_TRANSFORMATION.json": "9fab25c3f88fca372e0b5b5c9f08ee68a90a50c2bb128c6a10b0f8a7568d9c79",
+        "r74_2313893_UP_R65_S20260921_P50__AUDIT_R70.json": "26b66b31bf95574c433676f7d1a1bad9c9b3cde98b242f5fd5cf8b98b5d1c75b",
+        "r74_2313893_UP_R65_S20260921_P50__PROCESS.json": "fa3c2f952284973369a9b2c8a47c29b587a6d409419522bb7ee1911e2f32902e",
+        "r74_2313893_UP_R65_S20260921_P50__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r74_2313893_UP_R65_S20260921_P50__ACTIVE_COMPAT_EXECUTION.json": "82f9fa56ce1a8d941c3a1b8344d82e2698e4636b1822ff8b7ecaafa0cd66eb26",
+        "r74_2313893_UP_R65_S20260921_P50__LAST_NATIVE_PRECOMMIT.json.gz": "072ceb2d99211f5b35e96496842758ff0e18b3a9dcb855b2e506f526d06208c8",
+        "r74_2313893_UP_R65_S20260921_P50__NEURAL_EXIT_SNAPSHOT.json.gz": "9d09f1fc57cd6fbafe54179a4dfef11a0b367893bf6fd7b867a67135b27cfd49"
+      }
+    },
+    {
+      "market": 2312954,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r75_clock_cross_market\\r75_2312954_UP_R65_S20260920_P50",
+      "artifacts": {
+        "r75_2312954_UP_R65_S20260920_P50__result.json": "cc933d68c610e1144b2cf7a255d628681752b40434b9bb55673be200bc1374ed",
+        "r75_2312954_UP_R65_S20260920_P50__clock_trace.json.gz": "c5ca636f18116b014124a9cd6d5ef5193fdffc18f6fdb38b5153879271138b66",
+        "r75_2312954_UP_R65_S20260920_P50__joint_operator_trace.json.gz": "1f16497645f40fbf5e0d76643f22bf7710010ade51fd15a6a667687dedfc4487",
+        "r75_2312954_UP_R65_S20260920_P50__neural_trace.json.gz": "04a930a631a1016ca077b5b1236d64f4a17079c1cb7525f47579552051a3b795",
+        "r75_2312954_UP_R65_S20260920_P50__SYSTEM_TRANSFORMATION.json": "9fab25c3f88fca372e0b5b5c9f08ee68a90a50c2bb128c6a10b0f8a7568d9c79",
+        "r75_2312954_UP_R65_S20260920_P50__AUDIT_R70.json": "7a0f3a47db5e80f766bf6232be8d9b47cacdf2966abaca75a9a23b087e04aede",
+        "r75_2312954_UP_R65_S20260920_P50__PROCESS.json": "86980d6d0a6b029debf14acc4091e0a9d83082888f995d48af9f035ab54ff747",
+        "r75_2312954_UP_R65_S20260920_P50__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r75_2312954_UP_R65_S20260920_P50__ACTIVE_COMPAT_EXECUTION.json": "8f60429afe240c01ead9b13ea9ad797c8b0bf4af5ce407f336987e15ccd69877",
+        "r75_2312954_UP_R65_S20260920_P50__LAST_NATIVE_PRECOMMIT.json.gz": "cd99429e206163ec9d3ee552f700908e3b3a2b141353d39f3d76c574323e2175",
+        "r75_2312954_UP_R65_S20260920_P50__NEURAL_EXIT_SNAPSHOT.json.gz": "b27036075003f4cbdc837610785eef3fb2f3b1c86efc6f88c0199008f9f3faa5"
+      }
+    },
+    {
+      "market": 2312954,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r75_clock_cross_market\\r75_2312954_UP_R65_S20260921_P50",
+      "artifacts": {
+        "r75_2312954_UP_R65_S20260921_P50__result.json": "578b7af220f766abe616e7d8b164540584c8b1808e95b4b2a60b239af169e8ba",
+        "r75_2312954_UP_R65_S20260921_P50__clock_trace.json.gz": "4ad36a8d766ca40c547a0b82437f8babf703e94f2ff689ab210045ceeb38e5ce",
+        "r75_2312954_UP_R65_S20260921_P50__joint_operator_trace.json.gz": "4ab55d8a342cb4e456ec47c5cac3ded3b34a36654e2d7774c3f544b52f49d9d3",
+        "r75_2312954_UP_R65_S20260921_P50__neural_trace.json.gz": "65ef4e27b381e0f125581c705983e1187eb92834abd334ad6a99140fbbc11eee",
+        "r75_2312954_UP_R65_S20260921_P50__SYSTEM_TRANSFORMATION.json": "9fab25c3f88fca372e0b5b5c9f08ee68a90a50c2bb128c6a10b0f8a7568d9c79",
+        "r75_2312954_UP_R65_S20260921_P50__AUDIT_R70.json": "2bf027dd1e8396ca2748e51258ff995b9cb8c837fe40c0f863e4ed5de61bb89f",
+        "r75_2312954_UP_R65_S20260921_P50__PROCESS.json": "33ab8b08b7b62a4479f5977cad21335a059853d7726d8c9680a96f769642445c",
+        "r75_2312954_UP_R65_S20260921_P50__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r75_2312954_UP_R65_S20260921_P50__ACTIVE_COMPAT_EXECUTION.json": "f62b6b3c3ec0ad04d35cdd40851f0999092513e9fce8dc42c67f397f9b5c8ebe",
+        "r75_2312954_UP_R65_S20260921_P50__LAST_NATIVE_PRECOMMIT.json.gz": "3ebb95a6fcb9000f3b51aa48dc2ec55a9d87f638bb7b3e38fff0a1445ec8612a",
+        "r75_2312954_UP_R65_S20260921_P50__NEURAL_EXIT_SNAPSHOT.json.gz": "4ed5ec19f6cf19bce886c109d90ae9ac1fbd8c3a8ae913decdce5e03cc391307"
+      }
+    },
+    {
+      "market": 2312515,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312515_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__result.json": "f66e90f461fbd5e760907c9127ab5f827486b17cd2154f37c01ff86a12f2f54d",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "29888f71f7c1dce228effe121b58c800a51e98da7e36eaa414242f9889b42c32",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "1a13bc7a4c45e6056dc36cdaabbe57ca92483ceca9a8fd149b5df91e2d4c7a81",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "8e8ba5987994eab93a1d840a3bf80bcd627041d8ba418a40a66e01babbc8a1db",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "6d3d4de71cc38c9b29acb859432be807557eb4a66f6cb53ffa4e32b38143f589",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__PROCESS.json": "933ade133527ba55c7a7873cd516985b5270adef8374ac8dcc3407b875a5f90a",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "e8fcd04a5e42992a48ad7d9fe6ea3b2fa773fea9f479c224ad136ad72b69583f",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "030f02f8e26181258fb5506c8e17b07a2ff5e5290d2736a36a8804078ea15410",
+        "r77_2312515_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "9b8a9742617f16bb98188f363aa982e0026918fb214d2ab264b67d6a1f146b97"
+      }
+    },
+    {
+      "market": 2312515,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312515_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__result.json": "f2cdba983897185bff343c516e3f56ff092d5363ba8fcb235dadaf466c78678c",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "121eb12a00daafff8fbe8764776aeed9cfca3f68c5c5ca3ffc022c4f74d18998",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "788abbfbe4bb81b9bf6cf06c2b27de3561fa531acd87af2d1f982a5a8cd8af32",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "5826c27f6bc52c7bd746278cb527f1fc5644b19d8f06a077ffcb7c7d9f5c26e6",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "0e4e0d6e655f4c2bc0d86bd448791c65a3e50e4d960418f4a0c1a8a03402fadc",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__PROCESS.json": "740d38809b11a1b244ea8d15871038d280f29f63a43f7732c5621bb6d1be8149",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "44f50d9d121d914929824fb4f8af6d79dcecc54a1140c1eacaf1465bbd4987fd",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "4110ef8768bbe4e3e5785ed549e3412555d9e774e41d4fbb0706305409658077",
+        "r77_2312515_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "87013cbc056d65dfc509d36ce0ad68fddd6936dadefd203bfb375ca7b74dda87"
+      }
+    },
+    {
+      "market": 2312518,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312518_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__result.json": "a8fe1a270f2c601927577419177353ca979f6d3aa4ca6857862cef48aa491c5b",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "302115cb4c149a5dd6a46c3900243665fc8462ddfb62b3b3ecc08477580435da",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "e2994388ce98e72b9f5d195d293121124dd6c74be3a87bf220976202a547fbc3",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "ea192709795abb7eb205f4fd87dcba0bb7d266b4f0948a033c91154a0fc8cc04",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "2b5e97ef096492ea17147971731617d4fb176b9c93026d81689bf9bed272760b",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__PROCESS.json": "b39e6055532852fb7493cb3896e149b4b58f337a6c730970f7b2c60862a17291",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "a0fbc81396bb7b55f0ec842ad20af8877246a3226a597eb5bc774b7a92b24a75",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "086e979e396bfe368f30eaf117b214a45f05e5b313a375062e9ff45802441b6a",
+        "r77_2312518_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "01809a14e6747599b4533eff9ba6fcb16803790921799c03be951d5b5c5c0961"
+      }
+    },
+    {
+      "market": 2312518,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312518_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__result.json": "0d0f4b13ce03d0751724ff3a0f01b8c4702fbf4ad9d848a8b281b1a206bece30",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "302115cb4c149a5dd6a46c3900243665fc8462ddfb62b3b3ecc08477580435da",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "c3b5a4e3663a1d256c8fdb6cd56130afeb40a4460714b58e102cf152293b01b3",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "d597591a8f4e7741c31051d1e25f9810ca2fd707278c492f7bfb878b8ffec552",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "c1425b40cbd1620165dbe77c9fc3ee5486928fee9facffe81134c85a3755df7e",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__PROCESS.json": "0ce635694e5694ff7afa7de2814e223912573d30314cd306efd31f16bb3285a5",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "9d39a24b2ae6c711ecf6194f93a7cd55f8ac968add2a75c3fa1b5e1c4722f561",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "195443e53dcd08ffbc2b319055d4dc47c960cf3252300cf6f69c0884cd177deb",
+        "r77_2312518_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "ef2975936683e5c110066353df89c05e277d32708ef79c37ca9894d9fe2b309a"
+      }
+    },
+    {
+      "market": 2312515,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312515_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__result.json": "780a390af6b195159a55a10eb0de1a997837d222d1c89e725506cf07dd37ae03",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "d4fc6b5c92868f537f3c59058e0213b0dde7d68236562c93efab4739660a07e7",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "6c8966d769526371e14e945b712470daad889c070c08b09bc842d7e7d9353783",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "ae32944e84fc845a0fd64c6bb6ac6ac464babc68d607288447ad2099019e16d7",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "36fa244b9324057785ddfeaa31d0a75c8b07ae2d562d4be36fa6e8b975df6a40",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__PROCESS.json": "ad10da8907c92cc380154009ca0d01d76c31d2aad351559db0f1ddbc5cae2bfc",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "5bfc41ba441b9cdcb87226e476aac04999ba16a3ea8cb5e57fd7c6d091660373",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "7f49486308ec7225d710e762310ed5f697e6e363ee1e5cdd18aba9c274c9195a",
+        "r77_2312515_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "ccc6231a6198f8f7a2717ee2be82703b45a87317d784e78a7ac0730e10f01f74"
+      }
+    },
+    {
+      "market": 2312515,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312515_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__result.json": "fc1caada1d837c94835612e3e71fac4b166cd2f6c91bd3b063dcaf514055ac29",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "274724428a78e787fd14defab662ddbcc5495056b665e377308937510eb5c852",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "4c3ee675d6affb879e96304d240a8d6c04de31d61345d9c2a3d30c0bb53b3152",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "e6c9b96263b3c3a26147fcfef6688fc79ee8e77c0b7d58856a24ba2c1ec3c252",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "1bf632883d7458a0b78f4073fdd2f4796386896eaa30c2d5b67f6fd3bfff7298",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__PROCESS.json": "3231b2480e7a5b3d24a9b3a0d13c011abbd5930894a24645237c5eafe364adcc",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "ff53883194f5aa8773d893309fc2921f94c7be54c626de1b823b34bcf6240c56",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "149bd64081a3bfe9635e30ab30e125c206d59eab51a4f54307bf01955cf4ad00",
+        "r77_2312515_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "24051135bbf202263b5594031265972d8d55d7bdb8afb922a4cd74de35b0e3dc"
+      }
+    },
+    {
+      "market": 2312518,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312518_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__result.json": "1eb95f2adbe9dc742abdcb21cd8a5f32fa1e05082f8372b3177dae214b65a750",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "a3cb6b10f35f8a4002d8629ddf8797a73c59df9723f35d6848c0d8e8db93fed8",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "71d2ee8b1cb10c23aba01329310cb433d829b685466aee0de966437fbb06ad11",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "00ad871c1291ce0632ebf88d2fc46280cd908c95d423afd074ad15aed42e36c6",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "6e62cd4ced77a65f4c5a00592c1432e192519e2e33387136e41ffc2fb0c806ce",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__PROCESS.json": "136ecd4b5c6bce03cc42efa621ea4441eaf5726627edc88b449cb5ba288ade43",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "f739466710467f0d136e3203fe21b0e5897a28c937db1978d75338bd26105788",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "aa7efff59af9d7d502ce29b4746d4eee8f94cab394a1cfbabfc17292f2fa4250",
+        "r77_2312518_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "91f99589475eec8ee28b18955282fa05315244367f0a9b809c3159fff31f6a8d"
+      }
+    },
+    {
+      "market": 2312518,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312518_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__result.json": "5bc902e60797d62f184dcb4c5ae8e724f7f0a0ee5bd1d22b66f2e6fb64e0f0b7",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "a3cb6b10f35f8a4002d8629ddf8797a73c59df9723f35d6848c0d8e8db93fed8",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "f9d6fb3e0a9026b22532734d7e297e10816e2e3e6f249c07f461b8f077ac9fa9",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "77d7ee20a9ddf13ef9a763cebc88ee4f2d5dc9470436568bcda0f37b1b0bf98b",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "ae9aa85504ff54abb7f8ba63bfae37152afcaf682d92ef2916783ca27359d2f3",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__PROCESS.json": "ada5721f3310e4c39d5b028a57e94ea5b12c2e5f3683f36a0e9a4f1a19426546",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "6ab285d4ca12fb23a0cb3e77652fba517fca6de73fc2a0762865de3569fafd83",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "316f5080d9ac5b0e00774af63c1ae943706ababecd14d9cafdca45321565f37e",
+        "r77_2312518_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "de0facad8431eb90bfa4b629c601efd99e408e89ffe0ebd1e052b8e7f957298b"
+      }
+    },
+    {
+      "market": 2312580,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312580_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__result.json": "4a69cbeb86b56bb393228dd75558d9f3cbc2a3f32575ff86d1ee37a37e885475",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "ec745951eccd1d5b4d7c4c2604f78452de7876e3e504e506b63a595c3e426380",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "20a317ef5f1168d41849baa5227e85a1a807a52f3f0bc694dcddc280b4ae860f",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "21ba2a53916c67e5fb716d0ece5f9a19987b6f75b08e5a6949e747880d2bd49d",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "e2a437593bde9cd796f6459567fb1fecc5bba6dff7fcf303c2570abbd9fc0b19",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__PROCESS.json": "ea98d3d104cb18ec77ea86707f09288f3b0f55d28cd7a9185309e0edd4c65e0d",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "341b238d763268323755e072511c7d38275893c768b351da3ce805f38c06ce26",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "92b7bde55f856e7bb8e7630325deff95e025f1db19b9f997900a1dd460e2db00",
+        "r77_2312580_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "862fcb8445c7ac3b2321ce08d8b7fdecb5885f66ea0e805a2cad6cacbf7dcb5d"
+      }
+    },
+    {
+      "market": 2312580,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312580_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__result.json": "a1f06ce5967d5e0309130dbe9885c869544cb27835862be379c692ed315e5abb",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "ec75a918b0fc549f1239a697facb9581e54cefeba27ec1e5761fe6e76235f0af",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "bd0da0795438743eb2bd8ec9af2c2c4a93e05fd63cd652938366027014e94666",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "ce7b1693f9d5474ca2e18daec220763083942cc895b66d41278f5c5080e002fb",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "2ce6068edde24b965bf9381fd73272c648d4b96e06b42445f232124d24732b15",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__PROCESS.json": "1eec21cef82da353dc747e02723d342ea94f6a51c77a5b7f59b55593611e0b70",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "97630150d69309ded18d4d190e12e590c60685d3c28f9798df25ef45f01c10ef",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "ee55aaf264704c21f459e552109706a641243ac6a488116cd0358e2ab56695f0",
+        "r77_2312580_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "4e0ecc10a8e8c4372235dd4bf4539ef60a42306e5b8ef74189ede49f65e9b76f"
+      }
+    },
+    {
+      "market": 2312580,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312580_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__result.json": "d2141aa7024a6a706ab5ca6039fde448b4facc8a06117a341928878f86fd48ca",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "65a22629d2a9e00d7e407d4339e658ea6f2d1162d531dcb5c35546156928a21c",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "a471caf504c56ecd1341ed56f5239066c6e741d648197146cb1817ee05927ee3",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "8a7c1d9057b9abbd3a1f4554f94b8366db4db182379f59e07632d600abb36c8c",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "c7d14a259c04885c421a5f0f5f6efb0b9f2560466d4162228f02b4661962feb8",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__PROCESS.json": "5b21adf75e543b7caa5f5d687e028df96241953db62f7823226a5631d6b20f82",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "21b815e6f1eae170908266ee857342f45e8bf737793cb34fa18bf872a89e3de4",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "d0217266a6e4a4c812b922e6506668922cab9ba0965eed811e72fb3b71fea0c1",
+        "r77_2312580_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "7205e21a7642f5b8fb560c99ee8d581c179c015addc22e43fd81c36fa4acbb6f"
+      }
+    },
+    {
+      "market": 2312580,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312580_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__result.json": "ce3b6ea9bb2baea0cbbe9e86576ada5767ee5874c52688b072b990068e7a121c",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "4256f33958b22b39377f03a66ebd102e414cbe817d9ea0a96ce741edb8851b9c",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "24a902ac03506f655e0398d651b74b918b4bfd027fa557ac9fb0a1e5d23db821",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "91bbd027170b9b4c13d72460961c485e613b54642964b0f7fdc5c649ba19f464",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "9c55d0a3f5c462888ff18e549a412156ce5a001406e823484c1f6499982d1bad",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__PROCESS.json": "06b36fd363d43dabbc0d7e7d64c431de693240c7cfc84f9134f692691c55ccf6",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "19b1e576e9002a08c4b67fdcfe63e5a8baaed8b4a52ad370a4bc3cdb679af22c",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "11c447a15bb336f522202e8432903ea8faa213ce4613bb70b9ca6d78b37c6cbb",
+        "r77_2312580_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "1203d6711f90f64212d9684579833a2bdd7099bce79636c5227e2d2e85da5de2"
+      }
+    },
+    {
+      "market": 2312596,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312596_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__result.json": "734735695a241297b98acc2711518de98c7031eb51456cb91904e1bfdcf36611",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "d65e050498d10a93156295f47e3a3d63e52e8a0fba252f227ce2edb7e98383d4",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "0d2df25ec561bfa93989d5ba677399e514ab611f612217e088835144c2bf9949",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "615c2479c29eb90c45b1d8198ec3e66221f2dca76e71812b542991299880137e",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "0ffcbaa318f020d003407e9e1981f4b1ddb8f4651f39292452dcf790023089c1",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__PROCESS.json": "edcc8b188ac4ad6ed741b962b3f76e75c6ae91cdc165e2b413e504727818ca6a",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "aaf81c25aefde7a2610f3a4dcf8109661c66d824c58deb38d2718e34adb1ce6e",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "fe55b9bf08a0c9443aff1dafbadeec7bc62487b162442f4fa44aadc09140c37d",
+        "r77_2312596_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "2829faf66d07fe1ac80530587b053f33ab79422726ceb92101d1f052b84bff4f"
+      }
+    },
+    {
+      "market": 2312596,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312596_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__result.json": "aa2d2ef381c87f5165ce43714e7a2340f44deeb3a9c873d8dd4aeab0f845e907",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "aae1ccd403105f9605e470173ef0421e36c08c5f03729a45a993453c8eb8ac1f",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "ae27e0ac5aff6b0b66188e4180e2a67fd7befab2727083aaa2d6fc46e96485f8",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "6532bd1e88265a0578dcf41078c2bad4b21a13bac558fecffae49eefc8831a93",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "84eb12ae7102f200cf5b5354ab0fb98df1aaf542ce54f1657ab2cd6c640580d2",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__PROCESS.json": "d10875e1fd945b32a9302a2dcf7be86d8bf2f70007dae356303aa8d495f22f6a",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "a42b24f7c0fcbd93f60fc69cc0225b0427fb3666ea88763264455efd0dddaeed",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "55e154ee50499ecfd74065a6f740ee71b785d1461fe6cb28745300a734ed1be2",
+        "r77_2312596_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "d2af24044347b8a9b3070f1b783372f32be731ea86dc46d0b4830aba06e7d19c"
+      }
+    },
+    {
+      "market": 2312603,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312603_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__result.json": "8d945e8e9c81a2d4ba86cb9d2a4a76e4b32dbfdeffd8d207f7460912636e3510",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "2ff123d20ee85ad472c996a64395c832990100725ab72198c8112addfd63faf8",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "fca4a8825f16078b7c6282a6c9ebd674a5631c088ec8e83264f1d7b5a8f765fc",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "007e1b2983185d65093b225ca5bf28f169094a8f89191ccba04990aee4840fa0",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "6eea1b536fc7f70430b012c7cabb6dbf4e08477aea7affc465742d3979d6b58d",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__PROCESS.json": "9fc7f2ee6ab7434090e9636ee5abbda3895480605c94c7bd2898fce5e1273fd5",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "0b3179ec7732937db2ce61a84695006015122c658045e327dbe103691afdb9b7",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "70d56ec4c12dc3dcf5ff529cf3d71525daebf3337aad9f9c1ca03d775fe84b38",
+        "r77_2312603_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "943ce6f7b64d2044c6a4b83813051ee2f360bc62d1972167c7675c7b01f47a99"
+      }
+    },
+    {
+      "market": 2312603,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312603_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__result.json": "cbebc39190c089a10a56dffeb2eee2a15ba4a04a9f17f41ea186e6e8cf3e2aeb",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "09c2b0556632cc53078d28da326dc683bc3d5fc3274fb23fa4d86c62f3da358e",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "d06fc026ef88e4e47063eb0fda008e32899261fb9338049878f9899ea5b288d1",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "e57c5282f7b122771ee93796d5f45424b44b10b1a52690cf3b4562b4e725e493",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "ed4a04480d71d12b82967edec58c11385fe3213f5cb9c992ee8abb79229356e3",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__PROCESS.json": "dcdc9d9b7137ad13378c2f11e3185d270ac4607a840e7adb975f9e801daf8783",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "92ce1b2d892a3e726163630200e495058473de74dcfb9dd888b14154f4dae446",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "18814956ec31fc5c39beefbf6719fcc6511ef2b61f2ec7be190be06829c25696",
+        "r77_2312603_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "142e629aa7f6af2c949f448d21b5c8c3d916618ba549c2fba9e91d0f9ed2bc30"
+      }
+    },
+    {
+      "market": 2312596,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312596_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__result.json": "c010cb315130d5c024ec1c77b41dc4f3d548409f40561da80d7fded80d0a2b85",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "0194291461006682e05684153005ff332e11172cea3bacf4f039e6958f7a47ae",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "654cb1ef752d3e64f7161b351213ec91ec1db4770155253e9f2efd4eee23ac9b",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "f0acde460d35c001b8c1b9274519071a1b6e7a7ec021e305170fe5b53e2a7b73",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "99f25401a30e1c960d0097310c3c88910c68c090a695614b1752b82e83715ed6",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__PROCESS.json": "d6b5d0537f6d3c0cd3be4fb9a05ab1f39028ba037e2facdc67a6d71fc208163a",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "b1aa06cf43d57bab7b21b627f80f927fb5c9545933ead9ea7a3d14175f4b032e",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "cd0b95a57ccff40c2aebda480d7bce51eed57dbbf2a3787bf1c0436d892880ec",
+        "r77_2312596_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "445951bf952c1dd295cf366f205096fb7ab227083c990e2e84b2aa3e98f19faf"
+      }
+    },
+    {
+      "market": 2312596,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312596_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__result.json": "e8f268fe912caebb03e9f9a9b40aef7590f19068a58a8a401b38296de19c1344",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "69e7888a3c25898f06f0e9a8f231ebaa7f35a3aaa672fd16f859a6dad7a4310c",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "88efec5ba384b4c5b26e12c125235a4ef597bbc42e81eb0411fc8c03214498d7",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "f866b14b809d947aab21638b83c4daa2dad3095b105510bf9bc1abcb3790f18f",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "afaf1a09555079d7dfbae160a034d3ddf262377f0f8c3e8aadbe90fe55f0ff94",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__PROCESS.json": "4e416f1d29acc1017611aae4fde522390576b99dd07dadf7de89b5cfddb7c993",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "b3ba8d32a215156258c8060b26d7ba9305e12c0c0f2c30e7d92505c612d1b1e8",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "8702fa6ddc5ee47edaaeecbf39d071901f2b8eacf2e1048d718e1985a6dea3d4",
+        "r77_2312596_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "8ebe4464e9211cdd229b79a31f66e9fd7a76383988a627a18484c8b94d991796"
+      }
+    },
+    {
+      "market": 2312603,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312603_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__result.json": "ea17d6f51eba4c48f981b39cb759452d0f8c295d63ba51bc9692250117e8cca6",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "eb7e8bb6e028b7290026218fb3b5e7c02b42dca6fe17f789efc23247d09670e5",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "84002d388073b747dd3d8883026a90575bb7b50399efd3bd0e0a360fdddf3db4",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "1cd4dfaf8ff087cc5fbddd1555af797bcb279e1c3590203031c165677cb84294",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "887cea955c1aa4d413a6932d64653556d14b4a1a8e53c315f638e64b1ddfbbd5",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__PROCESS.json": "f2d4fc19f9389eda04a31316e4e51495c0638ef667dac70478acdb002ec256b0",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "5e29f42191fcf8cfefe5f80bb9be43885a171b74b6502aa16ebe674f7ef4084d",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "dc40b7db1f26171e4f5b852e509cf8a9b70f00a7e2327906c9ec0572f2acc4be",
+        "r77_2312603_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "d007fa61b8d789a5a1add6047b4785abf193afb1edcb597f448af0fbc86191cd"
+      }
+    },
+    {
+      "market": 2312603,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312603_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__result.json": "ad5ef5eee194b96c3e93a685e53160accf4064f43dcdc2373e1b28b24b931204",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "8ec379d25ac9d89d4b0ff57180aa909775c6f4e4501c2dbba0865f4467712efd",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "3a25b5a5bed6b62aff5922b8beed8aa871f1f1ef51bab45734e99c12ade1368d",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "f317c5073b580c7ef73f6630d157781c24b3112a6f04487869e627840a3f57e0",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "21217115939fe285bc9f69a35852d0bb05dbfef913747ea64d78552e153c9cf5",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__PROCESS.json": "7951e2e6c013493d06b6cdd13f4a1d5607e2f602e4a33123db4555e3618d0f6b",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "bccf74d2bb26ddc2276593516f4e8ed0f64835fe35005a84bb7a9bf5b75b44a7",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "f205ef0f6515f9a8ca2379f619bd11b087890ec9bfd32d5eb1b6917571fdd9fd",
+        "r77_2312603_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "e224cc13e23440efd5f1bc72a1673975e0b8f79db20201cfc4c73e45e327c208"
+      }
+    },
+    {
+      "market": 2312754,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312754_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__result.json": "cd836d92493142f55dfb497b8f4c2ed70f5f983ed0795cd52f1499ce88a166a0",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "60068f733555c09f80243d10696ca3b175469ceb659b113ecbff2bb9f9dd5d0e",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "8f5371d3f3937094393aa020adce429fc825715c3780fba7fcbabc8dd33d5722",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "481c9d580c7efd3ed0429546c20b7adf3a38b02f4c87bc89e4f8be37ab659255",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "3c72a71450f04c3d88e51616ba9e945605bca10678ab20ae4befa10c7da7c27b",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__PROCESS.json": "a2438e041fd36b3243bfb416d2e5bf3489139cea42cb158cd8b73194e2ec826d",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "2efde4617e572a858e38af91747463c250e1212496126a5597f192cfb117e31f",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "e14fac354b747394f7fa26713ed9cdaabf7c11aa38659cd04a61cc505e7f9506",
+        "r77_2312754_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "455b922637781d472003d2928626bd09594fd92db1308bd1352def3bef75cdee"
+      }
+    },
+    {
+      "market": 2312754,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312754_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__result.json": "2f9f67f3c06d90ef6a3fe2dfe57e1133389fe314a90864332a72170a56b1f9f5",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "abe0654eb1fa3ff9b1261d13f56ffbe2c830bae5791bf46668354cb12880cbc0",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "374f276e8d5dee1fa495e65690e931374fe2fb481c7e5be25367f35bd8c51653",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "d356f16ba87929ad1847240ac15c675c72481842d42faf4567405fdb85286bec",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "a169d8bbe1a5f2b4f705b3d3d383f8fd47d5077d494fea0720a751c9f8aa0869",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__PROCESS.json": "7cd864bbf0cc07508a15fe1e80037e92700b59241138d7baaedce74ee23bc7d0",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "a9ef88d37d9bd8915297b85e3e6ccb42bccd30a829235213e57161b5fe84024e",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "6a19759da82edcb4e9d349e0c36d3340f42e2606d623b2a5b4cb5378ea3d157c",
+        "r77_2312754_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "31327e2cd01db472e6ecc944939ad84675b9ad32b3843b79579a1b42d7039cc0"
+      }
+    },
+    {
+      "market": 2312754,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312754_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__result.json": "7a11a520b5ed38587c3226bec8f7864d726a9f99119977f54576c8adec12d7d0",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "4ce530220f93d927effda62052d4351eba47c46f664f5076cf8d1dbb7e6c253f",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "4b20bd7fea076c3ee163206b9c83e7858183b9e0c77a34ad64a32c0994f72bb6",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "f7ff9a0c72c7bd6f985f4734843b767721f79c05321ffdf9019f424b76b4db53",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "a78cd96398975ae9fe14865ef80d18eb449e56fe5de506f4881a0a3aa91b8996",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__PROCESS.json": "72880fe94a1c9eabdde83f1417de000322141f76fe7684b80045d21e028cc867",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "0c8674c72ddd55da0103666840e82365d73e3e0590ae143387efbcf70c16e369",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "e7155ecd077d6193558ed14301b8eebec8adb1135443a4f1326f85d9d9d5bfa4",
+        "r77_2312754_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "a4e538f058e6e0342d06f3c585ce9fd4c63561e7ba01377fb9e1e9431ccd1d8a"
+      }
+    },
+    {
+      "market": 2312754,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312754_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__result.json": "8f9a01732115a011098ab7db166ab2eaee71239a57f097e85ded1c12bc8238b2",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "c8cf231163397388d0e97ecc5720923034f081d82d38b805d3bfb7f93dbbe761",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "a1b60779b6184c8a2d67ae5eef5cd0a21b743c0dea574027803ab0c07bf432b5",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "9d23e1b892b1e96499d019c2fe9469742b659459a01f9ce42f1c8f7e18d6425e",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "ed7f73300ad8dc77e118d9ce848f6953be0c806908762da98864a03be5321b79",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__PROCESS.json": "e3c5891373b94b8f54688af756bd3ddc422a4a9cd528ba50e05967a3ca4096d0",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "b4b31a0c1eb388a39dc95b40e2469bbe5e47b6c5f28ab3af53056c9ddfaa3ab6",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "231451e33b1478f8fb9ba66041acfac3870350347bfe13404d3737139c495618",
+        "r77_2312754_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "0bdf5a93e6c283b6557f8907eb86d4cc2076a418141277b47307eb3de6bfcf6b"
+      }
+    },
+    {
+      "market": 2312758,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312758_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__result.json": "72bb5549bc32721527871d4bc2a17fec537570af769aef8502ef657e0184cbb3",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "234ef34d3c844ca1c45a0f3b32d6b7f8cfd71990026a53d740991e3d2b01a9bd",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "3ed8f78b8464f9045c5754b1b18c7bb176131ecdc185a7d9124c83a54b66b20c",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "888de988587a04392978e15d8784ecb19f04869cc1fb9e5b9ab7e991797f331e",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "71ece85672a1b68cdab6d9943ad4b18aeffe1616fc6c7df464795eca247dfa53",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__PROCESS.json": "e89ddfa0a5209f146ac94e4598509d2f3c386acd1d67ddd1fd964efb17c9539f",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "e864dbfe978f3b83c12173d101a7a52b707a044b9743abc04c394008add2b80a",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "0395ec320bd5a125a5b10f1ce1b07ec34ddb8f7e7c3eb8ed988f3de75df1559d",
+        "r77_2312758_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "e1b02709ea576e1d0998e5e0887b25a55c36b13721a94ace9b2b702a89afd174"
+      }
+    },
+    {
+      "market": 2312758,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312758_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__result.json": "8707da7d3b9381e22cbeb5b0b7cd5947af8c7c279de45ee5cffa754cc7e64811",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "c034c730eeb1cc9871ff000f313735d6a3be9a86466005573f5a5a2c280946a9",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "a6ee16e40182692194d9462f43a9b39f4e8a6cff0e86ca85b238db40e453481a",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "017e95487d9be3b2e2ffa6020b9572087b237cdd99224771d1fe82c95678ff50",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "03fb6ab53db7b9b0fc96f0f31fedf822a21d071dc16985050407ab7d923d4ed5",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__PROCESS.json": "9e758e84cfe37759b86c1198f71bf276490f84d5ef254fc150dfd75140411e22",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "a10f6a2096de90312e9c21ed4514f7b312ec9c37d20cbaf63a11a0d596c569f2",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "6eb765e30cf2e5f55d97cc73fb45b2e98f2ea165d5ceae539b2aabc58f21be57",
+        "r77_2312758_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "eaa1dd0b826c0ec56584cc2def91095aaac1f55ca02e83102c4915fba357a14f"
+      }
+    },
+    {
+      "market": 2312758,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312758_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__result.json": "ef38ead53c03647f7fd7b64eead4bb98cd044a9c904ab063eb5b3fbad1255379",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "258953470a04448632ab787aefb1726eb49016775d324f4ac8f65ef04d862370",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "ef5ca5574cbe0bc5aa7e4fa8c4e838d6db2e3236c74255a8b732d45bd648b3d4",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "da86af05d6a9d58e5341c2cf90438f8806add57ab37e4253b7eafc71be658100",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "42e20500e259326242b4a1ed037caf2edfee8a8898324490d11a24b325151105",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__PROCESS.json": "48bed45df1c4e5a58ef44183263ff1c7838f1a25b9af34ca75770f5b9affc087",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "4f87b4651d82e6bcdb6092d8f8a4dfc7aa7b4207db5d8f7cd00808f408b2b49c",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "dd32465133913641993ac2825ee52f9355761c19863f63716a67b09b81aa74da",
+        "r77_2312758_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "725e02e6a8c698949067d8422eb4e9115d04896724e431496fb747134fd01b30"
+      }
+    },
+    {
+      "market": 2312758,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312758_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__result.json": "08f634ae4e742805404bf28e6c0c1407513e37a5112ad71a39fff95a48981c04",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "9263978dd756f43824ed90e1465dd435f7b06d2ee8d8fda70e6be8112882a994",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "2d44b83c8d37db09631bff71d32a21f9e543c6ab70a4332490eb5117e34ed048",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "516202d2677606bc8138bb1a67e373bd68bbb81fefbcf8d22214f90b42f1638f",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "a6a3f1fcbd7e0cc0b542297778021c552856706a09851381ac6cc3a7ddcc3ec0",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__PROCESS.json": "b488a51be99df43008898c885175a28f0293fc500522726ab45785e635571f1d",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "e69e80b00c3c7e38185f3a2f8daf6323f69fa0c2d48c0edad47615dba220d4bf",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "5384567b5bcafb9fa73b772b209ea4e6bb92e82e731d3e0365ec21be81aa8e59",
+        "r77_2312758_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "61000415caab2ea0f158a6afb4308c7140776bdd34c7ece4eb248a6aeca6b52e"
+      }
+    },
+    {
+      "market": 2312942,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312942_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__result.json": "336d5b43c75d9ff1bd741a2164943ff8c5602fa9a26519ae572ad7850b37284e",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "84a27f5b90ed6084fecc1f60438322bcee507b7404103ede55fe2eb685dfd4bb",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "d2cc111817d5503376b0e88e6d9095f0a6b1b8bda714a82435bd08f9f75639af",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "95f12d8b319a1bbbaf0d5af8e7e428efbb42c9174ed661d02fbdef7c747dfad5",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "743c067a15d9811797b475b8829771fdff2091aca0a2c60d4c75a220ffd252b4",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__PROCESS.json": "bc2e22b7c73587b10fd29f32cc62df44252f7cf078bf5a96546bdb656323973f",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "6896f503ffe10dcb50303c82d5c81a0adc5c2c8972a074581f8959be739bdd27",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "12c53b493160e10a6e7519f6275b84e7ee969160a7fd6c820c6d3b3f197819f0",
+        "r77_2312942_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "1dd284c350d6144bc2a0ce2c5de6ce6977b67ec534dd31510462ff79ebd9687a"
+      }
+    },
+    {
+      "market": 2312942,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312942_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__result.json": "64063c3a665630f6eec91992ca43fe578923b11cb65ac0491b03366e49df1ba4",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "ab45b0d7f7b20beb7c2d6b8b53df35ca64f744dc0c8f2a7b5c785766e55e71bd",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "d8b70aeaf663d02350c053ea22045c2ab0fd085adda6da20187a7f69e7aa4e34",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "51f2ab433b543ddef17f127607915fac104be1470dbfda279b80f6f12bd088bc",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "4c138fb037caca609a3a501e49236bdce3e614e83bb4933d7acd7099ed032ba3",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__PROCESS.json": "df1295f10b7b69d73c5acb7bc0e337fd3cc5bf7d31b3b6555646e7d894662d69",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "d6db408456eeaf1cfb10058de5bb68381a03a715c4b94eb2df6ba20e01620b13",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "03fb431bbb2505280cba49f8dc8ec005a9cb8db5591bfafab9a5cfc65e1e59fd",
+        "r77_2312942_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "87972faaa65db6fe41f51aaeb09ecfda10c4b9cc0ac0cdd6475f98892bc4aa84"
+      }
+    },
+    {
+      "market": 2312954,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312954_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__result.json": "a58dae9add1feefa88753b2881a8928288914b646f5f271118bfb9a6a99d26c0",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "bc76814d6d0e6ffd9c37e08282c6d16342c86d3fdc510b8ba827f81372cb3755",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "6ae69c5a9bbad6ed9667d36a47b512cc88e5ad97b02d53cf54a5cd334b44be4c",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "7fc727aae425e13b223466a00082d22ce7f83d263530dc012f6b63db427eab68",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "7f9ef2635ed07033eee7c63722a929078ed68dfe27f43e9148d4fc60e6611832",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__PROCESS.json": "e87ee9bac75dcf10765e5adb013547e801799788564ad1a7247b8061ed3015a8",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "6a8f103ba1ef21a84989bb57363bc34f539df0a340cbb3403bb715dd530602b7",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "b44b3536775094822a3971447ee6b2d938fca0cbb139572e92d82cfce7d93726",
+        "r77_2312954_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "813837d66c596b404234d6ef617ab9ed25798165b83e6038c160581e6b805182"
+      }
+    },
+    {
+      "market": 2312954,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312954_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__result.json": "afbb18a32121fd26ded986b4334e7fddd29ab26702fca04e3f97d6616793aeac",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "3b3d39f5b2fd597f7e538deff7c85ce29eb8c4f340cef0f7eedc8b3d6d5de7ea",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "325a24b03698af53ac1129bd7c1d8072a6bff7df379e99b131496025b0bbd8b2",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "d466bf2894a024d2b41db1e5e8289767a48162754e4f7291459f80999fbb3354",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "f23d86c4e0f3f195d864a79a968654dd1b12c089cf8c63d1a310f529f9ef3900",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__PROCESS.json": "3ddeacbb3dacf79b40466d7464e8279c4945db82d91a2d332307ca39b9193fb5",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "f289eb276dcc4d842b0d157f696705843acf74ec33d15bdc3d8a7378674fbfed",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "9837ee99d7a8fa1656fd33233feb9d27252fb4ab4972b4b8947e308040fbb7e5",
+        "r77_2312954_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "95ce7bf9178ecc90b647068ee39cb369d0a7a8dca486e148d7d4b21f5a22145c"
+      }
+    },
+    {
+      "market": 2312942,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312942_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__result.json": "830bd6096b749b6252a56e1d27c7227085768af79e31c1b8dbbc05a2eb1053ea",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "fe9bdedd511359cb6f35be3a710805a9fa3d485c52e8a0dc8476b015b067e411",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "08117fde8abc53c73825a7c76ba13b1cc1bc7018bbf482c938bf205ff448af24",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "d18741b944c80cd55506313c12fec2690e65ac62844e0528dfb475f33097586a",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "11cc901875e07ca8e880b2415503fdc2034ced7520d244da2033a458fc3028b3",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__PROCESS.json": "684cbe2930fa8ae039124a42bb7b618a8a7f47962ceaeb01c714bbcf87fca005",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "91bf6b6e3fd7f4702f84e2b153bb9094ee50856b76d719d67f7de1695d2e8c11",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "d63d5c8d9ed4a57ac201ca0ab42cdf94d44f5ae66236200f443afe785b71d914",
+        "r77_2312942_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "a056e6a40af804caaf98ca387ef273a46cc6547ceafd54302adb7dd180658905"
+      }
+    },
+    {
+      "market": 2312942,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312942_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__result.json": "ccd158cdb880712ff16ad0f208ac1aa2d907cad96d7534e01abdf9549dc510c6",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "7948b67081716ed84dca8abb4f27da1d9bb55a48f679772e6304aed82e3faf3e",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "4de4642d7836f1d6cd4d1a3fcf8202104a6dff5802537d42a40f9a0886c9be7e",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "a85b73a3bd666105cb60a7fed72d254fe52a66ae4097fefab63b833d1e21b24e",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "1ad2890ef2a9b02ab0ae24e6c36c82e056c6b7cbe8f93761ba97e4c0bceca317",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__PROCESS.json": "63bc11f508837cfa7774ca11df41ddb1d0500d498d9ae0d90df89c49b5173b86",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "312d5515032fbb62789bc39a20e0923e867dabd90dd4f5d890b0cc5037df5ef8",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "32142f64c402a3242c8a4d8331d712a7c2c3249e0ea9550918ee5041867b866f",
+        "r77_2312942_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "6d5ca93f9d740ed11ab258b378cb3a1c9abc482f94e93a6ecc82c2fc5a29a9b2"
+      }
+    },
+    {
+      "market": 2312964,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312964_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__result.json": "e622c32d1e3da8f2ad79edb8dce607755ff58cd3f1b8379f41ab6d46a8f63b9a",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "c81893f162c6710f015d1a2db253fbb1efae687dd6b2249c0fe4f5af22274da0",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "57b914a0765889d9f372838a4f86234a4e3f4a5d24a0d0962400ab397a267bca",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "b43ffcda1fe173344ab6b541ef11e3252c4d6a8097d06256640a8032a3500f7b",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "728d4c0c99943477e08ed40bc8641641090ac9aee0dec2fd85a7e14e0b41cbfb",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__PROCESS.json": "a80a3c45930efbbef3eeb4181176604dbff897e37326548f8b94850742ca663e",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "981b42d8e725ef93be2ec4a064185c2f5183b7e2fc05b32b0e58af8bc25f9c66",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "b1a0dbebfbe306e34318b44b4a6cca8a97964afa99b481bf68db66beb7bed368",
+        "r77_2312964_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "613d73b1ccccdd1e56036cf92a51afafb1687bc1fc25ca9580366ad635fe8185"
+      }
+    },
+    {
+      "market": 2312964,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312964_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__result.json": "b0805b19eeb4e6475a71d232d74ba2bc1e4f9bdc2345f71c7a0b7a7bb98d231c",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "c81893f162c6710f015d1a2db253fbb1efae687dd6b2249c0fe4f5af22274da0",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "0340233072626c24d2da9d6dfb73e13ec2a4773e887ca61f32a4a5922e256b40",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "da51370305a42617351184beeab1767c1c958b80823909277eedfe00ef9bd3f0",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "d95ec7d2a7a4d11d8509230ea3eaa303563e55ca4f7f8644b3019e5710c073b8",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__PROCESS.json": "1ef0c54a071b82f47aa0755b23d14ac97791c97123944be54aad543937d423af",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "49d35d55c19d19835b078e53348cf2f6fa4e5845507abfd117d8de2c0f55d3b1",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "d0536f89fdadeb5007df461ce01cc079cfbdeddeda6908088363f0efb930be91",
+        "r77_2312964_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "5c814c1b50ac7d77e735340a679080cda35ab462117b20e75fc9d2cfb2ecc244"
+      }
+    },
+    {
+      "market": 2312964,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312964_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__result.json": "2e9c8426318da6bb7d50793ce89b36f7f523f1e63fd86a0812d35bfa2834ab87",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "1572e490d434bc1d4f9b4e353118cddd29c10e9de164053187786f5c8ae9cb20",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "04b8d9553995b3be98ff739f44058e13925fdf9f8434245c28f62348affa00a7",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "2547ee6c02f36dfffb5d4896203461a900ffdbbec4c367d042f4802b063e079d",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "042dccdb8bc0be823b1fb1e3398f555585a732926505c7b4b844ed9194ddc2bf",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__PROCESS.json": "e264d9bf5dfdcbb550ba3385c29560b9c457e6c879660cf313c8d1cb2f4fb796",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "122262d801b0014676878600da9aed780087801b08a1ceb88a381ebe32da5e8f",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "22a85e60e0a2679bc49a0bb2fe9cb3ba1ca15ca4b18ed4eefdb71191e6a58918",
+        "r77_2312964_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "a2ed7d95e1734d7960dd1e1e2bae506d6e0eac1d09420a0e9cb3d5fd3c4566a8"
+      }
+    },
+    {
+      "market": 2312964,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312964_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__result.json": "236452560668ff6a01d1d0c9609b1a1febecf72ec23438648dc440ed195fb3a4",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "1572e490d434bc1d4f9b4e353118cddd29c10e9de164053187786f5c8ae9cb20",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "b53101826c88359ba117daac9ebb4eff99668e72d198418c6de3e458064c2000",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "6089d06a2dc3a95384ec918e88aab2274c810d9d9b41100476120208922d89cb",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "544ad3175b76565fb5abe79699f4b98fd58aa490c603abd9cb1123cab86832b7",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__PROCESS.json": "ee95c5dded3f07963c5d24b71859f2d11ad905b937776a4c3159b93d427caf78",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "535057c3563043134f2e1ccfa092d58ca090093275e7c08ed570eded3a1819e1",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "e5e971a2fa3197326f1937aa2a3257b39316facfa077c74ed74260e0341d0a62",
+        "r77_2312964_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "be323eda928cd897564b7f711e0b76e2e919b8cb1cca58241d4f218064803df1"
+      }
+    },
+    {
+      "market": 2312976,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312976_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__result.json": "2c6fe3cda39a769d987cad972f62c2c6a06c88844959630e362d43bb4fa6a855",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "90a729bebe6b279ce1f744b35c41fcc65445e4a68c965f9ed5b267c45650feae",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "7dbd83c132354798430c7d999418047b93d9cbb0fbd7a381b82e8b9330171b24",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "acd5340f306d1c22344ba64b1717ae497e841b370a716b4ba3384ec0630e3555",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "9ff57bdcbab62a4d465dec603b16fc810b15e1e9c7e0b6daaac2c5f8737a277f",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__PROCESS.json": "8bdc6ee3bf490608deb19dd353d9982b4c3723220efd9e6a05ef58e566e05164",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "2cc47bfc0b6d824a8af188a78f45d6fe048b3bf02edb14e912151b19c77a8193",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "969dadd7a84b2dc9d12c229686ab4ed276e52c02f1ab5db2c37de614f8f5e327",
+        "r77_2312976_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "dfc35c67daa71facbb46634fdcf92466a40907d4fe4e06a707a9bb0946f324d3"
+      }
+    },
+    {
+      "market": 2312976,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312976_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__result.json": "6eda7e04e7b7adb8f52a3a5a32c464faedc8bdff4b6c51ef935967223edd3dc1",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "90a729bebe6b279ce1f744b35c41fcc65445e4a68c965f9ed5b267c45650feae",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "80222882b6d18a502befcf4f7984344117356fcf00ff79a8c693b5b7b1ef2fdd",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "a631dae3571fcd97adee5c52e5b967566942d1cce2541805f89d07838f8dbcd8",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "e1729c58229554e8407ba782e6eca6ba5a0de6dc977718231831ad5007946ea8",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__PROCESS.json": "27b8502e9f07f5d5edb10954ed1cc145625a20b00a606ca5a51921c89b2bfc80",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "5f5e6005eee1967d932800a1d0d8521f180096511e490b8b97c6a42acba31d36",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "2fdbc2715b2d2490cf8f38d042f120927dcdeadc9d33bda53be19d308b979fcc",
+        "r77_2312976_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "51ad56d8b9534f98467e820e2cef78019080077a0ab71b98ed04b263ed48c614"
+      }
+    },
+    {
+      "market": 2312976,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312976_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__result.json": "83b88932356a922af6e5f945d9683e47890aa4c2287ba36d4896e7e2b9d1b8ed",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "90a729bebe6b279ce1f744b35c41fcc65445e4a68c965f9ed5b267c45650feae",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "ef9de278c7a7f254891a7f668d36c50fe4080e1f38d4ac67fbb7353d77d9abb9",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "639d8f389c01ce53e9c0b8c909c000dbcfd1d3911195447df5f99c21b700f7a8",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "bd1459e9c252a4fbf85c6fe446818ca398f7a02b39d094af8fc2d87fc035ae62",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__PROCESS.json": "0829e1093cb92652e96fa3db9effda692aa8353c82ee153e5c4ddf0fc2ea36a0",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "d708f4ba6959068703c2b5c4a2bd20fe39a2c3af95ed99e181856df8621063ab",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "94e9a96dee7687b46c97d52fc48d48a0bea7510cd6a79d22d923effc8d4786a1",
+        "r77_2312976_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "bf4abd71154269a0c2ae1f12fa8356820afbc0dff14c6666bcab56525b1632ae"
+      }
+    },
+    {
+      "market": 2312976,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312976_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__result.json": "069351e210b2280b20ea5a5a7cb9f9aa95358b618818263abb940d76fd6c07dc",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "90a729bebe6b279ce1f744b35c41fcc65445e4a68c965f9ed5b267c45650feae",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "6c995d4be871f20210da7af34f38aa5ccc8ab222011ab9e366cb0bbda2e73760",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "ed7349a7640ec36a68df85f7bbe2e8fd69f8c879f4b4ba2048370ac69cfa9ae3",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "afcd4b519a601c9892a049679c0acb0309e911540496428ed36ac58643259c54",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__PROCESS.json": "b8a0423154f4c5122f13368eae8495bc5fc472d5c06ce18da8456e44c86076c9",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "b51c5b980d9cb80fc2da64f8c0a18df2f418d9efb71e986f34dc03fdd345e3f0",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "81bb8b61bcf13965efd23f3730a01fc57c6731e74d15c82923c1106e3f521db0",
+        "r77_2312976_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "f401a592ba2b573ed4c1dd783583801f40409541f07cd8ed102400002ac9766f"
+      }
+    },
+    {
+      "market": 2312996,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312996_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__result.json": "3996a8ae7411431c83c084d98df4f0b8f806f5dfb0e4a96b9b699b99ea9fde22",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "1d031aa24f74af7cef9fb8f485f6eb5031b0201ec00050f3bbcbe6e23be8648e",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "aaa62052a8e885d83121ed7902b2f50c22bda7f167fb7210c635696904034589",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "6748db5409bbbc438c0214074e906bbef84ae10da3108a7a636c4b791dbca335",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__PROCESS.json": "d50c55469a12e28801aafdb52c7a5ec73559f9991bb8da2f1185e4923c4173b3",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "d5da10031e54925ff97825fbe09c9c85a05e076add44cf716fc5c40e32287db7",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "87bbe5f2a968b89ecaf2f3a7eec7dd661b50431876a7538dcd52c38586300840",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "aed62b0d84514164820625261529fb77443e342c7e276e1a333c3844c824b8f1",
+        "r77_2312996_UP_R65_S20260920_DYNAMIC__SCHEMA_REAUDIT.json": "ce66eac16270e8b436c308efcc293940fbe7b295a01ed39644b4a07aa395e21a"
+      }
+    },
+    {
+      "market": 2312996,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312996_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__result.json": "c7140f0a1106651210d4e8474f7cec54b4b6b1773d29b828fce020cad8151f6b",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "5b62c49a3f7d6715de70a9ec940b7421f6ec3d91627a79fca7dd6e3a3ad32818",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "f5916d6cdb66d1ee17d262c3ab1e0016293ced7346f0c0bade80cea8138dcd7d",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "37635de9c94481b49c26ca074875ee8c3b0c266efb736d1a4d453dea85cf519a",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__PROCESS.json": "c1564a11e3297cc0639f63dbef3299954cb3fee98ca92d662d0feab658c946f3",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "ce88aaab14474a9c23d41322436682e2576817cac2fdf676ec7efba20f251798",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "780c353be1f01d7596954b0e703abf8f3c505b1a1c5285718ea19da2a869971d",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "4785152bf9b74f9941d53288e25cb2190992e7ba61eb982dde5860d39b86fec9",
+        "r77_2312996_UP_R65_S20260920_FIXED_UP__SCHEMA_REAUDIT.json": "f5747716775a3e8c99e13009c8b0c2a746b7cdbd4aa4ed4b8579411aa7caf7b8"
+      }
+    },
+    {
+      "market": 2312996,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312996_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__result.json": "833f21ebbe231a0b23b3f51dc4008e29ddc9a3bd91afbaf8a3d0ff79978fa76f",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "3daa3262616c672b9c3da68914704b571b9cc5313fb89b9e771f441312f1396a",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "7f43ea279e6be115add35e700bc7945b1dd7797ac49653c8ff18f77b1dc21d0d",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "83f013ee6132905a1b7c1c59d483e8333afd884073c7995e75242223874f117e",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__PROCESS.json": "865f65f7f27e709f9f8c9d166838d2a1b5a8ffbbe98cbcd6798667a2912ccc4b",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "b60801f504bbe5bbe83d66a5af00aa9e77a3b8203a9f29f23f556a2bfae27ace",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "0fa3a9c46b3858bd0c6a0bfd60142538c2ed6af5a9b3dff570122d45a77a35e9",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "abd8921cdaff7ca8ccbe37dd0fa6016425ccfb3b274bcc680acafd813033d7ab",
+        "r77_2312996_UP_R65_S20260921_FIXED_UP__SCHEMA_REAUDIT.json": "85762d996071d87ccc37e0851a673c68cc3f67ff68035443f0677f085f1e8889"
+      }
+    },
+    {
+      "market": 2312996,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24\\r77_2312996_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__result.json": "6527c9e0d9be61f7f6c75c8b330c601ea610c5d7b83160ff70495ee28578dd5f",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "f2adee05dfc7e57e991d2a25a2a78823cdfa1e28523b171565142ba3f9abc8ef",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "0cdf765f106dba126fed1053ed05e42119070cbf696589508b891bd969e1c24e",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "95ccd65c574cc6505eb45102bcd1ace666a82861b232802eba4019bf6e55d4b3",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__PROCESS.json": "67dbca4f9f3c9684dbac111725100ed39f60e795257d365bb839f4471dd8d750",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "c9f130806e6f1e04bf877e110f033b9de1a2922f4dc3907d46bc84fcf2c14691",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "d652421ae27073ba7c1c00387b90ec136ba40a5f65fed26342f0ad463c6e1bd8",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "b3252ffe4e7d4633a97a78e870c03d9dda6e96bcdc84575913b29a562ce8da4e",
+        "r77_2312996_UP_R65_S20260921_DYNAMIC__SCHEMA_REAUDIT.json": "7ac89a81851c5cec386ed37ae0e15231d193bfcb265f20591372e7ba4d561c9d"
+      }
+    },
+    {
+      "market": 2313167,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313167_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__result.json": "3fd98bbab56f8c2d92aece28e7e2935baf54a9ae9ee762f1d5e3e14de2013e22",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "6a20ef711ad23a770b74ca2c80be4b3c7250a4c5b9fd9b88776f4e18c70d60ee",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "f1b4c17654f929ab551a20d6cccdda05cd506fbec0ca86985e0aa552524ddeda",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "fbe18b89e469adca744df20437927fee55778cc2ca9c6976a140977dd5f9fbf4",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "7aef127910e970241f96f28793d4b52c054711d06ecd391c15b21ea3cd5fd031",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__PROCESS.json": "8c8e60d3329f3efc66852bab5fbb945effe51e87add2c1615efdd4948882f44a",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "22f775563b5aee1a2834b1568c468c56a98b2366cc8c5bd9d24702e302efad33",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "7d03c046f85125591b179e28bbedd794e672d9c71b4281703b86bd5c9e112877",
+        "r77_2313167_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "e35384df84203599f4b2ca8714afe6b46d8b859affece7cc01302e9904cb2fa0"
+      }
+    },
+    {
+      "market": 2313167,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313167_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__result.json": "6aeb4e6f724ab94b4a853950e04a856cc4c01cfaf518d1d9c036c53d69c2a60b",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "669bbbd514a2fc434fc8df4912f4d1d5ca8bde7edc115e6f82fb2cff425cd0bd",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "fc67cf574c350e2f4282d9b4bca64e6ec061e0b92225677c37b88568722832e0",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "92c419e99c8a19081c2092147851374d1ac2345ec46f7c44e054ea55b6b9fed6",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "15e53ac4810c7e33c8dd64a9f5a217d2c8093b38fa4c047e20513c0e7d1e0a45",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__PROCESS.json": "70c97789598342ad8c3493b16f1c5218f7be6216e7d3ee8d0cb1462895111850",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "8a0b1f60c5147acfe5998da01508b160a0da12dc8716a7916095dee3f191406f",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "f130700ef962809bf1b244f11019305fc2ed299d2064608769df0103d86e841b",
+        "r77_2313167_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "ca9f834e170b4dc34221ca31f5edb2aa610ded0ea166da715fea612bf4572052"
+      }
+    },
+    {
+      "market": 2313167,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313167_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__result.json": "435436c001fc0aa47fab6570b9ad293a23932966acd23bcff3d8f6fba093c3f1",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "6be964759247bdb969b25f953356e18dd6552db680d3107622c3793ae705df34",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "0e55024b882e8b7584b17bd02a992fe1bb9a5803957613f341e86fe4cb8d76a2",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "51ba7ddc65a1ca6a2e81c865933c4c049ee5083611d322cfed80e32138fe7f1f",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "0970964923be9e55f4870145537e91f74493d4a60dfdaa90060e45f75576bc2b",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__PROCESS.json": "4b3d990901dfc307cc345dca9cb68e2a0cb21c2aef162f00e1bde197b9fbd5a7",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "466eaae28ace432a1f392d6df62818d3e512930b15b7b4aaa99e63a098419a84",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "39cadf2cae211728ce64d51057d3e91f9a73e207421e7cf36a6787e1907ec4d4",
+        "r77_2313167_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "d39c861d9e2a010856d7b0e099b5955658ff10987dd61a3397ecef9c24719f27"
+      }
+    },
+    {
+      "market": 2313167,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313167_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__result.json": "fb3640a24210dae9577a1fce40675d530571a410c5c8e60bbefc4bd555a7dbd2",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "4b71a780011a51b05ba529ae774a3d064b5bfd529c1317de3951da39522cc6c6",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "5b5252aa710c85cb33d874587a9cedfdbc57f9010b9edf84d76b9dbd600bbd32",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "88b3cf6bbd7e8e59f449dc60ddbfb95e20c8175f93bb71731b23bb1ea1910a27",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "157630a002eea677ee8b026d955cf3d6726dac584e0d4b8cf526c2ca2aa29667",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__PROCESS.json": "17115347f2accc3868f40cf79bf20aa025c64a3ec24494adae6438b0f67fde7f",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "bbf2e80fddbd641720c82d3855b6ce6017d8ed4b105a4dc72badf65eb87c632b",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "7d0b1f4cc4ee31e10fa90928bd7b2d1237487c8d2a9033c26222888aae09e457",
+        "r77_2313167_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "f148bcdd655b4164f204d428e6b96b0c8139ddb6ceedd6f65e3950477eb6bcd3"
+      }
+    },
+    {
+      "market": 2313230,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313230_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__result.json": "435ebaf33420e4edc6cf2588c3cf4753a4eca3bee6f317f6860b94316723f7d5",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "ebb91717a1f0fcad4870d691c73825ca64b6b926cbdb410dbce3486c08fbb1cc",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "bbb87cfd79877d09a4d28f306f6d6d12481e3089b8532d3cec8579dd55e223e4",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "2eae001df0dab07a133afc9b0d00ce3a19c513ac942e0ec7543f9b92ccf47129",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "7899217717628e98d37702737810819888af53bcf075e54fa2460ba1cf66d9a4",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__PROCESS.json": "c7c133a8650fabb0148a67eb2e4474856416acbe4f92867786d50022463fb694",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "f1c8d075613183376e2bc666374fc754a5c415f6a3cb63071c642e9880a5abb3",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "c22d1cc97ba368bf0d3cd419af34e61f8fee389d9d1f4dc9a082d5b6e3cff356",
+        "r77_2313230_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "d8c37283812786b06e94e45b277e2c7a44c0bf2c9d873b1614677d3fd5f42389"
+      }
+    },
+    {
+      "market": 2313230,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313230_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__result.json": "cb207c647d09d96fc5a4ebdf7f887244356d9194065e7f90940561997af8a6e8",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "df2806b0c9219b7ac1c94e97827b84d37771582c6df3d0e065d9adc0c63ab354",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "f6ca5995dba05ca46f83b70ab05b34ba89a3e908d32eb71ef44dc9590630b08c",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "6ec7ec0fbb665aca42f85998362b581f12433b91ef478f040cb4cc634a811167",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "0d91b048f635a18e9ea74276f848a53fc91aefe1bc79b0335fc20d1bd17d7524",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__PROCESS.json": "90a70766dd51d20096420f8e32a7d133b4b3d401d1dc17b383058feb826eedf5",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "e3bd080186f4f5698f87c83389fd4f5a4be521aa86a11542fc0e6c921904ac86",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "2b447c9e558a497d990290954d070870fc669f1395b9fe2ae02ae0c115a904a3",
+        "r77_2313230_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "1b511aebc7a849494544425ee8a47cf77a63a23439fc1a94d1491eb673c59bf2"
+      }
+    },
+    {
+      "market": 2313283,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313283_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__result.json": "296c2d3d8f7235c9b5b174abf67d7942dd5ac896bd4031307a64e01886f0f6af",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "c755079bb5509613f627d262429aee6c20ac42a1f1bcd495a6297de5efe03050",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "990db606af2a570f74cea30a785e7bc9401fde2a0e388cdb6f8c506453a8a071",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "886d130a5f9d61e9242e795800d0e3c856f0e6bd6b18bf471c246860fe584257",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "be8b9d58ea7574b506899b46dd1d6e613d0be67111a29860a7ed0205c785d452",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__PROCESS.json": "dfa921936fec16c83ba340c612f61a385303774f8e8e5aa2ab3b55e4e0a93d1e",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "b4ea70bb2b33a922c6025ad870b0183c6da49553496bd3c2ffa9f002380b3ee4",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "e6247296d3609f5692496011a3342c72731ac5d74f6803005a4746d8f9b134b5",
+        "r77_2313283_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "ac264141e1a2b0667d2384d4c5911900ab84ee58d7b23c789f3b75354be5720d"
+      }
+    },
+    {
+      "market": 2313283,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313283_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__result.json": "77d3c2873bb6c128da77916d2808265ce2f649eabb3e51b78ab3327e739685ae",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "c0dee2a5609de6779f96994c29b9dbf99063c0099cbe8aca5a810da49cf76d3b",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "cc7783a10ac2e8e1757b1d9357d1a0781acaf84d27c8d7067e8eaba9e0c707c3",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "5942a3b9a4dfb3c20b014f597d075c9127c8de282795e52f411e9b0b32559113",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "01e35e374c43dbbc0dfbc3166640b6634d58ac3a32fdbaf3cd93a24d7de56057",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__PROCESS.json": "742e4fff4e10e854dc74e9582e3abcc6d5693363e3f782a12842c908f1c89e87",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "e43bd3cde7f0591ddf56f275f6939851e748de8917c20521aa1fef206fd1b6c7",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "a1eb0f48a6b027802d9d9a03d35573d19a546b17ffcfedb11d4235b51239f7fe",
+        "r77_2313283_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "3a5172e44e9a85804009175f7e38b85109750e07f7746e70d80fe6744ac601d7"
+      }
+    },
+    {
+      "market": 2313283,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313283_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__result.json": "a93123aaa3cb5109e3aab3de28dbbb65505ffd2ba0868bde119e43af687e9ec7",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "29c3fe830135e16f84cfec87d8bb7a691876dc0bbba4c6d7bd60311af2bcfeb7",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "6decb4fa0e70dbce704a0c488f7cbfff8886932da87fb7c4126757b353e1565e",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "a75dc6163775eedaaabcbcca0d8dd04b2065eae07539fd085fa12febaff4b7cf",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "509e583ef3d79f913c5677ff1034d1b878a3f809d71e0bcf86c3bd825949eebc",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__PROCESS.json": "6fde9748b6274cdf6f9637c75272dc84c0e03dd6580d9e7dcb4ae12088f1d35f",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "62ea354d9613f0ace00f771502e0dac25c93f30373690d0f809e338cbf05583a",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "b90a6754a79f80b8ac5721c6d81eb536a25898cb578e06a3d30aa4ea58b842dd",
+        "r77_2313283_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "0013ca7a469513bfc60cabb0758dc7921ebc581239e7bdc095a2654f1d68f825"
+      }
+    },
+    {
+      "market": 2313283,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313283_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__result.json": "c2d1ba3645388230ead314ebef85b83d8198485a14828f43b2dfd4c806ae8ebb",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "f34ffcb1b9d6d917831978e872668bf0efe7b9a36bdef2782a6e65cdb7ecd9f2",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "00e8efaf9cf3ea788529cd0909f9f50664ee30b52310b23d7f74ceac4f156829",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "9e4cb886610ffde390042464a4034df33acddbe20c384f8774570706a6d5a761",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "8cd98c734816aea566188b3b20d24249919ce352cff8de2d4e64390c7e7f5924",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__PROCESS.json": "02876826fc615c6aac6987d59fc96985d01328c8020dfaa8da512b80781d98a2",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "99b7cb80008465a21b8078de7fce0a65f5577a3cbd27768e47c82cedd21982ad",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "171bf38dddead2f9d505fc98fa39e6fe8894038f1ffc6ed04c231a7e11bd4cf7",
+        "r77_2313283_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "a1527d956f98c9a8633937d61c1e40fba294be6c4631b62bf51489fb672f154f"
+      }
+    },
+    {
+      "market": 2313287,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313287_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__result.json": "9848d8f5d66d6183d1f4f3240b6da686628f31e9e3ec64e9210f8f5fbacd1e20",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "0617650461abbf014b802cc019dcc0e4e1528de8c1928afd965c0934e20e9126",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "7a0f6c0c8958aacaace51cfd60128d667b674db0115aa707bd602e13b7b630d6",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "e5c7a6a9f92ec81f514863a6c366af0e95abdb63b3d213364ea393cb81b1fec9",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "5fa7a031a0a06e6dca607f3cb2040d25f1ce9bc0f343b7437b94a8d520e4cd0f",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__PROCESS.json": "e8a59d9b2b12eee587b44dbf0be2183896e14ef4fea343d1dc4f8afb0b062c7b",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "57bde1a6d83db8c502342077a614a6af688b1d9320d6a6c93952572b7e950395",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "86b65abad0d8e61fac53d3c998d538c6160eb573893af066a591bf24703ae590",
+        "r77_2313287_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "cc46880d1c3baf2e1561e41d1c88b386b066c420b8b47bee3c6d52429aab7e2e"
+      }
+    },
+    {
+      "market": 2313287,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313287_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__result.json": "b7d8e6b751435afc6d3ac8efe271b7b6d160f5e54be5db4b613afb894631d850",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "16a90fcf508abd1d22f59bbb5e62ddaf5de8d05eb4c9d21b6df0fa5dc4ea4fdd",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "79ecbe8dc0c21dc3de5444c34b20e9b14d5a53fa48d31f8fdbf3e981a2179370",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "71d51b5ec4fa0d861ffebd581d73ca25500bfc40b92966a622cf18f9587853e8",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "8f6bd38a3b3cc016833984652f9d62ac09795fc68a7e5f5e6603aa08857a1ed3",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__PROCESS.json": "59b5e62e201ab21ab83bd241e84fcf9c35e8ef2f2321f55db2f3567dea91dfed",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "c886e4f1dcddba57915aad1b676c3fdc551ce15d5fa74ad8d55da602b474a78e",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "5562239c5db960fd6fe15dd85eb9aaa91e8db2669b95aee1f5ae8815e7b8b012",
+        "r77_2313287_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "6fa4a0f05ffe464de371ba5a549c5facb2034ce18f406a24c2d3bacbfc7f2c93"
+      }
+    },
+    {
+      "market": 2313287,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313287_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__result.json": "7a63e0e7d5cacab44b88c92920409db13c27a52a05026adb34ab13dd1ac4abe5",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "740c73ff0e05de3315ee1c58d820164ad1249bc7fa5d4bbc509c45a9b056f943",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "87c1b0f0e9335b4ff1873eace0300ad8f4ff062a177a19f9c7821744bad103d3",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "bab77c4e2543e8916fcb973209625eee5da80109d0b5144c4828e0c3a09d6944",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "dd7b720388b91846ccdd6e0949b985d7cda30de078ad9c2dc000b99dcfb931e1",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__PROCESS.json": "09d2a68762c78d571caaa9b22e026492c2b4a70103422697bdb630e00977931e",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "57f0fe4cf1d570dfb4f43a061aa0c5e1e562659de7b6a98ed1b1614c53ff42c5",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "18652e93be41e3833cb251d98250cee506cf86de355fa1beb10f005f53a2c0a8",
+        "r77_2313287_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "35ce8bceab505f4ec8711a14608bdf1ac5a21afbee3ae15e2047bb6c32f31ad4"
+      }
+    },
+    {
+      "market": 2313287,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313287_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__result.json": "a2a185279829f6fbbb6cda46e82634de32820104fba8b99c5fa3803dec7e9e25",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "6f9ecd5ac944a88c1c2e7811ad99e8885fb098edff6cc3979dac677f93cbf897",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "71284c0d78bbc24fea69e67c0e427dde5b18d9063e686812717ded139c4f833d",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "63079191d80b568d9aaa62273517e6f0ea2858fb58f6ea467dd5b76b0b2bca70",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "a532487b572682dce1495f068b764f35393d89bb4dea450ca74e7cf1f8e47e20",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__PROCESS.json": "c0d87f473c997d9d911df398a2994e82c6101df4c7e45680187e2d23673349b8",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "93275eda6092594f873459339ea672abe96ebebff9c899effd5da2ef4427d79b",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "d62865e076ed7c616b0546fefd0c52ce76ec116cea3438e1bc3358794c5f240d",
+        "r77_2313287_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "fa19c3fbc99bad9d28c009ba0fed9ab45593d68b5616a223e4e5b70b2d18fa6d"
+      }
+    },
+    {
+      "market": 2313790,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313790_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__result.json": "4d27a8d07fc0d6815452990a50d0bbae86747c4a4a5961ca51c1143539f3713a",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "e0446b8b6f216b006d1c2b1aba9f2c5e37e9f39b97de52ec6df79d567e0eb8ca",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "198e15ccee3ae300bbce8a3eb896a5e1358e184931cafef729402b64dba7663a",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "d39947a0f8191c5c764734fd8abc5018b0f7382639483699cf8e64897f434ca4",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "62c0fdccf5ee766d16a7638534812063cbbad22135122074b338ae695156a057",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__PROCESS.json": "8ef241c62dc4017b867cc508953e64dacbe6bb5801c35a626b6b97d2b707a468",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "5b752d40287ec79e3c66531014022a600d913c068525f068d82509b124e63ef4",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "1297698c46d680b0d5fe2860428116ee3319524ba45f21d5f5a736c782b41e55",
+        "r77_2313790_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "6faf74b252f5d08c10a9ff3ace867c89f833f2f58fa9d038e9f613669ea4a50f"
+      }
+    },
+    {
+      "market": 2313790,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313790_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__result.json": "9424d70c4e61442617362221beb0d0ddda6af127929e7f8cc1cfde573268483a",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "90a2f1546f2a5196571168b2044d7ae3f6f9eddaf641624b6727bc8fdd8d180b",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "b391c58ffa0dc92bc1783640ff0c79ba50130ae326a770d3ad2118891774f81a",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "d3809166cb744b654b19e569ac6a472db54561f86c404d3f21427967cc7df41b",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "214f05a08d474367e4eeb01069ecf18f6af020e0d54f51ddbe63168b2d6395c7",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__PROCESS.json": "37af8b59bac327051ec8d43bf401fa1bd4dd63a44e6a37e37948b1a8fcddd998",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "1cb8ae1305b34dc28a81fdc6d65ec777d7400cff0e09ffd573bcd805df273eda",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "11ebf07375bf3851cabef5a7d0a889f9ebf5a9279f03e8f5f8ea169188662c2e",
+        "r77_2313790_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "f05d73defe4779392e6a1f30264eedb764578a41e5414bfa1c8808bb9b9c2ecb"
+      }
+    },
+    {
+      "market": 2313790,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313790_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__result.json": "6bc3e37eca3486954d7a6514f4d0d591feb9584d000ee9a6afc97620031c06c4",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "ba017330d1cbe92efd47174116d25445bbf6e63e97cc91cf1c7ac378aa3d2de7",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "269087bcf72dd342b51cdb4e5f2e06b0abb992fc2ac2a422c4283a9f1285dcb2",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "e47bf25ad9003cab2ed0fe92e8bce00435a47f63574aba8e83dc081dba82e616",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "6eb6dbe51854c59da4c1df45efa879b517e786fad6107bb942ab2e6211a8c6e0",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__PROCESS.json": "b35442f72edfe15bff09248dd44e2b574372412757db8635aee696347761f3f1",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "301ed2e04be89200f1b3acb0e64c543c6566730455afcf3ea67555954e8a74f6",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "a8dc9fdeaa09a778e782562b4edbb94e2eb267598767e0e4033d1575b4dfd3de",
+        "r77_2313790_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "f8e3ef22de0b2333a48d552c21f715ea8b18898d6046e96b852affd497f59034"
+      }
+    },
+    {
+      "market": 2313790,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313790_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__result.json": "b4263cacb649e23776fe34008c8035a772d060a268aace392b98f72b777ed504",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "ba017330d1cbe92efd47174116d25445bbf6e63e97cc91cf1c7ac378aa3d2de7",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "aa8dba0033e452effa3f097d08368f24dbea3742864f6af0d549bfd2123e471e",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "4e9c84f2b5deaa2b36c12604a34d5e02b76b6de19a08528d2ca316ea6479a551",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "de8d4080573ce6a8984f00f900b2b45197c732fb1daa1485fb89f8ec98f003cd",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__PROCESS.json": "fafa65b1fb920df0bd1b96ca87209776fd05e86ea220306bf6b9fba5580e2a85",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "9fcb63aa56bf6bdde253d48080cd22de4187d5be8c61248e4e6c7fee1df99b46",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "236f57a2f8c7ab294ea92900a58b95f7867769aa85befa9c9507c1ba98fc5b7d",
+        "r77_2313790_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "776fc857864c30759647e71af4be96c7f3e925bc6f87c52006217cb5be8afd88"
+      }
+    },
+    {
+      "market": 2313823,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313823_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__result.json": "cdf924529d773deafbd8b9abd56e5731794d55c41ab90a5a1424b0b08c5b0002",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "c135098b2c90264e658ddc3c50c0af654f04105705fbe30c68fa05ab2d9b4f44",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "e3c2cc962f409b78b4bbe26203c879ed2a95c3ac2a3851a68dfada91a206a6fc",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "d4d302e14b9be994e9661a717dedcd52551ee25b9bdd7ccc56dfcf0e65efb125",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "b5e187dc210f9b1cefbf56aa1ee6c8ad90ffb5a038addc0cf35e989d69a0b4c0",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__PROCESS.json": "ef3528319eb663fdf36ef86bd490e8e2b49cb9b793bae48ed7db2c0238f25628",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "20c104d0dd6875601a87d901042f98c0fd821805492b1e4e249c730d055488b3",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "e58b27a07741dbcd7b33790aaf04350656e1bcc6880917ef8a1061e3ed06564c",
+        "r77_2313823_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "43e80e07c2e469d93ba01d3f5fecc917710a72ced2f8e0512af2ec0df47605da"
+      }
+    },
+    {
+      "market": 2313823,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313823_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__result.json": "86989a3d8dd1869a505660653b28caca01cf3de2f7586c528a021e07972679a9",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "09332fe7d989aedbfa15da4a3903f3b7eea80e7daf3dda50c7251142c59760e8",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "d8e0788c47abdc074ca48ebf263dcce443ce57feab456d1b28474f9054971c30",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "45afaa52efc6d37f8a12f4c02ed1489501017764089965c8a8b1603eacde2d5b",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "542a26d19a41e065187f7b33271b8ee0fbd7d18c38c6c21aec36bb14329bc4fa",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__PROCESS.json": "56344cf4b4d7893ce9032cc94f928d5739bac24af576f7ddc4c2f63fbad82992",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "dec7bf8a503e3eac192ee6f0956493b07d087fcfcfceb2a18ed48942e4cb2056",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "0a1b14b5d68afe4ab64ed2465229df4162ab619cc819cdb0b62853350bb992e0",
+        "r77_2313823_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "6d323c80636f67fbb21a5d6b8ffa3ba53259e410c735f5ec4369ea2b5b254f65"
+      }
+    },
+    {
+      "market": 2313823,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313823_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__result.json": "67a75c80995069ee5ad63cb1e463e28916803d650a48408609b64d0c08140cdf",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "c3fdcfddfaf16cf78bda5d7dcd675be5cd6bc81dd58ec127f645a3e7fddb6e74",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "4f17c36903cc2ac300946d84256815272228813e53c4ee814c88295200fa42e1",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "4dc29dc7f2ec9253817674218db24baa3747cf31b61421a3b03f95ceaebd6b7d",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "0ca9c59539ec1cb2c67ccab26c89981f3a3288bc598d85b3fa37fa0677bf5768",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__PROCESS.json": "900f4540cc2ef415f1394ee0b6e6b35c8aae063b554688bdb000b690fa7e746b",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "344668bf9813d0d3a6dde9ddc16d6d714123b3813542d0c45d73719ed15b734a",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "65baa5732e5dbd7868a1c8a64aa412ff06af7b16608fc1fa0d5355144e2f47db",
+        "r77_2313823_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "c7bae12f6e3a8b6718e926df45040d9d78ed84709d397cb192f981a9c866c630"
+      }
+    },
+    {
+      "market": 2313823,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313823_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__result.json": "f9038d9b84fe1d571c45e424ac0d63239ba511e04234c9cc4739d1e752c91c2f",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "c3fdcfddfaf16cf78bda5d7dcd675be5cd6bc81dd58ec127f645a3e7fddb6e74",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "8ce551c9e29095d07ee7d94d9f15dc58bd5a0dcdf4f7217e28935cff61f5c402",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "36ca6ab2dbb252de14ad5ab7d503898c1eeeb3e5e9d7bc48fbbdb51556b650da",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "e3c7970cf720ec56fc757dbd6c7e8a058d28fe39233af544aafa0109566b842c",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__PROCESS.json": "ad076f78abfec833feaed15d0151c778c15f7cfc74281ed060a690414306e672",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "d26866033cada62ae33e347f227a434e0c54e90842a2a10760b61d850b0152aa",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "42bb0884b63bd1335738324ae8bf512c06457f58017d3cd8d28116c65052710a",
+        "r77_2313823_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "d7ac584ce96200c326d7db3d48d7bded84d8142397b41236093888df1f884276"
+      }
+    },
+    {
+      "market": 2313841,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313841_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__result.json": "0922a98d61852d82093ed40be4c89808131d92374565f37fdc25531cd276c2f3",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "531a29aa7920f98c1cd4acd0730dfe8fb59e52d28669ac87bc77fa6ea4ea0e85",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "e2e7af2e9e12f862dde70023b61bbab54c8c5221259d1b0cefc8e67bffbf6192",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "796b57c10f0ce5281b156b8283aeebb20591fda164c68959ce41734d45d7a9d9",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "236cc3bde79433cefb56687b886d2ff34f2211bb585c06b2034f913b697665b5",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__PROCESS.json": "b7c3a3b7968913a41769c80cd6eda9ceaab575aba30fdce32d500bc6ddb15e77",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "fbaf73f73f3a167a18934c8833015b7027cb284e8275853e824c16e5d101abc4",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "cc4cc76c3d162264da0811528d72d041023db9f043d36601c603e07ebb543a84",
+        "r77_2313841_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "b69e9b96918e1153eb6f8b3aab31ae575209c98c8aa83979e679cff1d86d0d6f"
+      }
+    },
+    {
+      "market": 2313841,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313841_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__result.json": "4d6597fb3c0f6e79687c77c7a2d859cc1946f033a1fc840d143e44b2963af85a",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "e65edd35e120ef359bff2ed5298f20a1c735f0629f2aa511302c2d4ad9f47360",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "3b1c221b48fdcc41820a17e4bf183b8cb61c1dad15cdf6ab9488215e878b7c4a",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "5e0bfe613162d4be852f9d1e7047250c60482ecd31694772047472516d19f3a9",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "81c05498e02cc15118d83b0623982e1967525687bc05835055a6f04d9d419ae1",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__PROCESS.json": "ac5d9f351b70674f899bb984a248095aadf24bab82cf5c48a9eb638c4bbcd28f",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "fc43cad38b6d942701f065da22fef68b878811576194af906d25e2f10306fcf3",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "6ac5e2e8df77b51db40c560d82cd33e719c6b96d3a8ae84f317507b40997fe5c",
+        "r77_2313841_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "b8465b9eeebbec5ffa5da41a1cff6691fe38233ed858646617cab6dfa3a144c5"
+      }
+    },
+    {
+      "market": 2313841,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313841_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__result.json": "3338abb4a1518c420f6d4271fe8be569469a2dd95f8ca5b0ede97f67b6d2602b",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "25c476ba55dd6b5bd06d7c4d1662e824b8f58599335d77340756e19b6fe73bb6",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "d171cc5f96bac4a07492a68a1ca4808a4f4537f2a8d414b5871788f0a8360733",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "239dc3fd8126bba8b1075536f4e8474ac721aca6001bd6e8fe972beb0e037d44",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "aa586f62adbb4a7a30d52cbaefc060cb543d31cd2b9568b3867dc82533330ed0",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__PROCESS.json": "cf778c09c84e46713550a5b8631ba70612e8bfaa2bb9b51ce5933869dee05718",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "f2be20d688e7ddb99249263c94def26b6e50e9a0416d3351990354cf483e9f87",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "fa06ba46ad05f07d00309b5f34aadd0a1842bc01eb93e79c94cba05bc9346ea4",
+        "r77_2313841_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "15764ecfe3cbb87aa1576e00811a6e1316f89a271b98dae482473552ef7d018e"
+      }
+    },
+    {
+      "market": 2313841,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313841_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__result.json": "cff30f7ce434666e613af76f8a6e265482f8e605b39554862de7a1efbb5ce362",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "714ece1c1a6031f77768655620c88231dd80b82c8d6034fcefdefa8d0624c18d",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "90ede656d7766d7c096084e92c0f813ff9084e475ef1150352f96d4eacbc6f0d",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "e45406fc4457615a4f3f3d6d27e907e715ab1cad5187f1fed046228e41ca4919",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "ae30a8f0f77d968ac0b22edf56bbf1f052fe11dcd0863ffcf40e94ed864549c3",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__PROCESS.json": "b587380c6a548b281dfcec7ff248de6fe3fdda49ab4bd2708c384e1384088b0c",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "493b61a73218b66e3e9d482360722c5dac5eeae835f470ba73630d774e83a002",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "58ec10e54518d1753c2d92e0d6e452b61f1bec2e5802a079422493d2ede7b421",
+        "r77_2313841_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "7d67e745652d99ed941f872a88ba087c56e103cc0b13ff4f86a548a37b5f3497"
+      }
+    },
+    {
+      "market": 2313844,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313844_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__result.json": "93dcc9d4881e0f04009d990f6d3e523a8e363ec1bdb9318df14594eec1fc20b8",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "e3cce0f2e963cf701367e1fa3c9c8cb599875607b38c51aec0e833bdcdafc2f3",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "f22f221c4ba8ee5e728763722624f5b7377d2325f75bb858eda919ea8bc01a3d",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "4d11d851763b909e45cb7769a82296acc6e2e30e030ea11347c245f5156330bb",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "c0eaa1244ca0339e0e8dabfbfce428f50cd4b4eba27da95213de12e370d339e4",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__PROCESS.json": "f350e9016cefa536761c1ea45829809fff408394c047bcddb4e0ca428524c94e",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "806db4e7aca717bd52ff8ba34bd8088d407118fff47b8d8ab6cf32252eade3f0",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "becd139c713ece48674b6fc55bde2d493b832c944eb4749a1e52cb4b400087ef",
+        "r77_2313844_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "57368f9084291ba1f73c7ad4c5d655a6e54415e92642010a35fafdfebb6c94df"
+      }
+    },
+    {
+      "market": 2313844,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313844_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__result.json": "3592c7aa7487d70ce290afe343939ac78c3be9ba04eda4b70744d9eb1289e46a",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "ff4fdc904b022f27bdc734d66b18d4195fe05dfb96ca277c0815f44e15d8d70e",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "e14329b3b1bb5d189f958cbf9a0ca008c2f6e11d2101744291f50c68fa65a136",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "62a878776f9d58ed9d30224b569cb22c57cf2fc718faac208fe5e1684aa97186",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "eb04373dbbf11245254af24178af0860054ffff99331a9b1366e0c5bd03b7a89",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__PROCESS.json": "c8ac24e556b65a575f52ed84c3267ee74a5e37d73f19bc05e3783648e0eae984",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "0215be45a0bcbe305d7fa271f3f529dabfd68c3ce81b7d6c41f55e0a6da9e550",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "070a2e7c561c0effeebc8dd2f5df149478a57691d3e3a6b7e9bf85af9633964b",
+        "r77_2313844_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "37bb3270aeb7f5f4136c8bea52b66dd294b05fb97d9452bb153eb9d353c8c68c"
+      }
+    },
+    {
+      "market": 2313844,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313844_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__result.json": "7a8788e07cd601b054a54bcc5e472a33bc0c7536600b209a0e17a0e855319982",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "225e04ade8cd42d2a841d24e7b39c2bcbc41d0612a4e91db5851d9bb10ebea7d",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "3269ff305db43bd0d871e7a81d0eab19725e2a8d72775841929b7e91c6bffcb2",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "52987ec6306f358e0bbcc1c81d47199e223dba99386a8cc62e78e63c44f442ce",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "1f9955f1674ec58c32a2ce4e542a701504264f22210a4d5cf8d6b014a14f541b",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__PROCESS.json": "5b95ac4cc966472bedc0adb92f14613e65f48ee44867fd96a080d2be6da77021",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "6353ff1ee2a962087baedf1505c53105ab042eb62682a6abdd0e2e05cf08ec64",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "9c303230a79345dfd9ff69df19aca79e65728404c055e5947d1ddb7ffe4fe142",
+        "r77_2313844_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "94f62862cbc2745bdfb67510c44959ecc18097432cf714629cdc4b7acb299f28"
+      }
+    },
+    {
+      "market": 2313844,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313844_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__result.json": "d4674a781f1df68eaf3cfe5e842325023541c82f475e4c8c7e78edc3704d2a18",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "7e2caba4f3a3d39f93bd8ceafe85d7ec9286814a40e9107afb5271ddf0e61ffe",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "097731fbc51088246a3e0fddf2ae3f299845dcbb5ca5b5ec60ff2544165562bf",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "51f86674cf3c11eb6eb768333535b8e8ca9ad49c192bb47634a7f3322a747ed3",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "768a4ff584e55986c27857891bc5aa455bc8098c4f85a511c6c7138417763956",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__PROCESS.json": "9989f98af2f77fce48e73cf6e3cf5b5966fe97f479f479b56a20afef6ede2577",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "1afb1dea545d617a4bd1e56b225748917ecf2992caf8891f91e12e7f3d0311fd",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "6b4839ee4ea9cf7388dbd054f05bcd3cf7d0af623ecd909e998ba0a3e5701de3",
+        "r77_2313844_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "9bb51c1efbc1566efcea3b8d9b1ec68a3f52162962cea47ce3533aa0084569fc"
+      }
+    },
+    {
+      "market": 2313866,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313866_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__result.json": "eaa60881095d2351bd43a324251a10a5704a2098e8e845acb91630aa319ff59e",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "43a4e90748793eeb07f8101b013753585c7aa1b4a3c21ea8e72a9152cd291d05",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "3010a54365d50c54b23a2fbd88ca6912624ee1896cafcf963a51d993759a4ff3",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "64770c3afbe09317168d96e0474192dd5f20c9f4b44f53d0af75393a51369fab",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "a0a3a37952a6383ce4e2c084174dea258f7f88b44a53aa4e9d5031b69d6c0842",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__PROCESS.json": "be8777efa3c99daf8ca56c99a4dd72a37a1bbbd9aac4a14b1f53b05db2e2f4ad",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "0a0f826c03f4511f043de5c4f74a7e9b05e9fef2c0cc94dc3b4c925c5e021f99",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "23d639bf527e4b09d4166acf9a1ef00abb01a7136d1872470ca155e94d843af2",
+        "r77_2313866_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "f3628ee53c893e947a842c3b932b144cb3ae7aa9469c420c2a3fe41b73a81298"
+      }
+    },
+    {
+      "market": 2313866,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313866_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__result.json": "a14f2cb428c41cae3ba3e425a26baae68497e5dd8cfd36c1cec8d1ea8617157a",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "bce2df7d8e649d2ab5bb8dfd77771940316e08d866069676dfdc53c8a37c39ab",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "778a66fc0493e531f03540fef022834533d56d5ee1bedce8e4ce5bbd204aed50",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "6fb5d5ccf9a486fe0c5a0751b0cbc1636123c31582ac24d8565cc12807865aeb",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "5a013488dde7fa26eb82e716248c66d0c41c8b1bdf022ae24f0bd24b7bc93b68",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__PROCESS.json": "af4dda021fe18e1a1375b4b419beb89449709f0e4ff8a561689618ad3672b92d",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "fa2441d028d9549f6c90b2fd10bb36730d9f09d08ef28647de1d27e8dec84128",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "af5a12385bad1a348adde99ebc6d85a68c055d2d08c6e2f753c01ab3b7cee786",
+        "r77_2313866_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "a365155dea9027201f067feb8753d47563ac034eea97f9c2f052abc214b9af21"
+      }
+    },
+    {
+      "market": 2313866,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313866_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__result.json": "487bdc42a7ebc1cdbd37d1973f2bc4dc4d6b432e3ee024e9cd7437b0602576f2",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "45ee1a477b4e3f6b926ed439e2d2c3ccb6721d783ddd45476ebf2468a1d50142",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "918a3a4bd2750e3706350ff546d7f5e3781996661da46fb87d194cd8aa5a1778",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "ebcc788041445170029a04517ef436f6140af6d556c701649d3cb97134ac6178",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "4fbb803fbccd47365764ffa5235a486e2c0e044d490f1b87e279d4d3377e4cf4",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__PROCESS.json": "1d21e3ecce36527d8d506f7baa02002d0f05a6c9d5d0807adfd015a010bef398",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "e67eb35cbeb586c656b843bbde73afaa274fc9f24000ec65f9f79772501c0e25",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "dc6fe66defdc431cec1bc1beeb7b698b3cd6cff70ec66741360c98bd1de8a101",
+        "r77_2313866_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "f44096c1d7a08c81b3ebaa9889dababa39e2b01ad6803071e8a7f5ee1e1556c2"
+      }
+    },
+    {
+      "market": 2313866,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313866_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__result.json": "f580212ebd6c82e797c5cdfe75ff392dad64c0cb95cb6418e8dd18c7f0a9c43e",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "56cc8d14c6e699df6e279382fc624a59b020bc2415d0d9b0e466cdbc1b8854e6",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "f365502bb7b246ee64746fa77c8800c852455e9f10c3ea09d44d07d2649b2511",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "8dccf99f3612a1e50eab7fc2ee27d10bbfb0dab1fbd416fc003ea904720f14ea",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "d1de3d0371b520b09a1a3a2cbbe681a113e0bd0ee934e69bca0801ec3b961934",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__PROCESS.json": "9b4ff9a94abb2438ae7349bfca974c4db57eb8032ce1bc18da29c8b0a978710e",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "23e3d49a2519c8c80955ef39d22a3f68dd7b33958502fc0cb6b22c58f06762b1",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "2e6101758f1a5e4c14f0870cae5e36763f6ea54e9fa4792fe64d70e29bd6ac40",
+        "r77_2313866_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "557df286b36b56ba36259a1b3932becbf20530fb58bc9f5f7d3427afd6acec69"
+      }
+    },
+    {
+      "market": 2313869,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313869_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__result.json": "3e2738050cb4eca1df86afc685a4c76b7d55179fa9a89b22ef35b60ad24fbd4d",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "917db5d7ee248f1d69c6227a3f88a781f35c73f473337a761e37af127dcc1d19",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "0b7d2b9e4a03993e163692652e9a781ef900c506d01eb825a671a9333ce1ef48",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "5146a12ed10c81de5e3dda8f2edafab39cc4cf47699b87506cc27c6e01b39687",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "3a70c1c865f73ef4db346a92a9278d8e7a39288ae87bc6417559f041950d19e5",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__PROCESS.json": "df502472bcfa8f7ccf1561d7793e7913817c6be94276b82f3079ab61fe486d33",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "a4149898b51abec185b44e204d0364c1177609e469396136f9ed78a537615503",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "adde5b92ba7758c946ca5d6da77c75e8f14faec49d3dde4bd769cb1e9fc425d9",
+        "r77_2313869_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "97567089c3b2d0632f6e4445d367b15a333af8fd90f98819906327716e3aac8e"
+      }
+    },
+    {
+      "market": 2313869,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313869_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__result.json": "e2bdaf0ef64e88f02557f54dc5da903f1c97554d43c0d739ef16649bfa8020e7",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "cbbe8bbf44f7d930188e4118caf43be89f38be97a0f7e60ef1339ecdf8fbd85d",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "6c500f1ff83890adf4f8af6910c80c05e011f9337b7f0698cbbaa69d20787aa7",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "262ee6393dfde2e33c8dd92f1e73c5b5d679e232f85b7eba0a2975d1afec925f",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "16d1e9b1686b0cbd4c1d72e48448060fd4fddf732923f569da2f6812f328ce08",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__PROCESS.json": "969d0c353644a7d535b1b2499402fdc34e961a756acdef465eaa5ed8da1eef83",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "c99a707892d2782a89bf8b5678fd194544048dec8a92edc86c3bb0f6f140af88",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "1c480121770bd6979be331e8014f5ed78adba3ba611eb211cc83afe937692008",
+        "r77_2313869_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "646a72532d72c88e74bd5ab2eecd83c62ed5de02f5a1a07e6088edeaead12b8e"
+      }
+    },
+    {
+      "market": 2313869,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313869_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__result.json": "7069d9ee839c41cb812a46239a9017b7635009c9838c1e9ace082210463cbb52",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "7c34b0bd1dfd90fd1f044a14e8e667e2318c083456fbd2c7229e00100fc3ea52",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "1e012e5b43a1bad67809a21ba571415779d4ba76446c632d19717457917383a5",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "d7c0c402ccad9f9948793cef1a10f8ce25be54fa236fa34b718059289ba355ff",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "da75b8e31ffb50e278642fb610ef0d1a7aba3cb440d6c2582d4f24062e659396",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__PROCESS.json": "f6d568857020f7e8fb186bac51e12cddbe8a5f834ba02248cdf6c140d73233f0",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "af20f1707faea3ff65d24605d95c50c22c0ca63dbb13df1cd0d2e04c861966b8",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "81d6f8dacf66e82e00ac2bdb9a6d9dbe9abd3f9939e3144ba5b931bec5bb6d9b",
+        "r77_2313869_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "d43a8d810208118ec9c55144125008f678aff603aa71f67c376a8b71d27b044c"
+      }
+    },
+    {
+      "market": 2313869,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313869_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__result.json": "1697100b0289be5c3911321e16a156e469e2a888d39bc10f7243b1d69d58a45a",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "7c34b0bd1dfd90fd1f044a14e8e667e2318c083456fbd2c7229e00100fc3ea52",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "0581553794d4f1608d980e2ff558d3d55a2f1b73d51873832fd7edb2942f9484",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "8452f66cef0627c56085043ce3d63b15bf240027011ae105dfba9d14da72f08e",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "02360ab6881f3aea3791ae470bc17aec5eb48ba9404ecd1b5e99635a6aa0cbb8",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__PROCESS.json": "5d9e318ce4427bfc353408125a9ec663b8654ba4eb36a96262a9ce34ce629368",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "49c95fef2cfd9113065f47f33efd89fd2dc52d360e05fefb0a93c97d8dc21bd2",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "38f985f3c5562a539e19f59ad4cdfa83cdf1cf23e671218e8a8d21750bc9ef1d",
+        "r77_2313869_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "14d25a935b8694e6687e0b4e8f897cafe7c0d5fe72487f7c937d9fecf74e654c"
+      }
+    },
+    {
+      "market": 2313873,
+      "model": "R65_S20260920_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313873_UP_R65_S20260920_DYNAMIC",
+      "artifacts": {
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__result.json": "6024fa3a94038ce5abff642ba3f9307021955272f16ce452057040f5a9a31a59",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__clock_trace.json.gz": "2028c02cfe534c9609d2d44a0f8f2f2c3b3140d4b1bcb84a22bcd8757c99824e",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__joint_operator_trace.json.gz": "9cf40df1b41069a60f705f85caa72218f85d3b15668d25c9cc25def84bdfcc62",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__neural_trace.json.gz": "80ee4cec3e595546ca2ead7b3ca44827c9137e0da2186321018d04c9e829e9e2",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__AUDIT_R70.json": "cd992c49b0579c9fecf4ce11b73812d065eeeeb4e222c688a180c03f4784a0f3",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__PROCESS.json": "adc3dec6675e30f19fe95b67d5f197e5e4717a6ed5e4f4b07409f17a207de12a",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "f9e6adcc4d112bc595526b65e7725a9db08f404a8475e63f5f7b8258464449fb",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "9ca7f7d7bda18180d1805b819d02436270de4ad0cc43ab24f2e12a7cb2899b94",
+        "r77_2313873_UP_R65_S20260920_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "21a29f8056a15772ab89deddda95d1a62afb7c06eb6768b532a144005a772c59"
+      }
+    },
+    {
+      "market": 2313873,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313873_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__result.json": "20a12b4e817e28674185b577f4c404ea01df6434b781ddf0aadfdcb95f37582d",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "59801731a5c06ddfad09967709f07a99e62839ba56e487625fa1335c5851e26c",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "e16a85cc6bf9a91f471eea1b12fe627dc189644fa812ae98bf445ba033e43224",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "d1772e801f590992d7144a68c41a7ae2e7489ab466f83e24990066f0e8389653",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "4934530f377277a6d503e57668276bb3db5586652f9c960dfae4a3134c1f7654",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__PROCESS.json": "6b5ac6d985432646d56818737453087dc932019e16580092f003d48c16b781a9",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "f64b471e3cdd4729fdb0a051aad6c24e76d06a7eba9577afeacacb23f743fd59",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "047b90459381e2c49793c5948a169b9f9a05ee1088e73363558473d691bed929",
+        "r77_2313873_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "f212ba68e1263de8127b214707e225541d3c762c1f5d68619a3adfd33a872343"
+      }
+    },
+    {
+      "market": 2313873,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313873_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__result.json": "062e05d63e07211ddc6877af93ef5ea24ab25d7f99067db06a3092428b5b33d2",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "e1b58a8e15d8124502e5c9abadd99a6d0e60d272267fc1f6b9857ef4eefc1662",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "ab4ffd08b740c88016ddeafe0bdbfff2b17fd03d5c886e366cfbe5740ee90544",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "2cf3f8c86c30d7f08322a081e6167168f4cd3783f90289ea003300a095f07288",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "70db46ba4b7c1ff62c0e8761fa4bc1ae90543db97891e56dc6b728bc9c4df450",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__PROCESS.json": "acf0c610b8268bf706cb43e7c28d99f1f7bdf5674e677fc1e1afeb7f2d9081c9",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "2bc82731da7cc92a779ef6d8e814e777d3d67fac1d4eac0d2c76de2fbc1a6644",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "d41c71ee1355437b7bf84bc1ab48283478c99d53d59a7d5f2bbf25d0edfdb971",
+        "r77_2313873_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "3e97f25b43fcfe86ee392d01ec791a74544d72d708eed0c09bc99f9c0670c7e7"
+      }
+    },
+    {
+      "market": 2313873,
+      "model": "R65_S20260921_DYNAMIC",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313873_UP_R65_S20260921_DYNAMIC",
+      "artifacts": {
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__result.json": "ee128080a3e8131a586e2b660b7c696c49dfee1f5dc860cca4a34e854f641cdd",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__clock_trace.json.gz": "d1bf1d3fea91eeac856413693024ebad6ac4883356af41290193acfbff9d2c7c",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__joint_operator_trace.json.gz": "5e25e36917e11eba3a69d7e1dca45d018544f39584dd412b5260a9f4fcfb64af",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__neural_trace.json.gz": "0c8bae05ed716ec06973bc635a165f6a562eab37d2d260072bf7b17904124647",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__AUDIT_R70.json": "47d978d5c3c324d043eb3de1ed5a567ef3f0d0e3ffab3e6354f6d1f95bb14a77",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__PROCESS.json": "82c63e06c7e7dffcfdbacf218ed1589ba8b422a493b18073f21306f82f030b1d",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__ACTIVE_COMPAT_EXECUTION.json": "0d4bcdceb7f96d11ba8af78b949481f86de716f61017cd3f40533632155d07a8",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__LAST_NATIVE_PRECOMMIT.json.gz": "696ad415c11e06674202d07d9de42a1e9f5d29ca3b434a31199a137a679fb6c6",
+        "r77_2313873_UP_R65_S20260921_DYNAMIC__NEURAL_EXIT_SNAPSHOT.json.gz": "baa0b4730d009d923aa58bc0865fbb369ba68dd789d86a6ef57ffae8a9f1fa96"
+      }
+    },
+    {
+      "market": 2313893,
+      "model": "R65_S20260921_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313893_UP_R65_S20260921_FIXED_UP",
+      "artifacts": {
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__result.json": "404d8df68e9444421d86d90370e5fc60f38f4900b4aca9015d3315d490c628e7",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__clock_trace.json.gz": "62f21f0b4fb806410f6639423975cd8675706e42ef3d488c78de4c63295f2dc7",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__joint_operator_trace.json.gz": "8a032a5af9aedd7db01086de32a9546b66bcb0b3d2b897d3fc72e9728a787765",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__neural_trace.json.gz": "ea1dbd102cdbba3f713a00ce3e9db2e499550b1918334d6bb5f023fec6f0d342",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__AUDIT_R70.json": "2dbe118807efc4d71c4f5894c487840a984d2edff6982bca1c6a0a99c8310058",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__PROCESS.json": "0f7b025ff2ae82863f2314affef0cb2079fd6f387f1f9f44a9d5fe030c82fe78",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "787f863f5c07c56031ddffeebaa662ac7a665155e73ad5eb19f0fe53e7a3981c",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "fc55fd13ec6c9ecdcc56224d0b5e7e77ed0de0195e6ee0f5c8dd2919949ea9ee",
+        "r77_2313893_UP_R65_S20260921_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "29a8f293efc015196b3e09711a968b9979131b3b58361a104d02b0e9743d05e9"
+      }
+    },
+    {
+      "market": 2313893,
+      "model": "R65_S20260920_FIXED_UP",
+      "path": "C:\\BTC5M-worker\\.lan_worker_v1\\native_runs\\v49_r77_fixed_up24_resume1\\r77_2313893_UP_R65_S20260920_FIXED_UP",
+      "artifacts": {
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__result.json": "86288fcf306cd8b7614d2f86c05c67fe7fa69ef101a9db24114f5882b9d5f059",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__clock_trace.json.gz": "d5f6bf7caaece6439a3bd9df24cb71d367c02b5529d04a77d5748b7ba8339f0f",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__joint_operator_trace.json.gz": "a3d148f1de99001dc994dd29e3be788f35a2cc5ce472ef183d54aedbbd24d4d1",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__neural_trace.json.gz": "a615670f7a728ce26b9437a70df9b8374e999ed9c41741e546b04331550835ab",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__SYSTEM_TRANSFORMATION.json": "d124d80b13ba0cc1e4e29a4b2c8a80bcecbb942541e535568ae0052832f02901",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__AUDIT_R70.json": "a35f849cef8c0f38a24e33487c72736b9a119a520e1c1111acaba03b3aedd124",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__PROCESS.json": "3c0a80f8beb330592d925165fbea8c03e75c122ecb8d937022b55921852b98d8",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__ACTIVE_COMPAT_EXECUTION.json": "46c3a51adec2e8a3e2c01940c0473599a23c51c3fce12af436c583d5cd52e94d",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__LAST_NATIVE_PRECOMMIT.json.gz": "bf279607e63d32569a220d54aa62689921226e42faac0b062c7e841a3b57de49",
+        "r77_2313893_UP_R65_S20260920_FIXED_UP__NEURAL_EXIT_SNAPSHOT.json.gz": "3e5368880d21c535dfd2fa7180b55cc4e72b1691f0343848c599624db08b6c6d"
+      }
+    }
+  ],
+  "legacy_dir": "C:/BTC5M-worker/.lan_worker_v1/staging/v49_fixed_up_native24_schema_resume_20260920_r77",
+  "baselines_path": "C:/BTC5M-worker/.lan_worker_v1/results/v49-fixed-up-native24-20260920-r77/BASELINES.json",
+  "model_dir": "C:/BTC5M-worker/.lan_worker_v1/results/v49-onpolicy-repair-state-micro-training-20260920-r65"
+}

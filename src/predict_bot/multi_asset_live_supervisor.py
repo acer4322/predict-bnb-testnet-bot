@@ -41,6 +41,14 @@ def _ready(port: int) -> bool:
         return False
 
 
+def _background_popen_kwargs() -> dict[str, int]:
+    # Keep observer/live/clone children background-only on Windows.  Without this,
+    # a detached supervisor can cause each console-mode Python child to allocate
+    # its own visible CMD window; closing it merely triggers the supervisor restart.
+    flags = int(getattr(subprocess, "CREATE_NO_WINDOW", 0)) if os.name == "nt" else 0
+    return {"creationflags": flags} if flags else {}
+
+
 def _stop(child: subprocess.Popen[bytes] | None) -> None:
     if child is None or child.poll() is not None:
         return
@@ -57,14 +65,20 @@ def _observer_process() -> subprocess.Popen[bytes] | None:
         print("multi-asset live: using existing 8770 observer", flush=True)
         return None
     print("multi-asset live: starting live-grade read-only BTC/ETH/BNB observer V2 on 8770", flush=True)
-    return subprocess.Popen([sys.executable, "-m", "predict_bot.multi_prediction_observer_v2"])
+    return subprocess.Popen(
+        [sys.executable, "-m", "predict_bot.multi_prediction_observer_v2"],
+        **_background_popen_kwargs(),
+    )
 
 
 def _asset_environment(asset: str) -> dict[str, str]:
     config = ASSETS[asset]
     env = os.environ.copy()
-    master_name = f"PREDICT_{asset}_POLY_GAP_LIVE_ENABLED"
-    env["PREDICT_POLY_GAP_LIVE_ENABLED"] = env.get(master_name, "true")
+    # 8772/8773 are retained for compatibility/telemetry only. All Echtgeld
+    # placement authority is owned by 8781, so never propagate an old per-asset
+    # live master switch into these children.
+    env["PREDICT_POLY_GAP_LIVE_ENABLED"] = "false"
+    env["PREDICT_LEGACY_EXECUTION_RETIRED_TO_8781"] = "true"
     env["PREDICT_POLY_GAP_LIVE_ASSET"] = asset
     env["PREDICT_POLY_GAP_LIVE_SYMBOL"] = str(config["symbol"])
     env["PREDICT_POLY_GAP_LIVE_PORT"] = str(config["port"])
@@ -96,8 +110,11 @@ def _clone_venue(asset: str) -> str:
 def _clone_environment(asset: str, venue: str) -> dict[str, str]:
     config = CLONES[asset]
     env = os.environ.copy()
-    master_name = f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED"
-    env["PREDICT_WALLET_MAKER_CLONE_ENABLED"] = env.get(master_name, "true")
+    # 8774/8775 may still reconcile/cancel historical resting orders, but may
+    # never create new Echtgeld orders. This also covers Predict-direct clone
+    # mode because the same environment is used for both clone venues.
+    env["PREDICT_WALLET_MAKER_CLONE_ENABLED"] = "false"
+    env["PREDICT_LEGACY_EXECUTION_RETIRED_TO_8781"] = "true"
     env["PREDICT_WALLET_MAKER_CLONE_ASSET"] = asset
     env["PREDICT_WALLET_MAKER_CLONE_SYMBOL"] = str(config["symbol"])
     env["PREDICT_WALLET_MAKER_CLONE_PORT"] = str(config["port"])
@@ -119,15 +136,15 @@ def _asset_process(asset: str) -> subprocess.Popen[bytes] | None:
     if _ready(port):
         print(f"multi-asset live: using existing {asset} live engine on {port}", flush=True)
         return None
-    master = os.environ.get(f"PREDICT_{asset}_POLY_GAP_LIVE_ENABLED", "true")
     print(
-        f"multi-asset live: starting {asset} {config['symbol']} live engine V3 on {port}; "
-        f"master={master}; runtime remains separately controlled in Dashboard V2",
+        f"multi-asset live: starting {asset} {config['symbol']} compatibility engine V3 on {port}; "
+        "master=false; venue execution retired to Echtgeld 8781",
         flush=True,
     )
     return subprocess.Popen(
         [sys.executable, "-m", "predict_bot.poly_gap_multi_asset_live_v3"],
         env=_asset_environment(asset),
+        **_background_popen_kwargs(),
     )
 
 
@@ -137,7 +154,6 @@ def _clone_process(asset: str) -> subprocess.Popen[bytes] | None:
     if _ready(port):
         print(f"multi-asset live: using existing {asset} wallet maker clone on {port}", flush=True)
         return None
-    master = os.environ.get(f"PREDICT_{asset}_WALLET_MAKER_CLONE_ENABLED", "true")
     venue = _clone_venue(asset)
     if venue == "PREDICT_DIRECT":
         module = "predict_bot.wallet_maker_clone_predict_direct_v8_4"
@@ -146,13 +162,14 @@ def _clone_process(asset: str) -> subprocess.Popen[bytes] | None:
         module = "predict_bot.wallet_maker_clone_live_v8_4"
         label = "V8.4 Binance Prediction passive maker spread"
     print(
-        f"multi-asset live: starting {asset} wallet maker clone {label} on {port}; "
-        f"venue={venue}; master={master}; runtime is force-paused on every process start",
+        f"multi-asset live: starting {asset} wallet maker clone compatibility service {label} on {port}; "
+        f"venue={venue}; master=false; new-order execution retired to Echtgeld 8781",
         flush=True,
     )
     return subprocess.Popen(
         [sys.executable, "-m", module],
         env=_clone_environment(asset, venue),
+        **_background_popen_kwargs(),
     )
 
 

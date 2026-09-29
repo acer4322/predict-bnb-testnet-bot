@@ -23,6 +23,7 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from predict_bot.market_observer import (
     MarketStateObserver,
@@ -117,6 +118,20 @@ class TestEfficiencyRatio(unittest.TestCase):
             )
         self.assertEqual(len(observer.er_60s_samples), 2)
         self.assertEqual(observer._er_60s_sample_times, [60.01, 61.01])
+
+    def test_high_rate_ticks_retain_a_full_er_window_without_retry_storm(self):
+        observer = MarketStateObserver(db_path=None)
+        observer.reset_market(1, 100.0, market_start_ts=0.0)
+        for index in range(12_401):
+            observer.update_tick(
+                now_ts=index / 200.0,
+                spot_price=100.0 + index / 1_000_000.0,
+                market_id=1,
+            )
+
+        self.assertLessEqual(len(observer.spot_price_history), 63)
+        self.assertGreaterEqual(len(observer.er_60s_samples), 1)
+        self.assertIsNotNone(observer._early_er_60s)
 
 
 class TestScoreClassification(unittest.TestCase):
@@ -667,6 +682,27 @@ class TestStateApiContract(unittest.TestCase):
             "m01SettledFillSampleCount", "costStatus",
         ):
             self.assertIn(key, state)
+
+    def test_slow_historical_read_is_cached_from_completion_time(self):
+        observer = MarketStateObserver(db_path=None, window_size=20)
+        clock = [100.0]
+        reads = [0]
+
+        def slow_recent_rounds(limit=None):
+            reads[0] += 1
+            clock[0] = 102.0
+            return []
+
+        observer.get_recent_rounds = slow_recent_rounds
+        with patch(
+            "predict_bot.market_observer.time.monotonic",
+            side_effect=lambda: clock[0],
+        ):
+            observer._historical_classification_locked()
+            clock[0] = 102.5
+            observer._historical_classification_locked()
+
+        self.assertEqual(reads[0], 1)
 
 
 class TestConditionalFillStats(unittest.TestCase):

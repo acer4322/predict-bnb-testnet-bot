@@ -14,7 +14,7 @@ Collector = resilient.ResilientCrossOracleCollector
 PROFILE = os.environ.get("PREDICT_RUNTIME_PROFILE", "FULL_LAB").strip().upper()
 POLY_ARCHIVE = os.environ.get(
     "PREDICT_CROSS_ORACLE_POLY_RAW_ARCHIVE_ENABLED",
-    "0" if PROFILE == "POLY_LIVE" else "1",
+    "0" if PROFILE in {"POLY_LIVE", "CORE_RESEARCH"} else "1",
 ).strip().lower() not in {"0", "false", "no", "off"}
 POLY_HOURS = max(
     0.25,
@@ -82,7 +82,10 @@ class _ArchiveFilterConnection:
 
 def _base_init(self: Any) -> None:
     if PROFILE != "POLY_LIVE":
-        return _original_base_init(self)
+        _original_base_init(self)
+        if not POLY_ARCHIVE and not isinstance(self.db, _ArchiveFilterConnection):
+            self.db = _ArchiveFilterConnection(self.db)
+        return
 
     # Same runtime state as the base collector, but deliberately avoid historical
     # COUNT(*) over a potentially huge raw archive during lightweight startup.

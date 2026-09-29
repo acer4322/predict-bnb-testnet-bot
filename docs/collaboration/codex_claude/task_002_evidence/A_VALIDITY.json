@@ -1,0 +1,787 @@
+{
+ "v28_paths": [
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "V12_CONTROL",
+   "market": 2491311,
+   "row_rc": 0,
+   "row_safety_pass": true,
+   "row_UP": 199.43431363636296,
+   "row_DOWN": -91.17614090909183,
+   "row_cost": 1105.565686363637,
+   "result_sha256": "1abc079e276b88710f2a2e250a2b6b9eacc37f9fc921cdd9a7d521e001b28a34",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": true,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": true
+   },
+   "failed_checks": [],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 5,
+   "active_birth_count": 5,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 5,
+   "padd_orders": null,
+   "qualified_new_active": 3,
+   "original_exit_code": 0,
+   "final_UP": 199.43431363636296,
+   "final_DOWN": -91.17614090909183,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 3, \"original_safety\": true}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "K415_CONTROL",
+   "market": 2491311,
+   "row_rc": 0,
+   "row_safety_pass": true,
+   "row_UP": 258.75271363636386,
+   "row_DOWN": -2.217740909090935,
+   "row_cost": 836.2472863636361,
+   "result_sha256": "70e0c4daed50145c96ca9d025b1ce93975e658e7e0c389864e7dc4714110af0e",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": true,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": true
+   },
+   "failed_checks": [],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 5,
+   "active_birth_count": 5,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 5,
+   "padd_orders": null,
+   "qualified_new_active": 3,
+   "original_exit_code": 0,
+   "final_UP": 258.75271363636386,
+   "final_DOWN": -2.217740909090935,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 3, \"original_safety\": true}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2628769,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -156.93277549073537,
+   "row_DOWN": -261.0106224863189,
+   "row_cost": 2887.1139990952925,
+   "result_sha256": "4448dd3250f6728bb02aabed591a6aaddf61f160d6a584949875afbe91082216",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 70,
+   "active_birth_count": 70,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 28,
+   "padd_orders": 42,
+   "qualified_new_active": 28,
+   "original_exit_code": 2,
+   "final_UP": -156.93277549073537,
+   "final_DOWN": -261.0106224863189,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 28, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2628553,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -242.1710304731755,
+   "row_DOWN": -2.2570423947968266,
+   "row_cost": 2558.8959930555206,
+   "result_sha256": "0d1cb2ce361847f99123d864c4254ed70c997e7dec60f889b205d5305f246984",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 30,
+   "active_birth_count": 30,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 23,
+   "padd_orders": 7,
+   "qualified_new_active": 23,
+   "original_exit_code": 2,
+   "final_UP": -242.1710304731755,
+   "final_DOWN": -2.2570423947968266,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 23, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2628653,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -277.1621676450902,
+   "row_DOWN": -271.009591619365,
+   "row_cost": 1732.259591619365,
+   "result_sha256": "220fb546fff08a152afeb4a3fae81cb43d37d92cdd6ad13962daa2165c7c39a6",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 80,
+   "active_birth_count": 80,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 7,
+   "padd_orders": 73,
+   "qualified_new_active": 7,
+   "original_exit_code": 2,
+   "final_UP": -277.1621676450902,
+   "final_DOWN": -271.009591619365,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 7, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2628721,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -280.99445889655215,
+   "row_DOWN": 23.40034512643615,
+   "row_cost": 1061.274458896552,
+   "result_sha256": "e90cb3d3b2f2cb3cbd43d4ee998fbc086ab712f7ab75ea1efaf36dc13c781463",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 24,
+   "active_birth_count": 24,
+   "n_opportunity": 1,
+   "n_coordination": 0,
+   "n_general_finite": 3,
+   "padd_orders": 20,
+   "qualified_new_active": 2,
+   "original_exit_code": 2,
+   "final_UP": -280.99445889655215,
+   "final_DOWN": 23.40034512643615,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 2, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2628410,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -170.22727267644814,
+   "row_DOWN": 44.414942557653376,
+   "row_cost": 1985.7186423480068,
+   "result_sha256": "084cd2d25ee6293779bc866132f591975b8f44af08665f31c7d5b2b54c03b62d",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 16,
+   "active_birth_count": 16,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 13,
+   "padd_orders": 3,
+   "qualified_new_active": 12,
+   "original_exit_code": 2,
+   "final_UP": -170.22727267644814,
+   "final_DOWN": 44.414942557653376,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 12, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2628999,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": 15.772226999999816,
+   "row_DOWN": -62.521473000000356,
+   "row_cost": 769.4277730000002,
+   "result_sha256": "2e7f25a0b0e126f0528f90de69dd9e9fae0e779f2120e0a300531193456149a7",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 10,
+   "active_birth_count": 10,
+   "n_opportunity": 1,
+   "n_coordination": 0,
+   "n_general_finite": 9,
+   "padd_orders": 0,
+   "qualified_new_active": 9,
+   "original_exit_code": 2,
+   "final_UP": 15.772226999999816,
+   "final_DOWN": -62.521473000000356,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 9, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2628557,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": 34.45337948903716,
+   "row_DOWN": -335.36184834453593,
+   "row_cost": 2337.7366205109633,
+   "result_sha256": "045612cc7aba2696fff4074d32d95d759f2c31fa10e3ce9ea9f144661a0061c4",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 32,
+   "active_birth_count": 32,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 19,
+   "padd_orders": 13,
+   "qualified_new_active": 18,
+   "original_exit_code": 2,
+   "final_UP": 34.45337948903716,
+   "final_DOWN": -335.36184834453593,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 18, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2629133,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -243.49103654430542,
+   "row_DOWN": -254.2218787057575,
+   "row_cost": 2221.362030220909,
+   "result_sha256": "09532f05832208713e0d6dab85ec5b5ae6047ef5c69eaf3da3bfb28b0e7f776e",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 89,
+   "active_birth_count": 89,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 31,
+   "padd_orders": 58,
+   "qualified_new_active": 31,
+   "original_exit_code": 2,
+   "final_UP": -243.49103654430542,
+   "final_DOWN": -254.2218787057575,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 31, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "PADD80_CHECK",
+   "market": 2628769,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -858.8354200829503,
+   "row_DOWN": 462.9333886247887,
+   "row_cost": 2133.8354200829503,
+   "result_sha256": "3037772dc856943aabcffcba29b5609a06e1a740a36539d5d75b6e2346cc88cc",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 49,
+   "active_birth_count": 49,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 1,
+   "padd_orders": 48,
+   "qualified_new_active": 0,
+   "original_exit_code": 2,
+   "final_UP": -858.8354200829503,
+   "final_DOWN": 462.9333886247887,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": false, \"new_qualified_active\": 0, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2629019,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -165.58292518546568,
+   "row_DOWN": 37.82521782957792,
+   "row_cost": 2424.295187575828,
+   "result_sha256": "6c0abbd6efb7e6879033e85c17d721bf2aa1a6eb90e00dd4de7c7c3f72827e56",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 40,
+   "active_birth_count": 40,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 37,
+   "padd_orders": 3,
+   "qualified_new_active": 36,
+   "original_exit_code": 2,
+   "final_UP": -165.58292518546568,
+   "final_DOWN": 37.82521782957792,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 36, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "AR4_R25",
+   "market": 2629199,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -521.4876063827248,
+   "row_DOWN": 37.33701472836128,
+   "row_cost": 2005.0729852716383,
+   "result_sha256": "b88a1b775952d024cae014617dacbdbba10b37c49c7022c1f39a87e17c9297d5",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 32,
+   "active_birth_count": 32,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 18,
+   "padd_orders": 14,
+   "qualified_new_active": 17,
+   "original_exit_code": 2,
+   "final_UP": -521.4876063827248,
+   "final_DOWN": 37.33701472836128,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": true, \"new_qualified_active\": 17, \"original_safety\": false}",
+   "stderr_bytes": 0
+  },
+  {
+   "job": "btc5m-v12g-active-repair4-small-20260927-v28",
+   "arm": "PADD80_CHECK",
+   "market": 2628553,
+   "row_rc": 2,
+   "row_safety_pass": false,
+   "row_UP": -1114.0536962927233,
+   "row_DOWN": 422.39835656235755,
+   "row_cost": 2129.050969019996,
+   "result_sha256": "588b06cb65231d49242891ecfa644fe01eb11286914ad8fc65451d04bf30af82",
+   "status": "COMPLETE",
+   "error": null,
+   "safety_gate": {
+    "unresolved_zero": true,
+    "accounting_valid": true,
+    "active_responsibility_overfill_zero": true,
+    "epoch_residual_overfill_zero": true,
+    "active_matches_opportunity": false,
+    "atomic_responsibility_conservation": true,
+    "exact_frontier_seen": true,
+    "pass": false
+   },
+   "failed_checks": [
+    "active_matches_opportunity"
+   ],
+   "unresolved_owners": 0,
+   "execution_accounting_valid": true,
+   "atomic_pass": true,
+   "active_native_submits": 12,
+   "active_birth_count": 12,
+   "n_opportunity": 0,
+   "n_coordination": 0,
+   "n_general_finite": 1,
+   "padd_orders": 11,
+   "qualified_new_active": 0,
+   "original_exit_code": 2,
+   "final_UP": -1114.0536962927233,
+   "final_DOWN": 422.39835656235755,
+   "stdout_tail": "{\"status\": \"COMPLETE\", \"variant\": \"PREPARE\", \"activated\": false, \"new_qualified_active\": 0, \"original_safety\": false}",
+   "stderr_bytes": 0
+  }
+ ],
+ "summary_v28": {
+  "v28": [
+   {
+    "arm": "AR4_R25",
+    "rc": 2,
+    "safety": false,
+    "failed": [
+     "active_matches_opportunity"
+    ],
+    "n": 10
+   },
+   {
+    "arm": "K415_CONTROL",
+    "rc": 0,
+    "safety": true,
+    "failed": [],
+    "n": 1
+   },
+   {
+    "arm": "PADD80_CHECK",
+    "rc": 2,
+    "safety": false,
+    "failed": [
+     "active_matches_opportunity"
+    ],
+    "n": 2
+   },
+   {
+    "arm": "V12_CONTROL",
+    "rc": 0,
+    "safety": true,
+    "failed": [],
+    "n": 1
+   }
+  ]
+ },
+ "summary_v24": {
+  "v24": [
+   {
+    "arm": "K415_CONTROL",
+    "rc": 0,
+    "safety": true,
+    "failed": [],
+    "n": 1
+   },
+   {
+    "arm": "PADD80",
+    "rc": 0,
+    "safety": true,
+    "failed": [],
+    "n": 5
+   },
+   {
+    "arm": "PADD80",
+    "rc": 2,
+    "safety": false,
+    "failed": [
+     "active_matches_opportunity"
+    ],
+    "n": 25
+   },
+   {
+    "arm": "V12_CONTROL",
+    "rc": 0,
+    "safety": true,
+    "failed": [],
+    "n": 1
+   },
+   {
+    "arm": "WB100",
+    "rc": 0,
+    "safety": true,
+    "failed": [],
+    "n": 5
+   },
+   {
+    "arm": "WB100",
+    "rc": 2,
+    "safety": false,
+    "failed": [
+     "active_matches_opportunity"
+    ],
+    "n": 24
+   }
+  ]
+ },
+ "other_baselines": {
+  "btc5m-v12g-gross-decide-small-20260926-v1": [
+   {
+    "arm": "G300",
+    "rc": 0,
+    "safety": true,
+    "n": 10
+   },
+   {
+    "arm": "G300_FLIP40",
+    "rc": 0,
+    "safety": true,
+    "n": 10
+   },
+   {
+    "arm": "G600",
+    "rc": 0,
+    "safety": true,
+    "n": 10
+   },
+   {
+    "arm": "V12_CONTROL",
+    "rc": 0,
+    "safety": true,
+    "n": 1
+   }
+  ],
+  "btc5m-v12g-payoff-small-20260926-v11": [
+   {
+    "arm": "G300_FLIP40_PADD80",
+    "rc": 0,
+    "safety": true,
+    "n": 3
+   },
+   {
+    "arm": "G300_FLIP40_PADD80",
+    "rc": 2,
+    "safety": false,
+    "n": 7
+   },
+   {
+    "arm": "G300_FLIP40_PADD80_PREP30",
+    "rc": 2,
+    "safety": false,
+    "n": 10
+   },
+   {
+    "arm": "K415_CONTROL",
+    "rc": 0,
+    "safety": true,
+    "n": 1
+   },
+   {
+    "arm": "V12_CONTROL",
+    "rc": 0,
+    "safety": true,
+    "n": 1
+   }
+  ]
+ },
+ "check_alignment": [
+  {
+   "market": 2628553,
+   "v24": {
+    "rc": 2,
+    "safety": false,
+    "failed": [
+     "active_matches_opportunity"
+    ],
+    "UP": -1114.0536962927233,
+    "DOWN": 422.39835656235755,
+    "cost": 2129.050969019996,
+    "n_active": 12,
+    "padd": 11
+   },
+   "v28_check": {
+    "rc": 2,
+    "safety": false,
+    "failed": [
+     "active_matches_opportunity"
+    ],
+    "UP": -1114.0536962927233,
+    "DOWN": 422.39835656235755,
+    "cost": 2129.050969019996,
+    "n_active": 12,
+    "padd": 11
+   },
+   "identical": true
+  },
+  {
+   "market": 2628769,
+   "v24": {
+    "rc": 2,
+    "safety": false,
+    "failed": [
+     "active_matches_opportunity"
+    ],
+    "UP": -858.8354200829503,
+    "DOWN": 462.9333886247887,
+    "cost": 2133.8354200829503,
+    "n_active": 49,
+    "padd": 48
+   },
+   "v28_check": {
+    "rc": 2,
+    "safety": false,
+    "failed": [
+     "active_matches_opportunity"
+    ],
+    "UP": -858.8354200829503,
+    "DOWN": 462.9333886247887,
+    "cost": 2133.8354200829503,
+    "n_active": 49,
+    "padd": 48
+   },
+   "identical": true
+  }
+ ],
+ "sources": {
+  "frozen_runner": "C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_20260927_v24\\base\\frozen_runner.py",
+  "frozen_runner_sha": "1cbcce2da93c5cb140816c4200434dfc4fa9d83a871a808b8ebedd855253f893",
+  "general_finite_active_sha": "a1a86ca2aec73d93d739937894c18124920427578075cb176cc405a6d4910690",
+  "run_variant_v28_sha": "6b3c2f33f771c71d9f854ac973362dfb79cfd0068aaafb8e106fc3fb78323d99",
+  "worker_v28_sha": "30a3c95a471df20976d7344b0356eb5f6c86a3b4803b6d28c65f7df6f0aaaa79",
+  "ROWS_v28_sha": "347cb0fe129ba0c7598b4f0e32393b277ef1ae6769b69768a267d5a8c234c9d4",
+  "RESULT_v28_sha": "4d8160fd334bd55731ebd8c292930aa6f701d1e9aaa137ccf155918d01695f86"
+ }
+}

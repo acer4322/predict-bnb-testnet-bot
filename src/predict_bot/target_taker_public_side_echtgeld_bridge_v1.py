@@ -193,11 +193,20 @@ class Handler(reentry_test.Handler):
     test: TargetTakerPublicSideEchtgeldBridge
 
 
+class ExclusiveThreadingHTTPServer(ThreadingHTTPServer):
+    # Python's HTTPServer enables SO_REUSEADDR.  On Windows that can let two
+    # short-racing 8782 launches coexist on the same loopback port.  8782 is a
+    # singleton strategy bridge, so fail the second bind instead of silently
+    # load-sharing requests between duplicate processes.
+    allow_reuse_address = False
+    allow_reuse_port = False
+
+
 def main() -> int:
     test = TargetTakerPublicSideEchtgeldBridge()
     test.start()
     handler = type("TargetTakerPublicSideEchtgeldBridgeV1Handler", (Handler,), {"test": test})
-    server = ThreadingHTTPServer((v1.HOST, PORT), handler)
+    server = ExclusiveThreadingHTTPServer((v1.HOST, PORT), handler)
     print(
         f"{VERSION} listening on http://{v1.HOST}:{PORT}/state; "
         f"baseStrategy={BASE_STRATEGY}; cohort={SIDE_ONLY}; "

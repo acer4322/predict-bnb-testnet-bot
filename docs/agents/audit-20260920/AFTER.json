@@ -1,0 +1,405 @@
+{
+  "generated_at": "2026-09-20T11:26:42.467384+00:00",
+  "method": "codex debug prompt-input; no model call; exact normalized instruction-content match; full prompts not saved",
+  "cli_version": "codex-cli 0.155.0-alpha.9.2",
+  "actual_model_call": false,
+  "automatic_project_AGENTS": [
+    "AGENTS.md",
+    "data/research/multi_chat_coordination_v1/AGENTS.md"
+  ],
+  "configured_model": "gpt-6-astra",
+  "configured_document_options": {
+    "project_doc_max_bytes": null,
+    "project_doc_fallback_filenames": null,
+    "project_root_markers": null
+  },
+  "global_AGENTS_bytes": 0,
+  "root_before_bytes": 7327,
+  "root_after_bytes": 2057,
+  "root_saved_bytes": 5270,
+  "root_savings_percent": 71.93,
+  "root_before_lines": 131,
+  "root_after_lines": 23,
+  "root_token_estimate_method": "ASCII/English characters divided by four; rough proxy only, no Astra tokenizer available; not measured billed tokens",
+  "root_approx_tokens_before": 1832,
+  "root_approx_tokens_after": 514,
+  "load_probes": [
+    {
+      "cwd": ".",
+      "expected": [
+        "AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2237,
+      "before_block_chars": 7507,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 164
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "437e2758e2be80605b2ed2f7ae51afd11819d682b28fc720c92e890ae0e4128f"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "src",
+      "expected": [
+        "AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2241,
+      "before_block_chars": 7511,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 168
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "18e9319b0bff8fd881b605b2a6c17cd312e147e133837fa9f4e70a408e8c825a"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "tools",
+      "expected": [
+        "AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2243,
+      "before_block_chars": 7513,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 170
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "9762901a41bbc2721e58301cb82c34449ba5d02d7e0e1ab2ac7e960fee7a69f2"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "dashboard",
+      "expected": [
+        "AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2247,
+      "before_block_chars": 7517,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 174
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "20076f830a8a62c384a8bbddc7052e2768a8cdfe73a1d3447a61455311e3989e"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "dashboard-v2",
+      "expected": [
+        "AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2250,
+      "before_block_chars": 7520,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 177
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "b6050d5bb6572b344d2f25ef2f54b52fdbdc12027d8cf669102c0a0dd966ef88"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "tests",
+      "expected": [
+        "AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2243,
+      "before_block_chars": 7513,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 170
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "2003612902211ddcc84808708aab9ae83a6ee23835f18c102235933190735828"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "data/research",
+      "expected": [
+        "AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2251,
+      "before_block_chars": 7521,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 178
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "c2baa73982e6e0247f4c239400850dd36ead6cdb33608c4c7787ce61495f1f95"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "data/research/multi_chat_coordination_v1",
+      "expected": [
+        "AGENTS.md",
+        "data/research/multi_chat_coordination_v1/AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md",
+        "data/research/multi_chat_coordination_v1/AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2909,
+      "before_block_chars": 8179,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 205,
+        "data/research/multi_chat_coordination_v1/AGENTS.md": 2264
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "880f8c6fbc0740a3480da7afc44804c49d3b870749982c08e656dc72d8f6a161"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "data/research/multi_chat_coordination_v1/bundle",
+      "expected": [
+        "AGENTS.md",
+        "data/research/multi_chat_coordination_v1/AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md",
+        "data/research/multi_chat_coordination_v1/AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2916,
+      "before_block_chars": 8186,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 212,
+        "data/research/multi_chat_coordination_v1/AGENTS.md": 2271
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "5d5691cf7c9cf7dd6b0a151f69d8ce7395a625b010204f44ff357355e33493d5"
+      ],
+      "raw_prompt_saved": false
+    },
+    {
+      "cwd": "data/research/v49_pending_distribution_depth_micro_training_20260920_r68",
+      "expected": [
+        "AGENTS.md"
+      ],
+      "matched_files": [
+        "AGENTS.md"
+      ],
+      "pass": true,
+      "instruction_block_count": 1,
+      "instruction_block_chars": 2310,
+      "before_block_chars": 7580,
+      "saved_block_chars": 5270,
+      "matched_content_positions": {
+        "AGENTS.md": 237
+      },
+      "workflow_bodies_automatically_loaded": [],
+      "block_sha256": [
+        "b772d51027e552b27539f26efe0e588cea5d4b647a357687c4b1f9beba722e83"
+      ],
+      "raw_prompt_saved": false
+    }
+  ],
+  "conditional_route_bytes": {
+    "docs/agents/research.md": 3688,
+    "docs/agents/RESEARCH_CURRENT.md": 1940,
+    "docs/agents/worker.md": 3207,
+    "docs/agents/runtime.md": 2027,
+    "docs/agents/development.md": 1539,
+    "docs/agents/README.md": 2243
+  },
+  "protected_file_count": 1043,
+  "changed_protected_files": [],
+  "changed_existing_source_files": [
+    "AGENTS.md"
+  ],
+  "external_skills_changed": [],
+  "original_root_archive_matches": true,
+  "local_links": [
+    {
+      "source": "AGENTS.md",
+      "target": "docs/agents/research.md",
+      "exists": true
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "docs/agents/worker.md",
+      "exists": true
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "docs/agents/runtime.md",
+      "exists": true
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "docs/agents/development.md",
+      "exists": true
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "data/research/multi_chat_coordination_v1/AGENTS.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/audit-20260920/VERIFICATION.md",
+      "target": "BEFORE.json",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/audit-20260920/VERIFICATION.md",
+      "target": "AFTER.json",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/audit-20260920/VERIFICATION.md",
+      "target": "CLASSIFICATION.json",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/development.md",
+      "target": "runtime.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/development.md",
+      "target": "worker.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/README.md",
+      "target": "../../AGENTS.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/README.md",
+      "target": "../../data/research/multi_chat_coordination_v1/AGENTS.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/README.md",
+      "target": "RESEARCH_CURRENT.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/README.md",
+      "target": "audit-20260920/CLASSIFICATION.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/README.md",
+      "target": "audit-20260920/BEFORE.json",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/README.md",
+      "target": "audit-20260920/VERIFICATION.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/README.md",
+      "target": "audit-20260920/AGENTS.original.txt",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/research.md",
+      "target": "RESEARCH_CURRENT.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/research.md",
+      "target": "worker.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/RESEARCH_CURRENT.md",
+      "target": "../../data/research/v49_pending_distribution_depth_micro_training_20260920_r68/CURRENT.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/RESEARCH_CURRENT.md",
+      "target": "../../data/research/BTC5M_V12_TO_R54_HANDOFF_20260919/START_HERE.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/worker.md",
+      "target": "research.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/worker.md",
+      "target": "../../BTC5M_LAN_WORKER_V1.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/worker.md",
+      "target": "../../data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md",
+      "exists": true
+    },
+    {
+      "source": "docs/agents/worker.md",
+      "target": "../../SECOND_PC_DISPATCH_LOCK_20260830.md",
+      "exists": true
+    }
+  ],
+  "limits": [
+    "Local installed CLI prompt builder verified; desktop restart was not performed.",
+    "Existing conversation messages and global tool/skill catalogs are not retroactively reduced.",
+    "Root-started sessions do not automatically preload descendant AGENTS; root routing supplies a manual read trigger for scoped file work.",
+    "No financial/research/model behavior or task outcome is validated by this documentation check."
+  ],
+  "final_local_link_check_pass": true,
+  "classification_ranges_valid": true,
+  "ancestor_before_descendant_verified": true
+}

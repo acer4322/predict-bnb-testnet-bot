@@ -84,6 +84,47 @@ SETTLEMENT_RECHECK_SECONDS = max(
     5.0, float(os.environ.get("PREDICT_SETTLEMENT_RECHECK_INTERVAL", "15.0"))
 )
 
+STRATEGY_RUNTIME_PROFILE = os.environ.get("PREDICT_STRATEGY_RUNTIME_PROFILE", "CORE_RESEARCH").strip().upper()
+
+# CORE_RESEARCH is intentionally a *disable-only* runtime filter. It never enables
+# a strategy whose persisted config is false, and it never modifies historical DB
+# config. FULL_LAB restores the persisted configuration verbatim.
+CORE_RESEARCH_ENABLED_KEYS = frozenset({
+    # positive/current legacy controls retained as execution-realism benchmarks
+    "strategy_e_enabled",
+    # M-family representatives / currently positive forward variants
+    "strategy_m0w_enabled",
+    "strategy_m01t180_enabled",
+    "strategy_m01t180d_enabled",
+    "strategy_m01tasym_enabled",
+    "strategy_m01r_enabled",
+    "strategy_m01w_enabled",
+    "strategy_m01o_enabled",
+    # canonical public-signal family with current positive forward evidence
+    "strategy_r_ofi_enabled",
+    "strategy_r_ofi_min040_enabled",
+    # execution-aware pair-arb controls; these already model depth/VWAP/partial fill
+    "strategy_pair_arb_010_enabled",
+    "strategy_pair_arb_qc_015_enabled",
+    "strategy_pair_arb_020_enabled",
+    "strategy_pair_arb_risk_020_enabled",
+})
+
+def _apply_strategy_runtime_profile(values: dict[str, float | bool]) -> dict[str, float | bool]:
+    profile = STRATEGY_RUNTIME_PROFILE
+    if profile in {"", "FULL_LAB", "LEGACY", "ALL"}:
+        return dict(values)
+    if profile != "CORE_RESEARCH":
+        # Unknown profiles fail closed to CORE_RESEARCH rather than accidentally
+        # reviving every historical experiment.
+        profile = "CORE_RESEARCH"
+    filtered = dict(values)
+    for key in tuple(filtered):
+        if key.startswith("strategy_") and key.endswith("_enabled") and key not in CORE_RESEARCH_ENABLED_KEYS:
+            filtered[key] = False
+    return filtered
+
+
 DEFAULT_CONFIG: dict[str, float | bool] = {
     "strategy_a_enabled": False,
     "strategy_a_window_seconds": 120,
@@ -1440,9 +1481,11 @@ class Store:
                     for row in rows
                 }
                 if not self._read_only:
-                    self._config_cache = values
-                return dict(values)
-            return dict(self._config_cache)
+                    # Cache the persisted/base config. Runtime filtering is applied
+                    # only to the returned execution view and never rewrites DB.
+                    self._config_cache = dict(values)
+                return _apply_strategy_runtime_profile(values)
+            return _apply_strategy_runtime_profile(self._config_cache)
 
     def update_config(self, values: dict[str, Any]) -> dict[str, float | bool]:
         allowed = set(DEFAULT_CONFIG)
@@ -11072,6 +11115,32 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(
                 json.dumps(DASHBOARD_STORE.pair_arb_state()).encode("utf-8")
             )
+        elif request_path == "/api/microstructure-lite":
+            self._headers()
+            if MICROSTRUCTURE is None:
+                self.wfile.write(b'{"ok":false,"error":"microstructure unavailable"}')
+            else:
+                now_ns = time.monotonic_ns()
+                with MICROSTRUCTURE.state_lock:
+                    snap = dict(MICROSTRUCTURE.latest_snapshot)
+                sampled_ns = int(snap.get("timestamp_ns") or 0)
+                self.wfile.write(
+                    json.dumps(
+                        {
+                            "ok": bool(snap),
+                            "version": "MICROSTRUCTURE_LITE_V1",
+                            "runtimeProfile": STRATEGY_RUNTIME_PROFILE,
+                            "generatedAtMs": int(time.time() * 1000),
+                            "snapshotAgeMs": (
+                                max(0.0, (time.time_ns() - sampled_ns) / 1_000_000)
+                                if sampled_ns > 0 else None
+                            ),
+                            "latestSnapshot": snap,
+                        },
+                        separators=(",", ":"),
+                        default=str,
+                    ).encode("utf-8")
+                )
         elif request_path == "/health":
             self._headers()
             micro = MICROSTRUCTURE.state() if MICROSTRUCTURE else None

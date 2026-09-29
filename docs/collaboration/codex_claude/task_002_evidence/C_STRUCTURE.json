@@ -1,0 +1,1152 @@
+{
+ "markets": [
+  2628553,
+  2628769,
+  2629133,
+  2629199,
+  2628653,
+  2628410,
+  2629019,
+  2628557,
+  2628721,
+  2628999
+ ],
+ "official_winner": {
+  "2628410": "DOWN",
+  "2628553": "UP",
+  "2628557": "UP",
+  "2628653": "UP",
+  "2628721": "DOWN",
+  "2628769": "UP",
+  "2628999": "UP",
+  "2629019": "DOWN",
+  "2629133": "UP",
+  "2629199": "UP"
+ },
+ "groups": {
+  "v24_PADD80": {
+   "denominators": {
+    "planned": 10,
+    "artifact_complete": 10,
+    "nominal_pnl_computable": 10,
+    "diagnosed_usable": 10,
+    "responsibility_confirmed_unresolved_zero": 10,
+    "unknown_or_missing": 0
+   },
+   "P_gt_L_nominal": {
+    "n": 1,
+    "N": 10,
+    "pct": 10.0
+   },
+   "P_gt_L_confirmed": {
+    "n": 1,
+    "N": 10,
+    "pct": 10.0
+   },
+   "structure_counts": {
+    "MIXED_P_LE_L": 7,
+    "BOTH_NONPOSITIVE": 2,
+    "MIXED_P_GT_L": 1
+   },
+   "mixed_only_P_gt_L": {
+    "n": 1,
+    "N": 8,
+    "pct": 12.5
+   },
+   "winner_positive": {
+    "n": 5,
+    "N": 10,
+    "pct": 50.0
+   },
+   "sum_P": 1711.1,
+   "sum_L": 5640.3,
+   "note_sums": "sum_P/sum_L are totals, not the market share metric",
+   "validity_counts": {
+    "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY": 9,
+    "FULL_PASS": 1
+   }
+  },
+  "v27_AR3_R25": {
+   "denominators": {
+    "planned": 10,
+    "artifact_complete": 10,
+    "nominal_pnl_computable": 10,
+    "diagnosed_usable": 10,
+    "responsibility_confirmed_unresolved_zero": 10,
+    "unknown_or_missing": 0
+   },
+   "P_gt_L_nominal": {
+    "n": 0,
+    "N": 10,
+    "pct": 0.0
+   },
+   "P_gt_L_confirmed": {
+    "n": 0,
+    "N": 10,
+    "pct": 0.0
+   },
+   "structure_counts": {
+    "BOTH_NONPOSITIVE": 4,
+    "MIXED_P_LE_L": 6
+   },
+   "mixed_only_P_gt_L": {
+    "n": 0,
+    "N": 6,
+    "pct": 0.0
+   },
+   "winner_positive": {
+    "n": 5,
+    "N": 10,
+    "pct": 50.0
+   },
+   "sum_P": 193.2,
+   "sum_L": 3244.4,
+   "note_sums": "sum_P/sum_L are totals, not the market share metric",
+   "validity_counts": {
+    "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY": 10
+   }
+  },
+  "v28_AR4_R25": {
+   "denominators": {
+    "planned": 10,
+    "artifact_complete": 10,
+    "nominal_pnl_computable": 10,
+    "diagnosed_usable": 10,
+    "responsibility_confirmed_unresolved_zero": 10,
+    "unknown_or_missing": 0
+   },
+   "P_gt_L_nominal": {
+    "n": 0,
+    "N": 10,
+    "pct": 0.0
+   },
+   "P_gt_L_confirmed": {
+    "n": 0,
+    "N": 10,
+    "pct": 0.0
+   },
+   "structure_counts": {
+    "BOTH_NONPOSITIVE": 4,
+    "MIXED_P_LE_L": 6
+   },
+   "mixed_only_P_gt_L": {
+    "n": 0,
+    "N": 6,
+    "pct": 0.0
+   },
+   "winner_positive": {
+    "n": 5,
+    "N": 10,
+    "pct": 50.0
+   },
+   "sum_P": 193.2,
+   "sum_L": 3244.4,
+   "note_sums": "sum_P/sum_L are totals, not the market share metric",
+   "validity_counts": {
+    "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY": 10
+   }
+  }
+ },
+ "per_market": {
+  "2628553": {
+   "v24_PADD80": {
+    "market": 2628553,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "7c69c42d3bb33f78ad12adc97c71f4e324886cc0402435bfa9e29002be5c78a4",
+    "UP": -1114.054,
+    "DOWN": 422.398,
+    "winner": "UP",
+    "winner_payoff": -1114.054,
+    "cost": 2129.05,
+    "P": 422.398,
+    "L": 1114.054,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 159.12,
+    "passive_fill_qty": 3407.33,
+    "active_filled_orders": 11,
+    "passive_filled_orders": 233,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2628553,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "6f7fcec0218a51ad7d5b677cd05695844d1d6dd18765174614f7db115b813770",
+    "UP": -242.171,
+    "DOWN": -2.257,
+    "winner": "UP",
+    "winner_payoff": -242.171,
+    "cost": 2558.9,
+    "P": 0,
+    "L": 244.428,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 1570.52,
+    "passive_fill_qty": 3302.84,
+    "active_filled_orders": 29,
+    "passive_filled_orders": 226,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2628553,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "0d1cb2ce361847f99123d864c4254ed70c997e7dec60f889b205d5305f246984",
+    "UP": -242.171,
+    "DOWN": -2.257,
+    "winner": "UP",
+    "winner_payoff": -242.171,
+    "cost": 2558.9,
+    "P": 0,
+    "L": 244.428,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 1570.52,
+    "passive_fill_qty": 3302.84,
+    "active_filled_orders": 29,
+    "passive_filled_orders": 226,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2628769": {
+   "v24_PADD80": {
+    "market": 2628769,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "911f89e85b7dcfbca8205df45be9ed1bce13b66941f8bd6314f7b4a1ea3316b3",
+    "UP": -858.835,
+    "DOWN": 462.933,
+    "winner": "UP",
+    "winner_payoff": -858.835,
+    "cost": 2133.84,
+    "P": 462.933,
+    "L": 858.835,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 735.0,
+    "passive_fill_qty": 3136.77,
+    "active_filled_orders": 48,
+    "passive_filled_orders": 213,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2628769,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "00b7c53286f2ea67cc23e35f5e618dfcc36b5854015a0611afbcee14810cf983",
+    "UP": -156.933,
+    "DOWN": -261.011,
+    "winner": "UP",
+    "winner_payoff": -156.933,
+    "cost": 2887.11,
+    "P": 0,
+    "L": 417.943,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 2329.61,
+    "passive_fill_qty": 3026.67,
+    "active_filled_orders": 63,
+    "passive_filled_orders": 206,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2628769,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "4448dd3250f6728bb02aabed591a6aaddf61f160d6a584949875afbe91082216",
+    "UP": -156.933,
+    "DOWN": -261.011,
+    "winner": "UP",
+    "winner_payoff": -156.933,
+    "cost": 2887.11,
+    "P": 0,
+    "L": 417.943,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 2329.61,
+    "passive_fill_qty": 3026.67,
+    "active_filled_orders": 63,
+    "passive_filled_orders": 206,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2629133": {
+   "v24_PADD80": {
+    "market": 2629133,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "dd18137f0cb36cf1cef5d5fbefb15e797e805c1292d2fcad5df397b95a46555b",
+    "UP": -465.524,
+    "DOWN": -461.735,
+    "winner": "UP",
+    "winner_payoff": -465.524,
+    "cost": 2385.86,
+    "P": 0,
+    "L": 927.259,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 747.68,
+    "passive_fill_qty": 3096.77,
+    "active_filled_orders": 50,
+    "passive_filled_orders": 210,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2629133,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "a8f8806a37b594fb1e2e9fa5327bc835d3788e7f5324f48838282bca40bacf34",
+    "UP": -243.491,
+    "DOWN": -254.222,
+    "winner": "UP",
+    "winner_payoff": -243.491,
+    "cost": 2221.36,
+    "P": 0,
+    "L": 497.713,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 1553.06,
+    "passive_fill_qty": 2391.95,
+    "active_filled_orders": 82,
+    "passive_filled_orders": 163,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2629133,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "09532f05832208713e0d6dab85ec5b5ae6047ef5c69eaf3da3bfb28b0e7f776e",
+    "UP": -243.491,
+    "DOWN": -254.222,
+    "winner": "UP",
+    "winner_payoff": -243.491,
+    "cost": 2221.36,
+    "P": 0,
+    "L": 497.713,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 1553.06,
+    "passive_fill_qty": 2391.95,
+    "active_filled_orders": 82,
+    "passive_filled_orders": 163,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2629199": {
+   "v24_PADD80": {
+    "market": 2629199,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "3cd6ffc0b5390fa86036745cd0e306813f6ed311c242d7ca4e7dfc26a0d10880",
+    "UP": -429.184,
+    "DOWN": 144.345,
+    "winner": "UP",
+    "winner_payoff": -429.184,
+    "cost": 1878.77,
+    "P": 144.345,
+    "L": 429.184,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 820.58,
+    "passive_fill_qty": 2652.13,
+    "active_filled_orders": 20,
+    "passive_filled_orders": 181,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2629199,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "cabb07200cf493943f568bb0706be00e97cea0a30e0cf11b88b80860fe28e9f1",
+    "UP": -521.488,
+    "DOWN": 37.337,
+    "winner": "UP",
+    "winner_payoff": -521.488,
+    "cost": 2005.07,
+    "P": 37.337,
+    "L": 521.488,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 1015.47,
+    "passive_fill_qty": 2510.53,
+    "active_filled_orders": 30,
+    "passive_filled_orders": 172,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2629199,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "b88a1b775952d024cae014617dacbdbba10b37c49c7022c1f39a87e17c9297d5",
+    "UP": -521.488,
+    "DOWN": 37.337,
+    "winner": "UP",
+    "winner_payoff": -521.488,
+    "cost": 2005.07,
+    "P": 37.337,
+    "L": 521.488,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 1015.47,
+    "passive_fill_qty": 2510.53,
+    "active_filled_orders": 30,
+    "passive_filled_orders": 172,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2628653": {
+   "v24_PADD80": {
+    "market": 2628653,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "2122b74bb9d6b5c395975504c2bca63893f4363826a0f422721c716c5b800e19",
+    "UP": -346.846,
+    "DOWN": -282.726,
+    "winner": "UP",
+    "winner_payoff": -346.846,
+    "cost": 1877.73,
+    "P": 0,
+    "L": 629.572,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 1215.32,
+    "passive_fill_qty": 1910.56,
+    "active_filled_orders": 82,
+    "passive_filled_orders": 129,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2628653,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "98741ce6307db8dcf837c0543567933d6cfc24d0d7965b0fcbf76409de002ef1",
+    "UP": -277.162,
+    "DOWN": -271.01,
+    "winner": "UP",
+    "winner_payoff": -277.162,
+    "cost": 1732.26,
+    "P": 0,
+    "L": 548.172,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 1537.38,
+    "passive_fill_qty": 1378.96,
+    "active_filled_orders": 77,
+    "passive_filled_orders": 94,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2628653,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "220fb546fff08a152afeb4a3fae81cb43d37d92cdd6ad13962daa2165c7c39a6",
+    "UP": -277.162,
+    "DOWN": -271.01,
+    "winner": "UP",
+    "winner_payoff": -277.162,
+    "cost": 1732.26,
+    "P": 0,
+    "L": 548.172,
+    "structure": "BOTH_NONPOSITIVE",
+    "p_gt_l": false,
+    "active_fill_qty": 1537.38,
+    "passive_fill_qty": 1378.96,
+    "active_filled_orders": 77,
+    "passive_filled_orders": 94,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2628410": {
+   "v24_PADD80": {
+    "market": 2628410,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "d56d00f6d17b5ec82098d36e263035854bebe3fc68cf8f1dc36d13869aa78dd9",
+    "UP": -57.311,
+    "DOWN": 347.611,
+    "winner": "DOWN",
+    "winner_payoff": 347.611,
+    "cost": 1202.52,
+    "P": 347.611,
+    "L": 57.311,
+    "structure": "MIXED_P_GT_L",
+    "p_gt_l": true,
+    "active_fill_qty": 485.74,
+    "passive_fill_qty": 2209.6,
+    "active_filled_orders": 7,
+    "passive_filled_orders": 149,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2628410,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "e229220972a142f81719f672214579ab74cf89f069679d16f4664a21f032362e",
+    "UP": -170.227,
+    "DOWN": 44.415,
+    "winner": "DOWN",
+    "winner_payoff": 44.415,
+    "cost": 1985.72,
+    "P": 44.415,
+    "L": 170.227,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 1191.02,
+    "passive_fill_qty": 2654.6,
+    "active_filled_orders": 15,
+    "passive_filled_orders": 178,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2628410,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "084cd2d25ee6293779bc866132f591975b8f44af08665f31c7d5b2b54c03b62d",
+    "UP": -170.227,
+    "DOWN": 44.415,
+    "winner": "DOWN",
+    "winner_payoff": 44.415,
+    "cost": 1985.72,
+    "P": 44.415,
+    "L": 170.227,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 1191.02,
+    "passive_fill_qty": 2654.6,
+    "active_filled_orders": 15,
+    "passive_filled_orders": 178,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2629019": {
+   "v24_PADD80": {
+    "market": 2629019,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "c66696b508c91586448d68dc5469c1aa9edb41f6cc2d9017ad2b163fe534e1a5",
+    "UP": -285.615,
+    "DOWN": 169.44,
+    "winner": "DOWN",
+    "winner_payoff": 169.44,
+    "cost": 1452.68,
+    "P": 169.44,
+    "L": 285.615,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 57.75,
+    "passive_fill_qty": 2731.43,
+    "active_filled_orders": 5,
+    "passive_filled_orders": 188,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2629019,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "e397e1d355eaebc5a1ba942484ec2b3c6b026e1f79472c4c5fbcc0d0ac8d1d8d",
+    "UP": -165.583,
+    "DOWN": 37.825,
+    "winner": "DOWN",
+    "winner_payoff": 37.825,
+    "cost": 2424.3,
+    "P": 37.825,
+    "L": 165.583,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 1839.24,
+    "passive_fill_qty": 2881.6,
+    "active_filled_orders": 39,
+    "passive_filled_orders": 197,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2629019,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "6c0abbd6efb7e6879033e85c17d721bf2aa1a6eb90e00dd4de7c7c3f72827e56",
+    "UP": -165.583,
+    "DOWN": 37.825,
+    "winner": "DOWN",
+    "winner_payoff": 37.825,
+    "cost": 2424.3,
+    "P": 37.825,
+    "L": 165.583,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 1839.24,
+    "passive_fill_qty": 2881.6,
+    "active_filled_orders": 39,
+    "passive_filled_orders": 197,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2628557": {
+   "v24_PADD80": {
+    "market": 2628557,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "df1d9a16b28ff5b11ca572018712afb0d8a64c5e96eb18245b5da81556406e6b",
+    "UP": 89.241,
+    "DOWN": -852.224,
+    "winner": "UP",
+    "winner_payoff": 89.241,
+    "cost": 2269.76,
+    "P": 89.241,
+    "L": 852.224,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 385.0,
+    "passive_fill_qty": 3391.53,
+    "active_filled_orders": 24,
+    "passive_filled_orders": 228,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2628557,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "ef03cc436fa77ede1b2a51fc806e4a73a661370be99cf00d40924041e13cf896",
+    "UP": 34.453,
+    "DOWN": -335.362,
+    "winner": "UP",
+    "winner_payoff": 34.453,
+    "cost": 2337.74,
+    "P": 34.453,
+    "L": 335.362,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 1317.03,
+    "passive_fill_qty": 3057.53,
+    "active_filled_orders": 31,
+    "passive_filled_orders": 205,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2628557,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "045612cc7aba2696fff4074d32d95d759f2c31fa10e3ce9ea9f144661a0061c4",
+    "UP": 34.453,
+    "DOWN": -335.362,
+    "winner": "UP",
+    "winner_payoff": 34.453,
+    "cost": 2337.74,
+    "P": 34.453,
+    "L": 335.362,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 1317.03,
+    "passive_fill_qty": 3057.53,
+    "active_filled_orders": 31,
+    "passive_filled_orders": 205,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2628721": {
+   "v24_PADD80": {
+    "market": 2628721,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "7b38383b34a31cd434408014661e58e19289db6005a8b9c5d7734116c6288a33",
+    "UP": -347.128,
+    "DOWN": 57.547,
+    "winner": "DOWN",
+    "winner_payoff": 57.547,
+    "cost": 1072.13,
+    "P": 57.547,
+    "L": 347.128,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 300.0,
+    "passive_fill_qty": 1554.67,
+    "active_filled_orders": 20,
+    "passive_filled_orders": 105,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v27_AR3_R25": {
+    "market": 2628721,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "c0b0c3d33579355fac5066355712f6775dfe7cd8b1a30a0927b7657379e820da",
+    "UP": -280.994,
+    "DOWN": 23.4,
+    "winner": "DOWN",
+    "winner_payoff": 23.4,
+    "cost": 1061.27,
+    "P": 23.4,
+    "L": 280.994,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 430.28,
+    "passive_fill_qty": 1434.67,
+    "active_filled_orders": 23,
+    "passive_filled_orders": 97,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2628721,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "e90cb3d3b2f2cb3cbd43d4ee998fbc086ab712f7ab75ea1efaf36dc13c781463",
+    "UP": -280.994,
+    "DOWN": 23.4,
+    "winner": "DOWN",
+    "winner_payoff": 23.4,
+    "cost": 1061.27,
+    "P": 23.4,
+    "L": 280.994,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 430.28,
+    "passive_fill_qty": 1434.67,
+    "active_filled_orders": 23,
+    "passive_filled_orders": 97,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  },
+  "2628999": {
+   "v24_PADD80": {
+    "market": 2628999,
+    "group": "v24_PADD80",
+    "status": "COMPLETE",
+    "result_sha256": "7556ae081bd26df9b01340ecc755ab5339b404a39aefc008ada705cc4bd3e684",
+    "UP": 17.554,
+    "DOWN": -139.156,
+    "winner": "UP",
+    "winner_payoff": 17.554,
+    "cost": 672.98,
+    "P": 17.554,
+    "L": 139.156,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 278.82,
+    "passive_fill_qty": 945.53,
+    "active_filled_orders": 4,
+    "passive_filled_orders": 65,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [],
+    "validity": "FULL_PASS"
+   },
+   "v27_AR3_R25": {
+    "market": 2628999,
+    "group": "v27_AR3_R25",
+    "status": "COMPLETE",
+    "result_sha256": "233d581b368b731e463d507a7e26d9d657c4aa08d116d8afba4c4a8e5f18dc41",
+    "UP": 15.772,
+    "DOWN": -62.521,
+    "winner": "UP",
+    "winner_payoff": 15.772,
+    "cost": 769.43,
+    "P": 15.772,
+    "L": 62.521,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 359.62,
+    "passive_fill_qty": 1132.48,
+    "active_filled_orders": 9,
+    "passive_filled_orders": 80,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   },
+   "v28_AR4_R25": {
+    "market": 2628999,
+    "group": "v28_AR4_R25",
+    "status": "COMPLETE",
+    "result_sha256": "2e7f25a0b0e126f0528f90de69dd9e9fae0e779f2120e0a300531193456149a7",
+    "UP": 15.772,
+    "DOWN": -62.521,
+    "winner": "UP",
+    "winner_payoff": 15.772,
+    "cost": 769.43,
+    "P": 15.772,
+    "L": 62.521,
+    "structure": "MIXED_P_LE_L",
+    "p_gt_l": false,
+    "active_fill_qty": 359.62,
+    "passive_fill_qty": 1132.48,
+    "active_filled_orders": 9,
+    "passive_filled_orders": 80,
+    "unresolved_owners": 0,
+    "accounting_valid": true,
+    "safety_failed": [
+     "active_matches_opportunity"
+    ],
+    "validity": "COMPLETE_ACCOUNTING_VALID__LEGACY_ACTIVE_COUNT_ASSERT_ONLY"
+   }
+  }
+ },
+ "paired_vs_v24": {
+  "v27_AR3_R25": {
+   "rows": [
+    {
+     "market": 2628553,
+     "winner_delta": 871.88,
+     "loser_delta": -424.66,
+     "P_delta": -422.4,
+     "L_delta": -869.63,
+     "positive_retained": 0.0,
+     "loss_reduction": 869.63
+    },
+    {
+     "market": 2628769,
+     "winner_delta": 701.9,
+     "loser_delta": -723.94,
+     "P_delta": -462.93,
+     "L_delta": -440.89,
+     "positive_retained": 0.0,
+     "loss_reduction": 440.89
+    },
+    {
+     "market": 2629133,
+     "winner_delta": 222.03,
+     "loser_delta": 207.51,
+     "P_delta": 0,
+     "L_delta": -429.55,
+     "positive_retained": null,
+     "loss_reduction": 429.55
+    },
+    {
+     "market": 2629199,
+     "winner_delta": -92.3,
+     "loser_delta": -107.01,
+     "P_delta": -107.01,
+     "L_delta": 92.3,
+     "positive_retained": 0.259,
+     "loss_reduction": -92.3
+    },
+    {
+     "market": 2628653,
+     "winner_delta": 69.68,
+     "loser_delta": 11.72,
+     "P_delta": 0,
+     "L_delta": -81.4,
+     "positive_retained": null,
+     "loss_reduction": 81.4
+    },
+    {
+     "market": 2628410,
+     "winner_delta": -303.2,
+     "loser_delta": -112.92,
+     "P_delta": -303.2,
+     "L_delta": 112.92,
+     "positive_retained": 0.128,
+     "loss_reduction": -112.92
+    },
+    {
+     "market": 2629019,
+     "winner_delta": -131.62,
+     "loser_delta": 120.03,
+     "P_delta": -131.62,
+     "L_delta": -120.03,
+     "positive_retained": 0.223,
+     "loss_reduction": 120.03
+    },
+    {
+     "market": 2628557,
+     "winner_delta": -54.79,
+     "loser_delta": 516.86,
+     "P_delta": -54.79,
+     "L_delta": -516.86,
+     "positive_retained": 0.386,
+     "loss_reduction": 516.86
+    },
+    {
+     "market": 2628721,
+     "winner_delta": -34.15,
+     "loser_delta": 66.13,
+     "P_delta": -34.15,
+     "L_delta": -66.13,
+     "positive_retained": 0.407,
+     "loss_reduction": 66.13
+    },
+    {
+     "market": 2628999,
+     "winner_delta": -1.78,
+     "loser_delta": 76.64,
+     "P_delta": -1.78,
+     "L_delta": -76.64,
+     "positive_retained": 0.898,
+     "loss_reduction": 76.64
+    }
+   ],
+   "winner_improved": 4,
+   "winner_worse": 6,
+   "L_reduced": 8,
+   "L_increased": 2,
+   "P_reduced": 8,
+   "sum_positive_retained": 193.2,
+   "sum_positive_base": 1711.1,
+   "sum_loss_reduction": 2395.9
+  },
+  "v28_AR4_R25": {
+   "rows": [
+    {
+     "market": 2628553,
+     "winner_delta": 871.88,
+     "loser_delta": -424.66,
+     "P_delta": -422.4,
+     "L_delta": -869.63,
+     "positive_retained": 0.0,
+     "loss_reduction": 869.63
+    },
+    {
+     "market": 2628769,
+     "winner_delta": 701.9,
+     "loser_delta": -723.94,
+     "P_delta": -462.93,
+     "L_delta": -440.89,
+     "positive_retained": 0.0,
+     "loss_reduction": 440.89
+    },
+    {
+     "market": 2629133,
+     "winner_delta": 222.03,
+     "loser_delta": 207.51,
+     "P_delta": 0,
+     "L_delta": -429.55,
+     "positive_retained": null,
+     "loss_reduction": 429.55
+    },
+    {
+     "market": 2629199,
+     "winner_delta": -92.3,
+     "loser_delta": -107.01,
+     "P_delta": -107.01,
+     "L_delta": 92.3,
+     "positive_retained": 0.259,
+     "loss_reduction": -92.3
+    },
+    {
+     "market": 2628653,
+     "winner_delta": 69.68,
+     "loser_delta": 11.72,
+     "P_delta": 0,
+     "L_delta": -81.4,
+     "positive_retained": null,
+     "loss_reduction": 81.4
+    },
+    {
+     "market": 2628410,
+     "winner_delta": -303.2,
+     "loser_delta": -112.92,
+     "P_delta": -303.2,
+     "L_delta": 112.92,
+     "positive_retained": 0.128,
+     "loss_reduction": -112.92
+    },
+    {
+     "market": 2629019,
+     "winner_delta": -131.62,
+     "loser_delta": 120.03,
+     "P_delta": -131.62,
+     "L_delta": -120.03,
+     "positive_retained": 0.223,
+     "loss_reduction": 120.03
+    },
+    {
+     "market": 2628557,
+     "winner_delta": -54.79,
+     "loser_delta": 516.86,
+     "P_delta": -54.79,
+     "L_delta": -516.86,
+     "positive_retained": 0.386,
+     "loss_reduction": 516.86
+    },
+    {
+     "market": 2628721,
+     "winner_delta": -34.15,
+     "loser_delta": 66.13,
+     "P_delta": -34.15,
+     "L_delta": -66.13,
+     "positive_retained": 0.407,
+     "loss_reduction": 66.13
+    },
+    {
+     "market": 2628999,
+     "winner_delta": -1.78,
+     "loser_delta": 76.64,
+     "P_delta": -1.78,
+     "L_delta": -76.64,
+     "positive_retained": 0.898,
+     "loss_reduction": 76.64
+    }
+   ],
+   "winner_improved": 4,
+   "winner_worse": 6,
+   "L_reduced": 8,
+   "L_increased": 2,
+   "P_reduced": 8,
+   "sum_positive_retained": 193.2,
+   "sum_positive_base": 1711.1,
+   "sum_loss_reduction": 2395.9
+  }
+ },
+ "v27_v28_identical": true,
+ "post_first_flip_fills_v28": {
+  "2629199": {
+   "DOWN|ACTIVE|V12G_PAYOFF_ADD": 195.0,
+   "DOWN|PASSIVE|PASSIVE_EXPAND": 530.0,
+   "DOWN|PASSIVE|PASSIVE_FRESH_CAPACITY_FRONTIER": 957.4,
+   "DOWN|PASSIVE|PASSIVE_REPAIR": 165.0,
+   "DOWN|PASSIVE|PASSIVE_REPAIR_CAPACITY_FRONTIER": 120.0,
+   "UP|ACTIVE|ACTIVE_QUALIFIED_RATIO_RESTORATION": 760.5,
+   "UP|PASSIVE|PASSIVE_EXPAND": 30.0,
+   "UP|PASSIVE|PASSIVE_FRESH_CAPACITY_FRONTIER": 5.7,
+   "UP|PASSIVE|PASSIVE_REPAIR": 135.8,
+   "UP|PASSIVE|PASSIVE_REPAIR_CAPACITY_FRONTIER": 105.0
+  },
+  "2628553": {
+   "DOWN|ACTIVE|V12G_PAYOFF_ADD": 75.0,
+   "DOWN|PASSIVE|PASSIVE_EXPAND": 867.0,
+   "DOWN|PASSIVE|PASSIVE_FRESH_CAPACITY_FRONTIER": 974.7,
+   "DOWN|PASSIVE|PASSIVE_REPAIR": 45.0,
+   "DOWN|PASSIVE|PASSIVE_REPAIR_CAPACITY_FRONTIER": 45.0,
+   "UP|ACTIVE|ACTIVE_QUALIFIED_RATIO_RESTORATION": 1205.8,
+   "UP|ACTIVE|V12G_PAYOFF_ADD": 15.0,
+   "UP|PASSIVE|PASSIVE_REPAIR": 215.9,
+   "UP|PASSIVE|PASSIVE_REPAIR_CAPACITY_FRONTIER": 240.0
+  }
+ }
+}

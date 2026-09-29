@@ -107,6 +107,9 @@ class _VolatileMicroStore:
     def insert_event(self, _db: sqlite3.Connection, _event: dict[str, Any]) -> None:
         return None
 
+    def insert_events(self, _db: sqlite3.Connection, _events: list[dict[str, Any]]) -> None:
+        return None
+
     def insert_snapshot(self, _db: sqlite3.Connection, _snapshot: dict[str, Any]) -> None:
         return None
 
@@ -615,6 +618,24 @@ class PublicResearchArchive:
             "averageFeatureCompleteness": row[2] if row else None,
         }
 
+    def current_public_snapshot(self) -> dict[str, Any]:
+        """Expose current target-blind public features for external venue tests."""
+        snapshot = self._build_snapshot()
+        return {
+            "ok": True,
+            "version": VERSION,
+            "targetBlind": True,
+            "targetWalletInputs": False,
+            "officialTruthInputs": False,
+            "strategyOutputsUsed": False,
+            "snapshot": snapshot,
+            "source": {
+                "chainlink": "PUBLIC_CHAINLINK_WS",
+                "microstructure": "PUBLIC_BINANCE_SPOT_FUTURES_WS",
+                "prediction": "NOT_REQUIRED_BY_THIS_ENDPOINT",
+            },
+        }
+
     def state(self) -> dict[str, Any]:
         with self.lock:
             predict = dict(self.current_predict)
@@ -725,6 +746,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/health":
             health = self.archive.health()
             self._write(health, 200 if health.get("ok") else 503)
+            return
+        if path == "/current-public":
+            self._write(self.archive.current_public_snapshot(), 200)
             return
         self._write({"ok": False, "error": "not found"}, 404)
 

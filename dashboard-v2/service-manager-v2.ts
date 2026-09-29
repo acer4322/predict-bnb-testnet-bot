@@ -92,7 +92,7 @@ const SERVICES: ServiceDefinition[] = [
       { port: 8766, label: 'Binance realtime', healthPath: '/health' },
       { port: 8767, label: 'Cross Oracle', healthPath: '/health' },
       { port: 8768, label: 'Strategies', healthPath: '/state' },
-      { port: 8769, label: 'BTC live engine', healthPath: '/state' },
+      { port: 8769, label: 'BTC live engine', healthPath: '/health' },
     ],
     rootProcessToken: 'predict_bot.supervisor',
     command: 'python',
@@ -105,11 +105,11 @@ const SERVICES: ServiceDefinition[] = [
     description: 'Observer + ETH/BNB engines share one supervisor. 8774/8775 are optional clone children.',
     mode: 'direct',
     members: [
-      { port: 8770, label: 'Multi-market observer', healthPath: '/state' },
-      { port: 8772, label: 'ETH live', healthPath: '/state' },
-      { port: 8773, label: 'BNB live', healthPath: '/state' },
-      { port: 8774, label: 'ETH clone', healthPath: '/state', required: false },
-      { port: 8775, label: 'BNB clone', healthPath: '/state', required: false },
+      { port: 8770, label: 'Multi-market observer', healthPath: '/health' },
+      { port: 8772, label: 'ETH live', healthPath: '/health' },
+      { port: 8773, label: 'BNB live', healthPath: '/health' },
+      { port: 8774, label: 'ETH clone', healthPath: '/health', required: false },
+      { port: 8775, label: 'BNB clone', healthPath: '/health', required: false },
     ],
     rootProcessToken: 'predict_bot.multi_asset_live_supervisor',
     command: 'python',
@@ -141,7 +141,7 @@ const SERVICES: ServiceDefinition[] = [
   {
     id: 'targetTaker',
     label: 'Target Wallet Official',
-    description: '8776 TARGET_WALLET_OFFICIAL_V1 truth collector + retired 8777 compatibility stub.',
+    description: '8776 TARGET_WALLET_OFFICIAL_V2 truth collector. Strategy-free read-only Target ground truth.',
     mode: 'script',
     members: [
       {
@@ -150,17 +150,10 @@ const SERVICES: ServiceDefinition[] = [
         healthPath: '/health',
         expectedProcessToken: 'predict_wallet_shadow_observer_v4_23',
       },
-      {
-        port: 8777,
-        label: 'Retired compatibility stub',
-        healthPath: '/state',
-        expectedProcessToken: 'predict_wallet_taker_signal_collector',
-      },
     ],
     script: 'start-target-taker-echtgeld-producer-v1.ps1',
     legacyPidFiles: [
       { file: '.target-taker-echtgeld-producer.pid', expectedProcessToken: 'predict_wallet_shadow_observer_v4_23' },
-      { file: '.target-taker-echtgeld-signal.pid', expectedProcessToken: 'predict_wallet_taker_signal_collector' },
     ],
     safetyNote: 'Read-only target-wallet truth collection. No strategy logic, TradeIntent handoff, or live orders.',
   },
@@ -173,7 +166,7 @@ const SERVICES: ServiceDefinition[] = [
       {
         port: 8778,
         label: 'Maker book inference BTC',
-        healthPath: '/state',
+        healthPath: '/health',
         expectedProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_v2_1',
       },
     ],
@@ -191,7 +184,7 @@ const SERVICES: ServiceDefinition[] = [
       {
         port: 8779,
         label: 'Maker book inference ETH 5M',
-        healthPath: '/state',
+        healthPath: '/health',
         expectedProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_eth5m',
       },
     ],
@@ -199,6 +192,79 @@ const SERVICES: ServiceDefinition[] = [
     command: 'python',
     args: ['-m', 'predict_bot.predict_wallet_maker_book_inference_collector_eth5m'],
     legacyPidFiles: [{ file: '.wallet-shadow-lab-maker-book-eth5m.pid', expectedProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_eth5m' }],
+  },
+  {
+    id: 'unifiedPublicSource',
+    label: 'Unified Public Source',
+    description: '8783 public-only feature source for 8784/8785. Reads public market/microstructure inputs only; no Target wallet or Echtgeld path.',
+    mode: 'script',
+    members: [
+      {
+        port: 8783,
+        label: 'Unified public source',
+        healthPath: '/health',
+        expectedProcessToken: 'predict_bot.unified_controller_public_source_v1',
+      },
+    ],
+    script: 'start-unified-controller-public-source-v1.ps1',
+    legacyPidFiles: [{ file: '.unified-controller-public-source-v1.pid', expectedProcessToken: 'predict_bot.unified_controller_public_source_v1' }],
+    safetyNote: 'Paper/public-data service only. No Target wallet reads, Echtgeld handoff, or live orders. Start before 8784 and 8785.',
+  },
+  {
+    id: 'unifiedController',
+    label: 'Promoted Own-State Paper',
+    description: '8784 frozen promoted own-state paper controller. Depends on 8783 HTTP public source and reads 8778 public-book DB data only.',
+    mode: 'script',
+    members: [
+      {
+        port: 8784,
+        label: 'Promoted Own-State Paper',
+        healthPath: '/health',
+        expectedProcessToken: 'predict_bot.unified_controller_paper_v1',
+      },
+    ],
+    script: 'start-unified-controller-paper-v1.ps1',
+    legacyPidFiles: [{ file: '.unified-controller-paper-v1.pid', expectedProcessToken: 'predict_bot.unified_controller_paper_v1' }],
+    safetyNote: 'Frozen paper-only candidate. Requires 8783 public source plus fresh 8778 public-book data; remains fail-closed in WAITING_SOURCE when either dependency is unavailable.',
+  },
+  {
+    id: 'unifiedFlash',
+    label: 'Unified Flash Sandbox',
+    description: '8785 paper-only Flash Sandbox for hourly controller experiments. Depends on 8783 public source and the frozen 8784 base.',
+    mode: 'script',
+    members: [
+      {
+        port: 8785,
+        label: 'Unified Flash Sandbox',
+        healthPath: '/health',
+        expectedProcessToken: 'predict_bot.unified_controller_flash_sandbox_v1',
+      },
+    ],
+    script: 'start-unified-flash-sandbox-v1.ps1',
+    legacyPidFiles: [{ file: '.unified-flash-v1.pid', expectedProcessToken: 'predict_bot.unified_controller_flash_sandbox_v1' }],
+    safetyNote: 'Paper-only sandbox. Requires 8783 public source and 8784 base; remains fail-closed in WAITING_SOURCE until both are ready.',
+  },
+  {
+    id: 'makerInferenceBnb',
+    label: 'Maker Book Inference · BNB 5M',
+    description: '8788 forward-only BNB 5M compressed full-book / lifecycle / Execution Tape collector.',
+    mode: 'direct',
+    members: [{ port: 8788, label: 'Maker book inference BNB 5M', healthPath: '/health', expectedProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_bnb5m' }],
+    rootProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_bnb5m',
+    command: 'python',
+    args: ['-m', 'predict_bot.predict_wallet_maker_book_inference_collector_bnb5m'],
+    legacyPidFiles: [{ file: '.target-bnb5m-maker-book.pid', expectedProcessToken: 'predict_bot.predict_wallet_maker_book_inference_collector_bnb5m' }],
+  },
+  {
+    id: 'publicResearchBnb',
+    label: 'Public Fair Value · BNB 5M',
+    description: '8797 target-blind compact BNB public fair-value archive; 500ms snapshots, no raw websocket persistence.',
+    mode: 'direct',
+    members: [{ port: 8797, label: 'BNB public fair-value archive', healthPath: '/health', expectedProcessToken: 'predict_bot.public_research_archive_bnb5m_v1' }],
+    rootProcessToken: 'predict_bot.public_research_archive_bnb5m_v1',
+    command: 'python',
+    args: ['-m', 'predict_bot.public_research_archive_bnb5m_v1'],
+    legacyPidFiles: [{ file: '.target-bnb5m-public.pid', expectedProcessToken: 'predict_bot.public_research_archive_bnb5m_v1' }],
   },
   {
     id: 'echtgeld',
@@ -226,6 +292,11 @@ const GROUPS: Record<string, { label: string; start: string[]; stop: string[] }>
     label: 'Target Wallet Research',
     start: ['predict', 'targetTaker', 'makerInference', 'makerInferenceEth'],
     stop: ['makerInferenceEth', 'makerInference', 'targetTaker', 'predict'],
+  },
+  unified: {
+    label: 'Unified Paper Stack',
+    start: ['predict', 'makerInference', 'unifiedPublicSource', 'unifiedController', 'unifiedFlash'],
+    stop: ['unifiedFlash', 'unifiedController', 'unifiedPublicSource', 'makerInference', 'predict'],
   },
   all: {
     label: 'All Managed Services',
@@ -283,6 +354,7 @@ async function getProcessInfo(pid: number): Promise<ProcessInfo | null> {
   const script = `$p=Get-CimInstance Win32_Process -Filter \"ProcessId=${pid}\" -ErrorAction SilentlyContinue; if($p){$p | Select-Object @{n='pid';e={[int]$_.ProcessId}},@{n='parentPid';e={[int]$_.ParentProcessId}},@{n='commandLine';e={[string]$_.CommandLine}} | ConvertTo-Json -Compress}`
   try {
     const raw = await powershell(script, 5_000)
+    if (!raw) return null
     if (raw) {
       const row = JSON.parse(raw) as Record<string, unknown>
       const parsedPid = Number(row.pid)
@@ -305,7 +377,36 @@ async function getProcessInfo(pid: number): Promise<ProcessInfo | null> {
   }
 }
 
-async function getListenerSnapshot(): Promise<Map<number, ListenerInfo>> {
+async function getProcessTableSnapshot(pids: number[] = []): Promise<Map<number, ProcessInfo> | null> {
+  if (process.platform !== 'win32') return new Map()
+  const ids = Array.from(new Set(pids.filter((pid) => Number.isInteger(pid) && pid > 0)))
+  if (!ids.length) return new Map()
+  const filter = ids.map((pid) => `ProcessId=${pid}`).join(' OR ')
+  const script = [
+    `$rows=Get-CimInstance Win32_Process -Filter "${filter}" -ErrorAction SilentlyContinue | Select-Object`,
+    "  @{n='pid';e={[int]$_.ProcessId}},@{n='parentPid';e={[int]$_.ParentProcessId}},@{n='commandLine';e={[string]$_.CommandLine}}",
+    '$rows | ConvertTo-Json -Compress',
+  ].join(' ')
+  try {
+    const raw = await powershell(script, 8_000)
+    const map = new Map<number, ProcessInfo>()
+    if (!raw) return map
+    for (const row of normalizeJsonRows(JSON.parse(raw))) {
+      const pid = Number(row.pid)
+      if (!Number.isInteger(pid) || pid <= 0) continue
+      map.set(pid, {
+        pid,
+        parentPid: row.parentPid === null || row.parentPid === undefined ? null : Number(row.parentPid),
+        commandLine: String(row.commandLine || ''),
+      })
+    }
+    return map
+  } catch {
+    return null
+  }
+}
+
+async function getListenerSnapshot(processTable: Map<number, ProcessInfo> | null = null): Promise<Map<number, ListenerInfo>> {
   const map = new Map<number, ListenerInfo>()
   if (process.platform !== 'win32') return map
 
@@ -331,7 +432,7 @@ async function getListenerSnapshot(): Promise<Map<number, ListenerInfo>> {
 
   const processCache = new Map<number, ProcessInfo | null>()
   await Promise.all(Array.from(new Set(pidByPort.values())).map(async (pid) => {
-    processCache.set(pid, await getProcessInfo(pid))
+    processCache.set(pid, processTable?.get(pid) ?? await getProcessInfo(pid))
   }))
 
   for (const [port, pid] of pidByPort) {
@@ -344,6 +445,26 @@ async function getListenerSnapshot(): Promise<Map<number, ListenerInfo>> {
     })
   }
   return map
+}
+
+async function getListenerPidSnapshot(): Promise<Map<number, number>> {
+  const result = new Map<number, number>()
+  if (process.platform !== 'win32') return result
+  try {
+    const raw = await execFileText('netstat.exe', ['-ano', '-p', 'tcp'], 8_000)
+    for (const line of raw.split(/\r?\n/)) {
+      const match = line.trim().match(/^TCP\s+(\S+)\s+(\S+)\s+LISTENING\s+(\d+)$/i)
+      if (!match) continue
+      const portMatch = match[1].match(/:(\d+)$/)
+      if (!portMatch) continue
+      const port = Number(portMatch[1])
+      const pid = Number(match[3])
+      if (ALL_PORT_SET.has(port) && Number.isInteger(pid) && pid > 0) result.set(port, pid)
+    }
+  } catch {
+    return result
+  }
+  return result
 }
 
 function commandMatches(commandLine: string, token: string | undefined) {
@@ -362,12 +483,27 @@ async function probe(member: ServiceMember): Promise<HealthProbe> {
   try {
     const response = await fetch(`http://127.0.0.1:${member.port}${member.healthPath}`, {
       signal: controller.signal,
-      headers: { Accept: 'application/json' },
+      headers: member.port === 8781
+        ? { Accept: 'application/json', Connection: 'close' }
+        : { Accept: 'application/json' },
       cache: 'no-store',
     })
     let payload: unknown = null
     const contentType = String(response.headers.get('content-type') || '')
-    if (contentType.includes('json')) payload = await response.json().catch(() => null)
+    if (contentType.includes('json')) {
+      const raw = await response.text().catch(() => '')
+      if (raw) {
+        try {
+          payload = JSON.parse(raw)
+        } catch {
+          // Some Python research services serialize non-finite floats as bare
+          // NaN/Infinity. They are valid diagnostics values but not strict JSON.
+          // Normalize only unquoted value tokens for the read-only health view.
+          const normalized = raw.replace(/([:\[,]\s*)(?:NaN|Infinity|-Infinity)(?=\s*[,}\]])/g, '$1null')
+          payload = JSON.parse(normalized)
+        }
+      }
+    }
     return { healthy: response.ok, status: response.status, payload }
   } catch {
     return { healthy: false, status: null, payload: null }
@@ -403,24 +539,24 @@ async function readPidFile(root: string, file: string): Promise<number | null> {
   }
 }
 
-async function validLegacyPids(root: string, def: ServiceDefinition): Promise<number[]> {
+async function validLegacyPids(root: string, def: ServiceDefinition, processTable: Map<number, ProcessInfo> | null = null): Promise<number[]> {
   const result: number[] = []
   for (const item of def.legacyPidFiles || []) {
     const pid = await readPidFile(root, item.file)
     if (!pid) continue
-    const info = await getProcessInfo(pid)
+    const info = processTable?.get(pid) ?? await getProcessInfo(pid)
     if (info && commandMatches(info.commandLine, item.expectedProcessToken)) result.push(pid)
   }
   return Array.from(new Set(result))
 }
 
-async function validRegistryScriptPids(def: ServiceDefinition, entry: RegistryEntry): Promise<number[]> {
+async function validRegistryScriptPids(def: ServiceDefinition, entry: RegistryEntry, processTable: Map<number, ProcessInfo> | null = null): Promise<number[]> {
   const candidates = Array.from(new Set(entry.listenerPids || []))
   if (!candidates.length) return []
   const tokens = def.members.map((member) => member.expectedProcessToken).filter((value): value is string => Boolean(value))
   const valid: number[] = []
   for (const pid of candidates) {
-    const info = await getProcessInfo(pid)
+    const info = processTable?.get(pid) ?? await getProcessInfo(pid)
     if (!info) continue
     if (!tokens.length || tokens.some((token) => commandMatches(info.commandLine, token))) valid.push(pid)
   }
@@ -432,6 +568,7 @@ async function resolveOwnership(
   def: ServiceDefinition,
   registry: Registry,
   listeners: Map<number, ListenerInfo>,
+  processTable: Map<number, ProcessInfo> | null = null,
 ): Promise<OwnershipResolution> {
   if (def.mode === 'self') return { ownership: 'SELF', rootPid: process.pid, ownedPids: [process.pid], startedAt: null }
 
@@ -443,20 +580,20 @@ async function resolveOwnership(
   // disabled every Stop/Restart button even when valid managed PID files existed.
   if (entry) {
     if (def.mode === 'direct' && entry.rootPid) {
-      const info = await getProcessInfo(entry.rootPid)
+      const info = processTable?.get(entry.rootPid) ?? await getProcessInfo(entry.rootPid)
       if (info && commandMatches(info.commandLine, def.rootProcessToken)) {
         return { ownership: 'MANAGED', rootPid: entry.rootPid, ownedPids: [entry.rootPid], startedAt: entry.startedAt }
       }
     }
     if (def.mode === 'script') {
-      const valid = await validRegistryScriptPids(def, entry)
+      const valid = await validRegistryScriptPids(def, entry, processTable)
       if (valid.length && valid.length === new Set(entry.listenerPids || []).size) {
         return { ownership: 'MANAGED', rootPid: null, ownedPids: valid, startedAt: entry.startedAt }
       }
     }
   }
 
-  const legacy = await validLegacyPids(root, def)
+  const legacy = await validLegacyPids(root, def, processTable)
   if (legacy.length) {
     if (def.mode === 'direct') {
       return { ownership: 'LEGACY_MANAGED', rootPid: legacy[0], ownedPids: legacy, startedAt: null }
@@ -478,7 +615,7 @@ function unwrapHealthPayload(payload: unknown): Record<string, unknown> {
   return row
 }
 
-async function getServiceSnapshot(root: string, def: ServiceDefinition, registry: Registry, listeners: Map<number, ListenerInfo>) {
+async function getServiceSnapshot(root: string, def: ServiceDefinition, registry: Registry, listeners: Map<number, ListenerInfo>, processTable: Map<number, ProcessInfo> | null = null) {
   const memberRows = await Promise.all(def.members.map(async (member) => {
     const listener = listeners.get(member.port)
     const health = def.mode === 'self' ? { healthy: true, status: 200, payload: null } : await probe(member)
@@ -505,7 +642,7 @@ async function getServiceSnapshot(root: string, def: ServiceDefinition, registry
   else if (healthyCount === 0 && required.every((member) => member.pid === null)) state = registryEntry ? 'CRASHED' : 'OFFLINE'
   else state = 'PARTIAL'
 
-  const ownership = await resolveOwnership(root, def, registry, listeners)
+  const ownership = await resolveOwnership(root, def, registry, listeners, processTable)
   let runtime: Record<string, unknown> | null = null
   if (def.id === 'echtgeld') {
     const health = unwrapHealthPayload(memberRows[0]?.payload)
@@ -520,6 +657,24 @@ async function getServiceSnapshot(root: string, def: ServiceDefinition, registry
     runtime = {
       version: health.version ?? null,
       runtimeStatus: health.status ?? null,
+    }
+  }
+  if (def.id === 'unifiedPublicSource') {
+    const health = unwrapHealthPayload(memberRows[0]?.payload)
+    runtime = {
+      version: health.version ?? null,
+      runtimeStatus: health.status ?? null,
+      sourceReady: health.strategyInputReady === true && health.processHealthy !== false,
+      sourceWaitReason: health.lastError ?? (health.strategyInputReady === true ? null : health.strategyStatus ?? null),
+    }
+  }
+  if (def.id === 'unifiedController' || def.id === 'unifiedFlash') {
+    const health = unwrapHealthPayload(memberRows[0]?.payload)
+    runtime = {
+      version: health.version ?? null,
+      runtimeStatus: health.status ?? null,
+      sourceReady: health.sourceReady === true,
+      sourceWaitReason: health.sourceWaitReason ?? null,
     }
   }
 
@@ -548,8 +703,23 @@ async function getServiceSnapshot(root: string, def: ServiceDefinition, registry
 }
 
 async function allSnapshots(root: string, registryPath: string) {
-  const [registry, listeners] = await Promise.all([readRegistry(registryPath), getListenerSnapshot()])
-  const services = await Promise.all(SERVICES.map((def) => getServiceSnapshot(root, def, registry, listeners)))
+  const [registry, listenerPids] = await Promise.all([readRegistry(registryPath), getListenerPidSnapshot()])
+  const candidates = new Set<number>(listenerPids.values())
+  for (const entry of Object.values(registry.services)) {
+    if (entry.rootPid) candidates.add(entry.rootPid)
+    for (const pid of entry.listenerPids || []) candidates.add(pid)
+  }
+  await Promise.all(SERVICES.flatMap((def) => (def.legacyPidFiles || []).map(async (item) => {
+    const pid = await readPidFile(root, item.file)
+    if (pid) candidates.add(pid)
+  })))
+  const processTable = await getProcessTableSnapshot(Array.from(candidates))
+  const listeners = new Map<number, ListenerInfo>()
+  for (const [port, pid] of listenerPids) {
+    const info = processTable?.get(pid) || null
+    listeners.set(port, { port, pid, parentPid: info?.parentPid ?? null, commandLine: info?.commandLine ?? '' })
+  }
+  const services = await Promise.all(SERVICES.map((def) => getServiceSnapshot(root, def, registry, listeners, processTable)))
   return {
     ok: true,
     generatedAt: Date.now(),
@@ -705,7 +875,7 @@ async function echtgeldUnsafeToStop() {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 2_500)
   try {
-    const response = await fetch('http://127.0.0.1:8781/state', { signal: controller.signal, headers: { Accept: 'application/json' } })
+    const response = await fetch('http://127.0.0.1:8781/state', { signal: controller.signal, headers: { Accept: 'application/json', Connection: 'close' }, cache: 'no-store' })
     if (!response.ok) return `Cannot verify Echtgeld safety state (HTTP ${response.status}). Stop/restart is blocked.`
     const payload = unwrapHealthPayload(await response.json().catch(() => null))
     if (!Object.keys(payload).length) return 'Cannot verify Echtgeld safety state. Stop/restart is blocked.'

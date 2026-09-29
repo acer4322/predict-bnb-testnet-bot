@@ -1,0 +1,11 @@
+from pathlib import Path
+p=Path('tools/audit_r4_p0_provenance_journal_v1.py')
+s=p.read_text(encoding='utf-8')
+s=s.replace("    time_fail = 0\n", "    receive_time_fail = 0\n    late_event_time_count = 0\n")
+s=s.replace("        times = [int(e.get('event_at_ms') or 0) for e in evs]\n        time_ok = all(b >= a for a, b in zip(times, times[1:]))\n        if not time_ok:\n            time_fail += 1\n", "        event_times = [int(e.get('event_at_ms') or 0) for e in evs]\n        recv_times = [int(e.get('received_at_ms') or 0) for e in evs]\n        receive_time_ok = all(b >= a for a, b in zip(recv_times, recv_times[1:]))\n        if not receive_time_ok:\n            receive_time_fail += 1\n        late_event_time_count += sum(1 for a,b in zip(event_times,event_times[1:]) if b < a)\n")
+s=s.replace("            'eventTimeMonotonic': time_ok,\n", "            'receivedTimeMonotonic': receive_time_ok,\n            'lateEventTimeTransitions': sum(1 for a,b in zip(event_times,event_times[1:]) if b < a),\n")
+s=s.replace("        'eventTimeFailureCount': time_fail,\n", "        'receivedTimeFailureCount': receive_time_fail,\n        'lateEventTimeTransitionCount': late_event_time_count,\n")
+s=s.replace("            for key in ('sequenceFailureCount','eventTimeFailureCount','rootOpenFailureCount','parentChainFailureCount','stateReconstructionFailureCount','remainingObligationFailureCount','fillLineageFailureCount','duplicateExecutionIdCount','orphanEventCount'):\n", "            for key in ('sequenceFailureCount','receivedTimeFailureCount','rootOpenFailureCount','parentChainFailureCount','stateReconstructionFailureCount','remainingObligationFailureCount','fillLineageFailureCount','duplicateExecutionIdCount','orphanEventCount'):\n")
+s=s.replace("    structural_exact = all(failures[k] == 0 for k in ('sequenceFailureCount','eventTimeFailureCount','rootOpenFailureCount','parentChainFailureCount','orphanEventCount'))\n", "    structural_exact = all(failures[k] == 0 for k in ('sequenceFailureCount','receivedTimeFailureCount','rootOpenFailureCount','parentChainFailureCount','orphanEventCount'))\n")
+p.write_text(s,encoding='utf-8')
+print('patched auditor receive-clock semantics')

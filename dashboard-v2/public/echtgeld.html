@@ -116,7 +116,55 @@
       <label>Notional USDT<input id="settingNotional" type="number" min="0.01" max="100" step="0.01" /></label>
       <label>Max price drift<input id="settingDrift" type="number" min="0" max="0.10" step="0.001" /></label>
     </div>
-    <div class="controls"><button id="applyBtn" class="secondary">套用設定</button><button id="pauseBtn" class="danger">PAUSE NEW ENTRY</button><button id="resumeBtn" class="primary">RESUME ECHTGELD</button><span id="actionState" class="muted"></span></div>
+    <div class="controls"><button id="applyBtn" class="secondary">套用設定</button><button id="pauseBtn" class="danger">PAUSE NEW ENTRY</button><button id="resumeBtn" class="primary">持續開始（下一場起）</button><button id="runOnceBtn" class="secondary">只跑下一場</button><span id="actionState" class="muted"></span></div>
+    <p id="activationPolicy" class="muted" style="margin:10px 0 0">普通開始與一場模式都不會在當前市場送單；等待 8781 狀態。</p>
+    <p id="sizingPolicy" class="muted" style="margin:6px 0 0">—</p>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #243c59">
+      <div class="section-head"><div><div class="eyebrow">EXCLUSIVE FAIL-CLOSED ENTRY SOURCE</div><h2>唯一實單開單來源</h2></div><span id="sourcePill" class="pill bad">BLOCK ALL</span></div>
+      <div class="toolbar" style="grid-template-columns:minmax(240px,1fr) auto auto">
+        <label>Entry Source
+          <select id="entrySourceSelect">
+            <option value="CAP100_8787">8787 · CAP100</option>
+            <option value="R2_R21_8789">8789 · R2 + R2.1 V3.5.2 Autonomous Reassess + Audit Fix</option>
+            <option value="R3S_R31_8790">8790 · R3-S + R3.1 V1.1.3 WTP1 Continuous Gate Fix · AQ2/SA2/SE1/PA2/ER2/TC1/WT1/MBF1/CGF1</option>
+            <option value="TARGET_TAKER_FORWARD">Target Taker Forward</option>
+            <option value="POLY_GAP_LIVE">Poly Gap Live</option>
+            <option value="POLY_PINNED_LIVE">Poly Pinned Live</option>
+          </select>
+        </label>
+        <button id="selectSourceBtn" class="secondary">只允許此來源</button>
+        <button id="clearSourceBtn" class="danger">BLOCK ALL SOURCES</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0">來源只能在 PAUSED 時切換；每個新 entry 必須帶完全相同的 <code>entrySource</code>。排隊後、真正送到 venue 前會再驗一次。平倉與 reconciliation 不受此 gate 阻擋。</p>
+    </div>
+  </section>
+
+
+  <section class="card" style="margin-bottom:12px">
+    <div class="section-head"><div><div class="eyebrow">CAP100 FAILURE DRILL · ZERO VENUE WRITES</div><h2>實單故障模擬演練</h2></div><span id="drillPill" class="pill">尚未執行</span></div>
+    <p class="muted">完全獨立於正式 CAP100 order / PNL ledger；模擬送單拒絕、venue failure、部分成交、快速滑價、unknown write、cancel/fill race、8787 heartbeat loss 與 stop-loss。</p>
+    <div class="controls"><button id="drillBtn" class="secondary">執行 CAP100 故障演練</button><span id="drillState" class="muted"></span></div>
+    <div id="drillReport" class="table-wrap" style="margin-top:12px;max-height:360px"><table><thead><tr><th>Scenario</th><th>結果</th><th>最終狀態</th></tr></thead><tbody><tr><td colspan="3">尚未執行</td></tr></tbody></table></div>
+  </section>
+
+  <section class="card" style="margin-bottom:12px">
+    <div class="section-head"><div><div class="eyebrow">CAP100 PRE-LIVE STRESS EXAM · ZERO VENUE WRITES</div><h2>實單上線前壓力考試</h2></div><span id="stressPill" class="pill">尚未執行</span></div>
+    <p class="muted">隨機插入 partial fill、venue failure、price spike、transport unknown、cancel/fill race、heartbeat loss 等；Safety Grade 是上線硬門檻，PnL 只作合成壓力指標，不代表實盤預期收益。</p>
+    <div class="toolbar" style="grid-template-columns:180px 220px auto 1fr">
+      <label>Markets<input id="stressMarkets" type="number" min="100" max="10000" step="100" value="1000" /></label>
+      <label>Seed<input id="stressSeed" type="number" step="1" value="20260820" /></label>
+      <button id="stressBtn" class="secondary">執行上線前壓力考試</button><span id="stressState" class="muted"></span>
+    </div>
+    <div class="pnl-grid" style="margin-top:12px">
+      <div class="metric"><span>Safety Grade</span><strong id="stressGrade">—</strong><small id="stressRecommend">—</small></div>
+      <div class="metric"><span>Total synthetic PnL</span><strong id="stressTotalPnl">—</strong><small>非實盤收益預測</small></div>
+      <div class="metric"><span>Max single loss</span><strong id="stressMaxLoss">—</strong><small>synthetic market</small></div>
+      <div class="metric"><span>Max single profit</span><strong id="stressMaxProfit">—</strong><small>synthetic market</small></div>
+      <div class="metric"><span>Max drawdown</span><strong id="stressMaxDd">—</strong><small>synthetic equity</small></div>
+      <div class="metric"><span>Longest loss streak</span><strong id="stressLossStreak">—</strong><small>markets</small></div>
+      <div class="metric"><span>Safety violations</span><strong id="stressViolations">—</strong><small>must be 0</small></div>
+      <div class="metric"><span>Max observed spend</span><strong id="stressMaxSpend">—</strong><small>cap $100</small></div>
+    </div>
   </section>
 
   <section class="card" style="margin-bottom:12px">
@@ -165,17 +213,57 @@
 
     const i=s.lastIntent||{}; $('marketId').textContent=i.marketId?`#${i.marketId}`:'—'; $('window').textContent=i.windowEndMs?`結束 ${when(i.windowEndMs)}`:'—'; $('sideAsk').textContent=i.side?`${i.side} @ ${num(i.signalAsk,3)}`:'—'; $('signalId').textContent=short(i.signalId,55); $('secondsLeft').textContent=i.secondsLeft==null?'—':`${num(i.secondsLeft,1)}s`; $('sampledAt').textContent=i.sampledAtMs?`sample ${when(i.sampledAtMs)}`:'—';
     const counts=s.orderCounts||{}; $('submitted').textContent=counts.SUBMITTED||0; $('rejected').textContent=Object.entries(counts).filter(([k])=>String(k).includes('REJECT')).reduce((a,[,v])=>a+Number(v||0),0); $('ambiguous').textContent=counts.AMBIGUOUS||0;
+    const gate=s.entrySourceGate||{}; const selectedSource=gate.selectedSourceId||''; $('sourcePill').className=selectedSource?'pill ok':'pill bad'; $('sourcePill').textContent=selectedSource?`ONLY ${selectedSource}`:'BLOCK ALL';
+    if(selectedSource&&Array.from($('entrySourceSelect').options).some(option=>option.value===selectedSource))$('entrySourceSelect').value=selectedSource;
+    const once=s.singleMarketRun||{},next=s.nextMarketArmGate||{};
+    $('activationPolicy').textContent=`普通開始：當前 market ${next.activationMarketId??'—'} 被封鎖，下一場起持續。單場模式：${once.status||'IDLE'} · target ${once.targetMarketId??'尚未鎖定'} · 完成後 8781 自動 PAUSE。`;
+    $('sizingPolicy').textContent=selectedSource==='R3S_R31_8790'?'R3-S + R3.1 V1.1.3 WTP1 Continuous Gate Fix sizing：Maker 每筆固定 10 shares；Taker 使用 R3 dynamic sizing，沒有固定 18-share cap；上方 Notional USDT 不限制此來源。':selectedSource==='R2_R21_8789'?'R2 + R2.1 V3.5.2 Autonomous Reassess + Audit Fix sizing：每張固定 10 shares、沒有 strategy notional cap；上方 Notional USDT 不限制此來源。':'此來源使用上方 Notional USDT 設定。';
     renderAlert('latestError',s.latestError,'最新保留錯誤'); renderAlert('latestWarning',s.latestWarning,'最新警告'); renderEvents(s.recentEvents||[]); renderOrders(s.recentOrders||[]);
     if(!formInitialized&&s.config){$('settingVenue').value=s.config.venue||'binance';$('settingCohort').value=s.config.cohort||'TARGET_TAKER_PUBLIC_SIDE_V1_SIDE_ONLY';$('settingNotional').value=s.config.notionalUsdt??1.5;$('settingDrift').value=s.config.maxPriceDrift??0.02;formInitialized=true;} syncButtons();
   }
   function renderAlert(id,row,title){const box=$(id);if(!row){box.hidden=true;return;}box.hidden=false;box.innerHTML=`<strong>${esc(title)} · ${esc(row.event_type)} · ${esc(when(row.occurred_at_ms))}</strong><div>${esc(row.message)}</div><small>Market ${esc(row.market_id)} · ${esc(row.side)} · ${esc(row.phase)}</small>`;}
   function renderEvents(rows){$('eventRows').innerHTML=rows.length?rows.map(row=>{const cls=row.level==='ERROR'?'error-text':row.level==='WARN'?'warn-text':'';return`<tr><td>${esc(when(row.occurred_at_ms))}</td><td><span class="${pillClass(row.level)}">${esc(row.level)}</span></td><td>${esc(row.event_type)}<br><span class="muted">${esc(row.phase)}</span></td><td>${row.market_id?`#${esc(row.market_id)}`:'—'}</td><td>${esc(row.side)}</td><td class="message ${cls}">${esc(row.message)}</td><td><details><summary>查看</summary><pre>${esc(JSON.stringify(row.context||{},null,2))}</pre></details></td></tr>`;}).join(''):'<tr><td colspan="7">尚無事件</td></tr>';}
   function renderOrders(rows){$('orderRows').innerHTML=rows.length?rows.map(row=>{const err=row.error_message?`<div class="error-text">${esc(short(row.error_message,180))}</div>`:'';const result=row.resultStatus||'PENDING';const pnl=row.netPnlUsdt;return`<tr><td>${esc(when(row.attempted_at_ms))}</td><td>#${esc(row.market_id)}<br><span class="muted">winner ${esc(row.winner||'—')}</span></td><td>${esc(row.venue)}</td><td>${esc(row.side)}</td><td>${num(row.signal_ask,3)} → ${num(row.execution_price,3)}</td><td>$${num(row.target_notional_usdt,2)}<br><span class="muted">filled $${num(row.submitted_usdt,3)} · ${num(row.shares,3)} sh</span></td><td><span class="${pillClass(row.status)}">${esc(row.status)}</span></td><td><span class="${pillClass(result)}">${esc(result)}</span></td><td class="${pnlClass(pnl)}">${pnl==null?'—':money(pnl,3)}<br><span>${pct(row.netRoi)}</span></td><td>${esc(row.vendor_order_id||'—')}${err}</td></tr>`;}).join(''):'<tr><td colspan="10">尚無 Echtgeld 嘗試</td></tr>';}
-  function syncButtons(){const armed=Boolean(state?.armed),writable=Boolean(controlToken);$('resumeBtn').disabled=!writable||armed;$('pauseBtn').disabled=!writable||!armed;$('applyBtn').disabled=!writable||armed;for(const id of['settingVenue','settingCohort','settingNotional','settingDrift'])$(id).disabled=!writable||armed;}
+  function syncButtons(){const armed=Boolean(state?.armed),writable=Boolean(controlToken),sourceReady=Boolean(state?.entrySourceGate?.selectedSourceId);$('resumeBtn').disabled=!writable||armed||!sourceReady;$('runOnceBtn').disabled=!writable||armed||!sourceReady;$('pauseBtn').disabled=!writable||!armed;$('applyBtn').disabled=!writable||armed;$('selectSourceBtn').disabled=!writable||armed;$('clearSourceBtn').disabled=!writable||armed;$('entrySourceSelect').disabled=!writable||armed;for(const id of['settingVenue','settingCohort','settingNotional','settingDrift'])$(id).disabled=!writable||armed;}
   async function post(path,payload){if(!controlToken)throw new Error('這個瀏覽器不是 localhost 控制端');const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-BTC-LAB-CONTROL':controlToken},body:JSON.stringify(payload||{})});const body=await res.json();if(!res.ok)throw new Error(body.error||`HTTP ${res.status}`);return body;}
+
+  async function runDrill(){
+    if(!controlToken)throw new Error('這個瀏覽器不是 localhost 控制端');
+    $('drillBtn').disabled=true;$('drillState').textContent='演練中…';
+    try{
+      const body=await post('/control/echtgeld/drill-run',{}); const r=body.report||{};
+      $('drillPill').className=r.status==='PASS'?'pill ok':'pill bad'; $('drillPill').textContent=`${r.status||'UNKNOWN'} · ${r.passed??0}/${r.total??0}`;
+      $('drillState').textContent=`venue writes ${r.venueWrites??'—'} · production ledger writes ${r.productionLedgerWrites??'—'}`;
+      const rows=(r.scenarios||[]).map(x=>`<tr><td>${esc(x.scenario)}</td><td><span class="${x.passed?'pill ok':'pill bad'}">${x.passed?'PASS':'FAIL'}</span></td><td><pre>${esc(JSON.stringify(x.final||{},null,2))}</pre></td></tr>`).join('');
+      $('drillReport').querySelector('tbody').innerHTML=rows||'<tr><td colspan="3">沒有結果</td></tr>';
+    }catch(e){$('drillPill').className='pill bad';$('drillPill').textContent='DRILL ERROR';$('drillState').textContent=String(e.message||e);}
+    finally{$('drillBtn').disabled=false;}
+  }
+  $('drillBtn').addEventListener('click',()=>void runDrill());
+
+  async function runStressExam(){
+    if(!controlToken)throw new Error('這個瀏覽器不是 localhost 控制端');
+    $('stressBtn').disabled=true;$('stressState').textContent='考試中…';
+    try{
+      const body=await post('/control/echtgeld/stress-exam-run',{markets:Number($('stressMarkets').value),seed:Number($('stressSeed').value)});const r=body.report||{},e=r.economics||{},sf=r.safety||{};
+      $('stressPill').className=r.status==='PASS'?'pill ok':'pill bad';$('stressPill').textContent=`${r.status||'UNKNOWN'} · Grade ${r.safetyGrade||'—'}`;
+      $('stressGrade').textContent=r.safetyGrade||'—';$('stressRecommend').textContent=r.admissionRecommendation||'—';
+      $('stressTotalPnl').textContent=money(e.totalPnlUsdt);$('stressTotalPnl').className=pnlClass(e.totalPnlUsdt);
+      $('stressMaxLoss').textContent=money(e.maxSingleMarketLossUsdt);$('stressMaxLoss').className=pnlClass(e.maxSingleMarketLossUsdt);
+      $('stressMaxProfit').textContent=money(e.maxSingleMarketProfitUsdt);$('stressMaxProfit').className=pnlClass(e.maxSingleMarketProfitUsdt);
+      $('stressMaxDd').textContent=`$${num(e.maxDrawdownUsdt,2)}`;$('stressLossStreak').textContent=sf.longestLossStreak??'—';$('stressViolations').textContent=sf.violationCount??'—';$('stressMaxSpend').textContent=`$${num(sf.maxObservedSpendUsdt,2)}`;
+      $('stressState').textContent=`${r.markets??0} markets · seed ${r.seed??'—'} · venue writes ${r.venueWrites??'—'} · stop-loss trips ${sf.stopLossTrips??0}`;
+    }catch(e){$('stressPill').className='pill bad';$('stressPill').textContent='EXAM ERROR';$('stressState').textContent=String(e.message||e);}
+    finally{$('stressBtn').disabled=false;}
+  }
+  $('stressBtn').addEventListener('click',()=>void runStressExam());
+
   $('applyBtn').addEventListener('click',async()=>{$('actionState').textContent='套用中…';try{await post('/control/echtgeld/settings',{venue:$('settingVenue').value,cohort:$('settingCohort').value,notionalUsdt:Number($('settingNotional').value),maxPriceDrift:Number($('settingDrift').value)});$('actionState').textContent='設定已保存；Engine 仍為 PAUSED';formInitialized=false;await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
   $('pauseBtn').addEventListener('click',async()=>{if(!confirm('停止接受新的 Echtgeld 進場？若目前已有 venue write 正在進行，Pause 會等該次處理結束。'))return;$('actionState').textContent='暫停中…';try{await post('/control/echtgeld/pause',{reason:'dashboard operator'});$('actionState').textContent='已 PAUSED';await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
-  $('resumeBtn').addEventListener('click',async()=>{const summary=`Venue: ${$('settingVenue').value}\nCohort: ${$('settingCohort').value}\nNotional: ${$('settingNotional').value} USDT\nMax drift: ${$('settingDrift').value}`;if(!confirm(`RESUME 後，未來符合條件的 Strategy Intent 可以送 Echtgeld。\n\n${summary}\n\n確定啟用？`))return;$('actionState').textContent='啟用中…';try{await post('/control/echtgeld/resume',{});$('actionState').textContent='LIVE ARMED';await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
+  $('selectSourceBtn').addEventListener('click',async()=>{const source=$('entrySourceSelect').value;if(!confirm(`只允許 ${source} 建立新的 Echtgeld position？其他來源全部拒絕。`))return;$('actionState').textContent='切換來源中…';try{await post('/control/echtgeld/entry-source',{sourceId:source});$('actionState').textContent=`已鎖定 ${source}`;await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
+  $('clearSourceBtn').addEventListener('click',async()=>{if(!confirm('封鎖所有新的 Echtgeld 開單來源？平倉與 reconciliation 仍會保留。'))return;$('actionState').textContent='封鎖來源中…';try{await post('/control/echtgeld/entry-source',{sourceId:null});$('actionState').textContent='BLOCK ALL SOURCES';await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
+  $('resumeBtn').addEventListener('click',async()=>{const source=state?.entrySourceGate?.selectedSourceId;if(!source){$('actionState').textContent='先選擇唯一開單來源';return;}const sizing=source==='R3S_R31_8790'?'Maker 每筆固定 10 shares；Taker R3 dynamic sizing；無固定 18-share cap；無 strategy notional cap':source==='R2_R21_8789'?'每單固定 10 shares；無 strategy notional cap':`Notional: ${$('settingNotional').value} USDT`;const summary=`Entry source: ${source}\nVenue: ${$('settingVenue').value}\nCohort: ${$('settingCohort').value}\nSizing: ${sizing}\nMax drift: ${$('settingDrift').value}`;if(!confirm(`持續開始不會在當前市場送單；8781 會等待下一個完整市場，之後持續運行。\n\n${summary}\n\n確定啟用？`))return;$('actionState').textContent='等待下一場中…';try{await post('/control/echtgeld/resume',{});$('actionState').textContent='ARMED_WAIT_NEXT_MARKET（持續模式）';await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
+  $('runOnceBtn').addEventListener('click',async()=>{const source=state?.entrySourceGate?.selectedSourceId;if(!source){$('actionState').textContent='先選擇唯一開單來源';return;}if(!confirm(`只跑下一個完整市場？\n\n當前市場不送單；下一場可以送單，該場結束／切換後由 8781 自動 PAUSE 並撤銷 resting Maker。\nEntry source: ${source}`))return;$('actionState').textContent='一場模式等待下一場中…';try{await post('/control/echtgeld/run-next-market-once',{});$('actionState').textContent='ARMED_WAIT_NEXT_MARKET（只跑一場）';await refresh();}catch(e){$('actionState').textContent=String(e.message||e);}});
   void loadControlToken(); void refresh(); setInterval(()=>void refresh(),1000);
 })();
 </script>
