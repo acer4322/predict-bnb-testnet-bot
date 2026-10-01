@@ -22,7 +22,7 @@ for p in sorted(Path(FX).iterdir()):
             s = ex.order_snapshot(bt, o['n']); cum = float(s['cumExecQty'] or 0)
             if cum - o['cum'] > 1e-9: fx_ms = int(s['exchangeTs']) // 1_000_000 if s.get('exchangeTs') else t; fills.append(dict(market=mid, side=o['side'], off=o['off'], price=o['price'], qty=cum - o['cum'], sec=(fx_ms - start) / 1000., rest=(fx_ms - o['t']) / 1000.)); o['cum'] = cum
             o['live'] = s['status'] in ('NEW', 'PARTIALLY_FILLED')
-            if o['live'] and t - o['t'] >= 10_000:
+            if o['live'] and t - o['t'] >= int(__import__('os').environ.get('TTL','10'))*1000:
                 cur = bt.orders(0).get(o['n'])
                 if cur is not None and bool(cur.cancellable): bt.cancel(0, o['n'], False)
         for side in ('UP', 'DOWN'):
