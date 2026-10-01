@@ -48,6 +48,12 @@ def run(fx, mid, strat, dec_ms=1000, tick=15., cap=300., stop=270.):
                         px = (bb if cur == 'UP' else round(1 - ba, 2)) if strat == 'FAV_PASSIVE' else (ba if cur == 'UP' else round(1 - bb, 2))
                         n += 1; submit(bt, n, cur, px, tick, strat == 'FAV_PASSIVE'); orders[n] = dict(n=n, side=cur, qty=tick, cum=0., live=True, t=t)
                 if strat == 'FAV_PASSIVE': cancel_all(lambda o: t - o['t'] >= 10_000)
+        elif strat == 'UNDER_TAKER':
+            if int(sec) % 2 == 0 and sec < 290 and sh['UP'] + sh['DOWN'] + sum(o['qty'] - o['cum'] for o in orders.values() if o['live']) < cap:
+                cur = 'UP' if m >= .5 else 'DOWN'; cm = m if cur == 'UP' else 1 - m
+                if cm >= .75:
+                    ud = 'DOWN' if cur == 'UP' else 'UP'; px = (ba if ud == 'UP' else round(1 - bb, 2))
+                    n += 1; submit(bt, n, ud, px, tick, False); orders[n] = dict(n=n, side=ud, qty=tick, cum=0., live=True, t=t)
         else:
             K, D = (1, 45.) if strat == 'MAKER_PAIR_K1D45' else (2, 1e9)
             want = {'UP': bb, 'DOWN': round(1. - ba, 2)}
@@ -78,7 +84,7 @@ def ci(xs, rng, nb=1000):
     ms = sorted(S.fmean(rng.choice(xs) for _ in xs) for _ in range(nb)); return ms[int(.025 * nb)], ms[int(.975 * nb)]
 if __name__ == '__main__':
     fx = a.fixtures; mids = sorted(int(p.name) for p in Path(fx).iterdir() if p.is_dir() and (p / 'events.npz').exists() and (int(p.name) in lab or a.infer))
-    strats = a.only.split(',') if a.only else ['FAV_TAKER', 'FAV_PASSIVE', 'MAKER_PAIR_K1D45', 'MAKER_PAIR_K2INF']; rng = random.Random(1); out = {}
+    strats = a.only.split(',') if a.only else ['FAV_TAKER', 'FAV_PASSIVE', 'MAKER_PAIR_K1D45', 'MAKER_PAIR_K2INF', 'UNDER_TAKER']; rng = random.Random(1); out = {}
     print('markets', len(mids), '(CIs are only meaningful for n>=30)')
     for st in strats:
         rows = [run(fx, m, st) for m in mids]; out[st] = rows; pn = [r['pnl'] for r in rows]; g = {k: [r['pnl'] for r in rows if r['cls'] == k] for k in ('NO_FLIP', 'FALSE_FLIP', 'TRUE_FLIP')}
