@@ -1,0 +1,84 @@
+{
+  "status": "PASS",
+  "market": 2684405,
+  "first_flip_t": 1790586099632,
+  "off_first_flip_t": 1790586099632,
+  "inclusive": false,
+  "no_replacement": true,
+  "posthoc_spec_section9": true,
+  "diagnostic_only": false,
+  "rows": [
+    {
+      "field": "plans",
+      "status": "PASS",
+      "on_count": 493,
+      "off_count": 493,
+      "on_sha256": "64a8437d2d8a250fa25351bd97fc765f012d63ea8e7f9c496c2d3cda79e1827d",
+      "off_sha256": "64a8437d2d8a250fa25351bd97fc765f012d63ea8e7f9c496c2d3cda79e1827d",
+      "differences": []
+    },
+    {
+      "field": "native_actions",
+      "status": "PASS",
+      "on_count": 397,
+      "off_count": 397,
+      "on_sha256": "09d6a99fa212c7c2f2647c0e87493cb7d151c74f7ca423d668aed2f7196ea513",
+      "off_sha256": "09d6a99fa212c7c2f2647c0e87493cb7d151c74f7ca423d668aed2f7196ea513",
+      "differences": []
+    },
+    {
+      "field": "states",
+      "status": "PASS",
+      "on_count": 493,
+      "off_count": 493,
+      "on_sha256": "b9ad769928d54d093ebc257e3a26be45a67ac43f9bd68f192fbc4cc4fcb48be7",
+      "off_sha256": "b9ad769928d54d093ebc257e3a26be45a67ac43f9bd68f192fbc4cc4fcb48be7",
+      "differences": []
+    },
+    {
+      "field": "observations",
+      "status": "PASS",
+      "on_count": 493,
+      "off_count": 493,
+      "on_sha256": "8b41c6f5473f25e6c1dc4e6ea6b389b6e9a450867811e46a7c73e04c7e35f941",
+      "off_sha256": "8b41c6f5473f25e6c1dc4e6ea6b389b6e9a450867811e46a7c73e04c7e35f941",
+      "differences": []
+    },
+    {
+      "field": "direction_rows",
+      "status": "PASS",
+      "on_count": 493,
+      "off_count": 493,
+      "on_sha256": "e088e8e097a06816f5580bac691febe90830245e1a1d39f2306c1ba6692947b9",
+      "off_sha256": "e088e8e097a06816f5580bac691febe90830245e1a1d39f2306c1ba6692947b9",
+      "differences": []
+    },
+    {
+      "field": "v12g_events",
+      "status": "PASS",
+      "on_count": 1,
+      "off_count": 1,
+      "on_sha256": "1907b48f959b9e1144ce70536566a9bbb48ddf7eb9172bf0c680c65bb842ff60",
+      "off_sha256": "1907b48f959b9e1144ce70536566a9bbb48ddf7eb9172bf0c680c65bb842ff60",
+      "differences": []
+    },
+    {
+      "field": "receipts",
+      "status": "PASS",
+      "on_count": 132,
+      "off_count": 132,
+      "on_sha256": "7e36e64d0277263b2ac95ee850611f3e10747760fc222ca141e6b6b6e03084af",
+      "off_sha256": "7e36e64d0277263b2ac95ee850611f3e10747760fc222ca141e6b6b6e03084af",
+      "differences": []
+    },
+    {
+      "field": "native_clock_calls",
+      "status": "PASS",
+      "on_count": 494,
+      "off_count": 494,
+      "on_sha256": "12eb2aaff7ce2518bac023b0a123903d0bbf2da152cd1c5846eac025b2674e79",
+      "off_sha256": "12eb2aaff7ce2518bac023b0a123903d0bbf2da152cd1c5846eac025b2674e79",
+      "differences": []
+    }
+  ]
+}
