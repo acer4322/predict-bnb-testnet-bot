@@ -1,0 +1,102 @@
+{
+  "version": "PREPARATION_ONLY_NOT_FINAL100",
+  "requested_minimum": 100,
+  "markets": [
+    {
+      "market_id": 2810203,
+      "source_sha256": "4ede315b332770ce622633cc91f1f35ade26f682cd2c1bd9fe3e969608555587",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809966,
+      "source_sha256": "f4cc0b4a7cb8f3541f95e38eaf0bd8db2392a0192fbfe024d72da1166c950071",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809929,
+      "source_sha256": "c9841c3cf192c82da008196e95ddcbdbf2840e302e40d06f09779f927ea82958",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809925,
+      "source_sha256": "90fbfe9b18c1cab621b47b2cd14d7c357ebe11d05cf166468bdb6a53506727e3",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809834,
+      "source_sha256": "e53a3d6e50a9906d684c3720f30e6df02f605b2d68d3403ec1d7f6f99660dd95",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809635,
+      "source_sha256": "1cc82b2e2022692cb54f43991281f2b3267075b6e70f01f3aef63e7b72d753a4",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809633,
+      "source_sha256": "21c73fc86a353684cfd50277bd699259d35ccb53d5eab6694d1b7fc879529fc3",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809579,
+      "source_sha256": "99c5a1a7953b442dacc5e40d88bad68936a40bf52221d561cbaed7a14adb92c4",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809563,
+      "source_sha256": "5f5044129655a33083cb0a8cfaef99581a90b87073723d9192291a8f91617595",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809490,
+      "source_sha256": "1f7fab3a3e729d6f8011c841c0214f92c4e567677273401060ffca42d55f868f",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809251,
+      "source_sha256": "69f9b87d4328c558d64654632d8011638fca162327d1311025186a3219298db2",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809222,
+      "source_sha256": "92fd7db41040082abd1ba25a415cca0fe824e0690207016f879e4d9cc83ba0a0",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2808988,
+      "source_sha256": "b8cd65a24080f9c0eb96f86241f2436e39dbfe5d5f6482874e0e6b5ad49a8973",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2808964,
+      "source_sha256": "f9af01f5b932cda288801dbdd2dbaa5ef4debd8e2f2ad4a1e00da1dab17acfb6",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807193,
+      "source_sha256": "4c5f7cae366c89fd68afb8e9b63a5b164e4735a315787c48a50e6b2b6dd9d110",
+      "selection_group": "fresh_after_2807162",
+      "target_exports": []
+    }
+  ],
+  "excluded_sha256": "a38e4de9fb72146c8f72a17344a192917204680aea5c7213134c110b8eec997f",
+  "source_research_data_commit": "c547dc8a6bd602e24a8b52e09473efad250c8833",
+  "source_selection": "all15 ended unexcluded BTC5M in the fixed read-only metadata snapshot; ID descending; no outcomes consulted",
+  "publication_authorized_as_minimum100": true,
+  "partial_publication_requires_user_steering": true,
+  "minimum_met": false
+}

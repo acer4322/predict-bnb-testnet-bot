@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "batch_kind": "user-approved partial batch",
+  "event_markets": 15,
+  "official_label_pairs": 15,
+  "requested_original_minimum": 100,
+  "remaining_minimum": 85,
+  "threshold_check": "PASS",
+  "exclusion_check": "PASS",
+  "existing519_overlap": 0,
+  "prior70_overlap": 0,
+  "original_anonymous_npz_byte_parity": "15/15 PASS",
+  "reference3_byte_parity": "PASS",
+  "official_terminal_unique_WON_resolution_checks": "15/15 PASS",
+  "events": 241785,
+  "public_trades": 25028,
+  "source_start_tail_gap_5000ms_pass": 15,
+  "received_start_tail_gap_5000ms_pass": 14,
+  "received_gap_warnings": [
+    {
+      "market_id": 2809834,
+      "received_max_gap_ms": 13273
+    }
+  ],
+  "public_trades_before_window": 536,
+  "public_trades_after_window": 0,
+  "public_trade_collection_completeness": "UNKNOWN",
+  "native_executed": false,
+  "fit": 0,
+  "worker_submissions": 0,
+  "collector_changes": 0,
+  "live_changes": 0,
+  "api_key_or_private_identifiers_published": false
+}

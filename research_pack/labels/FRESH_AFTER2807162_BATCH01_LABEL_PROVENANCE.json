@@ -1,0 +1,460 @@
+{
+  "version": "FRESH_AFTER2807162_BATCH01_OFFICIAL_V1",
+  "offline_only": true,
+  "market_ids": [
+    2810203,
+    2809966,
+    2809929,
+    2809925,
+    2809834,
+    2809635,
+    2809633,
+    2809579,
+    2809563,
+    2809490,
+    2809251,
+    2809222,
+    2808988,
+    2808964,
+    2807193
+  ],
+  "winner_rule": "RESOLVED/SETTLED and unique explicit WON UP/DOWN outcome, consistent with named resolution; no price inference",
+  "records": [
+    {
+      "market_id": 2810203,
+      "title": "Bitcoin Up or Down - October 1, 7:15PM-7:20PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Up",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2810203",
+      "fetched_at_ms": 1790897641328,
+      "http_status": 200,
+      "api_response_sha256": "51ca67d50975d72d2729ebc532ea7270f2dc3ab8d9b0b7f59085590ccd50ed53",
+      "winner": "UP",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809966,
+      "title": "Bitcoin Up or Down - October 1, 7:10PM-7:15PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809966",
+      "fetched_at_ms": 1790897641328,
+      "http_status": 200,
+      "api_response_sha256": "0daf35938ae8df36dc922446a00b5817fb40642b9635f425d8a0fd79aa032c98",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809929,
+      "title": "Bitcoin Up or Down - October 1, 7:05PM-7:10PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809929",
+      "fetched_at_ms": 1790897642203,
+      "http_status": 200,
+      "api_response_sha256": "311580f6455885a2a393e5f3a7a764b108199c35f360540b491fecd97d67688e",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809925,
+      "title": "Bitcoin Up or Down - October 1, 7PM-7:05PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809925",
+      "fetched_at_ms": 1790897642090,
+      "http_status": 200,
+      "api_response_sha256": "09a49ca5c312fc98ae75327bbc233a25dfc224e45176dedb47edbb7ff441741b",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809834,
+      "title": "Bitcoin Up or Down - October 1, 6:55PM-7PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809834",
+      "fetched_at_ms": 1790897642846,
+      "http_status": 200,
+      "api_response_sha256": "fd17fc236b97ef7364c807da2d920c49ac2bb97aa9e90108d5f8e40695f79129",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809635,
+      "title": "Bitcoin Up or Down - October 1, 6:50PM-6:55PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Up",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809635",
+      "fetched_at_ms": 1790897642970,
+      "http_status": 200,
+      "api_response_sha256": "ab5720693e133b392e7e7ce509562e670ff073f066f98674e8632dd1066584d7",
+      "winner": "UP",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809633,
+      "title": "Bitcoin Up or Down - October 1, 6:45PM-6:50PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809633",
+      "fetched_at_ms": 1790897643581,
+      "http_status": 200,
+      "api_response_sha256": "ea8ca47992f58c608a0044a6e7151cb1015429772bb2a78e1b5d0be0c1fbd2fd",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809579,
+      "title": "Bitcoin Up or Down - October 1, 6:40PM-6:45PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809579",
+      "fetched_at_ms": 1790897643700,
+      "http_status": 200,
+      "api_response_sha256": "de9315330c4b35133b8fc4f43e852f62d4e2609557b0c7258aec8b06cb110caf",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809563,
+      "title": "Bitcoin Up or Down - October 1, 6:35PM-6:40PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Up",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809563",
+      "fetched_at_ms": 1790897644372,
+      "http_status": 200,
+      "api_response_sha256": "9c7092f11dfcf2ef89bb452c76f57301a1ea53ed279a86dee3f859c7c11d4bd2",
+      "winner": "UP",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809490,
+      "title": "Bitcoin Up or Down - October 1, 6:30PM-6:35PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809490",
+      "fetched_at_ms": 1790897644436,
+      "http_status": 200,
+      "api_response_sha256": "8d7ae804bc9759441f09794ac61b4d31c926dcf152ce5a49f7750e71a0657b7b",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809251,
+      "title": "Bitcoin Up or Down - October 1, 6PM-6:05PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Up",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809251",
+      "fetched_at_ms": 1790897645125,
+      "http_status": 200,
+      "api_response_sha256": "6709cbb206849b2fb4271da4a1d72676bd63c920867d0c0c97fcc79ddda9f0bd",
+      "winner": "UP",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2809222,
+      "title": "Bitcoin Up or Down - October 1, 5:55PM-6PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2809222",
+      "fetched_at_ms": 1790897645208,
+      "http_status": 200,
+      "api_response_sha256": "c9df6c8a4868fdaa1919f60225f69000fd8591d3a6a64c49f809d84f3a0386ae",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2808988,
+      "title": "Bitcoin Up or Down - October 1, 5PM-5:05PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2808988",
+      "fetched_at_ms": 1790897645878,
+      "http_status": 200,
+      "api_response_sha256": "18582ba2c811e9567ebeb9353797f5fb6cae01776c8e654a4ca1d5d78adba678",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2808964,
+      "title": "Bitcoin Up or Down - October 1, 4:55PM-5PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Down",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2808964",
+      "fetched_at_ms": 1790897645976,
+      "http_status": 200,
+      "api_response_sha256": "3150bd871e71723ba335a4847352e860c536210e10db8e7506e47031954e57a4",
+      "winner": "DOWN",
+      "label_status": "OFFICIAL_BINARY"
+    },
+    {
+      "market_id": 2807193,
+      "title": "Bitcoin Up or Down - October 1, 4PM-4:05PM ET",
+      "status": "RESOLVED",
+      "outcomes": [
+        {
+          "name": "Up",
+          "status": "WON",
+          "isWinner": null,
+          "won": null
+        },
+        {
+          "name": "Down",
+          "status": "LOST",
+          "isWinner": null,
+          "won": null
+        }
+      ],
+      "resolution": {
+        "name": "Up",
+        "status": "WON"
+      },
+      "source": "https://api.predict.fun/v1/markets/2807193",
+      "fetched_at_ms": 1790897646608,
+      "http_status": 200,
+      "api_response_sha256": "d0bf3ac0e2e625874d3ce56902d12185d1d33de22dae8973e407cbbfe6056072",
+      "winner": "UP",
+      "label_status": "OFFICIAL_BINARY"
+    }
+  ],
+  "unknown_ids": []
+}
