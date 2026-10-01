@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "identifier_values_flagged": 0,
+  "json_metadata_key_allowlist_checked": true,
+  "npz_fixed_numeric_schema": true,
+  "order_id_ival_fval_all_zero": true,
+  "raw_public_match_payloads_or_private_tapes_published": false,
+  "source_code_identifier_field_names_are_parser_tokens_not_identifier_values": true
+}

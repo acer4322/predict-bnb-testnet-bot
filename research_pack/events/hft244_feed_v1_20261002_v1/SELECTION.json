@@ -1,0 +1,683 @@
+{
+  "version": "HFT244_PUBLIC_FEED_V1_SELECTION_20261002_V1",
+  "snapshot_asof_unix_ms": 1790894298881,
+  "rule": "70 newest eligible BTC5M IDs >2685217 from bounded 180 recent tapes; 15 newest title-confirmed BTC5M IDs from each bounded Target export cohort (70 fill, 30 lifecycle); positive public matches, full checkpoint, ended window. No outcome/PnL/confidence selection. No complete-capture certificate is implied.",
+  "inventory_sha256": {
+    "recent.json": "18cddbe15f3e1eab10c1d15eae6763ca070e9bcd5fe30f65dc5396c5e23ca907",
+    "target.json": "11cd8d0f5a252d64c826f3dc4cf07892ed054b2d67a5c437b2d063ad9b6a2b5d"
+  },
+  "target_export_sources": {
+    "target_fills_export": {
+      "basename": "target_fills_export.json.gz",
+      "sha256": "8a74b463b92ed6a762e3e4ced84ea6cd8573cd79781504ad527595edc759954e",
+      "markets": 105
+    },
+    "target_lifecycle_features": {
+      "basename": "target_lifecycle_features.json.gz",
+      "sha256": "b578760e39ed4336537a19e37410e054bc54740383b1227d519c5f666ee67a9f",
+      "markets": 150
+    }
+  },
+  "markets": [
+    {
+      "market_id": 2809470,
+      "source_sha256": "2e277d871dc415524785e26b8995a723d5975f5c3a638504c664362226fc6ccd",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809326,
+      "source_sha256": "e3c138dc3d0e3f056787ead4ab262f0df8e9f7436d130e29474ab6770a504fe2",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809322,
+      "source_sha256": "74901e141014e202371788ea363ca61acec05ea191831a964cc126f13554f877",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809259,
+      "source_sha256": "53af3ef281ed7163184e9a6d5416022142d64acb5c4e87623d1eadf6c5c8e20a",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809252,
+      "source_sha256": "2f16efd94549fea8c4449bc0d0a83a9ec74c399ea4158e608f3a22d056436faf",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809212,
+      "source_sha256": "480cd15324e942b5eab8f4d96a4b60af818795e423333a1eaf4a26123fcd067d",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809188,
+      "source_sha256": "340bb185589494718042d0eb91ddcba014caab550eb77fc8c3614c31db757da9",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809122,
+      "source_sha256": "7f5f612e9d4f0e633b619012adc8dd03f2dd76ce145d6178cef270c253897e44",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809119,
+      "source_sha256": "a1dde39619a82218c331d45a9cb7ae8c9c5eb23dfae9b1c992b49c7a233054ad",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809104,
+      "source_sha256": "f52abafcc99028ed2e152d9c8319f80f658eae0d7a697b125563df34bd2caf75",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809086,
+      "source_sha256": "8c90846a9ed69671d0403d8c280be192e45be2bff000244de8c5c959844c970a",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809076,
+      "source_sha256": "7b92cdc36bc4c3148ca20b340ab0db2ba8445634ce749eb866e166b1b861d9c2",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809074,
+      "source_sha256": "6c85b6e35aa090e52fcf1c739ac99d91bbaf15b6fd77d5032005242bf4b6515e",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2809018,
+      "source_sha256": "dea1622ce75deef648f1edd60c5579228b2ff59fd7ad1110da6afd39bc9a0b7a",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2808990,
+      "source_sha256": "3914aff5a38c7c1cd91c1e5529b656d93901085f727d0286b7a06b3a5f369c25",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2808604,
+      "source_sha256": "e0fc946e9034a1a3afd646393a3029c65ec53c74ee44d804ea069cc5cc4c7c79",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807895,
+      "source_sha256": "11fa82c0cc37404e70dc38aa8176674914682a8536928675f2b35414d419c055",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807825,
+      "source_sha256": "77599ea36fb1331e5bbe9df49da58bb47c011edc207081b682c8fd63b3e537d2",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807745,
+      "source_sha256": "24f449258fac60e907364895ce22a47196d0e9d87c8ff4daadc472f6c0cf5b0a",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807725,
+      "source_sha256": "9915f8c437c5932a7eff3bd838ffc1b90bbebbdc0894574153a06e0d22c0dfa4",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807667,
+      "source_sha256": "4e7be1d510beda77d3cea7a3f521b4d9d7648952ceb741d0ad9104e1d8406c4c",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807574,
+      "source_sha256": "ae1456fa77b3683dac88cc3b62fe560613d80b3afb3379bbe728051ca28c83f9",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807389,
+      "source_sha256": "aa554d7ea7271d2144efec61a0e4dac818c2fa4b59d049d31a0d8059c22f57df",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807308,
+      "source_sha256": "aa2c01570acd5c18531e0adb66bea82f27deeed0935f63e58d79239599cac6c6",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807268,
+      "source_sha256": "e57fb21595121c080bd9edbada5ac0c95e5773f20440aa60338ef0591f3d117e",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807156,
+      "source_sha256": "adb2613f5d55be6c77cf24500fb87479a1a9b6c5dc48a9534f9690ad6cabe075",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807151,
+      "source_sha256": "df65736c3e703666c0b1701ab2f119c24da8916e0f8cc95cb191d7f5687d6f9c",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807096,
+      "source_sha256": "bcb4def3074c8314d9f8e7d0698cad10263e31d4b5dc81457fc43f7747eea884",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807092,
+      "source_sha256": "f7928ddee1f540763e5712bb3b0c04689522ca4abc13ace0aa5eba4a69f88738",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807079,
+      "source_sha256": "dae7b17bcff921dbb4698b3ea6488861385bc7a98f8d80ce15ab516dee46d111",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2807061,
+      "source_sha256": "16ac95ae8fec734ac9ed0e8d99181b1296d39a3785997e68670841e81784c208",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2806933,
+      "source_sha256": "5322c948c5956c25d490f9b2c8e7841eb29668278bdceabedeffd1f5bc8e799d",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2806497,
+      "source_sha256": "9e834976ee429813b3e63c470178a83451dd0a9540abad58b58defa289f14e16",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2805967,
+      "source_sha256": "df1e201824106a4e46c64dbc761c19152665828036f071823648127455a9ed33",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2805964,
+      "source_sha256": "77e07cc17692418e11f10f5b981cc4762f51ef7ef46dc1e4c1ca0f7ea6ce24c8",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2805349,
+      "source_sha256": "c6e5314c3af688c3d90214661757b69169616b48d446192b3264b83b2bcf1444",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2805305,
+      "source_sha256": "994a7a991c5c0565b60df2b43d45e4ec415ac18ab841b493e40de1c5079ebc8b",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2805228,
+      "source_sha256": "6093984dfe29124d82c752b304aaaf2823c6b46b57de01a797d3091a3e711460",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2805223,
+      "source_sha256": "caa3417cb957ca4d1ac211ae22a12e23643fb2b072ffcfc0209886d155a39563",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2805216,
+      "source_sha256": "493ebf48e1fafec529115c271d6ce0b017405edf81a54ea77ad0b7c85cc6878b",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2805046,
+      "source_sha256": "71cb062d480f1671295cbe3ba8a7dd8f662a73a1504049fee46e72d978319136",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2804574,
+      "source_sha256": "664c60c0e0d6399c913eaeb23a7598742210ef030264ff2a227a44b75ceadf4a",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2804452,
+      "source_sha256": "364f69b972e3642541645bf5f48a8dcd6876bf51d716c5e8805c64a5e5d202c2",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2804142,
+      "source_sha256": "1c1c7502d784824576c62338a512811bcbba563f85e71386b01c5f0db9241233",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2804139,
+      "source_sha256": "ed83b3b5e077e7b90df402b082c3e33258323a9eeb525ca45bafe57e1304ba65",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803675,
+      "source_sha256": "bab7a70baa8314e00bd285cea1539370cd691bd0b31fe3350131a466aefb45c5",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803615,
+      "source_sha256": "5d4cfd0dc9a19f2527e3f90b760e54a2cdd84e1cc53209dfa338976d9b653ed7",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803561,
+      "source_sha256": "0609022da91ca4a12aef50ad02d2b16312bb189ea87941df8dcf7f719296a6c7",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803540,
+      "source_sha256": "6fa5ae9e395a540e5a3bd9e50f2c1f13e0ee923e5fe5537fcf32774fe68b2415",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803490,
+      "source_sha256": "20bde8f2224e4d4c69a72465db05a5fa99c0f9501e63f567886e932c92723395",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803462,
+      "source_sha256": "1b1e9c418fc9c9ab10c4b7778d1f895b0810dcd2d7e3d09ec6da60206e9fa307",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803458,
+      "source_sha256": "2ee9d0918e720e31fa276cb985419c57edabc2657f03e958f3f62606c39cb3cd",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803390,
+      "source_sha256": "bbb5c355dbc4f707e62709b077175c52fb980762b55628ed50531910ebc5c8da",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803370,
+      "source_sha256": "11ecd0fdb8056e4f124f2a92875817e20baa435bdca74c633240c1f3edd20ec6",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803301,
+      "source_sha256": "31c24617b70008af40da04c736252dbe2e215105d8b17178659edcc216ca113e",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803245,
+      "source_sha256": "073efadbdf7b537fdf195fb08c8a02a8ac7315e63dd1ab2c467c958d0f0cccec",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803125,
+      "source_sha256": "ccb39dee5da8aff58a2af7fe95aa154c835597a51d56169d625e2a6ab3dc54b7",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2803007,
+      "source_sha256": "11d6ecfeee99a94818d4a845f38498292b6bfc1a4fc0146f76ef3b8dcb241d50",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802995,
+      "source_sha256": "6e257aa945632203e20fb2edebc58f127077db8b724a865edcf1bfcf3e70a6c0",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802983,
+      "source_sha256": "8810e0e2487128059a5af903adc207e4a72bd37ee853e7a9ead9f05dedf0625b",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802952,
+      "source_sha256": "11273aaf6790c252dc7f5f7fdfba6a7be953ded200b7d79505d267eabcdd7b70",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802854,
+      "source_sha256": "19c5a7c51cf8995c42273e685e4dacb06565e31dd9da28b10c4ca5bce3766a37",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802836,
+      "source_sha256": "be3a04e20a0bf5e1ebf7961a2b086e351ad9970e9e3a31cd7fe725537852e2b5",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802688,
+      "source_sha256": "eb5997f56c44a694d1a598e05ade30033896fc7331d2ecdbb36f7575fea01590",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802581,
+      "source_sha256": "5048b80cc2f2d2d321aee9c5e8e9d17bcbcd1bcc61804c88114627e5b79e7566",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802523,
+      "source_sha256": "42b052ee2a6f188ba4ea0dc34a4eb9ec255c114d1539036732542e4081937a62",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802478,
+      "source_sha256": "421a5aea0ea3333b7d0bd841c11040d6980178d22f39b38d1ae2a05ae3140be9",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802465,
+      "source_sha256": "4bebf6931c99141d4b1774210942ca24df3287a807a8ef7f1f5b4a41f44ab241",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802457,
+      "source_sha256": "2860dd0301e43680ccc289c1ba9105cc8c978702bd025aca6a36c64fc28025f0",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2802399,
+      "source_sha256": "9c08f12e9d97e69dca58121704f54513b29aa3d064f4128603901919620cda72",
+      "selection_group": "recent_gt_2685217",
+      "target_exports": []
+    },
+    {
+      "market_id": 2685217,
+      "source_sha256": "66cc4d30a81eeb7c3f6bc16c6ab2cc95729e9ef53c1f9b3552a6211750076b3a",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2685084,
+      "source_sha256": "df1490543aba3caa15a5b20fb5b0690fc4621fe51333b360b876a28c1ea2595d",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2685022,
+      "source_sha256": "7d1c2249f8b5de4705a606686dccc9f11ec31e285be734563cb5bf9c1dc96d35",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2684472,
+      "source_sha256": "4596e6399554c80543f86f213c1bbd2304b2d4a4a2a873c80a7692cbffd4fddc",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2684469,
+      "source_sha256": "e6d14267b3ce48a1faa811e125d96fdc09b73e4f7d81c556577dead481aef8d1",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2683531,
+      "source_sha256": "3e8a847b777d74ee2486afc26a62224a0bfab3f084023cb9ad2f0fbdd67a6475",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2683013,
+      "source_sha256": "ca4bf371850d855e2f7f5daa1d930bbc36c97da852a0a2e27bc5728a1af6a741",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2682965,
+      "source_sha256": "4c97df73bd814ab6dbfe94e81c4e68abb4e65cfbfe0efd8f0eb9343f6d6a15ad",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2682947,
+      "source_sha256": "70902017382b177f63484b8ccd50d98817846ac7c4bb197a36066ae7d4662bf8",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2682930,
+      "source_sha256": "532d9eb818ff02eab932c47ec0a43d21f810e428ce0a02dc198313311ed0783a",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2682652,
+      "source_sha256": "3d780c29924ea503558f6ea878c9a6a4fa05a634508119d63b78f1bf4dbe2af0",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2682649,
+      "source_sha256": "4a0c173b2e1b5398a91cc77a92c8da000729dde0032da1855740423f5ac0bc5b",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2682297,
+      "source_sha256": "47ca75c6d22963cd0d3e07551fe20391bcd7d97a4787d7ff5bb2fcbb7aa95ed5",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2682279,
+      "source_sha256": "df900b64a4814959330e7aa90ec798179610ee08978189239d688214704cd0b1",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 2682168,
+      "source_sha256": "36ec74dac1670eda88e09dafe54bb6af8a05cbe3b2342f6e1283b54c4daa4048",
+      "selection_group": "target_fills_export",
+      "target_exports": [
+        "target_fills_export"
+      ]
+    },
+    {
+      "market_id": 1764475,
+      "source_sha256": "dfbcc716dce04c012dc77d7185394adafacd413a05ba0c7034298aa19aeb3a67",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1764298,
+      "source_sha256": "5daaa91ce6e9fc7adc20d10ecd08295a978a23a1af9d59dab87086f029517170",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1764286,
+      "source_sha256": "1857c77470fb5636f9b1c1967493763f09f0915b001eca25a010c6d205a03502",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1764215,
+      "source_sha256": "e80b895fd4596b235e4356217aea86e027890fabfc929cfb276f02cf693d300f",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1764205,
+      "source_sha256": "cfea9f3d3f62016d3f4ce0544910972d80b7d1273d1c47200b64af3b0b32b7d0",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1764195,
+      "source_sha256": "56bd7b51bca60a73ad4376e1453988cafbc7cb9efec50249674ec4c76ac52397",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763952,
+      "source_sha256": "1921ae1446b6353af55ead3da02b0d506d02f1fb88989e6ffe6c719e6d58a546",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763939,
+      "source_sha256": "9a2e67fe2d5b66f0ee487e3282fec1cfb60307ff3af2b955998fde5c37be34ca",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763936,
+      "source_sha256": "5b10946531f012c6bbc46ac9207fae3e6436310a8d58e1bf0ded853a94d59f61",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763850,
+      "source_sha256": "d43bec45a657eb80d5496ec279db5d9c8a3231b83a7801aa05338eb706256751",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763757,
+      "source_sha256": "abd37729f1962a9b4d1cfce03a581006e12cfaeb969c57e5a44df5a48dbba223",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763747,
+      "source_sha256": "888fee8de9c799bf2973b42a9bdb26ebac0dbb5cacfd864b243e19e017761ec1",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763626,
+      "source_sha256": "940d512207673209642dfeec011eaaa2d98bbf282560373cfce480d5ad2029dc",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763618,
+      "source_sha256": "f0967ce306ecb3a23d99b43b9b4b363070a3b13eb52d977bca39eb9653bf0f9b",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    },
+    {
+      "market_id": 1763611,
+      "source_sha256": "21f160c275eca36859ec3a823c433cda2ba8534b3c4e025d464321a029bd223f",
+      "selection_group": "target_lifecycle_features",
+      "target_exports": [
+        "target_lifecycle_features"
+      ]
+    }
+  ]
+}

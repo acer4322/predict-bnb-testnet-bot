@@ -18148,5 +18148,17 @@
    },
    "producer_sha256": "bb4ce35f41fbc0397ec316514bcebd44c9b6ea7ce578e82b749600e9895f2b7c"
   }
- ]
+ ],
+  "event_feeds": [
+    {
+      "id": "hft244_feed_v1_20261002_v1",
+      "path": "events/hft244_feed_v1_20261002_v1",
+      "markets": 100,
+      "events": 2137414,
+      "public_trades": 189963,
+      "format": "HFTBACKTEST_EXECUTION_TAPE_FEED_V1",
+      "index_sha256": "5134dee26aceb3d59f199a95f758c43e192cc6a9e8cd25830de6e8d788f19b51",
+      "sha256sums_sha256": "0f69ccaa2d79c81f34ba15feb4d99b5e7da1bea0224e855087207aff8a9c47ff"
+    }
+  ]
 }
