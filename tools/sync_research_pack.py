@@ -5,7 +5,8 @@ SEPARATE data branch through a temporary git worktree (your working tree, index 
   python tools/sync_research_pack.py RETURNS_ROOT --markets 2672250 2672737 --out research_pack_out --git-push --branch research-data
 
 Per path directory it copies (when present): result.json, risk_floor_trace.json.gz, execution_clock.json, AUDIT.json, PARITY.json,
-EXECUTION.json, and public_<market>.json.gz (found by market id under --public-root, default: parent of RETURNS_ROOT).
+EXECUTION.json, deep_layer_trace.json, AUDIT_POST_COLLECTION.json, and public_<market>.json.gz
+(found by market id under --public-root, default: parent of RETURNS_ROOT).
 Never copied: clock_trace, databases, tapes, .env, logs. A text scan flags credential-like patterns and aborts unless --allow-flagged.
 The scan is a convenience, NOT a guarantee: you remain responsible for confirming nothing private is in the files and the repo is private.
 Writes <out>/<job>/<arm_dir>/... and <out>/INDEX.json (sizes, sha256, flips, parity/audit status).
@@ -13,7 +14,7 @@ Writes <out>/<job>/<arm_dir>/... and <out>/INDEX.json (sizes, sha256, flips, par
 import argparse, gzip, hashlib, json, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
-COPY = ['result.json', 'risk_floor_trace.json.gz', 'execution_clock.json', 'AUDIT.json', 'PARITY.json', 'EXECUTION.json']
+COPY = ['result.json', 'risk_floor_trace.json.gz', 'execution_clock.json', 'AUDIT.json', 'PARITY.json', 'EXECUTION.json', 'deep_layer_trace.json', 'AUDIT_POST_COLLECTION.json']
 FLAG = [re.compile(p, re.I) for p in (r'api[_-]?key', r'secret', r'passw(or)?d', r'private[_-]?key', r'authorization', r'bearer\s', r'\bsk-[a-z0-9]{16,}',
                                        r'mnemonic', r'seed phrase', r'BEGIN [A-Z ]*PRIVATE KEY')]
 
@@ -54,7 +55,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('root'); ap.add_argument('--out', default='research_pack_out')
     ap.add_argument('--job', action='append', default=[], help='substring of the job directory name (repeatable)')
-    ap.add_argument('--arm', default='', help='substring of the path directory name, e.g. CG1AT or OFF')
+    ap.add_argument('--arm', action='append', default=[], help='substring of the path directory name, e.g. CG1AT or OFF (repeatable)')
     ap.add_argument('--markets', nargs='*', type=int, default=[])
     ap.add_argument('--markets-file', default='', help='JSON with stage lists, e.g. docs/research_specs/RISK_FLOOR_AB_MARKETS_20261001.json')
     ap.add_argument('--stage', action='append', default=[], help='stage key(s) from --markets-file (stage1, stage2, stage3)')
@@ -75,7 +76,7 @@ def main():
         m = re.fullmatch(r'public_(\d+)\.json\.gz', p.name)
         if m: pub.setdefault(int(m.group(1)), p)
     dirs = sorted({p.parent for p in root.rglob('result.json')})
-    dirs = [d for d in dirs if (not a.job or any(j in str(d.relative_to(root)) for j in a.job)) and a.arm in d.name and '_auto_collect' not in str(d)]
+    dirs = [d for d in dirs if (not a.job or any(j in str(d.relative_to(root)) for j in a.job)) and (not a.arm or any(arm in d.name for arm in a.arm)) and '_auto_collect' not in str(d)]
     entries, flagged, total, extras = [], [], 0, []
     for x in a.extra:
         alias, _, rest = x.partition('=')
@@ -134,14 +135,13 @@ def main():
         else:
             git('checkout', '-B', a.branch, cwd=str(wt))
         dest = wt / 'research_pack'; dest.mkdir(exist_ok=True)
-        old = {}
-        if (dest / 'INDEX.json').exists(): old = {e['path']: e for e in json.loads((dest / 'INDEX.json').read_text())['entries']}
+        old_index = json.loads((dest / 'INDEX.json').read_text()) if (dest / 'INDEX.json').exists() else {}
+        old = {e['path']: e for e in old_index.get('entries', [])}
+        oldlab = {l['name']: l for l in old_index.get('labels', [])}
         for e in entries: old[e['path']] = e
         shutil.copytree(out, dest, dirs_exist_ok=True)
-        oldlab = {}
-        if (dest / 'INDEX.json').exists(): oldlab = {l['name']: l for l in json.loads((dest / 'INDEX.json').read_text()).get('labels', [])}
         for x in extras: oldlab[x['name']] = {k: v for k, v in x.items() if k != 'src'}
-        (dest / 'INDEX.json').write_text(json.dumps(dict(paths=len(old), entries=list(old.values()), labels=list(oldlab.values())), indent=1), encoding='utf-8')
+        (dest / 'INDEX.json').write_text(json.dumps(dict(old_index, paths=len(old), entries=list(old.values()), labels=list(oldlab.values())), indent=1), encoding='utf-8')
         git('add', 'research_pack', cwd=str(wt))
         c = git('commit', '-m', 'research pack: +%d paths' % len(entries), cwd=str(wt))
         print((c.stdout or c.stderr).strip().splitlines()[0] if (c.stdout or c.stderr) else 'commit?')

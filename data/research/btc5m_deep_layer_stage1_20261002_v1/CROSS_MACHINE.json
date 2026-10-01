@@ -1,0 +1,15 @@
+{
+  "remote_files": 25,
+  "mismatches": [],
+  "global_state": {
+    "worker": "DESKTOP-JIERAGF",
+    "states": {
+      "succeeded": 4448,
+      "failed": 411,
+      "runner_error": 35,
+      "cancelled": 49
+    },
+    "nonterminal": [],
+    "other_processes": []
+  }
+}

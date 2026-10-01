@@ -1,0 +1,18 @@
+{
+  "status": "NOT_EQUIVALENT",
+  "spec_sha256": "9cb36f84c128665c01ee19fd525a541be865ded4db79ebb1e47bd6eef957da71",
+  "distinct": "two physical sides; one per side; bid minus two ticks; unfilled TTL2000ms",
+  "prior_modules": [
+    "w_ladder_r1",
+    "s_boost",
+    "cheap_insurance",
+    "zone_mirror",
+    "passive_offset_r3"
+  ],
+  "prior_negative": "WL60 ~-30 and WL90 ~-36 on consumed40; V58 deeper quotes and BTC15M ladder negative. Stage1 is mechanism only.",
+  "references": [
+    "docs/agents/RESEARCH_CURRENT.md:109",
+    "docs/handoffs/CLAUDE_CG1AT_HANDOFF_20260929_ZH.md:69",
+    "data/research/btc5m_cg1at_handoff_20260929/modules/w_ladder_r1.py"
+  ]
+}

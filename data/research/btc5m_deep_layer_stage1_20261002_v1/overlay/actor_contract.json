@@ -1,0 +1,24 @@
+{
+  "id": "V49_COMMITMENT_PREPARATION_V12",
+  "baseline_package": "btc5m_cg1at_fresh100a_20260930/base",
+  "baseline_manifest_sha256": "4a75df7cfeef8b8662185f5c45e402403dbc9f257442d78d01be675fdeac0c08",
+  "actor_inputs": "Current received book, confirmed actual OWN, canonical outstanding owners and the current proposed plan. No winner, Target or baseline future fills.",
+  "variants": [
+    "OFF",
+    "COUNT_STRICT",
+    "PREPARE"
+  ],
+  "target_gain_loss_ratio": 4.15,
+  "retain_fraction_of_observed_peak_gain": 0.5,
+  "first_condition": "Full algebraic restoration to target ratio must be affordable while retaining half of past observed peak favorable payoff, respecting canonical pending exposures and confirmed net quantity. Actual child is limited by current visible depth and legal order size.",
+  "risk_scope": "After activation, both modes protect the observed favorable payoff reserve on new repair orders. JOINT additionally requires new strong orders not spend beyond the restored payoff margin. Never auto-release unknown/cancel pending owners.",
+  "direction_authority": false,
+  "original_combined_active_count_limit": 5,
+  "deployment": "Research only; no 8781 or original source changes.",
+  "preparation": "Cancellable strong liability projection is diagnostic-only. Full actual state remains authoritative.",
+  "scope": "Original five submission cap retained for old channels; bounded qualified continuation has separate registry. Frozen tests, not deployment.",
+  "replay_of": "V49_COMMITMENT_PREPARATION_V12 (unchanged overlay code)",
+  "original_baseline_package": "microworld_v49_native_failure_shadow_v1_20260917",
+  "original_baseline_manifest_sha256": "aeea9e9093f76ce9ea5e27e01f4dcf265f697cd5bd1a4691d644c8a100f27b6c",
+  "experiment": "V50 finite continuation of originally admitted qualified repair"
+}

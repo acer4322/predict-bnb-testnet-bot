@@ -1,0 +1,307 @@
+{
+ "status": "PASS",
+ "checks": 55,
+ "names": [
+  "trigger_full_unaffordable",
+  "birth_partial_qty",
+  "birth_keeps_retained_floor",
+  "birth_active_route_at_ask",
+  "work_identity",
+  "insufficient_budget_no_birth",
+  "own_pending_reserved_no_resend",
+  "same_plan_new_reduces_room",
+  "existing_active_plan_priority",
+  "shares_original_count_cap",
+  "cancel_pending_cross_blocks",
+  "cancel_pending_not_released",
+  "receipt_credit",
+  "duplicate_receipt_ignored",
+  "foreign_receipt_ignored",
+  "partial_fill_remaining_reserved",
+  "terminal_remainder_reusable_within_target",
+  "zero_fill_not_credited",
+  "price_above_birth_waits",
+  "reserve_binds_later_order",
+  "flip_withdraws_no_new",
+  "flip_keeps_owner_tracked",
+  "stop290_no_new_and_withdraw",
+  "stop290_no_birth",
+  "before_290_allowed",
+  "arrival_after_end_blocked",
+  "target_reached_closes_work",
+  "still_unaffordable_but_no_expansion_no_rebirth",
+  "no_per_frame_budget_regeneration",
+  "new_responsibility_birth",
+  "new_responsibility_capped_by_new_debt",
+  "cumulative_bounded_by_first_plus_new_debt",
+  "new_direction_first_work",
+  "not_triggered_without_negative_branch",
+  "original_full_repair_priority",
+  "inputs_not_mutated",
+  "legacy_ctx_untouched",
+  "no_ctx_or_target_identifier_in_code",
+  "off_inert",
+  "randomized_invariants_400x120",
+  "hook_off_returns_same_ops",
+  "hook_on_appends_one_active",
+  "hook_sees_same_plan_new",
+  "hook_risk_floor_reduces_below_minimum",
+  "hook_governor_reduces_quantity",
+  "hook_validate_reject",
+  "hook_ledger_fill_sync",
+  "hook_fill_sync_idempotent",
+  "hook_fill_regression_detected",
+  "hook_no_depth_no_birth",
+  "hook_no_bpr_before_decide",
+  "hook_bpr_after_decide",
+  "hook_no_bpr_before_first_flip",
+  "hook_bpr_after_first_flip",
+  "v51_first_local_replay_match"
+ ],
+ "v51_replayed": 28,
+ "v51_skipped": 1,
+ "v51_details": [
+  {
+   "market": 2629303,
+   "seconds": 30.876,
+   "v51_partial_qty": 23.25,
+   "bpr_qty": 23.25,
+   "v51_partial_cost": 8.1375,
+   "status": "MATCH"
+  },
+  {
+   "market": 2629327,
+   "seconds": 39.753,
+   "v51_partial_qty": 30.0,
+   "bpr_qty": 30.0,
+   "v51_partial_cost": 9.0,
+   "status": "MATCH"
+  },
+  {
+   "market": 2629333,
+   "seconds": 47.822,
+   "v51_partial_qty": 6.81,
+   "bpr_qty": 6.81,
+   "v51_partial_cost": 3.0645,
+   "status": "MATCH"
+  },
+  {
+   "market": 2629339,
+   "seconds": 39.091,
+   "v51_partial_qty": 20.0,
+   "bpr_qty": 20.0,
+   "v51_partial_cost": 10.4,
+   "status": "MATCH"
+  },
+  {
+   "market": 2629414,
+   "seconds": 41.876,
+   "v51_partial_qty": 67.55,
+   "bpr_qty": 67.55,
+   "v51_partial_cost": 22.966999999999995,
+   "status": "MATCH"
+  },
+  {
+   "market": 2629564,
+   "seconds": 55.067,
+   "v51_partial_qty": 52.11,
+   "bpr_qty": 52.11,
+   "v51_partial_cost": 20.844,
+   "status": "MATCH"
+  },
+  {
+   "market": 2629854,
+   "seconds": 52.776,
+   "v51_partial_qty": 3.26,
+   "bpr_qty": 3.26,
+   "v51_partial_cost": 1.5321999999999998,
+   "status": "MATCH"
+  },
+  {
+   "market": 2629892,
+   "seconds": 45.36,
+   "v51_partial_qty": 80.0,
+   "bpr_qty": 80.0,
+   "v51_partial_cost": 40.0,
+   "status": "MATCH"
+  },
+  {
+   "market": 2630045,
+   "seconds": 17.79,
+   "v51_partial_qty": 25.36,
+   "bpr_qty": 25.36,
+   "v51_partial_cost": 11.919199999999998,
+   "status": "MATCH"
+  },
+  {
+   "market": 2630274,
+   "seconds": 21.804,
+   "v51_partial_qty": 13.0,
+   "bpr_qty": 13.0,
+   "v51_partial_cost": 5.46,
+   "status": "MATCH"
+  },
+  {
+   "market": 2630303,
+   "seconds": 25.759,
+   "v51_partial_qty": 4.2,
+   "bpr_qty": 4.2,
+   "v51_partial_cost": 2.1,
+   "status": "MATCH"
+  },
+  {
+   "market": 2631069,
+   "seconds": 46.89,
+   "v51_partial_qty": 16.13,
+   "bpr_qty": 16.13,
+   "v51_partial_cost": 6.613299999999999,
+   "status": "MATCH"
+  },
+  {
+   "market": 2631819,
+   "seconds": 67.706,
+   "v51_partial_qty": 32.19,
+   "bpr_qty": 32.19,
+   "v51_partial_cost": 12.232199999999999,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632221,
+   "seconds": 52.794,
+   "v51_partial_qty": 164.93,
+   "bpr_qty": 164.93,
+   "v51_partial_cost": 36.284600000000005,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632256,
+   "seconds": 57.78,
+   "v51_partial_qty": 116.93,
+   "bpr_qty": 116.93,
+   "v51_partial_cost": 59.6343,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632273,
+   "seconds": 26.788,
+   "v51_partial_qty": 70.47,
+   "bpr_qty": 70.47,
+   "v51_partial_cost": 33.1209,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632293,
+   "seconds": 8.716,
+   "v51_partial_qty": 3.0,
+   "bpr_qty": 3.0,
+   "v51_partial_cost": 1.47,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632332,
+   "seconds": 30.947,
+   "v51_partial_qty": 7.28,
+   "bpr_qty": 7.28,
+   "v51_partial_cost": 2.2568000000000006,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632442,
+   "seconds": 29.754,
+   "v51_partial_qty": 57.25,
+   "bpr_qty": 57.25,
+   "v51_partial_cost": 26.335,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632537,
+   "seconds": 21.452,
+   "v51_partial_qty": 6.36,
+   "bpr_qty": 6.36,
+   "v51_partial_cost": 3.0528,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632633,
+   "seconds": 24.886,
+   "v51_partial_qty": 13.0,
+   "bpr_qty": 13.0,
+   "v51_partial_cost": 2.4699999999999993,
+   "status": "MATCH"
+  },
+  {
+   "market": 2632667,
+   "seconds": 54.397,
+   "v51_partial_qty": 65.78,
+   "bpr_qty": 65.78,
+   "v51_partial_cost": 32.89,
+   "status": "MATCH"
+  },
+  {
+   "market": 2633037,
+   "seconds": 34.021,
+   "v51_partial_qty": 30.0,
+   "bpr_qty": 30.0,
+   "v51_partial_cost": 12.9,
+   "status": "MATCH"
+  },
+  {
+   "market": 2633749,
+   "seconds": 30.626,
+   "v51_partial_qty": 63.35,
+   "bpr_qty": 63.35,
+   "v51_partial_cost": 30.408,
+   "status": "MATCH"
+  },
+  {
+   "market": 2634365,
+   "seconds": 35.921,
+   "v51_partial_qty": 74.98,
+   "bpr_qty": 74.98,
+   "v51_partial_cost": 35.9904,
+   "status": "MATCH"
+  },
+  {
+   "market": 2634469,
+   "seconds": 50.5,
+   "v51_partial_qty": 52.18,
+   "bpr_qty": 52.18,
+   "v51_partial_cost": 24.5246,
+   "status": "MATCH"
+  },
+  {
+   "market": 2634488,
+   "seconds": 56.791,
+   "v51_partial_qty": 30.0,
+   "bpr_qty": 30.0,
+   "v51_partial_cost": 9.0,
+   "status": "MATCH"
+  },
+  {
+   "market": 2634508,
+   "seconds": 22.114,
+   "v51_partial_qty": 175.0,
+   "bpr_qty": 175.0,
+   "v51_partial_cost": 87.5,
+   "status": "MATCH"
+  }
+ ],
+ "constants": {
+  "K": 4.15,
+  "RETAIN": 0.5,
+  "cutoff_ms": 290000,
+  "latency_ms": 250,
+  "count_cap": 5
+ },
+ "sha256": {
+  "bpr.py": "30675b835cb2b9d14c69489cd0b47edd4d3e669d2dfb6aecab6119a1de760108",
+  "overlay/economics.py": "75cc740e92c85bea9f9e829440cb3a9b06fe6e2a60b303dae6266010b216c2d4",
+  "test_bpr.py": "16479a6f1d669e758d9d8317e1fc712118f87792d91649becd96530380aebf3c"
+ },
+ "v51_geometry_present": true,
+ "legality_sha256": "f1189cd79f09c0bcf41c25d4ae16659f5ccddb2a5809f201cd45c22e554626c4",
+ "native_paths": 0,
+ "model_fits": 0,
+ "target_loaded": false,
+ "winner_loaded": false
+}
