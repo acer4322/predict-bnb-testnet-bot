@@ -30,7 +30,9 @@ def load_labels(path):
     if not path:
         return {}
     raw = jload(path)
-    if isinstance(raw, dict) and 'labels' in raw and isinstance(raw['labels'], (dict, list)):
+    if isinstance(raw, dict) and 'records' in raw and isinstance(raw['records'], list):
+        raw = raw['records']
+    elif isinstance(raw, dict) and 'labels' in raw and isinstance(raw['labels'], (dict, list)):
         raw = raw['labels']
     out = {}
     items = raw.items() if isinstance(raw, dict) else [(r.get('market_id'), r) for r in raw if isinstance(r, dict)]
