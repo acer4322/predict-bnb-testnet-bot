@@ -4,7 +4,7 @@
 雲端結論與腳本：`tools/flip_response_check.py`、`flip_response_real.py`、`flip_hedge_scaled.py`、`huge_loss_check.py`、`user_def_check.py`。
 
 ## 任務 A：更多有真標籤的新市場（不重送已完成 job）
-1. 取得「不在 `research_pack/labels/labels100a.json` 與目前 220 場內」的新市場，優先有 Polymarket/交易所結算標籤者，目標 ≥ 150 場。
+1. 取得「不在 `research_pack/labels/labels100a.json` 與目前 220 場內」的新市場，優先有 Polymarket/交易所結算標籤者，目標 ≥ 300 場（功效分析：HEDGE1.0 每場 sd≈70；若真均值 +11 約需 300 場，若 +2.8 約需 4,600 場；150 場不足以讓整體 CI 下限穩定 >0）。**最優先：補回現有 220 場中 120 場「以最後中價推斷」的真結算標籤**，可立即檢驗推斷標籤是否可靠。
 2. 用 `tools/sync_research_pack.py` 同步到 `research-data` 分支（只需 `public_<market>.json.gz` 與標籤檔；不需 trace／訓練資料）：
    `python tools/sync_research_pack.py RETURNS_ROOT --markets <ids> --extra labels_new=PATH --out research_pack_out --git-push --branch research-data`
 3. 標籤檔格式同 `labels100a.json`：`{"records":[{"market_id":..., "winner":"UP|DOWN"}]}`。真標籤，不要用最後中價推斷。
