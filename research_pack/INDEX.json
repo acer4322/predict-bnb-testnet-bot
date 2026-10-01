@@ -15151,6 +15151,26 @@
    "name": "GRADUATION_LOCAL_README_ZH.md",
    "bytes": 8243,
    "sha256": "31e0705844ae4df26636a7f6f9fb3ba6665f80d35f44e5bbc7d0f00a05477145"
+  },
+  {
+   "name": "HFT244_FEED70_OFFICIAL_LABELS.json",
+   "bytes": 4730,
+   "sha256": "c35eaa52fd1743f98ca01897bcfd4f9ded4ccfb4fa7c0e2e8309f43a5f793611"
+  },
+  {
+   "name": "HFT244_FEED70_OFFICIAL_LABEL_PROVENANCE.json",
+   "bytes": 57902,
+   "sha256": "858a1269c37b854241669a7d61804672ff1fe2463458777b42fdf261a194550e"
+  },
+  {
+   "name": "HFT244_FEED70_OFFICIAL_LABEL_VERIFICATION.json",
+   "bytes": 1892,
+   "sha256": "d2877360a6a2d9b06010d66aaaed955c4688f1d29507da779b316f37633d4a8c"
+  },
+  {
+   "name": "HFT244_FEED70_OFFICIAL_LABEL_README_ZH.md",
+   "bytes": 1549,
+   "sha256": "1b55d67d7e0d735a566077b6b7b369a8179e53910f7c0682586f2d3270e0514f"
   }
  ],
  "target": [
