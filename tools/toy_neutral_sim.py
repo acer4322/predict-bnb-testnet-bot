@@ -15,8 +15,8 @@ import argparse, math, random, statistics as S
 from toy_floor_sim2 import make_path
 
 
-def run(path, up_wins, strat, rng, adv, half=.01, tick=15., lo=.60, hi=.80, cap=300., pf=.15, D=60., dec_t=12, h=0.):
-    inv = {'UP': 0., 'DOWN': 0.}; cost = 0.; flipped = False; fav = None; nbuy = 0
+def run(path, up_wins, strat, rng, adv, half=.01, tick=15., lo=.60, hi=.80, cap=300., pf=.15, D=60., dec_t=12, h=0., lockm=.0, maxopen=10):
+    inv = {'UP': 0., 'DOWN': 0.}; cost = 0.; flipped = False; fav = None; nbuy = 0; legs = []
     for t, mid in enumerate(path):
         if t >= 290: break
         ask = {'UP': min(.99, mid + half), 'DOWN': min(.99, 1 - mid + half)}
@@ -34,6 +34,16 @@ def run(path, up_wins, strat, rng, adv, half=.01, tick=15., lo=.60, hi=.80, cap=
             inv[cur] += tick; cost += tick * ask[cur]; nbuy += 1
             if h > 0:  # insurance: also buy h*tick of the opposite side at its ask (costs the spread twice, cuts the reversal tail)
                 opp = 'DOWN' if cur == 'UP' else 'UP'; inv[opp] += h * tick; cost += h * tick * ask[opp]
+        elif strat == 'LEGLOCK':
+            # first leg: passive bid on a random side (no view); lock: buy the opposite side at the ask only when pair cost <= 1-m
+            open_leg = [l for l in legs if not l[2]]
+            for l in open_leg:
+                o = 'DOWN' if l[0] == 'UP' else 'UP'
+                if ask[o] + l[1] <= 1. - lockm:
+                    inv[o] += tick; cost += tick * ask[o]; l[2] = True
+            if len(open_leg) < maxopen and t < 270 and rng.random() < pf:
+                s = 'UP' if rng.random() < .5 else 'DOWN'
+                px = min(.99, bid[s] + adv); inv[s] += tick; cost += tick * px; legs.append([s, px, False])
         else:
             for s in ('UP', 'DOWN'):
                 if rng.random() < pf and inv[s] < 1500:
@@ -42,7 +52,7 @@ def run(path, up_wins, strat, rng, adv, half=.01, tick=15., lo=.60, hi=.80, cap=
                 lack = 'UP' if inv['UP'] < inv['DOWN'] else 'DOWN'
                 inv[lack] += tick; cost += tick * ask[lack]
     pnl = (inv['UP'] if up_wins else inv['DOWN']) - cost
-    return pnl, cost, flipped, fav
+    return pnl, cost, flipped, fav, (sum(l[2] for l in legs), len(legs))
 
 
 def tail(xs, q=.05):
@@ -58,6 +68,7 @@ def main():
     cfgs = [('FAV cap300', 'FAV', dict(cap=300.)), ('FAV cap600', 'FAV', dict(cap=600.)), ('FAV_FLIPSTOP cap300', 'FAV_FLIPSTOP', dict(cap=300.)),
             ('FAV_FLIPSTOP cap600', 'FAV_FLIPSTOP', dict(cap=600.)), ('FAV .6-.7 cap300', 'FAV', dict(cap=300., lo=.6, hi=.7)),
             ('FAV hedge .25 cap300', 'FAV', dict(cap=300., h=.25)), ('FAV hedge .5 cap300', 'FAV', dict(cap=300., h=.5)), ('FAV hedge .5 cap600', 'FAV', dict(cap=600., h=.5)),
+            ('LEGLOCK m0', 'LEGLOCK', dict(pf=.15, lockm=0.)), ('LEGLOCK m.02', 'LEGLOCK', dict(pf=.15, lockm=.02)), ('LEGLOCK m.05', 'LEGLOCK', dict(pf=.15, lockm=.05)),
             ('MAKER pf.15 D60', 'MAKER', dict(pf=.15, D=60.)), ('MAKER pf.15 D150', 'MAKER', dict(pf=.15, D=150.)), ('MAKER_NOREP pf.15', 'MAKER_NOREP', dict(pf=.15))]
     print('world: shrink %.3f (fav underpriced), adv %.3f (passive adverse selection), n=%d paths; sizes rescaled so worst-5%% mean = -%.0f' % (a.shrink, a.adv, a.n, a.tail))
     print('%-22s %8s %9s %8s | %9s %9s | %8s | %-22s' % ('strategy', 'mean', 'worst5%', 'cost', 'mean@tail', 'ret/cost', 'P(loss)', 'mean: no-flip / flip'))
