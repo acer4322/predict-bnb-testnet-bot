@@ -7,7 +7,7 @@ Graduation criteria (same as the cloud study): G1 overall CI lower>0, G2 no-flip
 import sys, json, random, statistics as S, argparse
 from pathlib import Path
 import numpy as np
-ap = argparse.ArgumentParser(); ap.add_argument('repro'); ap.add_argument('fixtures'); ap.add_argument('labels'); ap.add_argument('--only', default=''); ap.add_argument('--out', default='')
+ap = argparse.ArgumentParser(); ap.add_argument('repro'); ap.add_argument('fixtures'); ap.add_argument('labels'); ap.add_argument('--only', default=''); ap.add_argument('--out', default=''); ap.add_argument('--infer', action='store_true', help='markets without a true label use the final mid as winner (flagged inferred)')
 a = ap.parse_args(); R = a.repro
 sys.path.insert(0, R + '/strategy/runtime_scratch_CG1AT_2671717'); sys.path.insert(0, R + '/strategy/runtime_scratch_CG1AT_2671717/src')
 import tools.hftbacktest_execution_shift_audit_v0 as ex
@@ -65,17 +65,19 @@ def run(fx, mid, strat, dec_ms=1000, tick=15., cap=300., stop=270.):
     for o in orders.values():
         s = ex.order_snapshot(bt, o['n']); cum = float(s['cumExecQty'] or 0)
         if cum - o['cum'] > 1e-9: sh[o['side']] += cum - o['cum']
-    sv = bt.state_values(0); cost = sh['DOWN'] - sv.balance; w = lab[mid]
+    sv = bt.state_values(0); cost = sh['DOWN'] - sv.balance
+    d = bt.depth(0); lm = (float(d.best_bid) + float(d.best_ask)) / 2 if d.best_bid == d.best_bid and d.best_ask == d.best_ask else .5
+    inferred = mid not in lab; w = lab[mid] if not inferred else ('UP' if lm > .5 else 'DOWN')  # INFER: unlabelled markets use the final mid (flagged)
     pnl = sh[w] - cost
     # classification from the 1 Hz mid path
     f0 = 'UP' if mids.get(12, mids[min(mids)]) >= .5 else 'DOWN'; flip = any((mm if f0 == 'UP' else 1 - mm) <= .4 for s_, mm in mids.items() if 12 < s_ < 290)
     cls = 'NO_FLIP' if not flip else ('FALSE_FLIP' if f0 == w else 'TRUE_FLIP')
-    return dict(market=mid, pnl=pnl, cost=cost, up=sh['UP'], dn=sh['DOWN'], cls=cls, win=w)
+    return dict(market=mid, pnl=pnl, cost=cost, up=sh['UP'], dn=sh['DOWN'], cls=cls, win=w, inferred=inferred)
 
 def ci(xs, rng, nb=1000):
     ms = sorted(S.fmean(rng.choice(xs) for _ in xs) for _ in range(nb)); return ms[int(.025 * nb)], ms[int(.975 * nb)]
 if __name__ == '__main__':
-    fx = a.fixtures; mids = sorted(int(p.name) for p in Path(fx).iterdir() if p.is_dir() and (p / 'events.npz').exists() and int(p.name) in lab)
+    fx = a.fixtures; mids = sorted(int(p.name) for p in Path(fx).iterdir() if p.is_dir() and (p / 'events.npz').exists() and (int(p.name) in lab or a.infer))
     strats = a.only.split(',') if a.only else ['FAV_TAKER', 'FAV_PASSIVE', 'MAKER_PAIR_K1D45', 'MAKER_PAIR_K2INF']; rng = random.Random(1); out = {}
     print('markets', len(mids), '(CIs are only meaningful for n>=30)')
     for st in strats:
