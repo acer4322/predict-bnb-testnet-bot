@@ -52,6 +52,8 @@ env OFF的 instrumentation 是原 frozen manager source 的byte identity，`on_p
 
 4張TTL撤單最終仍有成交（3張全成交、1張部分1.11股），均是cancel/fill延遲交錯：取消決策當時canonical fill尚未收到、owner remaining仍15；其中1張exchange fill已發生但receive晚於取消61ms。不能用最終成交量推定取消時已知部分成交。這4張owner最終都TERMINAL；有後續同側DEEP的2張，其新單也晚於canonical fill回報，逐計畫nonterminal最大一張檢查PASS。資料沒有單獨記錄cancel terminal transition的精確時間，不能補造。匿名時序另存`post_collection/CANCEL_RACE.json`。獨立只讀審查另存`INDEPENDENT_REVIEW.json`，51組order/carrier與20組canonical fill全部匹配。
 
+作用域核對：seq17的DEEP_TTL CANCEL同畫面另有既有通道`PASSIVE_REPAIR_CAPACITY_FRONTIER` NEW。主代理重新讀該risk plan，舊DEEP owner仍SUBMITTED／remaining15，DOWN pending_qty仍30，NEW另加自己的預留，floor驗證通過；CANCEL沒有扣除舊owner。規格是每邊至多一張**深層單**，不是全體同側單只能一張；因此這個BASE NEW不能當作DEEP重掛或違反該限制，也不新增「所有BASE NEW須等DEEP terminal」的規則。精確cancel terminal時間仍未記錄，這個限制不擴大成整體同側NEW先後順序的宣稱。
+
 |嘗試分類／被擋原因|次數|
 |---|---:|
 |成功NEW|51|
