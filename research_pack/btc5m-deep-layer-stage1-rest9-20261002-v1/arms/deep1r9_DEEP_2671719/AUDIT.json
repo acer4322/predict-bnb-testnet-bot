@@ -1,0 +1,148 @@
+{
+  "status": "PASS",
+  "differences": [],
+  "failed_checks": [
+    "active_matches_opportunity"
+  ],
+  "frame_accounting": {
+    "source_frames": 1491,
+    "terminal_drain_steps": 0,
+    "terminal_closure_frames": 0,
+    "extra_plan_times": [],
+    "source_complete": true,
+    "no_postexpiry_acquisition": true
+  },
+  "frames": 1491,
+  "receipts": 127,
+  "guard_calls": 1493,
+  "eof_calls": [
+    {
+      "stage": "source",
+      "index": 1490,
+      "target_ns": 1790552400706000000,
+      "before_ns": 1790552400512000000,
+      "effective_function": "eof_runtime.advance_to",
+      "rc": 1,
+      "elapse_called": true,
+      "after_ns": 1790552400706000000,
+      "reached": true
+    }
+  ],
+  "passive_submits": 195,
+  "active_submits": 4,
+  "parity": {
+    "status": "PASS",
+    "market": 2671719,
+    "first_deep_new_t": 1790552101007,
+    "strict_before": true,
+    "no_replacement": true,
+    "rows": [
+      {
+        "field": "plans",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "native_actions",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "states",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "observations",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "direction_rows",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "v12g_events",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "receipts",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "native_clock_calls",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      }
+    ]
+  },
+  "mandatory": {
+    "freeze_new_zero": true,
+    "STOP290_new_zero": true,
+    "risk_floor_violations_zero": true,
+    "all_owner_pending_terminal": true,
+    "V8_wrong_cancel_zero": true,
+    "fixed_price_qty": true,
+    "trace_receipt_reconciles": true,
+    "capital_cap_null": true,
+    "no_target_or_winner_runtime": true,
+    "one_nonterminal_per_side": true,
+    "TTL_partial_fill_semantics": true
+  },
+  "deep_stats": {
+    "attempts": 2974,
+    "placed": 29,
+    "freeze": 0,
+    "STOP290": 92,
+    "risk_floor": 2505,
+    "self_cross": 0,
+    "maintenance_conflict": 4,
+    "governor": 0,
+    "occupied": 339,
+    "below_price": 5,
+    "venue_validation": 0,
+    "missing_book": 0,
+    "ttl_cancel": 22
+  },
+  "deep_orders": 29,
+  "filled_orders": 7,
+  "filled_qty": 105.0,
+  "legacy_active_matches_opportunity": false,
+  "legacy_safety_gate_pass": false,
+  "path_valid": true
+}
