@@ -14,13 +14,14 @@ TARGETS = dict(flip_share=.64, flip_t_med=51.5, cost_flip_med=338., cost_flip_p9
                lowconv_share=.55, nfl0=.36, nfl1=.30, nfl2=.12, nfl3p=.22)
 
 
-def make_path(rng, T=300, noise=.04, ar=.9):
+def make_path(rng, T=300, noise=.04, ar=.9, shrink=0.):
     x, e, out = 0., 0., []
     sd = 1 / math.sqrt(T)
     for t in range(T):
         x += rng.gauss(0, sd)
         p = phi(x / math.sqrt(max(T - 1 - t, 1) / T)) if t < T - 1 else (1. if x > 0 else 0.)
         e = ar * e + rng.gauss(0, noise * math.sqrt(1 - ar * ar))
+        p = .5 + (p - .5) * (1. - shrink)  # shrink>0: quoted mid is closer to .5 than the true win probability (favourite underpriced)
         out.append(min(.99, max(.01, p + e)))
     return out, x > 0
 
@@ -104,14 +105,14 @@ def metrics(rs):
     return m
 
 
-def sim(n, seed, noise, ar, pfill, floor='ON', adv=0., wk=.3):
-    return [run(p, w, floor, pfill, d, adv=adv, wk=wk) for p, w, d in paths(n, seed, noise, ar)]
+def sim(n, seed, noise, ar, pfill, floor='ON', adv=0., wk=.3, shrink=0.):
+    return [run(p, w, floor, pfill, d, adv=adv, wk=wk) for p, w, d in paths(n, seed, noise, ar, shrink)]
 
 
-def paths(n, seed, noise, ar):
+def paths(n, seed, noise, ar, shrink=0.):
     rng = random.Random(seed); out = []
     for _ in range(n):
-        p, w = make_path(rng, noise=noise, ar=ar)
+        p, w = make_path(rng, noise=noise, ar=ar, shrink=shrink)
         out.append((p, w, ([[rng.random(), rng.random()] for _ in range(300)], rng.uniform(-.35, .35))))
     return out
 
@@ -121,8 +122,8 @@ def cvar(xs, q=.05):
 
 
 def compare(a):
-    P = paths(a.n, a.seed, a.noise, a.ar)
-    for adv in (0., .015, .025):
+    P = paths(a.n, a.seed, a.noise, a.ar, a.shrink)
+    for adv in ((a.adv,) if a.adv else (0., .015, .025)):
         res = {v: [run(p, w, v, a.pfill, d, adv=adv, wk=a.wk) for p, w, d in P] for v in ('OFF', 'ON', 'ONCE', 'MARGIN50', 'MARGIN100')}
         base = res['OFF']
         print('\n== adv %.3f (passive fills pay bid+adv) | n=%d paired vs floor OFF' % (adv, a.n))
@@ -139,11 +140,46 @@ def compare(a):
                 print('        paired diff vs OFF, all paths: %+.2f +- %.2f (2 SE)' % (S.fmean(d), 2 * se))
 
 
+REAL = {'cost_ratio': .33, 'd_all': -24.0, 'd_HC_TRUE': -144.7, 'd_HC_FALSE': 75.8, 'd_LC_TRUE': 2.9, 'd_LC_FALSE': -44.3}
+
+
+def groups(a):
+    P = paths(a.n, a.seed, a.noise, a.ar, a.shrink)
+    on = [run(p, w, 'ON', a.pfill, d, adv=a.adv, wk=a.wk) for p, w, d in P]
+    off = [run(p, w, 'OFF', a.pfill, d, adv=a.adv, wk=a.wk) for p, w, d in P]
+    fl = [i for i, r in enumerate(on) if r['flips'] > 0 and r['att'] > 0]
+    won = lambda i: P[i][1]
+    def g(i):
+        r = on[i]; dec_up = None
+        return r
+    # decided side = side holding the larger inventory proxy is unavailable here; use ON/OFF paths' DECIDE via m0 side: recompute from path
+    res = {}
+    def grp(name, idx):
+        if not idx: return
+        d = [on[i]['pnl'] - off[i]['pnl'] for i in idx]
+        res[name] = (len(idx), S.fmean(d), 2 * S.pstdev(d) / math.sqrt(len(d)))
+    # true flip := decide side lost. decide side = sign of path at decision time
+    def decide_up(i):
+        t = on[i]['dec']; return P[i][0][t] >= .5
+    tf = [i for i in fl if decide_up(i) != won(i)]; ff = [i for i in fl if decide_up(i) == won(i)]
+    for nm, ix in (('ALL', fl), ('TRUE', tf), ('FALSE', ff)):
+        grp(nm, ix)
+    for lo in (False, True):
+        for nm, ix in (('TRUE', tf), ('FALSE', ff)):
+            grp(('LC_' if lo else 'HC_') + nm, [i for i in ix if on[i]['low'] == lo])
+    cr = S.fmean(on[i]['cost'] for i in fl) / S.fmean(off[i]['cost'] for i in fl)
+    print('shrink %.2f adv %.3f n=%d flipped=%d | cost ratio ON/OFF %.2f (real %.2f) | true share %.0f%% (real 66%%)' % (a.shrink, a.adv, a.n, len(fl), cr, REAL['cost_ratio'], 100 * len(tf) / len(fl)))
+    print(' %-9s %5s %9s %9s | %9s' % ('group', 'n', 'mean d', '+-2se', 'real d'))
+    for nm, v in res.items():
+        key = 'd_all' if nm == 'ALL' else 'd_' + nm
+        print(' %-9s %5d %9.1f %9.1f | %9s' % (nm, v[0], v[1], v[2], ('%.1f' % REAL[key]) if key in REAL else ''))
+
+
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('mode', choices=['calibrate', 'run', 'compare'])
+    ap = argparse.ArgumentParser(); ap.add_argument('mode', choices=['calibrate', 'run', 'compare', 'groups'])
     ap.add_argument('--n', type=int, default=1000); ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--noise', type=float, default=.04); ap.add_argument('--ar', type=float, default=.9)
-    ap.add_argument('--pfill', type=float, default=.1); ap.add_argument('--wk', type=float, default=.3); ap.add_argument('--adv', type=float, default=0.)
+    ap.add_argument('--pfill', type=float, default=.1); ap.add_argument('--wk', type=float, default=.3); ap.add_argument('--adv', type=float, default=0.); ap.add_argument('--shrink', type=float, default=0.)
     a = ap.parse_args()
     if a.mode == 'calibrate':
         keys = list(TARGETS); best = []
@@ -158,6 +194,8 @@ def main():
             for k in keys: print('  %-20s sim %9.2f  real %9.2f' % (k, m[k], TARGETS[k]))
     elif a.mode == 'compare':
         compare(a)
+    elif a.mode == 'groups':
+        groups(a)
     else:
         m = metrics(sim(a.n, a.seed, a.noise, a.ar, a.pfill, adv=a.adv, wk=a.wk))
         for k in TARGETS: print('  %-20s sim %9.2f  real %9.2f' % (k, m[k], TARGETS[k]))
