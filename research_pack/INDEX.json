@@ -7092,6 +7092,2450 @@
     "groups": 2892,
     "additional_rows_retained": 4316
    }
+  },
+  {
+   "name": "target_lifecycle_features.json.gz",
+   "path": "target/target_lifecycle_features.json.gz",
+   "format": "gzip-compressed UTF-8 JSON array",
+   "rows": 11084,
+   "markets": 150,
+   "bytes": 481173,
+   "sha256": "b578760e39ed4336537a19e37410e054bc54740383b1227d519c5f666ee67a9f",
+   "uncompressed_bytes": 6318045,
+   "uncompressed_sha256": "5dffb4727427dd79c0e975b00c3fd651f305d9f333adabc9f8b1c08d3d3d15a1",
+   "columns": [
+    "anon_seq",
+    "market_id",
+    "side",
+    "price",
+    "filled_qty",
+    "placement_first_ms",
+    "first_target_ms",
+    "resting_ms",
+    "confidence",
+    "placement_coverage",
+    "fill_allocation_coverage",
+    "post_action",
+    "best_bid_at_placement",
+    "best_bid_at_fill",
+    "mid_side_at_fill",
+    "mid_side_at_fill_plus5s",
+    "best_bid_at_placement_recv",
+    "best_bid_at_fill_recv",
+    "mid_side_at_fill_recv",
+    "mid_side_at_fill_plus5s_recv"
+   ],
+   "read_only_sources": true,
+   "offline_only": true,
+   "lifecycle_source": "data/wallet_maker_book_inference.db::maker_book_inference_v21_parent_lifecycles",
+   "lifecycle_version": "TARGET_MAKER_BOOK_INFERENCE_V2_1_CONSUMABLE_LIFECYCLE_FORWARD_ONLY",
+   "selection": {
+    "selected": [
+     {
+      "market_id": 1764475,
+      "window_start_ms": 1787908200000,
+      "window_end_ms": 1787908500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1764475.json.xz",
+       "bytes": 543412,
+       "sha256": "dfbcc716dce04c012dc77d7185394adafacd413a05ba0c7034298aa19aeb3a67"
+      },
+      "updates": 1488,
+      "first_source_ms": 1787908200898,
+      "last_source_ms": 1787908500376,
+      "max_source_gap_ms": 504
+     },
+     {
+      "market_id": 1764353,
+      "window_start_ms": 1787907600000,
+      "window_end_ms": 1787907900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1764353.json.xz",
+       "bytes": 416264,
+       "sha256": "0700a6ba431b2a386f811e89cccb21b9a141dd8695e5373526c4ca646ae9b849"
+      },
+      "updates": 1260,
+      "first_source_ms": 1787907600985,
+      "last_source_ms": 1787907900364,
+      "max_source_gap_ms": 2723
+     },
+     {
+      "market_id": 1764298,
+      "window_start_ms": 1787907000000,
+      "window_end_ms": 1787907300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1764298.json.xz",
+       "bytes": 410480,
+       "sha256": "5daaa91ce6e9fc7adc20d10ecd08295a978a23a1af9d59dab87086f029517170"
+      },
+      "updates": 1358,
+      "first_source_ms": 1787907000561,
+      "last_source_ms": 1787907300376,
+      "max_source_gap_ms": 2643
+     },
+     {
+      "market_id": 1764286,
+      "window_start_ms": 1787906400000,
+      "window_end_ms": 1787906700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1764286.json.xz",
+       "bytes": 503200,
+       "sha256": "1857c77470fb5636f9b1c1967493763f09f0915b001eca25a010c6d205a03502"
+      },
+      "updates": 1482,
+      "first_source_ms": 1787906401017,
+      "last_source_ms": 1787906700371,
+      "max_source_gap_ms": 721
+     },
+     {
+      "market_id": 1764215,
+      "window_start_ms": 1787906100000,
+      "window_end_ms": 1787906400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1764215.json.xz",
+       "bytes": 352352,
+       "sha256": "e80b895fd4596b235e4356217aea86e027890fabfc929cfb276f02cf693d300f"
+      },
+      "updates": 1367,
+      "first_source_ms": 1787906100614,
+      "last_source_ms": 1787906400361,
+      "max_source_gap_ms": 2478
+     },
+     {
+      "market_id": 1764205,
+      "window_start_ms": 1787905800000,
+      "window_end_ms": 1787906100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1764205.json.xz",
+       "bytes": 623356,
+       "sha256": "cfea9f3d3f62016d3f4ce0544910972d80b7d1273d1c47200b64af3b0b32b7d0"
+      },
+      "updates": 1492,
+      "first_source_ms": 1787905800688,
+      "last_source_ms": 1787906100207,
+      "max_source_gap_ms": 635
+     },
+     {
+      "market_id": 1764195,
+      "window_start_ms": 1787905500000,
+      "window_end_ms": 1787905800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1764195.json.xz",
+       "bytes": 480308,
+       "sha256": "56bd7b51bca60a73ad4376e1453988cafbc7cb9efec50249674ec4c76ac52397"
+      },
+      "updates": 1489,
+      "first_source_ms": 1787905500580,
+      "last_source_ms": 1787905800373,
+      "max_source_gap_ms": 677
+     },
+     {
+      "market_id": 1763952,
+      "window_start_ms": 1787905200000,
+      "window_end_ms": 1787905500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763952.json.xz",
+       "bytes": 457944,
+       "sha256": "1921ae1446b6353af55ead3da02b0d506d02f1fb88989e6ffe6c719e6d58a546"
+      },
+      "updates": 1463,
+      "first_source_ms": 1787905201150,
+      "last_source_ms": 1787905500375,
+      "max_source_gap_ms": 655
+     },
+     {
+      "market_id": 1763939,
+      "window_start_ms": 1787904600000,
+      "window_end_ms": 1787904900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763939.json.xz",
+       "bytes": 408956,
+       "sha256": "9a2e67fe2d5b66f0ee487e3282fec1cfb60307ff3af2b955998fde5c37be34ca"
+      },
+      "updates": 1345,
+      "first_source_ms": 1787904600802,
+      "last_source_ms": 1787904900381,
+      "max_source_gap_ms": 2558
+     },
+     {
+      "market_id": 1763936,
+      "window_start_ms": 1787904300000,
+      "window_end_ms": 1787904600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763936.json.xz",
+       "bytes": 550696,
+       "sha256": "5b10946531f012c6bbc46ac9207fae3e6436310a8d58e1bf0ded853a94d59f61"
+      },
+      "updates": 1479,
+      "first_source_ms": 1787904300789,
+      "last_source_ms": 1787904600362,
+      "max_source_gap_ms": 857
+     },
+     {
+      "market_id": 1763935,
+      "window_start_ms": 1787904000000,
+      "window_end_ms": 1787904300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763935.json.xz",
+       "bytes": 341480,
+       "sha256": "f1d616c18c9f613310c8bc4846584a54617d3be47c9a4bb97d25ee45e5d5c400"
+      },
+      "updates": 1147,
+      "first_source_ms": 1787904001135,
+      "last_source_ms": 1787904300369,
+      "max_source_gap_ms": 4555
+     },
+     {
+      "market_id": 1763924,
+      "window_start_ms": 1787903700000,
+      "window_end_ms": 1787904000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763924.json.xz",
+       "bytes": 382028,
+       "sha256": "cdc60e13ccf468b0307c3dd8b71a6debda4e4d4a2b3648cf2008702d05690423"
+      },
+      "updates": 1385,
+      "first_source_ms": 1787903701106,
+      "last_source_ms": 1787904000568,
+      "max_source_gap_ms": 1317
+     },
+     {
+      "market_id": 1763850,
+      "window_start_ms": 1787903400000,
+      "window_end_ms": 1787903700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763850.json.xz",
+       "bytes": 497156,
+       "sha256": "d43bec45a657eb80d5496ec279db5d9c8a3231b83a7801aa05338eb706256751"
+      },
+      "updates": 1471,
+      "first_source_ms": 1787903400785,
+      "last_source_ms": 1787903700358,
+      "max_source_gap_ms": 2313
+     },
+     {
+      "market_id": 1763757,
+      "window_start_ms": 1787903100000,
+      "window_end_ms": 1787903400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763757.json.xz",
+       "bytes": 418400,
+       "sha256": "abd37729f1962a9b4d1cfce03a581006e12cfaeb969c57e5a44df5a48dbba223"
+      },
+      "updates": 1370,
+      "first_source_ms": 1787903101109,
+      "last_source_ms": 1787903400316,
+      "max_source_gap_ms": 2687
+     },
+     {
+      "market_id": 1763747,
+      "window_start_ms": 1787902800000,
+      "window_end_ms": 1787903100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763747.json.xz",
+       "bytes": 409708,
+       "sha256": "888fee8de9c799bf2973b42a9bdb26ebac0dbb5cacfd864b243e19e017761ec1"
+      },
+      "updates": 1364,
+      "first_source_ms": 1787902800927,
+      "last_source_ms": 1787903100366,
+      "max_source_gap_ms": 2796
+     },
+     {
+      "market_id": 1763626,
+      "window_start_ms": 1787902500000,
+      "window_end_ms": 1787902800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763626.json.xz",
+       "bytes": 455252,
+       "sha256": "940d512207673209642dfeec011eaaa2d98bbf282560373cfce480d5ad2029dc"
+      },
+      "updates": 1439,
+      "first_source_ms": 1787902500807,
+      "last_source_ms": 1787902800402,
+      "max_source_gap_ms": 1831
+     },
+     {
+      "market_id": 1763618,
+      "window_start_ms": 1787902200000,
+      "window_end_ms": 1787902500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763618.json.xz",
+       "bytes": 322684,
+       "sha256": "f0967ce306ecb3a23d99b43b9b4b363070a3b13eb52d977bca39eb9653bf0f9b"
+      },
+      "updates": 1266,
+      "first_source_ms": 1787902201122,
+      "last_source_ms": 1787902500358,
+      "max_source_gap_ms": 4604
+     },
+     {
+      "market_id": 1763611,
+      "window_start_ms": 1787901600000,
+      "window_end_ms": 1787901900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763611.json.xz",
+       "bytes": 475304,
+       "sha256": "21f160c275eca36859ec3a823c433cda2ba8534b3c4e025d464321a029bd223f"
+      },
+      "updates": 1462,
+      "first_source_ms": 1787901600577,
+      "last_source_ms": 1787901900389,
+      "max_source_gap_ms": 1195
+     },
+     {
+      "market_id": 1763583,
+      "window_start_ms": 1787901300000,
+      "window_end_ms": 1787901600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763583.json.xz",
+       "bytes": 367516,
+       "sha256": "73e8558588be07e631cc95572c7e6959303115e3436e4a982e653a8af0bc8f35"
+      },
+      "updates": 1450,
+      "first_source_ms": 1787901300510,
+      "last_source_ms": 1787901600101,
+      "max_source_gap_ms": 683
+     },
+     {
+      "market_id": 1763573,
+      "window_start_ms": 1787901000000,
+      "window_end_ms": 1787901300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763573.json.xz",
+       "bytes": 478840,
+       "sha256": "f1176bf92cb75d21931af93268394607437539e03a6a75c5ebca259e65a442e7"
+      },
+      "updates": 1476,
+      "first_source_ms": 1787901001364,
+      "last_source_ms": 1787901300351,
+      "max_source_gap_ms": 580
+     },
+     {
+      "market_id": 1763567,
+      "window_start_ms": 1787900700000,
+      "window_end_ms": 1787901000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763567.json.xz",
+       "bytes": 404488,
+       "sha256": "e4e7a926326784eead59966b56311a1fc626f06bac730fd2f35fb63d9fd81ea5"
+      },
+      "updates": 1301,
+      "first_source_ms": 1787900701028,
+      "last_source_ms": 1787901000367,
+      "max_source_gap_ms": 3800
+     },
+     {
+      "market_id": 1763560,
+      "window_start_ms": 1787900400000,
+      "window_end_ms": 1787900700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763560.json.xz",
+       "bytes": 391028,
+       "sha256": "043a20e8f31aec64a0844cce64c1bd6412e6358df65a3d34e8936056baaad40e"
+      },
+      "updates": 1360,
+      "first_source_ms": 1787900401017,
+      "last_source_ms": 1787900700351,
+      "max_source_gap_ms": 2493
+     },
+     {
+      "market_id": 1763550,
+      "window_start_ms": 1787900100000,
+      "window_end_ms": 1787900400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763550.json.xz",
+       "bytes": 411180,
+       "sha256": "89726bc90dcf92dd5ff19a2f55b3047ccf09c52ff6e8b487cb991eb0e8697e38"
+      },
+      "updates": 1413,
+      "first_source_ms": 1787900101002,
+      "last_source_ms": 1787900400372,
+      "max_source_gap_ms": 1511
+     },
+     {
+      "market_id": 1763237,
+      "window_start_ms": 1787899800000,
+      "window_end_ms": 1787900100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763237.json.xz",
+       "bytes": 580164,
+       "sha256": "9a869d49a75a849e84650028ca76265098fd615fa5f18b0d389e01892cabda3e"
+      },
+      "updates": 1485,
+      "first_source_ms": 1787899800494,
+      "last_source_ms": 1787900100666,
+      "max_source_gap_ms": 600
+     },
+     {
+      "market_id": 1763236,
+      "window_start_ms": 1787899500000,
+      "window_end_ms": 1787899800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763236.json.xz",
+       "bytes": 318540,
+       "sha256": "a43b3f1539164bd877a508a4c82e355e3155e5f04aacb2ae20aaaf767b270709"
+      },
+      "updates": 1231,
+      "first_source_ms": 1787899500861,
+      "last_source_ms": 1787899800310,
+      "max_source_gap_ms": 4688
+     },
+     {
+      "market_id": 1763168,
+      "window_start_ms": 1787899200000,
+      "window_end_ms": 1787899500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763168.json.xz",
+       "bytes": 525852,
+       "sha256": "7f00e21df09ec6c370b270dc1a732d89233ee044c9dcbea342e248d063b1d041"
+      },
+      "updates": 1492,
+      "first_source_ms": 1787899200834,
+      "last_source_ms": 1787899500656,
+      "max_source_gap_ms": 634
+     },
+     {
+      "market_id": 1763164,
+      "window_start_ms": 1787898900000,
+      "window_end_ms": 1787899200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763164.json.xz",
+       "bytes": 403372,
+       "sha256": "460f2fc0aba728c19add7bffdea35b0bde1ac867547afc753b0cac86c059dcfa"
+      },
+      "updates": 1463,
+      "first_source_ms": 1787898900459,
+      "last_source_ms": 1787899200350,
+      "max_source_gap_ms": 953
+     },
+     {
+      "market_id": 1763076,
+      "window_start_ms": 1787898600000,
+      "window_end_ms": 1787898900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763076.json.xz",
+       "bytes": 551020,
+       "sha256": "f7d23a3c8c290b56b79dc90193d7b4fb6dad4a31073a294cc775215d967e4308"
+      },
+      "updates": 1477,
+      "first_source_ms": 1787898600621,
+      "last_source_ms": 1787898900266,
+      "max_source_gap_ms": 2407
+     },
+     {
+      "market_id": 1763066,
+      "window_start_ms": 1787898300000,
+      "window_end_ms": 1787898600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763066.json.xz",
+       "bytes": 367568,
+       "sha256": "2a004a9de262fd8c5643da7d32cc5eb331aba3f5269076ae0638052254237553"
+      },
+      "updates": 1478,
+      "first_source_ms": 1787898300788,
+      "last_source_ms": 1787898600366,
+      "max_source_gap_ms": 574
+     },
+     {
+      "market_id": 1763061,
+      "window_start_ms": 1787898000000,
+      "window_end_ms": 1787898300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763061.json.xz",
+       "bytes": 500276,
+       "sha256": "e6f1a1505b8edb565eb7bed7735bd80020da9d0ef25eae152da8d6b4f8e86bb8"
+      },
+      "updates": 1488,
+      "first_source_ms": 1787898000822,
+      "last_source_ms": 1787898300382,
+      "max_source_gap_ms": 532
+     },
+     {
+      "market_id": 1763043,
+      "window_start_ms": 1787897100000,
+      "window_end_ms": 1787897400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1763043.json.xz",
+       "bytes": 448304,
+       "sha256": "d9616bf338ed635aed888a9f8c545f9cc6acdc5576f044404d4796bf0391588e"
+      },
+      "updates": 1433,
+      "first_source_ms": 1787897101111,
+      "last_source_ms": 1787897400890,
+      "max_source_gap_ms": 1265
+     },
+     {
+      "market_id": 1762591,
+      "window_start_ms": 1787896500000,
+      "window_end_ms": 1787896800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762591.json.xz",
+       "bytes": 259432,
+       "sha256": "ab7b776f48fa8f2fddfa6ed6e365aa58d7f22a58ccb2f22e2994de63d55d2ab0"
+      },
+      "updates": 1098,
+      "first_source_ms": 1787896500593,
+      "last_source_ms": 1787896800162,
+      "max_source_gap_ms": 4648
+     },
+     {
+      "market_id": 1762575,
+      "window_start_ms": 1787896200000,
+      "window_end_ms": 1787896500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762575.json.xz",
+       "bytes": 391904,
+       "sha256": "c548d6b821595150cabf03ea6fec4c203726233f4c7161d68e36ddbf23be7020"
+      },
+      "updates": 1329,
+      "first_source_ms": 1787896200881,
+      "last_source_ms": 1787896500265,
+      "max_source_gap_ms": 3665
+     },
+     {
+      "market_id": 1762574,
+      "window_start_ms": 1787895900000,
+      "window_end_ms": 1787896200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762574.json.xz",
+       "bytes": 393748,
+       "sha256": "15c7762c7f5e2785b21742e94d4ee0cee167fb864b77f14da3037b7d5eeb5e88"
+      },
+      "updates": 1448,
+      "first_source_ms": 1787895900939,
+      "last_source_ms": 1787896200256,
+      "max_source_gap_ms": 699
+     },
+     {
+      "market_id": 1762564,
+      "window_start_ms": 1787895600000,
+      "window_end_ms": 1787895900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762564.json.xz",
+       "bytes": 466640,
+       "sha256": "2b04fa2803b66fdab452b0dd0d8a62f6a4a925922d9fad3c99cd6e7730262463"
+      },
+      "updates": 1486,
+      "first_source_ms": 1787895601159,
+      "last_source_ms": 1787895900618,
+      "max_source_gap_ms": 522
+     },
+     {
+      "market_id": 1762557,
+      "window_start_ms": 1787895300000,
+      "window_end_ms": 1787895600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762557.json.xz",
+       "bytes": 443872,
+       "sha256": "0f19234fc6665602e4350a3d52e9dd64fd48bd400a8c26dae896d3398bb22dc7"
+      },
+      "updates": 1489,
+      "first_source_ms": 1787895299695,
+      "last_source_ms": 1787895600690,
+      "max_source_gap_ms": 526
+     },
+     {
+      "market_id": 1762556,
+      "window_start_ms": 1787895000000,
+      "window_end_ms": 1787895300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762556.json.xz",
+       "bytes": 528124,
+       "sha256": "cbaa3b5b9828152284e10614167e41b48325eabf96d517486ea3e5a1748e9942"
+      },
+      "updates": 1476,
+      "first_source_ms": 1787894999423,
+      "last_source_ms": 1787895299387,
+      "max_source_gap_ms": 1125
+     },
+     {
+      "market_id": 1762546,
+      "window_start_ms": 1787894700000,
+      "window_end_ms": 1787895000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762546.json.xz",
+       "bytes": 464680,
+       "sha256": "6ed4a485e738c9a9c40b6ad1f9283369b7de9edb287f9bd855ce7171a904af4a"
+      },
+      "updates": 1472,
+      "first_source_ms": 1787894700286,
+      "last_source_ms": 1787894999098,
+      "max_source_gap_ms": 518
+     },
+     {
+      "market_id": 1762543,
+      "window_start_ms": 1787894400000,
+      "window_end_ms": 1787894700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762543.json.xz",
+       "bytes": 392232,
+       "sha256": "bba6da9e5724e189d73fc9d031bf96f56fe667982938b295d325674816a15aaf"
+      },
+      "updates": 1464,
+      "first_source_ms": 1787894399888,
+      "last_source_ms": 1787894699871,
+      "max_source_gap_ms": 755
+     },
+     {
+      "market_id": 1762169,
+      "window_start_ms": 1787894100000,
+      "window_end_ms": 1787894400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762169.json.xz",
+       "bytes": 456308,
+       "sha256": "c4eed39625c235c1f0f907fcc68e74bc201c1eec6a8898dab9f35681c845fbf4"
+      },
+      "updates": 1484,
+      "first_source_ms": 1787894099523,
+      "last_source_ms": 1787894399551,
+      "max_source_gap_ms": 687
+     },
+     {
+      "market_id": 1762151,
+      "window_start_ms": 1787893800000,
+      "window_end_ms": 1787894100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762151.json.xz",
+       "bytes": 423608,
+       "sha256": "cedd2ac41be19883b81284a935d7149b65af43b405e1141079d365e0390e54b7"
+      },
+      "updates": 1443,
+      "first_source_ms": 1787893799385,
+      "last_source_ms": 1787894099166,
+      "max_source_gap_ms": 2742
+     },
+     {
+      "market_id": 1762148,
+      "window_start_ms": 1787893500000,
+      "window_end_ms": 1787893800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762148.json.xz",
+       "bytes": 316832,
+       "sha256": "2d148d31b8a753d3d40854e69bc921c9812c996f30a879e68642a2c96c050083"
+      },
+      "updates": 1215,
+      "first_source_ms": 1787893500157,
+      "last_source_ms": 1787893798897,
+      "max_source_gap_ms": 3927
+     },
+     {
+      "market_id": 1762046,
+      "window_start_ms": 1787892900000,
+      "window_end_ms": 1787893200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1762046.json.xz",
+       "bytes": 514752,
+       "sha256": "7922a7045cbc42cb93f56c3c3920b6b7c6cd95939874c06e7752910c188a16ba"
+      },
+      "updates": 1487,
+      "first_source_ms": 1787892899643,
+      "last_source_ms": 1787893199672,
+      "max_source_gap_ms": 677
+     },
+     {
+      "market_id": 1761700,
+      "window_start_ms": 1787892600000,
+      "window_end_ms": 1787892900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1761700.json.xz",
+       "bytes": 370796,
+       "sha256": "c067facffe0b33a9232bd31966dd333f59658da746af5dd40ee98f6fcbf33a65"
+      },
+      "updates": 1437,
+      "first_source_ms": 1787892599674,
+      "last_source_ms": 1787892899308,
+      "max_source_gap_ms": 1141
+     },
+     {
+      "market_id": 1761689,
+      "window_start_ms": 1787892300000,
+      "window_end_ms": 1787892600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1761689.json.xz",
+       "bytes": 473164,
+       "sha256": "c63ff7b3baa240901b0a601bc7fb1da56cb5a37b963d1efac5a3833191e0b4f3"
+      },
+      "updates": 1409,
+      "first_source_ms": 1787892299574,
+      "last_source_ms": 1787892599376,
+      "max_source_gap_ms": 4875
+     },
+     {
+      "market_id": 1761257,
+      "window_start_ms": 1787892000000,
+      "window_end_ms": 1787892300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1761257.json.xz",
+       "bytes": 297264,
+       "sha256": "dfac25dd77bb6ca426b71f13c6594a9f598b3f238ff3b139c23aa8609d676caa"
+      },
+      "updates": 1242,
+      "first_source_ms": 1787891999893,
+      "last_source_ms": 1787892299200,
+      "max_source_gap_ms": 4863
+     },
+     {
+      "market_id": 1761254,
+      "window_start_ms": 1787891700000,
+      "window_end_ms": 1787892000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1761254.json.xz",
+       "bytes": 377380,
+       "sha256": "0125e950caa3ee5955421b91bc41c0ed7aefdc683ffff7aaad04dafbf20697bc"
+      },
+      "updates": 1366,
+      "first_source_ms": 1787891699443,
+      "last_source_ms": 1787891999684,
+      "max_source_gap_ms": 2035
+     },
+     {
+      "market_id": 1761174,
+      "window_start_ms": 1787891400000,
+      "window_end_ms": 1787891700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1761174.json.xz",
+       "bytes": 379344,
+       "sha256": "bdf5f354b8ca73a513d60ece5c93767b7e687e80441bedabd0ce07000da31afb"
+      },
+      "updates": 1274,
+      "first_source_ms": 1787891400157,
+      "last_source_ms": 1787891699555,
+      "max_source_gap_ms": 3355
+     },
+     {
+      "market_id": 1761148,
+      "window_start_ms": 1787891100000,
+      "window_end_ms": 1787891400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1761148.json.xz",
+       "bytes": 367708,
+       "sha256": "e8ffcc1d1e618a10b785747a883678fcad4488fa0ad71671a016982e7949282a"
+      },
+      "updates": 1439,
+      "first_source_ms": 1787891099148,
+      "last_source_ms": 1787891399652,
+      "max_source_gap_ms": 1984
+     },
+     {
+      "market_id": 1761143,
+      "window_start_ms": 1787890800000,
+      "window_end_ms": 1787891100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1761143.json.xz",
+       "bytes": 471540,
+       "sha256": "218eb7aa10f618685890bae365dad2bd8f474bd54cb54db1f8405452a7d5c347"
+      },
+      "updates": 1405,
+      "first_source_ms": 1787890799939,
+      "last_source_ms": 1787891099572,
+      "max_source_gap_ms": 2232
+     },
+     {
+      "market_id": 1760935,
+      "window_start_ms": 1787889900000,
+      "window_end_ms": 1787890200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760935.json.xz",
+       "bytes": 441152,
+       "sha256": "06e4f59bf2aec1fcf3f32728e055db157e650c0aa56334193911c0e749172d8f"
+      },
+      "updates": 1275,
+      "first_source_ms": 1787889899559,
+      "last_source_ms": 1787890199319,
+      "max_source_gap_ms": 4673
+     },
+     {
+      "market_id": 1760933,
+      "window_start_ms": 1787889600000,
+      "window_end_ms": 1787889900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760933.json.xz",
+       "bytes": 515948,
+       "sha256": "6285c3917304bdd0e7eac2a9e8bcc2faf24bcdbc3872b0059958bf5d75de4bd5"
+      },
+      "updates": 1485,
+      "first_source_ms": 1787889599923,
+      "last_source_ms": 1787889899144,
+      "max_source_gap_ms": 605
+     },
+     {
+      "market_id": 1760842,
+      "window_start_ms": 1787889300000,
+      "window_end_ms": 1787889600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760842.json.xz",
+       "bytes": 415984,
+       "sha256": "b9a269c396e65dbc50b9770d8611fbb0c1b5968d3efeb20689d47beecf9d8c4e"
+      },
+      "updates": 1484,
+      "first_source_ms": 1787889299655,
+      "last_source_ms": 1787889599603,
+      "max_source_gap_ms": 683
+     },
+     {
+      "market_id": 1760569,
+      "window_start_ms": 1787889000000,
+      "window_end_ms": 1787889300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760569.json.xz",
+       "bytes": 494948,
+       "sha256": "2046b51579e9cf9edb368f3d372673b6f4d62a3cc1cc3210a0617bd1c5d9a7f3"
+      },
+      "updates": 1485,
+      "first_source_ms": 1787888999549,
+      "last_source_ms": 1787889299763,
+      "max_source_gap_ms": 538
+     },
+     {
+      "market_id": 1760568,
+      "window_start_ms": 1787888700000,
+      "window_end_ms": 1787889000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760568.json.xz",
+       "bytes": 479536,
+       "sha256": "bbd575db68b1c4ac93c466e31faa97d6aae5894a1b4fff7189ccf77a86e378fb"
+      },
+      "updates": 1486,
+      "first_source_ms": 1787888699755,
+      "last_source_ms": 1787888999023,
+      "max_source_gap_ms": 804
+     },
+     {
+      "market_id": 1760558,
+      "window_start_ms": 1787888400000,
+      "window_end_ms": 1787888700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760558.json.xz",
+       "bytes": 475812,
+       "sha256": "a680e22adefcf19d2bffe04b8b8493ab5fa024196e4ec96f9ea5358b8c3f46a7"
+      },
+      "updates": 1454,
+      "first_source_ms": 1787888399526,
+      "last_source_ms": 1787888699540,
+      "max_source_gap_ms": 1396
+     },
+     {
+      "market_id": 1760349,
+      "window_start_ms": 1787888100000,
+      "window_end_ms": 1787888400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760349.json.xz",
+       "bytes": 420172,
+       "sha256": "8a49104b876eba9c2365095888e3998667358e199ed16afd7628e6e75918e728"
+      },
+      "updates": 1359,
+      "first_source_ms": 1787888099393,
+      "last_source_ms": 1787888398953,
+      "max_source_gap_ms": 2570
+     },
+     {
+      "market_id": 1760247,
+      "window_start_ms": 1787887800000,
+      "window_end_ms": 1787888100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760247.json.xz",
+       "bytes": 558052,
+       "sha256": "c706c1616b1eff3db4d0a8613adb84182181b68c3e31cd75384316015e348167"
+      },
+      "updates": 1489,
+      "first_source_ms": 1787887799619,
+      "last_source_ms": 1787888099381,
+      "max_source_gap_ms": 472
+     },
+     {
+      "market_id": 1760237,
+      "window_start_ms": 1787887500000,
+      "window_end_ms": 1787887800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760237.json.xz",
+       "bytes": 323660,
+       "sha256": "0db307ac66b6b80c2d501e24482ab05aa292c46da0cd6b926a99d81d788911f5"
+      },
+      "updates": 1218,
+      "first_source_ms": 1787887499695,
+      "last_source_ms": 1787887799333,
+      "max_source_gap_ms": 5000
+     },
+     {
+      "market_id": 1760202,
+      "window_start_ms": 1787887200000,
+      "window_end_ms": 1787887500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760202.json.xz",
+       "bytes": 505532,
+       "sha256": "b8a4a0b1e6a389aa28d70961999e835a01807e5f5861ef4eb531fac5ee8c6d6c"
+      },
+      "updates": 1457,
+      "first_source_ms": 1787887199918,
+      "last_source_ms": 1787887499754,
+      "max_source_gap_ms": 1572
+     },
+     {
+      "market_id": 1760201,
+      "window_start_ms": 1787886900000,
+      "window_end_ms": 1787887200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760201.json.xz",
+       "bytes": 371540,
+       "sha256": "7562e45201d2bdf3a27d77289862d25f874b6e18699eba3e2b520397c40fc93d"
+      },
+      "updates": 1310,
+      "first_source_ms": 1787886899178,
+      "last_source_ms": 1787887199595,
+      "max_source_gap_ms": 3755
+     },
+     {
+      "market_id": 1760191,
+      "window_start_ms": 1787886600000,
+      "window_end_ms": 1787886900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760191.json.xz",
+       "bytes": 378524,
+       "sha256": "2cebfc90e51a1a3b0250922170328e0d0fc2c40011743d277a3dfa2b7f4defa3"
+      },
+      "updates": 1338,
+      "first_source_ms": 1787886599757,
+      "last_source_ms": 1787886899156,
+      "max_source_gap_ms": 1220
+     },
+     {
+      "market_id": 1760156,
+      "window_start_ms": 1787886300000,
+      "window_end_ms": 1787886600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760156.json.xz",
+       "bytes": 548948,
+       "sha256": "2ec872d266f9edc0f9cc4a34f3288d43800c61e80d86031ad9cb43458d782d77"
+      },
+      "updates": 1440,
+      "first_source_ms": 1787886300070,
+      "last_source_ms": 1787886599469,
+      "max_source_gap_ms": 1424
+     },
+     {
+      "market_id": 1760154,
+      "window_start_ms": 1787886000000,
+      "window_end_ms": 1787886300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760154.json.xz",
+       "bytes": 421072,
+       "sha256": "d110060dd20848da665762ca8e0dc33e46c9a29afe3088f26c8e6c95a4b85f02"
+      },
+      "updates": 1423,
+      "first_source_ms": 1787885999628,
+      "last_source_ms": 1787886299856,
+      "max_source_gap_ms": 1680
+     },
+     {
+      "market_id": 1760087,
+      "window_start_ms": 1787885700000,
+      "window_end_ms": 1787886000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760087.json.xz",
+       "bytes": 575140,
+       "sha256": "4f6831c6d6530c931f5534f2dc6ce1ed9a33f2e2ae9c5d2609405ac664d163a8"
+      },
+      "updates": 1489,
+      "first_source_ms": 1787885699864,
+      "last_source_ms": 1787885999256,
+      "max_source_gap_ms": 595
+     },
+     {
+      "market_id": 1760083,
+      "window_start_ms": 1787885400000,
+      "window_end_ms": 1787885700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760083.json.xz",
+       "bytes": 621668,
+       "sha256": "20a2182a353063c625b5fa367b6d24106ef02f70519bb5874b4e091ce01e8687"
+      },
+      "updates": 1497,
+      "first_source_ms": 1787885399327,
+      "last_source_ms": 1787885699818,
+      "max_source_gap_ms": 471
+     },
+     {
+      "market_id": 1760051,
+      "window_start_ms": 1787885100000,
+      "window_end_ms": 1787885400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760051.json.xz",
+       "bytes": 345072,
+       "sha256": "a1d8662bea0e58be809d333c88ae0a51f87ce1fbaa7e8e7102bd9e5b3a3aaecd"
+      },
+      "updates": 1292,
+      "first_source_ms": 1787885099624,
+      "last_source_ms": 1787885399237,
+      "max_source_gap_ms": 4516
+     },
+     {
+      "market_id": 1760041,
+      "window_start_ms": 1787884800000,
+      "window_end_ms": 1787885100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1760041.json.xz",
+       "bytes": 527272,
+       "sha256": "d65c9c5ac5aa774f7abfed48d2aa4633dd55ce91356916b3e92ad2478580ddae"
+      },
+      "updates": 1449,
+      "first_source_ms": 1787884799530,
+      "last_source_ms": 1787885099363,
+      "max_source_gap_ms": 3967
+     },
+     {
+      "market_id": 1759881,
+      "window_start_ms": 1787884500000,
+      "window_end_ms": 1787884800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759881.json.xz",
+       "bytes": 534416,
+       "sha256": "f73d3755ad86da35763ccf01a153c9f571b2b9fdb121764e0f0ed49915a419c5"
+      },
+      "updates": 1477,
+      "first_source_ms": 1787884499796,
+      "last_source_ms": 1787884799590,
+      "max_source_gap_ms": 627
+     },
+     {
+      "market_id": 1759835,
+      "window_start_ms": 1787884200000,
+      "window_end_ms": 1787884500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759835.json.xz",
+       "bytes": 595192,
+       "sha256": "3a1aac2b88c32e88f18d81479a1ec834c2354e0ecfedb9ee247b2b9dab408323"
+      },
+      "updates": 1432,
+      "first_source_ms": 1787884200063,
+      "last_source_ms": 1787884499298,
+      "max_source_gap_ms": 2007
+     },
+     {
+      "market_id": 1759816,
+      "window_start_ms": 1787883900000,
+      "window_end_ms": 1787884200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759816.json.xz",
+       "bytes": 604864,
+       "sha256": "02f1f242c1468547885951b7955fa44ce279aebed72b58261251299856596603"
+      },
+      "updates": 1376,
+      "first_source_ms": 1787883899817,
+      "last_source_ms": 1787884199849,
+      "max_source_gap_ms": 2520
+     },
+     {
+      "market_id": 1759811,
+      "window_start_ms": 1787883600000,
+      "window_end_ms": 1787883900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759811.json.xz",
+       "bytes": 555176,
+       "sha256": "54f9c755002d1d7d6fc5ab61e6a8cb5fc2d7c38458dd837b3471aed765854821"
+      },
+      "updates": 1441,
+      "first_source_ms": 1787883599680,
+      "last_source_ms": 1787883899552,
+      "max_source_gap_ms": 2490
+     },
+     {
+      "market_id": 1759810,
+      "window_start_ms": 1787883300000,
+      "window_end_ms": 1787883600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759810.json.xz",
+       "bytes": 547356,
+       "sha256": "d300c644ffb69335b7892a71b38f4b8e2bd10ae2652caab8690f70bafe933038"
+      },
+      "updates": 1309,
+      "first_source_ms": 1787883300116,
+      "last_source_ms": 1787883599304,
+      "max_source_gap_ms": 4786
+     },
+     {
+      "market_id": 1759782,
+      "window_start_ms": 1787883000000,
+      "window_end_ms": 1787883300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759782.json.xz",
+       "bytes": 438500,
+       "sha256": "00260cd9d5967597c399619637c49f92ff0346ab5e1bfd65f242c1dd178c17aa"
+      },
+      "updates": 1372,
+      "first_source_ms": 1787882999246,
+      "last_source_ms": 1787883299698,
+      "max_source_gap_ms": 1641
+     },
+     {
+      "market_id": 1759778,
+      "window_start_ms": 1787882700000,
+      "window_end_ms": 1787883000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759778.json.xz",
+       "bytes": 598120,
+       "sha256": "db400bbbeb118f06e9e798bb21b9efe84132aac5a7f2923e346de78d3eafd55a"
+      },
+      "updates": 1495,
+      "first_source_ms": 1787882699562,
+      "last_source_ms": 1787882999153,
+      "max_source_gap_ms": 394
+     },
+     {
+      "market_id": 1759733,
+      "window_start_ms": 1787882400000,
+      "window_end_ms": 1787882700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759733.json.xz",
+       "bytes": 466212,
+       "sha256": "04155220e427ff3492f6ee7b3805cbe166246fc1c04837655370f94cbcc2c193"
+      },
+      "updates": 1343,
+      "first_source_ms": 1787882399992,
+      "last_source_ms": 1787882699389,
+      "max_source_gap_ms": 3770
+     },
+     {
+      "market_id": 1759699,
+      "window_start_ms": 1787882100000,
+      "window_end_ms": 1787882400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759699.json.xz",
+       "bytes": 435080,
+       "sha256": "356cce4dcc3e3e12e5ea3ae10faf988741278cd8dbab0c9bb19f31be2b62ea94"
+      },
+      "updates": 1394,
+      "first_source_ms": 1787882099598,
+      "last_source_ms": 1787882399490,
+      "max_source_gap_ms": 2157
+     },
+     {
+      "market_id": 1759321,
+      "window_start_ms": 1787881800000,
+      "window_end_ms": 1787882100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759321.json.xz",
+       "bytes": 456920,
+       "sha256": "8f41a168c198238d69e3e02030f8a8dc9633e36af3a3a44e4cdeeeae93f0913f"
+      },
+      "updates": 1364,
+      "first_source_ms": 1787881800185,
+      "last_source_ms": 1787882099384,
+      "max_source_gap_ms": 4757
+     },
+     {
+      "market_id": 1759301,
+      "window_start_ms": 1787881500000,
+      "window_end_ms": 1787881800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759301.json.xz",
+       "bytes": 497336,
+       "sha256": "49faa958100914a031beb320bff39d7516be41776b94b470deff9b6a104b2e19"
+      },
+      "updates": 1382,
+      "first_source_ms": 1787881499838,
+      "last_source_ms": 1787881799804,
+      "max_source_gap_ms": 2928
+     },
+     {
+      "market_id": 1759293,
+      "window_start_ms": 1787881200000,
+      "window_end_ms": 1787881500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1759293.json.xz",
+       "bytes": 571120,
+       "sha256": "349f7bdf1649cb08864cbfe742a9d5f38588f63d50a07d20f55b6690875257b2"
+      },
+      "updates": 1491,
+      "first_source_ms": 1787881200416,
+      "last_source_ms": 1787881499382,
+      "max_source_gap_ms": 504
+     },
+     {
+      "market_id": 1758937,
+      "window_start_ms": 1787880900000,
+      "window_end_ms": 1787881200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1758937.json.xz",
+       "bytes": 445336,
+       "sha256": "21cd508ec5aa60134b51611f3dfbeaff15e780f46c57575764df2167e441d436"
+      },
+      "updates": 1221,
+      "first_source_ms": 1787880899826,
+      "last_source_ms": 1787881199686,
+      "max_source_gap_ms": 2625
+     },
+     {
+      "market_id": 1758924,
+      "window_start_ms": 1787880600000,
+      "window_end_ms": 1787880900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1758924.json.xz",
+       "bytes": 637144,
+       "sha256": "f217f206081f0539b5e15e1cd4f6aaecb4cf5f1dd346323e9600de6f97afdb2a"
+      },
+      "updates": 1498,
+      "first_source_ms": 1787880599743,
+      "last_source_ms": 1787880899582,
+      "max_source_gap_ms": 445
+     },
+     {
+      "market_id": 1758914,
+      "window_start_ms": 1787880300000,
+      "window_end_ms": 1787880600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1758914.json.xz",
+       "bytes": 509480,
+       "sha256": "2a36a5127e9ab4e13df97bdf68d58c8722f4daa2e9959b1c1f0277bc0b9d3c6c"
+      },
+      "updates": 1400,
+      "first_source_ms": 1787880299578,
+      "last_source_ms": 1787880599564,
+      "max_source_gap_ms": 3168
+     },
+     {
+      "market_id": 1758862,
+      "window_start_ms": 1787880000000,
+      "window_end_ms": 1787880300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1758862.json.xz",
+       "bytes": 569264,
+       "sha256": "5acbade5e520bc5116d58e74df1fca2fab5e28c824b0fc908d9c2b96669ee952"
+      },
+      "updates": 1478,
+      "first_source_ms": 1787879999770,
+      "last_source_ms": 1787880299373,
+      "max_source_gap_ms": 673
+     },
+     {
+      "market_id": 1758844,
+      "window_start_ms": 1787879400000,
+      "window_end_ms": 1787879700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1758844.json.xz",
+       "bytes": 545328,
+       "sha256": "cee3a20d7c07bce64108d6bfd9102960950d4e5747be086dcd8741b0b8ec4fac"
+      },
+      "updates": 1484,
+      "first_source_ms": 1787879400486,
+      "last_source_ms": 1787879699474,
+      "max_source_gap_ms": 641
+     },
+     {
+      "market_id": 1758697,
+      "window_start_ms": 1787879100000,
+      "window_end_ms": 1787879400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1758697.json.xz",
+       "bytes": 453840,
+       "sha256": "961d840b11f9d1a47fd3bcfea05813c51eda86c0a75854bc6c8ef0e88a84b693"
+      },
+      "updates": 1494,
+      "first_source_ms": 1787879099467,
+      "last_source_ms": 1787879400071,
+      "max_source_gap_ms": 605
+     },
+     {
+      "market_id": 1757532,
+      "window_start_ms": 1787878800000,
+      "window_end_ms": 1787879100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1757532.json.xz",
+       "bytes": 324352,
+       "sha256": "9416b9d06db9ba2f6c2a3ee05a9045266646ad4dc77a4b82dd69d2e34538fe86"
+      },
+      "updates": 1206,
+      "first_source_ms": 1787878799655,
+      "last_source_ms": 1787879099292,
+      "max_source_gap_ms": 3043
+     },
+     {
+      "market_id": 1756979,
+      "window_start_ms": 1787878500000,
+      "window_end_ms": 1787878800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1756979.json.xz",
+       "bytes": 311032,
+       "sha256": "96418e6a336ff5844368863e0afd4bb18a2ffd70b65a1f90fd9cb0f821d866e5"
+      },
+      "updates": 1131,
+      "first_source_ms": 1787878499302,
+      "last_source_ms": 1787878799565,
+      "max_source_gap_ms": 3462
+     },
+     {
+      "market_id": 1755736,
+      "window_start_ms": 1787878200000,
+      "window_end_ms": 1787878500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1755736.json.xz",
+       "bytes": 441756,
+       "sha256": "f9690fd514bcbdd6025264dbeb91100fe93a7bbf15c911c0ab7defcee7651a48"
+      },
+      "updates": 1470,
+      "first_source_ms": 1787878200178,
+      "last_source_ms": 1787878499363,
+      "max_source_gap_ms": 703
+     },
+     {
+      "market_id": 1755732,
+      "window_start_ms": 1787877900000,
+      "window_end_ms": 1787878200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1755732.json.xz",
+       "bytes": 426032,
+       "sha256": "9a3341fde1b21ce29d680b38d0cffc087ceb1801e17411f797982ed79e72f472"
+      },
+      "updates": 1489,
+      "first_source_ms": 1787877899949,
+      "last_source_ms": 1787878199777,
+      "max_source_gap_ms": 549
+     },
+     {
+      "market_id": 1754256,
+      "window_start_ms": 1787877600000,
+      "window_end_ms": 1787877900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1754256.json.xz",
+       "bytes": 269872,
+       "sha256": "4bf292f248966365abc14e30eccf76d0a652859fd6793e3b33665bee7fda93b3"
+      },
+      "updates": 1248,
+      "first_source_ms": 1787877600139,
+      "last_source_ms": 1787877899513,
+      "max_source_gap_ms": 4339
+     },
+     {
+      "market_id": 1754248,
+      "window_start_ms": 1787877300000,
+      "window_end_ms": 1787877600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1754248.json.xz",
+       "bytes": 483812,
+       "sha256": "84105c61b3d9e58f077cf62c878f4dfa1b0e52ca46ec43bb6137f0334d897178"
+      },
+      "updates": 1477,
+      "first_source_ms": 1787877299980,
+      "last_source_ms": 1787877599758,
+      "max_source_gap_ms": 1068
+     },
+     {
+      "market_id": 1754247,
+      "window_start_ms": 1787877000000,
+      "window_end_ms": 1787877300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1754247.json.xz",
+       "bytes": 523912,
+       "sha256": "d7a183bf37b2e53088c543d05d5f99e102e4e04c19c21a8b2e61dcb3fffdee0f"
+      },
+      "updates": 1485,
+      "first_source_ms": 1787877000162,
+      "last_source_ms": 1787877299551,
+      "max_source_gap_ms": 474
+     },
+     {
+      "market_id": 1753614,
+      "window_start_ms": 1787876700000,
+      "window_end_ms": 1787877000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1753614.json.xz",
+       "bytes": 551404,
+       "sha256": "078e265dc424fb05bdaa1218a9b85f94110b06fc6c435aa1ddbbe1045f91a049"
+      },
+      "updates": 1482,
+      "first_source_ms": 1787876699577,
+      "last_source_ms": 1787876999780,
+      "max_source_gap_ms": 770
+     },
+     {
+      "market_id": 1753609,
+      "window_start_ms": 1787876400000,
+      "window_end_ms": 1787876700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1753609.json.xz",
+       "bytes": 442424,
+       "sha256": "d37cc01c065f188cf62970ae98aef87748b77a64cfe50a976930f998f2fed2d1"
+      },
+      "updates": 1483,
+      "first_source_ms": 1787876399926,
+      "last_source_ms": 1787876699157,
+      "max_source_gap_ms": 515
+     },
+     {
+      "market_id": 1753446,
+      "window_start_ms": 1787875800000,
+      "window_end_ms": 1787876100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1753446.json.xz",
+       "bytes": 278972,
+       "sha256": "f77725b8ec264f8d372629d74d772a34dea5851242c2f8587c216d54d6a91888"
+      },
+      "updates": 1269,
+      "first_source_ms": 1787875799379,
+      "last_source_ms": 1787876099388,
+      "max_source_gap_ms": 3181
+     },
+     {
+      "market_id": 1753398,
+      "window_start_ms": 1787875500000,
+      "window_end_ms": 1787875800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1753398.json.xz",
+       "bytes": 451244,
+       "sha256": "905e18a3e216b8d8110efb19c7b038b37b344077366bedd90534f1ef20fcd4d9"
+      },
+      "updates": 1481,
+      "first_source_ms": 1787875500271,
+      "last_source_ms": 1787875799288,
+      "max_source_gap_ms": 503
+     },
+     {
+      "market_id": 1753396,
+      "window_start_ms": 1787875200000,
+      "window_end_ms": 1787875500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1753396.json.xz",
+       "bytes": 327128,
+       "sha256": "c1127b81544eddfc427f6923957cb8d9873968f790859857877a7d70ed2d7044"
+      },
+      "updates": 1294,
+      "first_source_ms": 1787875200005,
+      "last_source_ms": 1787875499988,
+      "max_source_gap_ms": 2473
+     },
+     {
+      "market_id": 1752973,
+      "window_start_ms": 1787874900000,
+      "window_end_ms": 1787875200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752973.json.xz",
+       "bytes": 332568,
+       "sha256": "32feee23831355aebeb3d404bf1149c1293dbee13111824b7bcf567144105438"
+      },
+      "updates": 1397,
+      "first_source_ms": 1787874900083,
+      "last_source_ms": 1787875199688,
+      "max_source_gap_ms": 2418
+     },
+     {
+      "market_id": 1752970,
+      "window_start_ms": 1787874600000,
+      "window_end_ms": 1787874900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752970.json.xz",
+       "bytes": 333888,
+       "sha256": "8421ee291c8a71acf1b725834c94b0ae61e86f0ff9428499ba563e20edf2fcdc"
+      },
+      "updates": 1398,
+      "first_source_ms": 1787874600064,
+      "last_source_ms": 1787874899686,
+      "max_source_gap_ms": 1499
+     },
+     {
+      "market_id": 1752905,
+      "window_start_ms": 1787874300000,
+      "window_end_ms": 1787874600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752905.json.xz",
+       "bytes": 381224,
+       "sha256": "9d87f76fdb1fe49c9b10b67c1a29e0aad7d69eb6f333f0185b91158cf7bd86dc"
+      },
+      "updates": 1471,
+      "first_source_ms": 1787874299292,
+      "last_source_ms": 1787874599750,
+      "max_source_gap_ms": 862
+     },
+     {
+      "market_id": 1752895,
+      "window_start_ms": 1787874000000,
+      "window_end_ms": 1787874300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752895.json.xz",
+       "bytes": 414028,
+       "sha256": "2b577b1f38225746da1153e6444cd78b591256f3165cd4e4cf0406094e9b1b80"
+      },
+      "updates": 1461,
+      "first_source_ms": 1787873999885,
+      "last_source_ms": 1787874299303,
+      "max_source_gap_ms": 672
+     },
+     {
+      "market_id": 1752845,
+      "window_start_ms": 1787873700000,
+      "window_end_ms": 1787874000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752845.json.xz",
+       "bytes": 414188,
+       "sha256": "b405b2398b8a4626c1e5bb7106de796addea07d920a715dee8fb03aedc3f7b2a"
+      },
+      "updates": 1475,
+      "first_source_ms": 1787873700317,
+      "last_source_ms": 1787873999483,
+      "max_source_gap_ms": 608
+     },
+     {
+      "market_id": 1752837,
+      "window_start_ms": 1787873400000,
+      "window_end_ms": 1787873700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752837.json.xz",
+       "bytes": 361740,
+       "sha256": "0424f8c8e92ebbe9b472d7e7b8d52f31358aeec1a686a33727b66fba5eeb7ad9"
+      },
+      "updates": 1449,
+      "first_source_ms": 1787873399644,
+      "last_source_ms": 1787873699592,
+      "max_source_gap_ms": 1731
+     },
+     {
+      "market_id": 1752827,
+      "window_start_ms": 1787873100000,
+      "window_end_ms": 1787873400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752827.json.xz",
+       "bytes": 347636,
+       "sha256": "36e93de7372bd50ecfa63f70a3f78c095d07db71f9e194efdca43fea22872757"
+      },
+      "updates": 1432,
+      "first_source_ms": 1787873100175,
+      "last_source_ms": 1787873399568,
+      "max_source_gap_ms": 873
+     },
+     {
+      "market_id": 1752824,
+      "window_start_ms": 1787872800000,
+      "window_end_ms": 1787873100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752824.json.xz",
+       "bytes": 376524,
+       "sha256": "a562d2448bc59c9a98bace83a7610ce5111a875060825c18a327518e5549a596"
+      },
+      "updates": 1286,
+      "first_source_ms": 1787872799668,
+      "last_source_ms": 1787873099692,
+      "max_source_gap_ms": 3361
+     },
+     {
+      "market_id": 1752632,
+      "window_start_ms": 1787872500000,
+      "window_end_ms": 1787872800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752632.json.xz",
+       "bytes": 325664,
+       "sha256": "c87deb3abc24b5a9b91bd3ed979aa62a3d6faf1d0ff39116156da2c7d85d14f4"
+      },
+      "updates": 1269,
+      "first_source_ms": 1787872500015,
+      "last_source_ms": 1787872799817,
+      "max_source_gap_ms": 2493
+     },
+     {
+      "market_id": 1752570,
+      "window_start_ms": 1787872200000,
+      "window_end_ms": 1787872500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752570.json.xz",
+       "bytes": 449164,
+       "sha256": "fa59171a64c530dfa218dde8b5e711784ae33cca14d537150db8dafdd5c6fb6d"
+      },
+      "updates": 1475,
+      "first_source_ms": 1787872199595,
+      "last_source_ms": 1787872499681,
+      "max_source_gap_ms": 554
+     },
+     {
+      "market_id": 1752534,
+      "window_start_ms": 1787871900000,
+      "window_end_ms": 1787872200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752534.json.xz",
+       "bytes": 418956,
+       "sha256": "41e8051acece385ea8d6686668074a4642188150b9c58ab6ed1372338bf98127"
+      },
+      "updates": 1472,
+      "first_source_ms": 1787871899951,
+      "last_source_ms": 1787872199382,
+      "max_source_gap_ms": 749
+     },
+     {
+      "market_id": 1752532,
+      "window_start_ms": 1787871600000,
+      "window_end_ms": 1787871900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752532.json.xz",
+       "bytes": 368388,
+       "sha256": "1597fda432ca0c7c03ef6a576e6beb7840a909fcab40c1313f40259a8e2ff557"
+      },
+      "updates": 1441,
+      "first_source_ms": 1787871599677,
+      "last_source_ms": 1787871899549,
+      "max_source_gap_ms": 1491
+     },
+     {
+      "market_id": 1752508,
+      "window_start_ms": 1787871300000,
+      "window_end_ms": 1787871600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752508.json.xz",
+       "bytes": 327944,
+       "sha256": "c2febd68294d8982b44379d4b750943f31944419f92f5adea23a15f50e86d8a1"
+      },
+      "updates": 1357,
+      "first_source_ms": 1787871300172,
+      "last_source_ms": 1787871599391,
+      "max_source_gap_ms": 3207
+     },
+     {
+      "market_id": 1752428,
+      "window_start_ms": 1787871000000,
+      "window_end_ms": 1787871300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752428.json.xz",
+       "bytes": 418912,
+       "sha256": "1c72b6b81e0f91fa2eace32dde610da6280b2c1d122bdf4acb760bcb233a5ee6"
+      },
+      "updates": 1477,
+      "first_source_ms": 1787870999808,
+      "last_source_ms": 1787871299810,
+      "max_source_gap_ms": 744
+     },
+     {
+      "market_id": 1752096,
+      "window_start_ms": 1787870700000,
+      "window_end_ms": 1787871000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752096.json.xz",
+       "bytes": 326120,
+       "sha256": "2774ae25313671fd08d083bb2771db52cb1b6683152450c3bc5c7e1e3b974780"
+      },
+      "updates": 1425,
+      "first_source_ms": 1787870699674,
+      "last_source_ms": 1787870999353,
+      "max_source_gap_ms": 2026
+     },
+     {
+      "market_id": 1752053,
+      "window_start_ms": 1787870400000,
+      "window_end_ms": 1787870700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752053.json.xz",
+       "bytes": 454452,
+       "sha256": "2ea2d27ad3697e003e86086eabc7ab0a348f86d0836c9507aa7ec358fa371f6c"
+      },
+      "updates": 1483,
+      "first_source_ms": 1787870399767,
+      "last_source_ms": 1787870699398,
+      "max_source_gap_ms": 544
+     },
+     {
+      "market_id": 1752050,
+      "window_start_ms": 1787870100000,
+      "window_end_ms": 1787870400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1752050.json.xz",
+       "bytes": 273324,
+       "sha256": "a242ba616904530f5c7370c89f082479298fa8a80d3ea81e5a909b2f6752774a"
+      },
+      "updates": 1326,
+      "first_source_ms": 1787870100109,
+      "last_source_ms": 1787870399499,
+      "max_source_gap_ms": 1902
+     },
+     {
+      "market_id": 1751994,
+      "window_start_ms": 1787869800000,
+      "window_end_ms": 1787870100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1751994.json.xz",
+       "bytes": 413856,
+       "sha256": "973fb3fc7c606b07c098a7fffb9bbb20e5e3e3669b76358a9a1fc389b718a36c"
+      },
+      "updates": 1466,
+      "first_source_ms": 1787869799505,
+      "last_source_ms": 1787870099848,
+      "max_source_gap_ms": 1169
+     },
+     {
+      "market_id": 1751983,
+      "window_start_ms": 1787869500000,
+      "window_end_ms": 1787869800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1751983.json.xz",
+       "bytes": 312016,
+       "sha256": "179854deae41944bd87349a4bac59f2409af0a4f5fad6d288baa28105fa2458a"
+      },
+      "updates": 1275,
+      "first_source_ms": 1787869500174,
+      "last_source_ms": 1787869799153,
+      "max_source_gap_ms": 3015
+     },
+     {
+      "market_id": 1751961,
+      "window_start_ms": 1787869200000,
+      "window_end_ms": 1787869500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1751961.json.xz",
+       "bytes": 455020,
+       "sha256": "fa2744eabc014d0d4be48e7ee276e405d75b234366cf1a39d531c9e9fb77ddd2"
+      },
+      "updates": 1462,
+      "first_source_ms": 1787869200074,
+      "last_source_ms": 1787869499860,
+      "max_source_gap_ms": 1400
+     },
+     {
+      "market_id": 1751333,
+      "window_start_ms": 1787868600000,
+      "window_end_ms": 1787868900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1751333.json.xz",
+       "bytes": 443388,
+       "sha256": "515c4b7c7dd503a79aa7f58e84913ad391f03ee7c594b6e1ba958d9e7034f36c"
+      },
+      "updates": 1479,
+      "first_source_ms": 1787868599617,
+      "last_source_ms": 1787868899805,
+      "max_source_gap_ms": 594
+     },
+     {
+      "market_id": 1751324,
+      "window_start_ms": 1787868300000,
+      "window_end_ms": 1787868600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1751324.json.xz",
+       "bytes": 515156,
+       "sha256": "e77fab0a2c48349a69f71cdca97b728ccf3e778eda0ede8b8a6ef370e42264a0"
+      },
+      "updates": 1484,
+      "first_source_ms": 1787868300350,
+      "last_source_ms": 1787868599364,
+      "max_source_gap_ms": 685
+     },
+     {
+      "market_id": 1751313,
+      "window_start_ms": 1787868000000,
+      "window_end_ms": 1787868300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1751313.json.xz",
+       "bytes": 264716,
+       "sha256": "32c690c42928279d52f4ab0e871918b60bf6d3c9f432bd69f735d02c9bb04411"
+      },
+      "updates": 1216,
+      "first_source_ms": 1787867999783,
+      "last_source_ms": 1787868299977,
+      "max_source_gap_ms": 4251
+     },
+     {
+      "market_id": 1749962,
+      "window_start_ms": 1787867400000,
+      "window_end_ms": 1787867700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749962.json.xz",
+       "bytes": 440828,
+       "sha256": "b1fff4d4b5f03202e5c195446dbb3cc0faded4f3b880a09a2969e3b99a34c407"
+      },
+      "updates": 1481,
+      "first_source_ms": 1787867399850,
+      "last_source_ms": 1787867699639,
+      "max_source_gap_ms": 655
+     },
+     {
+      "market_id": 1749648,
+      "window_start_ms": 1787867100000,
+      "window_end_ms": 1787867400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749648.json.xz",
+       "bytes": 291000,
+       "sha256": "3bdd2c23b51ec697e0b984fb2f1cf494a7f48598a75f6c69e2158836280f870b"
+      },
+      "updates": 1287,
+      "first_source_ms": 1787867099800,
+      "last_source_ms": 1787867399598,
+      "max_source_gap_ms": 4761
+     },
+     {
+      "market_id": 1749573,
+      "window_start_ms": 1787866800000,
+      "window_end_ms": 1787867100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749573.json.xz",
+       "bytes": 330960,
+       "sha256": "887c1375a2268b4e043e166df01149dd896e7385bf6e371abeca71afd2b3dd90"
+      },
+      "updates": 1378,
+      "first_source_ms": 1787866799896,
+      "last_source_ms": 1787867099471,
+      "max_source_gap_ms": 1675
+     },
+     {
+      "market_id": 1749570,
+      "window_start_ms": 1787866500000,
+      "window_end_ms": 1787866800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749570.json.xz",
+       "bytes": 320444,
+       "sha256": "b5374702c36079c25718689d4ca1201b0bf41dd6ce963ecb2012e6b835b48de4"
+      },
+      "updates": 1393,
+      "first_source_ms": 1787866500183,
+      "last_source_ms": 1787866799396,
+      "max_source_gap_ms": 1500
+     },
+     {
+      "market_id": 1749525,
+      "window_start_ms": 1787866200000,
+      "window_end_ms": 1787866500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749525.json.xz",
+       "bytes": 232716,
+       "sha256": "f7e7abeb554f7909fa194caff1bbd7f9f1f1b5598f4cf8df1b43fb9f8bf9fac8"
+      },
+      "updates": 1122,
+      "first_source_ms": 1787866199555,
+      "last_source_ms": 1787866499802,
+      "max_source_gap_ms": 4030
+     },
+     {
+      "market_id": 1749515,
+      "window_start_ms": 1787865900000,
+      "window_end_ms": 1787866200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749515.json.xz",
+       "bytes": 374776,
+       "sha256": "87b01e520fb2c085e69b97c1e02fe4cba924e7c181fc6c655591e6128249f29b"
+      },
+      "updates": 1393,
+      "first_source_ms": 1787865900206,
+      "last_source_ms": 1787866199472,
+      "max_source_gap_ms": 1745
+     },
+     {
+      "market_id": 1749495,
+      "window_start_ms": 1787865600000,
+      "window_end_ms": 1787865900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749495.json.xz",
+       "bytes": 324108,
+       "sha256": "35112cb60f720420eaf0e1fb8a95450e525b65d91e6c2103a4ca34c5a5818531"
+      },
+      "updates": 1364,
+      "first_source_ms": 1787865600063,
+      "last_source_ms": 1787865899863,
+      "max_source_gap_ms": 3770
+     },
+     {
+      "market_id": 1749411,
+      "window_start_ms": 1787865300000,
+      "window_end_ms": 1787865600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749411.json.xz",
+       "bytes": 352128,
+       "sha256": "26819523c560d6f2a62040bd0d5d1d0f85fa61353b1928b8385330ef503edf9d"
+      },
+      "updates": 1354,
+      "first_source_ms": 1787865300121,
+      "last_source_ms": 1787865599698,
+      "max_source_gap_ms": 3353
+     },
+     {
+      "market_id": 1749396,
+      "window_start_ms": 1787865000000,
+      "window_end_ms": 1787865300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749396.json.xz",
+       "bytes": 307012,
+       "sha256": "b9f74e06ee645ed3ea2f8587c4d4b3fd73fc38e0edaed50c795271a7baf92266"
+      },
+      "updates": 1401,
+      "first_source_ms": 1787865001184,
+      "last_source_ms": 1787865299641,
+      "max_source_gap_ms": 1304
+     },
+     {
+      "market_id": 1749266,
+      "window_start_ms": 1787864700000,
+      "window_end_ms": 1787865000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749266.json.xz",
+       "bytes": 458092,
+       "sha256": "0b7d2855d991a14969e6d85955d5caa366fc5843ad656cc31f2f73d41e1fb45f"
+      },
+      "updates": 1487,
+      "first_source_ms": 1787864700122,
+      "last_source_ms": 1787865000733,
+      "max_source_gap_ms": 726
+     },
+     {
+      "market_id": 1749155,
+      "window_start_ms": 1787864400000,
+      "window_end_ms": 1787864700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749155.json.xz",
+       "bytes": 398360,
+       "sha256": "5302cf29a1e4acda52d2f50ced65b9c1ccff74e2508fbad5b394fc3aff73cd07"
+      },
+      "updates": 1428,
+      "first_source_ms": 1787864399709,
+      "last_source_ms": 1787864699761,
+      "max_source_gap_ms": 1085
+     },
+     {
+      "market_id": 1749149,
+      "window_start_ms": 1787864100000,
+      "window_end_ms": 1787864400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749149.json.xz",
+       "bytes": 288984,
+       "sha256": "10d1be11596ea037505aa405e7d91ba64ab5c0a1e9b70e2c057a58e84c71bdba"
+      },
+      "updates": 1155,
+      "first_source_ms": 1787864099461,
+      "last_source_ms": 1787864399564,
+      "max_source_gap_ms": 4247
+     },
+     {
+      "market_id": 1749143,
+      "window_start_ms": 1787863800000,
+      "window_end_ms": 1787864100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1749143.json.xz",
+       "bytes": 458628,
+       "sha256": "ab4ee01138210cd6fb2c49458f7dcfb85fe13b737986b32cc438575ef2646f32"
+      },
+      "updates": 1486,
+      "first_source_ms": 1787863800313,
+      "last_source_ms": 1787864099310,
+      "max_source_gap_ms": 784
+     },
+     {
+      "market_id": 1748931,
+      "window_start_ms": 1787863500000,
+      "window_end_ms": 1787863800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748931.json.xz",
+       "bytes": 464884,
+       "sha256": "a47b41b14ac3982f198642f6fdad30122dbfa4ce74865004227f098558694edc"
+      },
+      "updates": 1410,
+      "first_source_ms": 1787863500043,
+      "last_source_ms": 1787863799853,
+      "max_source_gap_ms": 2020
+     },
+     {
+      "market_id": 1748918,
+      "window_start_ms": 1787863200000,
+      "window_end_ms": 1787863500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748918.json.xz",
+       "bytes": 293060,
+       "sha256": "d8d681cffffcf07fe799fdb304b15877a2ce73cff2a6212f8ea715dc12203896"
+      },
+      "updates": 1396,
+      "first_source_ms": 1787863199709,
+      "last_source_ms": 1787863499718,
+      "max_source_gap_ms": 1998
+     },
+     {
+      "market_id": 1748914,
+      "window_start_ms": 1787862900000,
+      "window_end_ms": 1787863200000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748914.json.xz",
+       "bytes": 388336,
+       "sha256": "117eb890ba80ea7a35b8df5c69c6059cdc704a945bb05b372b45f191d681714b"
+      },
+      "updates": 1470,
+      "first_source_ms": 1787862899583,
+      "last_source_ms": 1787863199476,
+      "max_source_gap_ms": 980
+     },
+     {
+      "market_id": 1748910,
+      "window_start_ms": 1787862600000,
+      "window_end_ms": 1787862900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748910.json.xz",
+       "bytes": 446900,
+       "sha256": "524fe394b31ad5a822170e352f093332d0b201643f7b8cedd3c5b724e50423c9"
+      },
+      "updates": 1471,
+      "first_source_ms": 1787862599660,
+      "last_source_ms": 1787862899246,
+      "max_source_gap_ms": 709
+     },
+     {
+      "market_id": 1748900,
+      "window_start_ms": 1787862300000,
+      "window_end_ms": 1787862600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748900.json.xz",
+       "bytes": 416508,
+       "sha256": "d291df93eb16151956e2c00bc3184d5b39b1a17218a075a5fd853181b443e4fd"
+      },
+      "updates": 1408,
+      "first_source_ms": 1787862300120,
+      "last_source_ms": 1787862599514,
+      "max_source_gap_ms": 2059
+     },
+     {
+      "market_id": 1748750,
+      "window_start_ms": 1787862000000,
+      "window_end_ms": 1787862300000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748750.json.xz",
+       "bytes": 309064,
+       "sha256": "1031d4a6335e6a3d4833ff56eb0d990aa01a85b3206fbc897f5aa96d92b05b98"
+      },
+      "updates": 1401,
+      "first_source_ms": 1787861999951,
+      "last_source_ms": 1787862299763,
+      "max_source_gap_ms": 1163
+     },
+     {
+      "market_id": 1748036,
+      "window_start_ms": 1787861700000,
+      "window_end_ms": 1787862000000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748036.json.xz",
+       "bytes": 393112,
+       "sha256": "c5aa1a0099d37e3965f340f88f56a3e06a0588699bc3b6b222d035b8b5af226c"
+      },
+      "updates": 1470,
+      "first_source_ms": 1787861699979,
+      "last_source_ms": 1787861999578,
+      "max_source_gap_ms": 669
+     },
+     {
+      "market_id": 1748023,
+      "window_start_ms": 1787861400000,
+      "window_end_ms": 1787861700000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748023.json.xz",
+       "bytes": 377008,
+       "sha256": "5fb91687d527685d24c46d1e06a29ff810f7ceeb687a15858a27031d512f417b"
+      },
+      "updates": 1408,
+      "first_source_ms": 1787861399614,
+      "last_source_ms": 1787861699605,
+      "max_source_gap_ms": 2707
+     },
+     {
+      "market_id": 1748020,
+      "window_start_ms": 1787861100000,
+      "window_end_ms": 1787861400000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748020.json.xz",
+       "bytes": 323492,
+       "sha256": "2874965a6ea99fa7563f876aa462cd61c6082c049bac1a3cfaef70694a030959"
+      },
+      "updates": 1358,
+      "first_source_ms": 1787861101218,
+      "last_source_ms": 1787861399240,
+      "max_source_gap_ms": 1938
+     },
+     {
+      "market_id": 1748013,
+      "window_start_ms": 1787860800000,
+      "window_end_ms": 1787861100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1748013.json.xz",
+       "bytes": 512296,
+       "sha256": "13df3b19c7b2fab80f38b4c616c928350c7d7a368602667c7d58fd11c00e45c8"
+      },
+      "updates": 1496,
+      "first_source_ms": 1787860799558,
+      "last_source_ms": 1787861100753,
+      "max_source_gap_ms": 613
+     },
+     {
+      "market_id": 1747848,
+      "window_start_ms": 1787860500000,
+      "window_end_ms": 1787860800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1747848.json.xz",
+       "bytes": 326540,
+       "sha256": "bd24dca1fdbd87d3ba7d59c2a3ef5eebe93d75f0ed222d62e8213c34b472e00a"
+      },
+      "updates": 1281,
+      "first_source_ms": 1787860499713,
+      "last_source_ms": 1787860799322,
+      "max_source_gap_ms": 3941
+     },
+     {
+      "market_id": 1704689,
+      "window_start_ms": 1787710800000,
+      "window_end_ms": 1787711100000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1704689.json.xz",
+       "bytes": 487092,
+       "sha256": "efbd5790970a32ac27e12a96ade4d88d46092392a191df038dedd620ff88f30a"
+      },
+      "updates": 1464,
+      "first_source_ms": 1787710800865,
+      "last_source_ms": 1787711100268,
+      "max_source_gap_ms": 1606
+     },
+     {
+      "market_id": 1704676,
+      "window_start_ms": 1787710500000,
+      "window_end_ms": 1787710800000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1704676.json.xz",
+       "bytes": 321160,
+       "sha256": "35d1d3616e2631f550c34ed6403c085336ce574c56cd6c3c7a71238c0412c14a"
+      },
+      "updates": 1197,
+      "first_source_ms": 1787710500809,
+      "last_source_ms": 1787710800409,
+      "max_source_gap_ms": 4559
+     },
+     {
+      "market_id": 1704666,
+      "window_start_ms": 1787710200000,
+      "window_end_ms": 1787710500000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1704666.json.xz",
+       "bytes": 506556,
+       "sha256": "fc81160c570785163f25e5e7e22422cd10951a1e53f6cbe11089f72484118117"
+      },
+      "updates": 1488,
+      "first_source_ms": 1787710199305,
+      "last_source_ms": 1787710500420,
+      "max_source_gap_ms": 766
+     },
+     {
+      "market_id": 1704520,
+      "window_start_ms": 1787709600000,
+      "window_end_ms": 1787709900000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1704520.json.xz",
+       "bytes": 635776,
+       "sha256": "b3dc6e388b28c9b1d2f13b30f245be9f2307e896668ffd14ee99c990c00b1de0"
+      },
+      "updates": 1493,
+      "first_source_ms": 1787709599249,
+      "last_source_ms": 1787709898824,
+      "max_source_gap_ms": 527
+     },
+     {
+      "market_id": 1704510,
+      "window_start_ms": 1787709300000,
+      "window_end_ms": 1787709600000,
+      "source": {
+       "kind": "existing_xz",
+       "path": "data/execution_tape_v1/markets/1704510.json.xz",
+       "bytes": 567776,
+       "sha256": "e023919fde653cf8682e9394f6b6824c6c0cbaa97490d7b8b555d88428932fc1"
+      },
+      "updates": 1493,
+      "first_source_ms": 1787709299458,
+      "last_source_ms": 1787709598825,
+      "max_source_gap_ms": 461
+     }
+    ],
+    "excluded_more_recent_candidates": [
+     {
+      "market_id": 1764431,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1764302,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1764296,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1763951,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1763614,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1763053,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1763047,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1763042,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1762144,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1761142,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1761112,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1758854,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1753466,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1751921,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1751097,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     },
+     {
+      "market_id": 1704525,
+      "reasons": [
+       "SOURCE_GAP_GT_5S"
+      ]
+     }
+    ],
+    "rule": "complete L2 book coverage with existing 5000-ms start/tail/gap tolerance and initial full checkpoint; market_id DESC, limit150; no PnL/winner/confidence selection"
+   },
+   "summary": {
+    "received_time_reversals_in_source_order": 2,
+    "parents": 11084,
+    "filled_parents": 11084,
+    "plus5s_available": 11033,
+    "plus5s_recv_available": 11050,
+    "placement_null": 4,
+    "placement_after_first_target": 5155,
+    "best_bid_placement_null": 4,
+    "best_bid_fill_null": 0,
+    "mid_fill_null": 14
+   },
+   "plus5s_ratio": 0.995398773006135,
+   "book_axis": "original source timestamps; no clock adjustment; last update <= query including equality",
+   "received_variants": "four *_recv price fields use receive-ordered book replay and last received timestamp <= the same stored lifecycle query time; no clock adjustment",
+   "range_rule": "placement/fill use the last known update <= query; no update before query gives null; plus5s additionally gives null outside first/last book timestamps",
+   "price_rule": "parent target_price unchanged; UP best bid/native mid; DOWN 1-native best ask and 1-native mid",
+   "timestamps": "Unix milliseconds; observed target event timestamps have second resolution; millisecond storage does not prove millisecond inference accuracy",
+   "anonymity": "anon_seq is a fresh sequential number; no original parent/order/leg/account identifiers or evidence_json exported",
+   "observation_boundary": "filled_qty and first_target_ms come from matched observed target fills; placement_first_ms/resting_ms and post_action are anonymous-book inferences; confidence is heuristic; V2.1 parent universe requires observed matched fills and omits unfilled orders",
+   "placement_caveat": "placement can occur after observed first_target_ms because inference anchors on a matched public update; inclusive placement best quote can contain the inferred added depth",
+   "future_field": "plus5s mid is an explicitly offline later observation, not a decision-time input",
+   "phase1_coverage": {
+    "cohort_markets": 1264,
+    "database_markets": 1,
+    "database_market_id_range": [
+     1607037,
+     1607037
+    ],
+    "database_update_rows": 1228,
+    "readable_archive_markets": 913,
+    "archive_market_id_range": [
+     1439218,
+     1764475
+    ],
+    "archive_update_rows": 1242757,
+    "combined_markets": 914,
+    "parents": 80646,
+    "filled_parents": 80646,
+    "confidence_linear_quantiles": {
+     "p10": 0.7762583374261622,
+     "median": 0.8864811390073442,
+     "p90": 0.9683215161405767
+    }
+   },
+   "timing_anomaly": {
+    "placement_after_first_target": 5155,
+    "fraction": 0.4650848069289065,
+    "positive_difference_less_than_1000ms": 1814,
+    "positive_difference_at_least_1000ms": 3341,
+    "max_positive_difference_ms": 9833,
+    "fields_preserved_without_adjustment": true
+   },
+   "producer_sha256": "bb4ce35f41fbc0397ec316514bcebd44c9b6ea7ce578e82b749600e9895f2b7c"
   }
  ]
 }
