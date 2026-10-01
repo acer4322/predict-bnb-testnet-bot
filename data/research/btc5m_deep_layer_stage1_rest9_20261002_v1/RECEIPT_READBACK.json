@@ -1,0 +1,79 @@
+{
+  "status": "PASS",
+  "paths": 10,
+  "orders": 474,
+  "canonical_fills_matched": 179,
+  "duplicates_preserved": true,
+  "rows": [
+    {
+      "market": 2671717,
+      "status": "PASS",
+      "orders": 51,
+      "canonical_fills_matched": 20,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2671719,
+      "status": "PASS",
+      "orders": 29,
+      "canonical_fills_matched": 9,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2671768,
+      "status": "PASS",
+      "orders": 10,
+      "canonical_fills_matched": 1,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2671808,
+      "status": "PASS",
+      "orders": 159,
+      "canonical_fills_matched": 63,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2671979,
+      "status": "PASS",
+      "orders": 10,
+      "canonical_fills_matched": 8,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2672208,
+      "status": "PASS",
+      "orders": 29,
+      "canonical_fills_matched": 6,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2672226,
+      "status": "PASS",
+      "orders": 23,
+      "canonical_fills_matched": 10,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2672244,
+      "status": "PASS",
+      "orders": 5,
+      "canonical_fills_matched": 0,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2672250,
+      "status": "PASS",
+      "orders": 49,
+      "canonical_fills_matched": 19,
+      "sequence_and_order_binding": true
+    },
+    {
+      "market": 2672431,
+      "status": "PASS",
+      "orders": 109,
+      "canonical_fills_matched": 43,
+      "sequence_and_order_binding": true
+    }
+  ]
+}

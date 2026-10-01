@@ -1,0 +1,14 @@
+{
+  "commit": "ef8e285038c958f4951f0c41e3a7613024c85ab4",
+  "pack_paths": 20,
+  "DEEP": 10,
+  "BASE": 10,
+  "public_books": 20,
+  "labels": 10,
+  "verified_files": 142,
+  "mismatches": [],
+  "remote_paths": 150,
+  "previous_remote_paths": 141,
+  "previous_labels_and_target_index_preserved": true,
+  "untouched_entries_preserved": true
+}

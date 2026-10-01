@@ -1,0 +1,33 @@
+{
+  "paths": 20,
+  "reviewed_source_files": 121,
+  "dry_run_size_mb": 14.8,
+  "public_books": 20,
+  "FLAGGED": [],
+  "private_identifiers": [],
+  "labels": 10,
+  "old_remote_paths": 141,
+  "old_labels": [
+    {
+      "name": "OFFLINE_SETTLEMENT_LABELS.json",
+      "bytes": 26019,
+      "sha256": "3ddd890ea03b7b86342ad04f7212bc63e3511e05c57c4a359f62a3ee0420224a"
+    },
+    {
+      "name": "OFFLINE_SETTLEMENT_LABELS_STAGE1.json",
+      "bytes": 3094,
+      "sha256": "abbbf53abf7c00b38856d378fff3b8f9c18c3935adf68e8b5e229475d0783d55"
+    },
+    {
+      "name": "DEEP_STAGE1_OFFLINE_SETTLEMENT_LABELS.json",
+      "bytes": 3021,
+      "sha256": "696a73ce0e1f94e9a8c8ebaf7b21de466a9810ceff46588eae6bd38eb522ff82"
+    }
+  ],
+  "old_index_keys": [
+    "paths",
+    "entries",
+    "labels",
+    "target"
+  ]
+}

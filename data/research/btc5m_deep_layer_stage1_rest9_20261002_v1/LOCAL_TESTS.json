@@ -1,0 +1,87 @@
+{
+  "status": "PASS",
+  "native_executed": 0,
+  "components": [
+    "two_physical_sides_exact_price_fixed15_no_DECIDE_gate",
+    "TTL_exact_2000_and_cancel_pending_no_same_plan_replacement",
+    "partial_fill_kept_and_remaining_reserved",
+    "freeze",
+    "governor",
+    "risk_floor",
+    "self_cross",
+    "STOP290_preserves_cancel_all",
+    "same_price_cancel_pending_conflict",
+    "native_rounding_self_cross_cancel_pending",
+    "maintenance_skip_owned_exclusion",
+    "post_install_mutable_globals_callback"
+  ],
+  "inert": {
+    "status": "PASS",
+    "scope": "disabled source identity + every existing BASE plan operation full-field replay; receipt-producing source unchanged; no new native replay",
+    "rows": [
+      {
+        "market": 2671719,
+        "status": "PASS",
+        "plans": 1491,
+        "operations": 267,
+        "receipts": 116
+      },
+      {
+        "market": 2671768,
+        "status": "PASS",
+        "plans": 1382,
+        "operations": 107,
+        "receipts": 25
+      },
+      {
+        "market": 2671808,
+        "status": "PASS",
+        "plans": 1370,
+        "operations": 395,
+        "receipts": 151
+      },
+      {
+        "market": 2671979,
+        "status": "PASS",
+        "plans": 1459,
+        "operations": 115,
+        "receipts": 42
+      },
+      {
+        "market": 2672208,
+        "status": "PASS",
+        "plans": 1490,
+        "operations": 114,
+        "receipts": 73
+      },
+      {
+        "market": 2672226,
+        "status": "PASS",
+        "plans": 1380,
+        "operations": 122,
+        "receipts": 62
+      },
+      {
+        "market": 2672244,
+        "status": "PASS",
+        "plans": 1344,
+        "operations": 43,
+        "receipts": 54
+      },
+      {
+        "market": 2672250,
+        "status": "PASS",
+        "plans": 1487,
+        "operations": 368,
+        "receipts": 156
+      },
+      {
+        "market": 2672431,
+        "status": "PASS",
+        "plans": 1391,
+        "operations": 278,
+        "receipts": 127
+      }
+    ]
+  }
+}
