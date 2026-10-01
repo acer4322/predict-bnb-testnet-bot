@@ -1,0 +1,76 @@
+{
+  "id": "V49_COMMITMENT_PREPARATION_V12_20260918",
+  "basis": "V11 actual rollout: qualified early repair plus no reborrow reduces focal wrong loss, but some opportunities are blocked by outstanding strong commitments and old channels exceed combined count cap.",
+  "variants": [
+    "COUNT_STRICT",
+    "PREPARE"
+  ],
+  "controls": [
+    {
+      "market": 2020778,
+      "side": "UP",
+      "variant": "OFF"
+    },
+    {
+      "market": 2021158,
+      "side": "UP",
+      "variant": "OFF"
+    }
+  ],
+  "smoke_worlds": [
+    [
+      2020778,
+      "UP"
+    ],
+    [
+      2021158,
+      "UP"
+    ]
+  ],
+  "development_markets": [
+    2020778,
+    2021158,
+    2021179
+  ],
+  "validation_markets": [
+    2021225,
+    2021302
+  ],
+  "evaluation_markets": [
+    2021315,
+    2021342,
+    2032652,
+    2032653
+  ],
+  "directions": [
+    "UP",
+    "DOWN"
+  ],
+  "baseline_source_job": "v49-nonreallocating-growth-brake-20260918-v8",
+  "planned_native": 38,
+  "selection": "Both prespecified variants across all nine markets. COUNT_STRICT is V11 JOINT with all Active channels sharing the original combined count authority. PREPARE adds cancellable strong-commitment removal, and only trades against the canonical state after release.",
+  "actor_parameters": {
+    "target_ratio": 2,
+    "reserve_retention": 0.5,
+    "original_active_cap": 5
+  },
+  "economic_acceptance": {
+    "correct_profit_retention": 0.6,
+    "positive_sign_flips": 0,
+    "wrong_loss_reduction": 0.2,
+    "correct_gain_to_wrong_loss": 2,
+    "wrong_worst_not_worse": true,
+    "correct_submission_retention": 0.8,
+    "all_original_safety": true
+  },
+  "acceptance_note": "The old 95% profit-retention rule is not the user's new objective. This study permits a substantial tradeoff but separately requires an actual 2:1 gain/loss relation, material downside reduction and meaningful activity. Ratios are explicit experimental definitions, not a statement that the user supplied a numerical threshold.",
+  "execution": "Native actual fill engine with original queues, latency, full15 passive and dynamic active. No terminal winner in actor. Qualified repair creates its own payoff responsibility, not a fake increase to old finite-work remaining quantity.",
+  "paired_scoring": "Separate fixed-correct/wrong actor runs from the two possible settlement branches of a single run. Report both.",
+  "audit": "Confirm exact OFF controls, pre-intervention identity, canonical receipt reconciliation and all failed original safety flags. Do not treat an algebraic quote opportunity as a fill.",
+  "resources": "DESKTOP-JIERAGF only for heavy work, up to four single-thread native children. Main machine prepares scripts and reads compact summaries.",
+  "limits": "Nine previously consumed historical markets, not fresh unseen evidence. Inherited zero-fee research, not current live net PnL. Existing tail rule remains unchanged.",
+  "deployment": "No original V49 or 8781 changes. No real orders or collector changes.",
+  "preparation": "Hypothetical removal only determines whether cancelling risk could make a repair affordable; no hypothetical state is fed to execution or payoff accounting. Cancellable flags must be true for actual CANCEL requests. Pending cancel/UNKNOWN liabilities remain charged until actual canonical release.",
+  "known_limit": "A short-lived quote may disappear while waiting for cancellation; this is a real failure mode, not justification for fake fill or fake budget release. Earlier activation can reduce favorable returns and requires paired tests.",
+  "parent_native_predecessor": "v49-qualified-restoration-20260918-v11"
+}

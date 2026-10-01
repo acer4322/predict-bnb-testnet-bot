@@ -1,0 +1,51 @@
+{
+  "source_syntax_files": 472,
+  "source_syntax": "PASS",
+  "native_source_hashes": "99/99 PASS",
+  "runtime_source_hashes": "87/87 PASS",
+  "runtime_transform_postimages": [
+    {
+      "path": "hft244_research_owner_accounting_v1.py",
+      "before": "519db8c4625b3163ce5b1296f1c9f064e39a1908b03adead16636c8878510aae",
+      "after": "04bcbc736ce50e2bb68e5a1330b2ec87bb7c2cf64c6f482aae819629c7139450",
+      "source_transform": "patches.python_clock",
+      "verified": true
+    },
+    {
+      "path": "minimal_student_native_system_plan_v1.py",
+      "before": "1137d6d3128bf0cc81b633ec87b45a5d56306d341fbd6fa45e9010d8e61a0931",
+      "after": "989ff9927df49940a15dfbf888a7e9ede28eed4a2443d0a1b0db5fa62b72f320",
+      "source_transform": "patches.python_clock",
+      "verified": true
+    },
+    {
+      "path": "open_funding_recovery_runtime_v3.py",
+      "before": "2468fd631c277e114c3f943bfc9f4867c4f06bdab5f69a26b24d8a8685dd00f1",
+      "after": "ef65764760894433e069bd6afa7df847362050fbfc20c24d38f74e397a100ac4",
+      "source_transform": "patches.python_clock",
+      "verified": true
+    },
+    {
+      "path": "pair_core_asset_route_sizing_v2.py",
+      "before": "aac866e856748d95c0551f8366576e65e2b30139c8b6ef8806d08f83b7982ef8",
+      "after": "e442110d7a496128c4a4f051abc1d6cd1611270b4102ab8e6018a4d48c07e5bf",
+      "source_transform": "base/ticket_condition.install",
+      "verified": true
+    },
+    {
+      "path": "minimal_student_quantity_seam_v1.py",
+      "before": "af01af58c9222e9116f90444d84fbcefef88c8354e56e47f929c45b622c98050",
+      "after": "be827ab70431c31ac6e17e578766630167243a10173cd6bc3e6afb9be5ecb905",
+      "source_transform": "base/ticket_condition.install",
+      "verified": true
+    }
+  ],
+  "fixture_original_vs_anonymous_feed": "3/3 PASS full event bytes and local wakeups",
+  "new_native_executions": 0,
+  "new_fits": 0,
+  "live_changes": 0,
+  "shared_V45_base_manifest_sha256": "0fa9769ff6727ccaac2a796e6785748a8e55d47b7641b09041cadea4d472d833",
+  "shared_V45_base_source_hashes_verified": 30,
+  "CG1_gate_diagnostic_base_manifest_sha256": "e828cad6bb8672a9675730666978025ba3147b1e4ee1257e37cf3c9f56ac306e",
+  "CG1_gate_diagnostic_base_source_hashes_verified": 30
+}

@@ -1,0 +1,70 @@
+{
+  "upstream_url": "https://github.com/nkaz001/hftbacktest.git",
+  "upstream_tag": "py-v2.4.4",
+  "upstream_commit": "a244a14250b42d97fc305569c93c4117cd5e1dff",
+  "python_version": "2.4.4",
+  "rust_crate_version": "0.9.4",
+  "upstream_commit_evidence": "Local upstream git checkout HEAD/tag; worker source receipt has no .git metadata.",
+  "exact_worker_source_files": 99,
+  "verified_hash_mismatches": 0,
+  "changes": [
+    {
+      "path": "Cargo.lock",
+      "kind": "added",
+      "upstream_sha256": null,
+      "patched_sha256": "0d8fc5adf235b1f496e48ac04b0f23bec38111eae439168ee01ef147eca9fcdd"
+    },
+    {
+      "path": "Cargo.toml",
+      "kind": "modified",
+      "upstream_sha256": "8e913a074244a22978ef16b25e12800d0084fa8963f76dfe03d94698c3206579",
+      "patched_sha256": "2daedd34d018462b0797d38df6c9ff0aa1de102242e0afff4061e34cc2db4fef"
+    },
+    {
+      "path": "py-hftbacktest/Cargo.toml",
+      "kind": "modified",
+      "upstream_sha256": "caeda269816ed9fe19480b8cb1096f2f240d9be62ff639a39ef4526aadab6990",
+      "patched_sha256": "0453dcbecbfbc568a68c1de26bf62e6667f70954a4dacc8a199e962f62437d9c"
+    },
+    {
+      "path": "py-hftbacktest/src/backtest.rs",
+      "kind": "modified",
+      "upstream_sha256": "0225226c13034dbd301896d06c743e4fdfdf17914fa8b169b06dc89c933ba013",
+      "patched_sha256": "dd354a4fcdf1105283fb34e9e4fecc9c14d844d9851d26f161d4cc296952839e"
+    },
+    {
+      "path": "hftbacktest/src/backtest/mod.rs",
+      "kind": "modified",
+      "upstream_sha256": "24695e64603c61e672679be7c7b4b632b54b599afd9dbd161631b2bd7ac545f5",
+      "patched_sha256": "8216f5b05404eaad439d1b61c3a8eb540b172b9c0bd1268b67633476a3bf14bc"
+    },
+    {
+      "path": "hftbacktest/src/backtest/proc/l3_local.rs",
+      "kind": "modified",
+      "upstream_sha256": "adee0bd17091576f1bd3e69001664a5e42f6c84d4ce973c850c9ca2084b9deca",
+      "patched_sha256": "c99884bf0f0ff468bf54fbe8466b925d7bb7003011ce98d8bcf801de8d9a4e43"
+    },
+    {
+      "path": "hftbacktest/src/backtest/proc/local.rs",
+      "kind": "modified",
+      "upstream_sha256": "d51294f5626e6d9d36cebc7fa3a89d8ef15baa8c921dd85796e6379d66643326",
+      "patched_sha256": "2a61fb9917b562bde9d2d4b55a88f09c7ddb5f3d7246aa1fd1d6e8e27dd1b8ec"
+    },
+    {
+      "path": "hftbacktest/src/backtest/proc/mod.rs",
+      "kind": "modified",
+      "upstream_sha256": "ec4d07c18f16ad0e045c975f7a405e19597907cb7ff6acbd48a16748c67aac0f",
+      "patched_sha256": "34dda3ab4078ac595331ba375dd1d3980d0a3bf08c2024774cb6778bae4f1ef4"
+    },
+    {
+      "path": "hftbacktest/src/backtest/proc/partialfillexchange.rs",
+      "kind": "modified",
+      "upstream_sha256": "4b2bc6585548387ea49cd549dece05e2bc24a3509a5a6069288e78e519cfb377",
+      "patched_sha256": "0ff437ffba959bf1163ac0c37e3c5c7d9429b66d71ba59128ddcd50484018b6a"
+    }
+  ],
+  "native_sha256": "033469835b44f94f1a022e419e79be61be72a9f2501ceea11b8e255b4824d145",
+  "live_worker_binary_hash_verified": true,
+  "full_build_source_scope": "All sources for the three Cargo workspace members hftbacktest, hftbacktest-derive, py-hftbacktest, Cargo.lock, licenses and manifest-listed examples. Unused upstream connector/collector/docs excluded.",
+  "native_executed_this_export": false
+}

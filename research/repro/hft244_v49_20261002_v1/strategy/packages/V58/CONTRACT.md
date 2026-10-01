@@ -1,0 +1,11 @@
+# V58 original-scale baseline with user-requested STOP290
+
+User explicitly chose original-scale reversal-loss research before further cap300 sizing. Restore V50 economic settings: no capital ceiling, passive15, active PADD15, gross300 original selection threshold, unscaled demand, original qualified repair/continuation. V57 implementation supplies only universal t>=start+290000 cancel-all/no-NEW. Skip all appenders before side effects, retain real end/latency/fees/tape, and pending ownership until canonical terminal receipt. No liquidations, fake cash release, final-winner or Target runtime inputs.
+
+Thirty unique native paths: one OFF control2629327 and ON all29 consumed V50 markets. First smoke2629327 (complex qualified continuation), then at most4 single-thread paths. V50 baseline is reused across original and audit-resume jobs, exact sources pinned. Excluded2629444 remains UNKNOWN; no replacement. Zero fits/live/deployment/service/collector changes. This is not fresh generalization. Exact-name one submit only; fail-stop and preserve evidence, no rerun after transport timeout.
+
+Acceptance: OFF exact complete path; ON exact pre290 prefix; every NEW<290; all cancellable nonterminal owners requested once per frame except existing CANCEL_PENDING; retry later-acknowledged owners; no reservation release on cancel intention. Track actual receipt/exchange timestamps, cancel race fills, all final owners and source consumption. Nonempty cancellation coverage must be reported separately; if no such market occurs, do not claim it passed. No fills at/after actual expiry permitted for this candidate acceptance.
+
+Report original9 noFLIP and20 anyFLIP groups separately (strategy-event labels, not ex-ante oracle), signed branches, P>L, payoff/paid capital, average and worst2/worst5, original profitable examples and tail failures. An average improvement cannot hide worse cases or unbounded funding demands. Carry existing active_matches_opportunity failures explicitly.
+
+Next mechanism work remains finite partial repair independent of old global-entry latch and confirmation-driven re-expansion; this round changes neither. V51/V52 diagnosis is reference, not already-proven counterfactual repair value. All future dispatches require separate frozen scopes; no unbounded research loop.

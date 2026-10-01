@@ -1,0 +1,66 @@
+{
+  "status": "PASS",
+  "private_identifier_literal_hits": 0,
+  "credential_value_literal_hits": 0,
+  "source_public_example_allowlist": [
+    {
+      "path": "engine/upstream_build_sources/py-hftbacktest/hftbacktest/data/utils/hyperliquid.py",
+      "kind": "address",
+      "count": 60,
+      "disposition": "unchanged_public_upstream_docstring"
+    },
+    {
+      "path": "engine/upstream_build_sources/py-hftbacktest/hftbacktest/data/utils/hyperliquid.py",
+      "kind": "transaction",
+      "count": 30,
+      "disposition": "unchanged_public_upstream_docstring"
+    },
+    {
+      "path": "engine/patched/py-hftbacktest/hftbacktest/data/utils/hyperliquid.py",
+      "kind": "address",
+      "count": 60,
+      "disposition": "unchanged_public_upstream_docstring"
+    },
+    {
+      "path": "engine/patched/py-hftbacktest/hftbacktest/data/utils/hyperliquid.py",
+      "kind": "transaction",
+      "count": 30,
+      "disposition": "unchanged_public_upstream_docstring"
+    }
+  ],
+  "source_keyword_flags": [
+    {
+      "path": "strategy/runtime_template/tools/hftbacktest_true_match_calibration_v0.py",
+      "lines": [
+        72,
+        74
+      ]
+    },
+    {
+      "path": "strategy/runtime_scratch_CG1AT_2671717/tools/hftbacktest_true_match_calibration_v0.py",
+      "lines": [
+        72,
+        74
+      ]
+    },
+    {
+      "path": "engine/upstream_build_sources/hftbacktest/examples/2_download_tardis.py",
+      "lines": [
+        27
+      ]
+    },
+    {
+      "path": "engine/patched/hftbacktest/examples/2_download_tardis.py",
+      "lines": [
+        27
+      ]
+    }
+  ],
+  "flags_review": "Source references environment variables/request headers only; no literal credentials. Public upstream samples are preserved byte-identically.",
+  "fixture_schema_whitelist": true,
+  "execution_meta_private_maps": "null",
+  "transaction_sort_identifiers": "anonymous ranks preserving lexical order",
+  "native_receipt_order_ids": "synthetic simulator IDs intentionally retained",
+  "frozen_data_modified": false,
+  "independent_fixture_audit": "36/36 canonical golden files and all event payloads/hash/dtypes verified; source identifiers absent."
+}

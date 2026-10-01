@@ -1,0 +1,22 @@
+--- v4/hftbacktest/src/backtest/mod.rs
++++ v33/hftbacktest/src/backtest/mod.rs
+@@ -771,6 +771,7 @@
+     ) -> Result<ElapseResult, BacktestError> {
+         let mut result = ElapseResult::Ok;
+         let mut timestamp = timestamp;
++        let mut last_processed_ts = self.cur_ts;
+         for (asset_no, local) in self.local.iter().enumerate() {
+             self.evs
+                 .update_exch_order(asset_no, local.earliest_send_order_timestamp());
+@@ -866,8 +867,11 @@
+                             );
+                         }
+                     }
++                    last_processed_ts = last_processed_ts.max(ev.timestamp);
+                 }
+                 None => {
++                    // EOF can follow successful event processing; publish only its actual time.
++                    self.cur_ts = last_processed_ts;
+                     return Ok(ElapseResult::EndOfData);
+                 }
+             }

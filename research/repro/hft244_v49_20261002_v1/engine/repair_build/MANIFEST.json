@@ -1,0 +1,33 @@
+{
+  "files": {
+    "analyze.py": "57bdaba9b393dc73f1a065b89538b8e90adbe387df61807cca4ec1ea1851da42",
+    "contract_tools/hft244_receipt_adapter_v1.py": "36e8747c0e84f0521734c0285931f3111166f022813a1f6c76929f7c8bb077e1",
+    "discover.py": "758a1e8a2cfecb8ac7c0ef9186add114644d4ed3d0f2b3236ae13c7bd387c9a3",
+    "DISCOVERY.json": "b759559a2efaca9bc2983b71429fe8800ff636209de499f04a3926c8fa2a022b",
+    "dispatch.py": "3ce86b84ce0c48fb652c84366f928f184602fa001af945a710c0501dc7a2cd24",
+    "eof_runtime.py": "a3464fe4ec7421e33df6ee165ae7b63a0462446b9725a2f0f9cf41e7ae08abe4",
+    "LOCAL_TESTS.txt": "a08799d0563a3b908c0108cc362f8910c8a06abf3465fafec2c6f9a8d5b28de3",
+    "native_clock.patch": "2184dfc6cf91ee7216a49b5b10d0d18bc1c27b1b7222b29d6f0f019594c2e062",
+    "native_contract.py": "630b28f9f75de6b55ae21f6e0c54360021110d170aba8ab11055d41a82cf75f5",
+    "overlay/actor_contract.json": "80f2cccfea1bbfbd12f0e00cd5d5ac7edaec444fd1d78510170aac5a479b06b1",
+    "overlay/admission_component.py": "2d088ec2b1bc7368d5a258fbba59812e8e11a8365c8f97093fb05a9ff557bff5",
+    "overlay/economics.py": "e7eeaab870a7bb87256a6e554064fbe947854f8b92b6ac16a8dfee7b03dd29b7",
+    "overlay/preparation.py": "7f5f840af997cff7e94244c2e1e93a34b889b16b7eb93a5af3260d9463af4958",
+    "overlay/protocol.json": "86297f942c85d163e162518a1f5c38931ef686be42eabbe2bb45a24fa2088e9a",
+    "overlay/run_variant.py": "34b440c351fd7e4fd623c3f3aed212c4311587c550979eb4d9a56e5f4ead90bc",
+    "patches.py": "fa060917d730e244cbe33e5b1b4b554e8b4cc0946034a3011da1ce68e6ebfa2b",
+    "PROTOCOL.json": "a96e9aab1ebfcc919ec4ef3c43ebe98472e94635e59fef1b7b19b6c5eac9c0c3",
+    "ROOT_CAUSE.md": "e34298afccde13d056303632a8c3b8954c41bb9eb51e7c762ba7922cf89eb768",
+    "scratch_expected.json": "66efa4b0184a3947fb97f45c8fea1e2628dbaaeed2b020f6d755c826befe121c",
+    "source_v4/hftbacktest/src/backtest/evs.rs": "5f09d36de7e01ffd51f150592734350971a7c862df0e8c070add4e7e17fc1da7",
+    "source_v4/hftbacktest/src/backtest/mod.rs": "22d51dcd92b53f80ed3cb47908d72f94b8cceba9d4f1dc0743e5f08f45240ee1",
+    "source_v4/hftbacktest/src/backtest/proc/local.rs": "0bd3bd009ed1470447b22f3127d367e007b50ce5b6b4341fcf64ec50e964ad8b",
+    "source_v4/hftbacktest/src/backtest/proc/mod.rs": "ae1513222781bd02ea46856c1dbbe1f50286720d94a1e014e2b9ce7b70ad15dd",
+    "source_v4/hftbacktest/src/backtest/proc/partialfillexchange.rs": "0ff437ffba959bf1163ac0c37e3c5c7d9429b66d71ba59128ddcd50484018b6a",
+    "source_v4/hftbacktest/src/types.rs": "0dd744b0cec6f9636e8a8a37ef2fc27e02ed24ab2264ad3d4e0dc19b7c308a86",
+    "source_v4/py-hftbacktest/hftbacktest/binding.py": "bfa89381289213e89873df55e2c8e2ce637ffaf3369003c5b7cddfa84bf6f0f6",
+    "source_v4/py-hftbacktest/src/backtest.rs": "85a66b6be518eb2b8aba5154bc10f16594a678a38fdb1700709b639e1d37247e",
+    "test_eof_runtime.py": "909117714de0568380be8bb50391024512950168e42b82ed9d0ede9e6fe6cb58",
+    "worker.py": "60f15fd16c7dd5934c7ebc547aae0a49bb892afc2cfa9c8704d5970b12ee389b"
+  }
+}
