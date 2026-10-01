@@ -58,7 +58,7 @@ def main():
     ap.add_argument('--markets', nargs='*', type=int, default=[])
     ap.add_argument('--markets-file', default='', help='JSON with stage lists, e.g. docs/research_specs/RISK_FLOOR_AB_MARKETS_20261001.json')
     ap.add_argument('--stage', action='append', default=[], help='stage key(s) from --markets-file (stage1, stage2, stage3)')
-    ap.add_argument('--extra', nargs='*', default=[], help='small files (e.g. OFFLINE_SETTLEMENT_LABELS.json) copied to <out>/labels/')
+    ap.add_argument('--extra', nargs='*', default=[], help='small files copied to <out>/labels/; use NAME=PATH to avoid name collisions between batches')
     ap.add_argument('--limit', type=int, default=0, help='max number of path directories (pilot)')
     ap.add_argument('--public-root', default='')
     ap.add_argument('--max-mb', type=float, default=50.)
@@ -78,11 +78,13 @@ def main():
     dirs = [d for d in dirs if (not a.job or any(j in str(d.relative_to(root)) for j in a.job)) and a.arm in d.name and '_auto_collect' not in str(d)]
     entries, flagged, total, extras = [], [], 0, []
     for x in a.extra:
-        xp = Path(x)
+        alias, _, rest = x.partition('=')
+        xp = Path(rest if rest and not Path(x).exists() else x)
+        alias = alias if rest and not Path(x).exists() else xp.name
         if not xp.exists(): print('missing extra:', x); continue
         fl = scan(xp)
         if fl: flagged.append((str(xp), fl))
-        total += xp.stat().st_size; extras.append(dict(name=xp.name, bytes=xp.stat().st_size, sha256=sha(xp.read_bytes()), src=str(xp)))
+        total += xp.stat().st_size; extras.append(dict(name=alias, bytes=xp.stat().st_size, sha256=sha(xp.read_bytes()), src=str(xp)))
     for d in dirs:
         try: res = json.loads((d / 'result.json').read_text(encoding='utf-8'))
         except Exception: continue
