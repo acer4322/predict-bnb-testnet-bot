@@ -1,0 +1,90 @@
+{
+  "source": "data/target_wallet_official_v1.db",
+  "table": "target_market_results",
+  "read_only": true,
+  "offline_only": true,
+  "read_after_all_replays": true,
+  "timestamp": 1790678417.8983028,
+  "records": [
+    {
+      "market_id": 2671717,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 7:30PM-7:35PM ET",
+      "winner": "UP",
+      "resolved_at_ms": 1790552107497,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2671719,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 7:35PM-7:40PM ET",
+      "winner": "DOWN",
+      "resolved_at_ms": 1790552404384,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2671768,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 7:40PM-7:45PM ET",
+      "winner": "DOWN",
+      "resolved_at_ms": 1790552706985,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2671808,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 7:45PM-7:50PM ET",
+      "winner": "UP",
+      "resolved_at_ms": 1790553004816,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2671979,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 7:50PM-7:55PM ET",
+      "winner": "UP",
+      "resolved_at_ms": 1790553306649,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2672208,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 7:55PM-8PM ET",
+      "winner": "DOWN",
+      "resolved_at_ms": 1790553604070,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2672226,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 8PM-8:05PM ET",
+      "winner": "UP",
+      "resolved_at_ms": 1790553907121,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2672244,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 8:05PM-8:10PM ET",
+      "winner": "DOWN",
+      "resolved_at_ms": 1790554204170,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2672250,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 8:10PM-8:15PM ET",
+      "winner": "UP",
+      "resolved_at_ms": 1790554506512,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    },
+    {
+      "market_id": 2672431,
+      "asset": "BTC",
+      "title": "Bitcoin Up or Down - September 27, 8:20PM-8:25PM ET",
+      "winner": "UP",
+      "resolved_at_ms": 1790555106320,
+      "accounting_version": "FILLED_CASHFLOW_PLUS_WINNER_V1_NO_EXPLICIT_FEE"
+    }
+  ]
+}

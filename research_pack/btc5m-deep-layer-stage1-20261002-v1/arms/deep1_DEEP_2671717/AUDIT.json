@@ -1,0 +1,6 @@
+{
+  "status": "PATH_ERROR",
+  "error": "KeyError('final_pending_cash_direct')",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\BTC5M-worker\\.lan_worker_v1\\staging\\btc5m_deep_layer_stage1_20261002_v1\\worker.py\", line 45, in path_job\n    b=W/'.lan_worker_v1/results'/plan['baseline'][str(j['market'])]['remote_relative'];row=audit(arm,b)\n                                                                                           ~~~~~^^^^^^^\n  File \"C:\\BTC5M-worker\\.lan_worker_v1\\staging\\btc5m_deep_layer_stage1_20261002_v1\\deep_audit.py\", line 40, in audit\n    all_owner_pending_terminal=r['unresolved_owners']==0 and all(c['state']=='TERMINAL' for c in owners.values()) and all(abs(v)<=1e-8 for v in r['final_pending_cash_direct'].values()),\n                                                                                                                                                ~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nKeyError: 'final_pending_cash_direct'\n",
+  "path_valid": false
+}

@@ -1,0 +1,150 @@
+{
+  "status": "PASS",
+  "differences": [],
+  "failed_checks": [],
+  "frame_accounting": {
+    "source_frames": 1490,
+    "terminal_drain_steps": 0,
+    "terminal_closure_frames": 0,
+    "extra_plan_times": [],
+    "source_complete": true,
+    "no_postexpiry_acquisition": true
+  },
+  "frames": 1490,
+  "receipts": 75,
+  "guard_calls": 1492,
+  "eof_calls": [
+    {
+      "stage": "source",
+      "index": 1489,
+      "target_ns": 1790552100520000000,
+      "before_ns": 1790552100302000000,
+      "effective_function": "eof_runtime.advance_to",
+      "rc": 1,
+      "elapse_called": true,
+      "after_ns": 1790552100520000000,
+      "reached": true
+    }
+  ],
+  "passive_submits": 136,
+  "active_submits": 0,
+  "parity": {
+    "status": "PASS",
+    "market": 2671717,
+    "first_deep_new_t": 1790551800990,
+    "strict_before": true,
+    "no_replacement": true,
+    "rows": [
+      {
+        "field": "plans",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "native_actions",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "states",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "observations",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "direction_rows",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "v12g_events",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "receipts",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      },
+      {
+        "field": "native_clock_calls",
+        "status": "PASS",
+        "base_count": 0,
+        "deep_count": 0,
+        "base_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "deep_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "differences": []
+      }
+    ]
+  },
+  "mandatory": {
+    "freeze_new_zero": true,
+    "STOP290_new_zero": true,
+    "risk_floor_violations_zero": true,
+    "all_owner_pending_terminal": true,
+    "V8_wrong_cancel_zero": true,
+    "fixed_price_qty": true,
+    "trace_receipt_reconciles": true,
+    "capital_cap_null": true,
+    "no_target_or_winner_runtime": true,
+    "one_nonterminal_per_side": true,
+    "TTL_partial_fill_semantics": true
+  },
+  "deep_stats": {
+    "attempts": 2974,
+    "placed": 51,
+    "freeze": 116,
+    "STOP290": 98,
+    "risk_floor": 2131,
+    "self_cross": 0,
+    "maintenance_conflict": 5,
+    "governor": 0,
+    "occupied": 573,
+    "below_price": 0,
+    "venue_validation": 0,
+    "missing_book": 0,
+    "ttl_cancel": 41
+  },
+  "deep_orders": 51,
+  "filled_orders": 12,
+  "filled_qty": 166.11,
+  "legacy_active_matches_opportunity": true,
+  "legacy_safety_gate_pass": true,
+  "path_valid": true,
+  "post_collection": true,
+  "original_job_status": "failed",
+  "original_audit_unchanged": "PATH_ERROR",
+  "audit_repair": "Read pending cash from clock_smoke; native source/result and original AUDIT unchanged."
+}
