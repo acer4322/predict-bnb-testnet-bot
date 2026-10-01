@@ -12,13 +12,23 @@ NAMES = ['risk_floor_trace.json.gz', 'result.json']
 
 def pack_fills(root, a):
     import json
+    import re
     dirs = sorted({p.parent for p in root.rglob('execution_clock.json') if a.filter in str(p.parent)})
+    proot = Path(a.public_root).resolve() if a.public_root else root.parent
+    index = {}
+    for p in proot.rglob('public_*.json.gz'):
+        m = re.fullmatch(r'public_(\d+)\.json\.gz', p.name)
+        if m: index.setdefault(int(m.group(1)), p)
+    print('public book files indexed under %s: %d markets' % (proot, len(index)))
     members, missing = [], []
     for d in dirs:
-        pub = sorted(d.glob('public_*.json.gz')); rj = d / 'result.json'
-        if not pub or not rj.exists():
-            missing.append(str(d)); continue
+        rj = d / 'result.json'
+        if not rj.exists():
+            missing.append(str(d) + ' (no result.json)'); continue
         res = json.loads(rj.read_text(encoding='utf-8'))
+        pub = [index[int(res['market_id'])]] if res.get('market_id') is not None and int(res['market_id']) in index else sorted(d.glob('public_*.json.gz'))
+        if not pub:
+            missing.append(str(d) + ' (no public book for market %s)' % res.get('market_id')); continue
         flips = json.dumps(dict(market_id=res.get('market_id'), events=(res.get('v12g') or {}).get('events') or [])).encode()
         rel = d.relative_to(root)
         members += [(str(rel / 'execution_clock.json'), (d / 'execution_clock.json').read_bytes()),
@@ -38,6 +48,7 @@ def main():
     ap.add_argument('--filter', default='')
     ap.add_argument('--with-clock', action='store_true')
     ap.add_argument('--extra', nargs='*', default=[])
+    ap.add_argument('--public-root', default='', help='where to look for public_<market>.json.gz (default: parent of ROOT)')
     ap.add_argument('--fills', action='store_true', help='pack execution_clock.json + public_*.json.gz + slim flips.json instead')
     a = ap.parse_args()
     if a.fills:
