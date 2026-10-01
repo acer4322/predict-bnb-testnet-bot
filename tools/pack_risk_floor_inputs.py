@@ -10,13 +10,38 @@ from pathlib import Path
 NAMES = ['risk_floor_trace.json.gz', 'result.json']
 
 
+def pack_fills(root, a):
+    import json
+    dirs = sorted({p.parent for p in root.rglob('execution_clock.json') if a.filter in str(p.parent)})
+    members, missing = [], []
+    for d in dirs:
+        pub = sorted(d.glob('public_*.json.gz')); rj = d / 'result.json'
+        if not pub or not rj.exists():
+            missing.append(str(d)); continue
+        res = json.loads(rj.read_text(encoding='utf-8'))
+        flips = json.dumps(dict(market_id=res.get('market_id'), events=(res.get('v12g') or {}).get('events') or [])).encode()
+        rel = d.relative_to(root)
+        members += [(str(rel / 'execution_clock.json'), (d / 'execution_clock.json').read_bytes()),
+                    (str(rel / pub[0].name), pub[0].read_bytes()), (str(rel / 'flips.json'), flips)]
+    print('paths=%d packed=%d missing_public_or_result=%d size=%.1f MB (uncompressed)' % (len(dirs), len(members) // 3, len(missing), sum(len(b) for _, b in members) / 1e6))
+    for m in missing[:5]: print('  missing:', m)
+    if not members: return 1
+    with zipfile.ZipFile(a.out, 'w', zipfile.ZIP_DEFLATED) as z:
+        for name, b in members: z.writestr(name.replace('\\', '/'), b)
+    print('wrote', a.out, '(%.1f MB)' % (Path(a.out).stat().st_size / 1e6))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('root'); ap.add_argument('out')
     ap.add_argument('--filter', default='')
     ap.add_argument('--with-clock', action='store_true')
     ap.add_argument('--extra', nargs='*', default=[])
+    ap.add_argument('--fills', action='store_true', help='pack execution_clock.json + public_*.json.gz + slim flips.json instead')
     a = ap.parse_args()
+    if a.fills:
+        return pack_fills(Path(a.root).resolve(), a)
     root = Path(a.root).resolve()
     names = NAMES + (['clock_trace.json.gz'] if a.with_clock else [])
     dirs = sorted({p.parent for p in root.rglob('risk_floor_trace.json.gz') if a.filter in str(p.parent)})
