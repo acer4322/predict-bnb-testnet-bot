@@ -1,0 +1,137 @@
+{
+  "status": "INVALID_PARITY",
+  "market": 2672226,
+  "first_flip_t": 1790553685356,
+  "inclusive": true,
+  "no_replacement": true,
+  "rows": [
+    {
+      "field": "first_flip",
+      "status": "PASS",
+      "on_count": 1,
+      "off_count": 1,
+      "on_sha256": "620c62d8602d7b7312d5fe28e487219b8130e518718c886e878995a4cd9c8b94",
+      "off_sha256": "620c62d8602d7b7312d5fe28e487219b8130e518718c886e878995a4cd9c8b94",
+      "differences": []
+    },
+    {
+      "field": "plans",
+      "status": "FAIL",
+      "on_count": 422,
+      "off_count": 422,
+      "on_sha256": "b6b93c4e851ba4b252bd0556be2a085ed66e5aa485542170b808eb828b5a3bc7",
+      "off_sha256": "9b583b24c37b4dabf303927a20a0b173c250f5122c77c509121ecd490ca33b96",
+      "differences": [
+        {
+          "path": "/421/operations",
+          "len_old": 1,
+          "len_new": 2
+        },
+        {
+          "path": "/421/operations/0/parent_id",
+          "old": 2,
+          "new": 1
+        },
+        {
+          "path": "/421/operations/0/role",
+          "old": "PASSIVE_REPAIR_CAPACITY_FRONTIER",
+          "new": "PASSIVE_FRESH_CAPACITY_FRONTIER"
+        },
+        {
+          "path": "/421/operations/0/side",
+          "old": "DOWN",
+          "new": "UP"
+        },
+        {
+          "path": "/421/operations/0/price",
+          "old": 0.39,
+          "new": 0.6
+        },
+        {
+          "path": "/421/operations/0/key",
+          "old": "DOWN_71",
+          "new": "UP_71"
+        }
+      ]
+    },
+    {
+      "field": "native_actions",
+      "status": "FAIL",
+      "on_count": 145,
+      "off_count": 146,
+      "on_sha256": "28f92b357f250599e14dda86918083c72d1b4cbde11b2fb0dd8bed44c4d970d6",
+      "off_sha256": "b310d09ea43a4fc7c03f87173aae852fbfe261456b03b86bd6e43554497ca96e",
+      "differences": [
+        {
+          "path": "",
+          "len_old": 145,
+          "len_new": 146
+        },
+        {
+          "path": "/144/side",
+          "old": "DOWN",
+          "new": "UP"
+        },
+        {
+          "path": "/144/price",
+          "old": 0.39,
+          "new": 0.6
+        }
+      ]
+    },
+    {
+      "field": "states",
+      "status": "PASS",
+      "on_count": 422,
+      "off_count": 422,
+      "on_sha256": "763ee157798aa6941a4215cfe9f2ac6e43a173965b0b6980dc4a7029fa804566",
+      "off_sha256": "763ee157798aa6941a4215cfe9f2ac6e43a173965b0b6980dc4a7029fa804566",
+      "differences": []
+    },
+    {
+      "field": "observations",
+      "status": "PASS",
+      "on_count": 422,
+      "off_count": 422,
+      "on_sha256": "77c5a5eef71e8a1d6802dee7e862062dbb4845dd793106dbd0202625d08704b4",
+      "off_sha256": "77c5a5eef71e8a1d6802dee7e862062dbb4845dd793106dbd0202625d08704b4",
+      "differences": []
+    },
+    {
+      "field": "direction_rows",
+      "status": "PASS",
+      "on_count": 422,
+      "off_count": 422,
+      "on_sha256": "6cdb6151235c9a2cd181a772a4cc09b5072e1664d5b65698826aaeb85a48edc1",
+      "off_sha256": "6cdb6151235c9a2cd181a772a4cc09b5072e1664d5b65698826aaeb85a48edc1",
+      "differences": []
+    },
+    {
+      "field": "v12g_events",
+      "status": "PASS",
+      "on_count": 2,
+      "off_count": 2,
+      "on_sha256": "577dac7e91faf23b3b442e366e49b3a96f361bfb6652d9bfa885598d8677c7f9",
+      "off_sha256": "577dac7e91faf23b3b442e366e49b3a96f361bfb6652d9bfa885598d8677c7f9",
+      "differences": []
+    },
+    {
+      "field": "receipts",
+      "status": "PASS",
+      "on_count": 46,
+      "off_count": 46,
+      "on_sha256": "d70fae989730f102c9a61d4885ad9760bd36a0c90d3e962466e373d8c5b285ce",
+      "off_sha256": "d70fae989730f102c9a61d4885ad9760bd36a0c90d3e962466e373d8c5b285ce",
+      "differences": []
+    },
+    {
+      "field": "native_clock_calls",
+      "status": "PASS",
+      "on_count": 423,
+      "off_count": 423,
+      "on_sha256": "de149f941a48a643aef17b02396cbecfd9878e6e2ed53def1c9ce61f0009581b",
+      "off_sha256": "de149f941a48a643aef17b02396cbecfd9878e6e2ed53def1c9ce61f0009581b",
+      "differences": []
+    }
+  ]
+}

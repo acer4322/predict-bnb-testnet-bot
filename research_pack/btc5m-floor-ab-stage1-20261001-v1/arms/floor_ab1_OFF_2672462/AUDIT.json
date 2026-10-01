@@ -1,0 +1,265 @@
+{
+  "status": "PASS",
+  "differences": [],
+  "failed_checks": [],
+  "frame_accounting": {
+    "source_frames": 1474,
+    "terminal_drain_steps": 0,
+    "terminal_closure_frames": 0,
+    "extra_plan_times": [],
+    "source_complete": true,
+    "no_postexpiry_acquisition": true
+  },
+  "frames": 1474,
+  "receipts": 171,
+  "guard_calls": 1476,
+  "eof_calls": [
+    {
+      "stage": "source",
+      "index": 1473,
+      "target_ns": 1790556300355000000,
+      "before_ns": 1790556300156000000,
+      "effective_function": "eof_runtime.advance_to",
+      "rc": 1,
+      "elapse_called": true,
+      "after_ns": 1790556300355000000,
+      "reached": true
+    }
+  ],
+  "UP": 219.39681428571453,
+  "DOWN": -34.68270952380931,
+  "cost": 1127.1831857142854,
+  "P": 219.39681428571453,
+  "L": 34.68270952380931,
+  "positive_exceeds_loss": true,
+  "passive_submits": 303,
+  "active_submits": 3,
+  "parity": {
+    "status": "INVALID_PARITY",
+    "market": 2672462,
+    "first_flip_t": 1790556064767,
+    "inclusive": true,
+    "no_replacement": true,
+    "rows": [
+      {
+        "field": "first_flip",
+        "status": "PASS",
+        "on_count": 1,
+        "off_count": 1,
+        "on_sha256": "571cb12361f2da5e0ac3b7d2accc6287ca863e362617a5a1215dc5214d6fec93",
+        "off_sha256": "571cb12361f2da5e0ac3b7d2accc6287ca863e362617a5a1215dc5214d6fec93",
+        "differences": []
+      },
+      {
+        "field": "plans",
+        "status": "FAIL",
+        "on_count": 319,
+        "off_count": 319,
+        "on_sha256": "8b98f592ea73be6440e3d32b1779dc7f0815377a97248da44e13327873bc565b",
+        "off_sha256": "94c86311e1463d5ec9dccc392fe98513ce1bbf55ad2371dde17dee44ba6befde",
+        "differences": [
+          {
+            "path": "/318/operations",
+            "len_old": 1,
+            "len_new": 2
+          },
+          {
+            "path": "/318/operations/0/parent_id",
+            "old": 2,
+            "new": 1
+          },
+          {
+            "path": "/318/operations/0/role",
+            "old": "PASSIVE_REPAIR_CAPACITY_FRONTIER",
+            "new": "PASSIVE_FRESH_CAPACITY_FRONTIER"
+          },
+          {
+            "path": "/318/operations/0/side",
+            "old": "DOWN",
+            "new": "UP"
+          },
+          {
+            "path": "/318/operations/0/price",
+            "old": 0.38,
+            "new": 0.61
+          },
+          {
+            "path": "/318/operations/0/key",
+            "old": "DOWN_46",
+            "new": "UP_46"
+          }
+        ]
+      },
+      {
+        "field": "native_actions",
+        "status": "FAIL",
+        "on_count": 96,
+        "off_count": 97,
+        "on_sha256": "c75de4352d2ec5b39d827cd4696a75f9027606db2ffb098bafd8a9db482d3eac",
+        "off_sha256": "1b4a1a78ff7871878d19401d3d860aa4c9ef8b91f13882c39da2662f2d557adb",
+        "differences": [
+          {
+            "path": "",
+            "len_old": 96,
+            "len_new": 97
+          },
+          {
+            "path": "/95/side",
+            "old": "DOWN",
+            "new": "UP"
+          },
+          {
+            "path": "/95/price",
+            "old": 0.38,
+            "new": 0.61
+          }
+        ]
+      },
+      {
+        "field": "states",
+        "status": "PASS",
+        "on_count": 319,
+        "off_count": 319,
+        "on_sha256": "54d4503f9ba0259f1f3c6152b6e9d94b04a5e1e67a6c870254f4d856106fe9d6",
+        "off_sha256": "54d4503f9ba0259f1f3c6152b6e9d94b04a5e1e67a6c870254f4d856106fe9d6",
+        "differences": []
+      },
+      {
+        "field": "observations",
+        "status": "PASS",
+        "on_count": 319,
+        "off_count": 319,
+        "on_sha256": "5d43588d1f690242e4dbe96dccec2971cfdbeb7fb88f33f4141dbd67777b80cc",
+        "off_sha256": "5d43588d1f690242e4dbe96dccec2971cfdbeb7fb88f33f4141dbd67777b80cc",
+        "differences": []
+      },
+      {
+        "field": "direction_rows",
+        "status": "PASS",
+        "on_count": 319,
+        "off_count": 319,
+        "on_sha256": "26a0b677716ba5270d348d7c0bc31b7914db578af6f87a692df0bf2415405463",
+        "off_sha256": "26a0b677716ba5270d348d7c0bc31b7914db578af6f87a692df0bf2415405463",
+        "differences": []
+      },
+      {
+        "field": "v12g_events",
+        "status": "PASS",
+        "on_count": 2,
+        "off_count": 2,
+        "on_sha256": "b5b67ef9d65ddb7e760d75bcb2bdcdf5b15cd201031727025fe3a241fb821f12",
+        "off_sha256": "b5b67ef9d65ddb7e760d75bcb2bdcdf5b15cd201031727025fe3a241fb821f12",
+        "differences": []
+      },
+      {
+        "field": "receipts",
+        "status": "PASS",
+        "on_count": 35,
+        "off_count": 35,
+        "on_sha256": "4c33e10c90a97026b3595bc57c3abd785528c656cf8c7b4520760fcf31e455f8",
+        "off_sha256": "4c33e10c90a97026b3595bc57c3abd785528c656cf8c7b4520760fcf31e455f8",
+        "differences": []
+      },
+      {
+        "field": "native_clock_calls",
+        "status": "PASS",
+        "on_count": 320,
+        "off_count": 320,
+        "on_sha256": "1f118db195a5f5060a5e1b7f0d6f6f5e6377a7a2cc9c98d96f2155e0c5c3f7d8",
+        "off_sha256": "1f118db195a5f5060a5e1b7f0d6f6f5e6377a7a2cc9c98d96f2155e0c5c3f7d8",
+        "differences": []
+      }
+    ]
+  },
+  "work_mode": "SERVICE",
+  "work_count": 19,
+  "physical_false_completion": 0,
+  "direction_withdrawals": 0,
+  "continuation_new": 18,
+  "continuation_filled_qty": 4.52047619047619,
+  "continuation_cash": 1.0467857142857142,
+  "old_residual_service": 2.2800000000000153,
+  "independent_service": 2.2404761904761745,
+  "uncompleted_works": 1,
+  "risk_floor_mode": "OFF",
+  "risk_floor_disabled_runtime_verified": true,
+  "protected_frames": 0,
+  "blocked": 0,
+  "decisions": 0,
+  "actual_flips": 1,
+  "postflip_new": 261,
+  "intent_mode": "OFF",
+  "intent_rows": 0,
+  "active_intent_frames": 0,
+  "maintained_active_intents": 0,
+  "active_intent_surplus": 0,
+  "active_intent_stale": 0,
+  "intent_final_status": {},
+  "ambiguous_millisecond_maintenance": 0,
+  "qualified_mode": "ON",
+  "qualified_extension_orders": 0,
+  "first_extension_index": null,
+  "no_extension_full_parity": true,
+  "qualified_work_status": null,
+  "qualified_target": null,
+  "qualified_remaining": null,
+  "extension_requested_qty": 0,
+  "extension_filled_qty": 0,
+  "extension_paid": 0,
+  "passive_ticket": 15.0,
+  "governor_mode": "BASE",
+  "market_cap": null,
+  "governor_decisions": 0,
+  "governor_reduced": 0,
+  "governor_blocked": 0,
+  "postflip_new_expansion_qty": 2790.0,
+  "postflip_new_repair_qty": 1692.96,
+  "retired_expansion_owners": 0,
+  "peak_repair_funding_envelope": 1877.15,
+  "receipt_ledger_pass": true,
+  "fees": 0.0,
+  "before_flip_parity": false,
+  "no_flip_full_parity": false,
+  "demand_scale_mode": "OFF",
+  "demand_scale_frames": 1418,
+  "scaled_frames": 0,
+  "finite_goal_above_scaled_raw_frames": 1051,
+  "finite_goal_targets_verified": 19,
+  "raw_scale_runtime_verified": true,
+  "stop290_mode": "ON",
+  "stop290_new": 0,
+  "stop290_cancel_requests": 0,
+  "stop290_frames": 31,
+  "cutoff_reaction_lag_ms": 359,
+  "pre290_full_prefix": false,
+  "unchanged_prefix_until_ms": 0,
+  "postexpiry_exchange_fills": 0,
+  "precut_orders_filled_after_cutoff_receipts": 0,
+  "deferred_noncancellable_keys": [],
+  "stop290_first_pending_owners": 0,
+  "stop290_final_pending_owners": 0,
+  "bpr_mode": "OFF",
+  "bpr_orders": 0,
+  "zone_mirror": false,
+  "cg2_high": false,
+  "cg2_ins_orders": 0,
+  "cg2_ins_filled": 0,
+  "cg2_ins_paid": 0,
+  "cg2_nochase_vetoes": 0,
+  "cg2_first_action_t": 1790556008804,
+  "wl_orders": 0,
+  "wl_filled": 0.0,
+  "wl_paid": 0.0,
+  "lowconv": true,
+  "lowconv_low": true,
+  "lowconv_m0": 0.52,
+  "lowconv_vetoes": 0,
+  "lowconv_padd_vetoes": 0,
+  "freeze_vetoes": 280,
+  "freeze_padd_vetoes": 187,
+  "freeze_repair_vetoes": 0,
+  "flip_exit_mode": "OFF",
+  "passive_size_verified_orders": 303,
+  "cap_configuration_and_runtime_verified": true,
+  "path_valid": false
+}
