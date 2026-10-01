@@ -21,14 +21,19 @@ def bucket(k): return '<=0' if k <= 0 else str(k) if k <= 2 else '3+'
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('features'); ap.add_argument('--min-conf', type=float, default=None); ap.add_argument('--boot', type=int, default=500)
+    ap.add_argument('--tol-ms', type=float, default=0, help='keep parents whose inferred placement is at most this many ms AFTER the first fill (fills are second-floored; default 0 = strict)')
+    ap.add_argument('--recv', action='store_true', help='use the *_recv (local receive time) book columns instead of source time')
     a = ap.parse_args(); rng = random.Random(1); rows = jload(a.features); n0 = len(rows)
+    if a.recv:
+        for r in rows:
+            for k in ('best_bid_at_placement', 'best_bid_at_fill', 'mid_side_at_fill', 'mid_side_at_fill_plus5s'): r[k] = r.get(k + '_recv')
     rows = [r for r in rows if r.get('placement_first_ms') is not None and r.get('best_bid_at_placement') is not None and r.get('best_bid_at_fill') is not None]
-    bad = [r for r in rows if r['placement_first_ms'] > r['first_target_ms']]
-    rows = [r for r in rows if r['placement_first_ms'] <= r['first_target_ms']]
+    bad = [r for r in rows if r['placement_first_ms'] > r['first_target_ms'] + a.tol_ms]
+    rows = [r for r in rows if r['placement_first_ms'] <= r['first_target_ms'] + a.tol_ms]
     if a.min_conf is not None: rows = [r for r in rows if (r.get('confidence') or 0) >= a.min_conf]
     for r in rows: r['dp'] = d(r['best_bid_at_placement'], r['price']); r['df'] = d(r['best_bid_at_fill'], r['price'])
     W = sum(r['filled_qty'] for r in rows)
-    print('parents: %d in, %d usable (%d dropped for missing books, %d for placement after first fill) | markets %d | filled shares %.0f' % (
+    print('parents: %d in, %d usable (%d dropped for missing books, %d for placement more than tol after first fill) | markets %d | filled shares %.0f' % (
         n0, len(rows), n0 - len(rows) - len(bad), len(bad), len({r['market_id'] for r in rows}), W))
     cf = [r['confidence'] for r in rows if r.get('confidence') is not None]
     if cf: print('confidence median %.2f p10 %.2f' % (S.median(cf), sorted(cf)[len(cf) // 10]))
