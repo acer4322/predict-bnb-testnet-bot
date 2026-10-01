@@ -1,0 +1,21 @@
+{
+  "reviewer": "graduation_label_sources, GPT-6 Luna xhigh",
+  "read_only": true,
+  "api_snapshots": 521,
+  "unique_WON_labels_match": 519,
+  "nonbinary_ids_excluded_from_binary_labels_and_public_filenames": [2668062, 2782588],
+  "public_file_hashes_match": 519,
+  "market_and_book_whitelist": "PASS",
+  "source_manifest_hashes_match": 4,
+  "legacy_projection_comparisons": 220,
+  "legacy_valid_rows_match": 293633,
+  "cost_events": 154,
+  "received_clock_causal_snapshots": 154,
+  "source_clock_late_snapshots": 146,
+  "spotchecked_market_ids": [2672519, 2672563, 2807061],
+  "spotchecked_top3_time_price_qty": "PASS",
+  "inventory_scope": "all 154 unobserved; cloud assumed fills only",
+  "order_ack_and_fill_latencies": "all null; UNKNOWN",
+  "review_boundary": "Full-depth counts/shares cannot be independently recomputed from top5 public files alone. Root subsequently independently reconstructed all 308 event clock snapshots and added opposite_asks_full; see FULL_DEPTH_REVIEW.json.",
+  "root_nonbinary_note": "API_STATUS unknown/cached concerns binary winner inference, not an unresolved settlement. Stored API fetched_at_ms is retained; root separately confirmed 0.5/0.5 payout by fresh public eth_call at pinned block 125160995."
+}

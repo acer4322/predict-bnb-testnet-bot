@@ -1,0 +1,7 @@
+{
+  "all_original_rows": 316055,
+  "retained_valid_rows": 293633,
+  "excluded_null_bid_ask": 22422,
+  "crossed_retained": 0,
+  "empty_bids_asks_retained": 0
+}

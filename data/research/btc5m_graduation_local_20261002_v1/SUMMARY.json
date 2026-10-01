@@ -1,0 +1,23 @@
+{
+  "labels": 519,
+  "existing220_binary": 219,
+  "repaired120_binary": 119,
+  "new300_binary": 300,
+  "nonbinary_markets": [
+    2668062,
+    2782588
+  ],
+  "db_mismatches": [],
+  "flip_depth_events": 154,
+  "public_bytes": 26251825,
+  "costs_bytes": 61427,
+  "original_cloud_220_identity": "candidate match from four disjoint declared cohorts; cloud BOOKS_ROOT manifest was not supplied",
+  "model_fits": 0,
+  "worker_jobs": 0,
+  "orders_submitted": 0,
+  "selected_total_markets": 521,
+  "authoritative_payouts_confirmed": 521,
+  "binary_labels": 519,
+  "new_selected_candidates": 301,
+  "new_binary_labels": 300
+}

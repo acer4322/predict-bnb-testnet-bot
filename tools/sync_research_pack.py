@@ -3,6 +3,7 @@ SEPARATE data branch through a temporary git worktree (your working tree, index 
 
   python tools/sync_research_pack.py RETURNS_ROOT --job fresh100a --job floor-ab --limit 3 --out research_pack_out
   python tools/sync_research_pack.py RETURNS_ROOT --markets 2672250 2672737 --out research_pack_out --git-push --branch research-data
+  python tools/sync_research_pack.py EMPTY_ROOT --public-only --public-root PUBLIC_ROOT --markets 2672250 --extra labels_new=LABELS --dry-run
 
 Per path directory it copies (when present): result.json, risk_floor_trace.json.gz, execution_clock.json, AUDIT.json, PARITY.json,
 EXECUTION.json, deep_layer_trace.json, AUDIT_POST_COLLECTION.json, and public_<market>.json.gz
@@ -62,6 +63,7 @@ def main():
     ap.add_argument('--extra', nargs='*', default=[], help='small files copied to <out>/labels/; use NAME=PATH to avoid name collisions between batches')
     ap.add_argument('--limit', type=int, default=0, help='max number of path directories (pilot)')
     ap.add_argument('--public-root', default='')
+    ap.add_argument('--public-only', action='store_true', help='copy only requested public books and extras; no worker results or traces')
     ap.add_argument('--max-mb', type=float, default=50.)
     ap.add_argument('--allow-flagged', action='store_true')
     ap.add_argument('--full-result', action='store_true', help='do not slim result.json (default drops general_finite_active_rows, ~90%% of its size)')
@@ -75,14 +77,34 @@ def main():
     for p in proot.rglob('public_*.json.gz'):
         m = re.fullmatch(r'public_(\d+)\.json\.gz', p.name)
         if m: pub.setdefault(int(m.group(1)), p)
-    dirs = sorted({p.parent for p in root.rglob('result.json')})
+    dirs = [] if a.public_only else sorted({p.parent for p in root.rglob('result.json')})
     dirs = [d for d in dirs if (not a.job or any(j in str(d.relative_to(root)) for j in a.job)) and (not a.arm or any(arm in d.name for arm in a.arm)) and '_auto_collect' not in str(d)]
     entries, flagged, total, extras = [], [], 0, []
+    if a.public_only:
+        if not a.markets:
+            print('abort: --public-only requires an explicit market list'); return 2
+        missing = sorted(set(a.markets) - set(pub))
+        if missing:
+            print('abort: missing requested public books:', missing); return 2
+        for mid in sorted(set(a.markets)):
+            p = pub[mid]
+            try:
+                pb = json.loads(read_text(p)); market = pb['market']
+                if int(market['market_id']) != mid or not isinstance(pb['books'], list):
+                    raise ValueError('market id or books mismatch')
+            except (ValueError, KeyError, TypeError) as exc:
+                print('abort: invalid public book', p, str(exc)); return 2
+            fl = scan(p)
+            if fl: flagged.append((str(p), fl))
+            data = p.read_bytes(); total += len(data)
+            entries.append(dict(path='public_markets/%d' % mid, market_id=mid, status='PUBLIC_ONLY',
+                                n_flips=None, decide_side=None,
+                                files={p.name: dict(bytes=len(data), sha256=sha(data), source_sha256=sha(data), slimmed=False)}))
     for x in a.extra:
         alias, _, rest = x.partition('=')
         xp = Path(rest if rest and not Path(x).exists() else x)
         alias = alias if rest and not Path(x).exists() else xp.name
-        if not xp.exists(): print('missing extra:', x); continue
+        if not xp.exists(): print('abort: missing extra:', x); return 2
         fl = scan(xp)
         if fl: flagged.append((str(xp), fl))
         total += xp.stat().st_size; extras.append(dict(name=alias, bytes=xp.stat().st_size, sha256=sha(xp.read_bytes()), src=str(xp)))
