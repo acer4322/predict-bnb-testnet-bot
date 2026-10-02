@@ -22,7 +22,7 @@ SCALE = float(os.environ.get('SCALE', '1'))  # small-amount mode: clip = max(SCA
 def clip_for(px, tick=15.): return tick if SCALE == 1. else max(tick * SCALE, math.ceil(100. / max(px, .01)) / 100.)
 def run(fx, mid, strat, dec_ms=1000, tick=15., cap=300., stop=270.):
     cap = cap * SCALE
-    ev = np.load(f'{fx}/{mid}/events.npz')['data']; bt = ex.new_bt(ev, entry_latency_ms=250, response_latency_ms=250, queue_model='risk'); ex.initialize_bt(bt)
+    ev = np.load(f'{fx}/{mid}/events.npz')['data']; bt = ex.new_bt(ev, entry_latency_ms=int(os.environ.get('LAT','250')), response_latency_ms=int(os.environ.get('LAT','250')), queue_model=os.environ.get('QM','risk')); ex.initialize_bt(bt)
     first = int(json.load(open(f'{fx}/{mid}/FIXTURE.json'))['conversion_info']['firstReceivedMs']); start = first - first % 300_000; t_end = int(ev['exch_ts'].max()) // 1_000_000
     orders = {}; n = 0; sh = {'UP': 0., 'DOWN': 0.}; mids = {}; frozen = False; fav = None; t = first + 2000
     while t < min(t_end, start + 300_000):
