@@ -1,6 +1,7 @@
 """Fetch BTCUSDT 1-second klines from data-api.binance.vision for the windows of our markets (window start - LOOKBACK .. window end), merged into intervals, written as gz json {sec: [close, quote_volume, trades, taker_buy_quote_volume]}.
 usage: python tools/fetch_spot_1s.py window_starts.json out.json.gz [--lookback 1800]   (public data, no credentials)"""
 import sys, json, gzip, time, urllib.request, concurrent.futures as cf
+SYMBOL = sys.argv[sys.argv.index('--symbol') + 1] if '--symbol' in sys.argv else 'BTCUSDT'
 ws = json.load(open(sys.argv[1])); out = sys.argv[2]; LB = int(sys.argv[sys.argv.index('--lookback') + 1]) * 1000 if '--lookback' in sys.argv else 1_800_000
 iv = sorted((w - LB, w + 300_000) for w in ws); merged = []
 for a, b in iv:
@@ -9,7 +10,7 @@ for a, b in iv:
 jobs = [(s, min(s + 999_000, b)) for a, b in merged for s in range(a, b, 1_000_000)]
 print('intervals', len(merged), 'calls', len(jobs))
 def get(j):
-    s, e = j; url = 'https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1s&limit=1000&startTime=%d&endTime=%d' % (s, e)
+    s, e = j; url = 'https://data-api.binance.vision/api/v3/klines?symbol=%s&interval=1s&limit=1000&startTime=%d&endTime=%d' % (SYMBOL, s, e)
     for k in range(5):
         try: return json.loads(urllib.request.urlopen(url, timeout=20).read())
         except Exception: time.sleep(1 + k)
