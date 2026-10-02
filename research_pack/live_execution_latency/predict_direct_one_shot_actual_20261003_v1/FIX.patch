@@ -1,0 +1,191 @@
+diff --git a/src/predict_bot/predict_direct_one_shot_latency_v1.py b/src/predict_bot/predict_direct_one_shot_latency_v1.py
+--- a/src/predict_bot/predict_direct_one_shot_latency_v1.py
++++ b/src/predict_bot/predict_direct_one_shot_latency_v1.py
+@@ -39,6 +39,13 @@
+ HASH = re.compile(r"0x[0-9a-fA-F]{64}\Z")
+ WALLET_EVENTS = {"orderAccepted", "orderNotAccepted", "orderExpired", "orderCancelled",
+                  "orderTransactionSubmitted", "orderTransactionSuccess", "orderTransactionFailed"}
++
++
++class DirectApiError(ProbeError):
++    def __init__(self, status_code: int, retry_after_seconds: float | None = None):
++        super().__init__("API_RATE_LIMITED" if status_code == 429 else "API_REJECTED")
++        self.status_code = status_code
++        self.retry_after_seconds = retry_after_seconds
+ 
+ 
+ def claim_once(path: Path, run_id: str) -> None:
+@@ -104,8 +111,13 @@
+             if response.status_code == 404 and method == "GET" and path.startswith("/v1/orders/"):
+                 return {"success": True, "data": None}
+             if not 200 <= response.status_code < 300 or payload.get("success") is False:
+-                self.j.add("api_rejected", request_id=rid, http_status=response.status_code)
+-                raise ProbeError("API_REJECTED")
++                try:
++                    retry_after = max(0.0, float(response.headers["Retry-After"]))
++                except (KeyError, ValueError):
++                    retry_after = None
++                self.j.add("api_rejected", request_id=rid, http_status=response.status_code,
++                           retry_after_seconds=retry_after)
++                raise DirectApiError(response.status_code, retry_after)
+             return payload
+         except ProbeError:
+             raise
+@@ -413,8 +425,17 @@
+     if not HASH.fullmatch(order_hash):
+         j.add("reconciliation_unknown", reason="NO_CANONICAL_SIGNED_HASH")
+         return
++    # Native wallet events provide prompt observation. Do one REST snapshot per
++    # invocation; frequent polling exhausted the venue's quota in the first run.
+     deadline = time.monotonic() + seconds
+-    while time.monotonic() < deadline:
++    terminal_events = {"orderTransactionSuccess", "orderTransactionFailed", "orderNotAccepted",
++                       "orderExpired", "orderCancelled"}
++    while time.monotonic() < deadline and not any(
++        r["event"] == "wallet_order_event" and r.get("canonical_match") and r.get("event_type") in terminal_events
++        for r in j.rows
++    ):
++        time.sleep(min(.1, max(0, deadline - time.monotonic())))
++    try:
+         raw = client.request("GET", "/v1/orders/" + order_hash, auth=True)
+         row = obj(raw)
+         evidence = order_evidence(row, reference)
+@@ -422,9 +443,28 @@
+         if evidence:
+             atomic_json(j.directory / "PRIVATE_ORDER_OBSERVATION.json", raw)
+         j.save()
+-        if evidence and evidence["status"] in {"FILLED", "CANCELLED", "CANCELED", "EXPIRED"}:
+-            return
+-        time.sleep(min(.5, max(0, deadline - time.monotonic())))
++    except DirectApiError as exc:
++        j.add("reconciliation_incomplete", http_status=exc.status_code,
++              retry_after_seconds=exc.retry_after_seconds, order_retry_allowed=False)
++        j.save()
++        # Never replay the order or immediately retry a throttled GET.
++        return
++
++
++def classify_outcome(j: Journal, reference: dict[str, Any], fallback: str) -> str:
++    if any(r["event"] == "order_observation" and r.get("canonical_match")
++           and r.get("status") == "FILLED" and r.get("positive_fill_observed") for r in j.rows):
++        return "PREDICT_FILLED_CONFIRMED"
++    if any(r["event"] == "wallet_order_event" and r.get("canonical_match")
++           and r.get("event_type") == "orderTransactionSuccess" for r in j.rows):
++        return "PREDICT_SETTLEMENT_SUCCESS_OBSERVED"
++    if reference.get("stage") == "PREDICT_ACK_OBSERVED" and any(
++        r["event"] in {"reconciliation_incomplete", "reconcile_error", "run_error"} for r in j.rows
++    ):
++        return "PREDICT_ACK_OBSERVED_RECONCILIATION_INCOMPLETE"
++    if reference.get("stage") == "PLACE_OUTCOME_UNKNOWN_NO_RETRY":
++        return reference["stage"]
++    return fallback
+ 
+ 
+ def order_evidence(row: dict[str, Any], reference: dict[str, Any]) -> dict[str, Any] | None:
+@@ -517,16 +557,18 @@
+         print(json.dumps({"outcome": "MISSING_PREDICT_DIRECT_CREDENTIALS", "place_call_count": 0}))
+         return 2
+     rid = str(uuid.uuid4())
+-    directory = args.run_dir.resolve() if args.run_dir else OUTPUT_ROOT / rid
+-    directory.mkdir(parents=True, exist_ok=args.mode == "reconcile")
+-    reference = (json.loads((directory / "PRIVATE_REFERENCE.json").read_text()) if args.mode == "reconcile" else
++    original = args.run_dir.resolve() if args.run_dir else None
++    # Keep the original experiment immutable; recovery writes a separate child.
++    directory = original / "reconciliation" / rid if original else OUTPUT_ROOT / rid
++    directory.mkdir(parents=True, exist_ok=False)
++    reference = (json.loads((original / "PRIVATE_REFERENCE.json").read_text()) if original else
+                  {"run_id": rid, "stage": "NOT_SUBMITTED", "clock_domain": rid,
+                   "host_boot_wall_ns": time.time_ns() - time.monotonic_ns()})
+     j = Journal(directory)
+     same_boot = abs(time.time_ns() - time.monotonic_ns() - reference.get("host_boot_wall_ns", 0)) < 5_000_000_000
+     j.clock_domain = reference.get("clock_domain") if same_boot else rid
+     if args.mode == "reconcile":
+-        j.rows.extend(json.loads((directory / "timeline.json").read_text())["records"])
++        j.rows.extend(json.loads((original / "timeline.json").read_text())["records"])
+     else:
+         atomic_json(directory / "HOST_PRIVATE.json", {"hostname": socket.gethostname(), "pid": os.getpid(), "cwd": str(ROOT)})
+     j.add("run_start", mode=args.mode, previous_clock_continuity_valid=same_boot)
+@@ -590,7 +632,9 @@
+         reason = str(exc) if isinstance(exc, ProbeError) else type(exc).__name__
+         outcome = reference["stage"] if reference["stage"] == "PLACE_OUTCOME_UNKNOWN_NO_RETRY" else reason
+         j.add("run_error", reason=reason, error_class=type(exc).__name__)
+-        if client.place_calls and reference.get("order_hash"):
++        if client.place_calls and reference.get("order_hash") and not any(
++            r["event"] == "http_call_start" and r.get("route") == "/v1/orders/{hash}" for r in j.rows
++        ):
+             try:
+                 reconcile(client, j, reference, args.tail_seconds)
+             except Exception as error:
+@@ -604,9 +648,10 @@
+         except Exception as exc:
+             j.add("clock_after_error", error_class=type(exc).__name__)
+         client.close()
++        outcome = classify_outcome(j, reference, outcome)
+         j.add("run_end", outcome=outcome)
+         j.save()
+         atomic_json(directory / "PRIVATE_REFERENCE.json", reference)
+         atomic_json(directory / "SUMMARY.json", summarize(j, args.mode, outcome))
+     print(json.dumps({"run_dir": str(directory), "outcome": outcome, "place_call_count": client.place_calls}))
+-    return 0 if outcome in {"READ_ONLY_OBSERVATION", "SIGNED_MARKET_FOK_PREPARED_NO_ORDER", "READ_ONLY_RECONCILIATION", "PREDICT_ACK_OBSERVED_CHECK_CANONICAL_EVENTS"} else 2
++    return 0 if outcome in {"READ_ONLY_OBSERVATION", "SIGNED_MARKET_FOK_PREPARED_NO_ORDER", "READ_ONLY_RECONCILIATION", "PREDICT_ACK_OBSERVED_CHECK_CANONICAL_EVENTS", "PREDICT_SETTLEMENT_SUCCESS_OBSERVED", "PREDICT_FILLED_CONFIRMED"} else 2
+diff --git a/tests/test_predict_direct_one_shot_latency_v1.py b/tests/test_predict_direct_one_shot_latency_v1.py
+--- a/tests/test_predict_direct_one_shot_latency_v1.py
++++ b/tests/test_predict_direct_one_shot_latency_v1.py
+@@ -150,3 +150,39 @@
+     selected, start, end = m.select_market({"data": {"categories": [btc, longer, base]}}, now)
+     assert selected["id"] == 7 and end - start == 300000
+     with pytest.raises(m.ProbeError): m.select_market({"data": {"categories": [base, base]}}, now)
++
++
++def test_throttled_read_preserves_ack_and_does_not_repeat(tmp_path):
++    calls=[]
++    def transport(request):
++        calls.append(request)
++        return httpx.Response(429, headers={"Retry-After":"30"}, json={"success":False})
++    j=m.Journal(tmp_path)
++    client=m.DirectClient("offline",j,mode="reconcile",transport=httpx.MockTransport(transport))
++    client.jwt="offline"
++    reference=dict(ref(),stage="PREDICT_ACK_OBSERVED")
++    m.reconcile(client,j,reference,0)
++    assert len(calls)==1 and calls[0].method=="GET" and client.place_calls==0
++    assert m.classify_outcome(j,reference,"API_REJECTED")=="PREDICT_ACK_OBSERVED_RECONCILIATION_INCOMPLETE"
++    assert next(r for r in j.rows if r['event']=='reconciliation_incomplete')['retry_after_seconds']==30
++    j.add("wallet_order_event",canonical_match=True,event_type="orderTransactionSuccess")
++    assert m.classify_outcome(j,reference,"API_REJECTED")=="PREDICT_SETTLEMENT_SUCCESS_OBSERVED"
++    j.add("order_observation",canonical_match=True,status="FILLED",positive_fill_observed=True)
++    assert m.classify_outcome(j,reference,"API_REJECTED")=="PREDICT_FILLED_CONFIRMED"
++    client.close()
++
++
++def test_terminal_wallet_event_results_in_one_rest_snapshot(tmp_path):
++    calls=[]
++    row={'order':{'hash':H,'tokenId':'123','side':0},'marketId':7,'status':'FILLED','amountFilled':'1'}
++    def transport(request):
++        calls.append(request)
++        return httpx.Response(200,json={'success':True,'data':row})
++    j=m.Journal(tmp_path)
++    j.add('wallet_order_event',canonical_match=True,event_type='orderTransactionSuccess')
++    client=m.DirectClient('offline',j,mode='reconcile',transport=httpx.MockTransport(transport))
++    client.jwt='offline'
++    m.reconcile(client,j,ref(),20)
++    assert len(calls)==1 and client.place_calls==0
++    assert m.classify_outcome(j,ref(),'API_REJECTED')=='PREDICT_FILLED_CONFIRMED'
++    client.close()
+diff --git a/docs/predict_direct_one_shot_latency_v1.md b/docs/predict_direct_one_shot_latency_v1.md
+--- a/docs/predict_direct_one_shot_latency_v1.md
++++ b/docs/predict_direct_one_shot_latency_v1.md
+@@ -53,6 +53,14 @@
+ python tools/run_predict_direct_one_shot_latency_v1.py --mode reconcile --run-dir "<run_dir>"
+ ```
+ 
++Recovery writes under `<run_dir>/reconciliation/<new-id>/` and preserves the
++original run. It waits for a canonical native wallet event or its observation
++deadline, then makes at most one REST order snapshot request. A throttled read
++does not trigger an immediate retry or an order resubmission. Known ACK,
++settlement-success and confirmed FILLED evidence take precedence over a later
++query error in the summary. An ACK with unresolved reconciliation is reported
++as `PREDICT_ACK_OBSERVED_RECONCILIATION_INCOMPLETE`.
++
+ The timeline captures receipt before JSON parsing, fixed decision, amount
+ calculation, SDK build/signing, guard persistence, HTTP call, body write, response
+ headers/JSON, canonical Predict ACK, native `orderAccepted`, settlement submitted,

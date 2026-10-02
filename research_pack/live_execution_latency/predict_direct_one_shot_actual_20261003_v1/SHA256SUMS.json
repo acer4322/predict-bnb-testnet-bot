@@ -1,0 +1,38 @@
+{
+  "CANONICAL_VERIFICATION.json": {
+    "sha256": "c142d3fa1708d4d77254be7d98387c1fbaafa2ac256f5d49eac42a0c8602b64e",
+    "bytes": 612
+  },
+  "COLLECTION_INTEGRITY.json": {
+    "sha256": "40a4a12a4682dc5b653bb9dcbed9267b15b30652589d7299f41766b1a71144d3",
+    "bytes": 986
+  },
+  "FIX.patch": {
+    "sha256": "64dad9310860ad0b806dc23e3a86153a3216ca27f4421ff754bf7a3279a4e18f",
+    "bytes": 11102
+  },
+  "FIX_SOURCE_SHA256.json": {
+    "sha256": "13e6dc2c893a563c583c88c92489ffe9f98dd714a6be59c854c2b7d3d962ca6a",
+    "bytes": 731
+  },
+  "README.md": {
+    "sha256": "f1adf8d7b89b48379c45edcaadbcb51d19488cca55f4af4cf343df4120fd2c5f",
+    "bytes": 4183
+  },
+  "STAGES.json": {
+    "sha256": "698695edf8f93aa97820fc82075fe9edb0db87cb44f4706b87bbe61370a130b9",
+    "bytes": 1312
+  },
+  "SUMMARY.json": {
+    "sha256": "3f410dd068408fbd8f2fe46cbc4643a30bb390fea1562eb5ea13bde892ac8026",
+    "bytes": 3327
+  },
+  "TIMELINE_RELATIVE.json": {
+    "sha256": "020e180cd9df066d6f519b77b0bb717671e0d30e0e78c8a7f0f9645934b9610e",
+    "bytes": 1028987
+  },
+  "VALIDATION.json": {
+    "sha256": "bf78041414f3a5b50dfe9bdba8b14943304a9149cbbf8800c0656800a8659ddb",
+    "bytes": 315
+  }
+}

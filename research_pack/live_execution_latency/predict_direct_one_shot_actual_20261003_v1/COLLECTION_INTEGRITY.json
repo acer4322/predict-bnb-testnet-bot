@@ -1,0 +1,21 @@
+{
+  "original_timeline_rows": 3578,
+  "sequence_contiguous": true,
+  "original_raw_files_preserved": true,
+  "private_raw_file_sha256": {
+    "HOST_PRIVATE.json": "94d1f3fa1e97fb8a4ad13402c1fd47cfaf428b8f925df683c51a1b39cf293041",
+    "PRIVATE_ORDER_OBSERVATION.json": "47de1875b64ba9cebe9b317851b67ad1c7dabdf5779b16ff38fcca7d525a3912",
+    "PRIVATE_REFERENCE.json": "b254e4cf6b84c1b7e750f230a3794f5bd7f10473a7195452108e58e2c04a2a9c",
+    "SUMMARY.json": "43892a2595f66ff13f7c752d126ca4575991f252ce7c8dde0d23a2b5ed08afe2",
+    "timeline.json": "08860960c8e7d27950be74277af47d4a315214aa38723a1718ba97e070a72a66"
+  },
+  "single_clock_domain": true,
+  "same_host_verified": true,
+  "one_persistent_submit_guard_consumed": true,
+  "native_book_frames": 216,
+  "binance_spot_frames": 3123,
+  "ws_errors": 0,
+  "collection_duration_ms": 48249.5325,
+  "actual_runtime_source_hash_recorded_in_run": false,
+  "published_pre_test_preparation_commit": "acc5ebe3214acd5fb120a3941cb760f7299a873f"
+}

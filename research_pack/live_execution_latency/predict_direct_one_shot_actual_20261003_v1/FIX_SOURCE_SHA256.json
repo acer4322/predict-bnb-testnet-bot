@@ -1,0 +1,14 @@
+{
+  "src/predict_bot/predict_direct_one_shot_latency_v1.py": {
+    "before_sha256_lf": "cb951fb5cd6a439c03b2992986fdcdf79ee81c10bba54c40c61b2fdd30a2b574",
+    "after_sha256_lf": "eed336752ef802c53a26768365f87f859a6910bc7020679d35b5e5801bab5bed"
+  },
+  "tests/test_predict_direct_one_shot_latency_v1.py": {
+    "before_sha256_lf": "8be0d282b3f48b51fb97db7e8d40f71e41edf1434ec6cb8725e8f168266cd608",
+    "after_sha256_lf": "506fbf775d5263a5793891c5345a1f57a556968a0feae1e8286bf4129523c744"
+  },
+  "docs/predict_direct_one_shot_latency_v1.md": {
+    "before_sha256_lf": "c1ae01de4024f438bd2e51b922e736953e08033167ee190b7b55a20a9c39ed43",
+    "after_sha256_lf": "529d41bb7a46b76e732320f76ac77da6539eb3058e40e739af2e325844d9e5a1"
+  }
+}

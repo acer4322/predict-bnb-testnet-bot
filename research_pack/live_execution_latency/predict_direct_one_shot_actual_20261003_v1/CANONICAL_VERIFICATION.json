@@ -1,0 +1,25 @@
+{
+  "official_get_exact_hash_order_id_market_up_buy_match": true,
+  "status": "FILLED",
+  "positive_fill_observed": true,
+  "fill_field": "amountFilled",
+  "actual_fill_time_ms": null,
+  "market_strategy_matches": true,
+  "signed_maker_commitment_within_one_usdt": true,
+  "amount_filled_at_least_reported_amount": true,
+  "verification_order_post_count": 0,
+  "internal_acceptance_time_ms": null,
+  "source_field_names": [
+    "amount",
+    "amountFilled",
+    "currency",
+    "id",
+    "isNegRisk",
+    "isYieldBearing",
+    "marketId",
+    "order",
+    "rewardEarningRate",
+    "status",
+    "strategy"
+  ]
+}

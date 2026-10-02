@@ -1,0 +1,94 @@
+{
+  "contract": "ETH5M_PREDICT_DIRECT_BUY_UP_1USDT_ONCE_20261003_V1",
+  "fixed_order": {
+    "venue": "Predict.fun direct",
+    "symbol": "ETHUSDT",
+    "window_ms": 300000,
+    "side": "BUY",
+    "outcome": "UP",
+    "maximum_maker_usdt": 1,
+    "order_type": "MARKET",
+    "time_in_force": "FOK",
+    "slippage_bps": 1
+  },
+  "place_call_count": 1,
+  "clock": [
+    {
+      "phase": "before",
+      "offset_ms": -1218.592529296875,
+      "uncertainty_ms": 28.16445,
+      "rtt_ms": 54.3289
+    },
+    {
+      "phase": "after",
+      "offset_ms": -1223.330078125,
+      "uncertainty_ms": 26.5589,
+      "rtt_ms": 51.1178
+    }
+  ],
+  "feed": {
+    "binance_spot_event_to_receipt_ms": {
+      "aggTrade": {
+        "n": 2692,
+        "median_ms": 27.8917236328125,
+        "p95_ms": 31.7790283203125,
+        "min_ms": 25.71044921875,
+        "max_ms": 89.81689453125
+      },
+      "depthUpdate": {
+        "n": 431,
+        "median_ms": 27.076904296875,
+        "p95_ms": 30.911865234375,
+        "min_ms": 25.675048828125,
+        "max_ms": 91.212890625
+      }
+    },
+    "native_predict_book_frames": 216,
+    "binance_spot_frames": 3123,
+    "ws_error_count": 0
+  },
+  "predict_internal_acceptance_time_ms": null,
+  "actual_fill_time_ms": null,
+  "meaning": "Same-host durations use monotonic clocks. Binance E-to-receipt age uses shortest-RTT midpoint calibration with RTT/2+1ms model uncertainty; it includes publication delay. orderAccepted and orderTransactionSuccess are notification RECEIPT times, not internal acceptance or fill clocks. Read-only preparation is not venue acceptance; market rounding may spend less than one USDT. No automatic retry, approval, transfer, cancellation or runtime mutation.",
+  "original_cli_outcome": "API_REJECTED",
+  "corrected_outcome": "PREDICT_FILLED_CONFIRMED",
+  "original_order_stage": "PREDICT_ACK_OBSERVED",
+  "placement_http_status": 201,
+  "accepted_notification_observed": true,
+  "settlement_success_notification_observed": true,
+  "full_fill_confirmed_by_fresh_exact_order_get": true,
+  "subsequent_read_errors": [
+    {
+      "method": "GET",
+      "route": "/v1/orders/{hash}",
+      "http_status": 429
+    },
+    {
+      "method": "GET",
+      "route": "/v1/orders/{hash}",
+      "http_status": 429
+    }
+  ],
+  "summary_bug": "Later read-side rate limiting replaced a known successful ACK in the original CLI outcome.",
+  "round_ms": {
+    "native_book_receipt_to_decision": 0.1142,
+    "amount_calculation": 0.2468,
+    "order_build": 0.0402,
+    "order_sign": 8.0008,
+    "native_book_receipt_to_place_start": 84.296,
+    "place_to_predict_ack": 258.8711,
+    "native_book_receipt_to_predict_ack": 343.1671,
+    "place_to_orderAccepted_receipt": 419.6658,
+    "native_book_receipt_to_orderAccepted_receipt": 503.9618,
+    "place_to_orderTransactionSuccess_receipt": 3179.0989,
+    "native_book_receipt_to_orderTransactionSuccess_receipt": 3263.3949,
+    "native_book_receipt_to_first_positive_rest_fill": null,
+    "native_book_receipt_to_http_headers_write_start": 217.0924,
+    "native_book_receipt_to_http_body_write_complete": 217.3337,
+    "tcp_connect": 61.7635,
+    "tls_handshake": 70.3117,
+    "body_write_complete_to_predict_ack": 125.8334,
+    "native_book_receipt_to_settlement_submitted_notification": 700.3257
+  },
+  "agent_order_submissions": 0
+}

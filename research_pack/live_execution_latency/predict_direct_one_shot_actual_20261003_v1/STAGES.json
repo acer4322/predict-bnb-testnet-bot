@@ -1,0 +1,25 @@
+{
+  "units": "milliseconds",
+  "durations": {
+    "native_book_receipt_to_decision": 0.1142,
+    "amount_calculation": 0.2468,
+    "order_build": 0.0402,
+    "order_sign": 8.0008,
+    "native_book_receipt_to_place_start": 84.296,
+    "place_to_predict_ack": 258.8711,
+    "native_book_receipt_to_predict_ack": 343.1671,
+    "place_to_orderAccepted_receipt": 419.6658,
+    "native_book_receipt_to_orderAccepted_receipt": 503.9618,
+    "place_to_orderTransactionSuccess_receipt": 3179.0989,
+    "native_book_receipt_to_orderTransactionSuccess_receipt": 3263.3949,
+    "native_book_receipt_to_first_positive_rest_fill": null,
+    "native_book_receipt_to_http_headers_write_start": 217.0924,
+    "native_book_receipt_to_http_body_write_complete": 217.3337,
+    "tcp_connect": 61.7635,
+    "tls_handshake": 70.3117,
+    "body_write_complete_to_predict_ack": 125.8334,
+    "native_book_receipt_to_settlement_submitted_notification": 700.3257
+  },
+  "host_clock": "monotonic, same host/domain verified",
+  "meaning": "API call entry, local HTTP write completion, ACK, orderAccepted receipt, settlement-submitted receipt and settlement-success receipt are separate. Local write completion is not remote packet arrival or internal acceptance. Fresh REST FILLED verification occurred later, outside the original round."
+}

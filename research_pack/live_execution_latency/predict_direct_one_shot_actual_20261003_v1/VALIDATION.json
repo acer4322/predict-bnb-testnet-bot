@@ -1,0 +1,9 @@
+{
+  "focused_offline_tests": "21 PASS",
+  "isolated_applied_fix_tests": "21 PASS",
+  "patch_applies_to_published_preparation_source": true,
+  "three_changed_source_hashes_match": true,
+  "validation_trade_requests": 0,
+  "no_live_order_rerun": true,
+  "single_get_reconciliation_and_ack_precedence_tests": "PASS"
+}
