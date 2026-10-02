@@ -32,7 +32,7 @@ for d in dirs:
     for p in sorted((Path(d) / 'markets').iterdir()):
         m = int(p.name)
         if m in lab and p.name in agg and len(agg[p.name]) > 100 and (not PUB or os.path.exists('%s/%s' % (PUB, p.name))): MK.append((m, p))
-MK.sort(); print('markets', len(MK))
+MIN_ID = int(os.environ.get('MINID', '0')); MK = [x for x in MK if x[0] > MIN_ID]; MK.sort(); print('markets', len(MK), '(id >', MIN_ID, ')')
 DATA = {}
 for m, p in MK:
     ws = int(json.load(open(p / 'META.json'))['window_start_ms']) if (p / 'META.json').exists() else int(json.load(gzip.open(p / ('public_%s.json.gz' % p.name), 'rt'))['market']['window_start_ms']); T, BB, BA, BAS, BBS = book_series(p); a = np.array(agg[p.name]); DATA[m] = (ws, T, BB, BA, BAS, BBS, a[:, 0].astype(np.int64), a[:, 1])
@@ -51,7 +51,8 @@ for m, (ws, T, BB, BA, BAS, BBS, ST, SPX) in DATA.items():
 print('corr(spot 100 ms return, Predict UP-mid change in the same 100 ms bin shifted by lag ms):')
 print('  ', {l: round(float(np.corrcoef(xs[l][0], xs[l][1])[0, 1]), 3) for l in lags})
 # (2) rule
-ids = sorted(DATA); n = len(ids); D_, C_ = ids[:int(.6 * n)], ids[int(.6 * n):]; rng = random.Random(6)
+ids = sorted(DATA); n = len(ids); D_, C_ = ids[:int(.6 * n)], ids[int(.6 * n):]
+JUDGE = bool(os.environ.get('JUDGE')); rng = random.Random(6)
 def run(m, D, X, L):
     ws, T, BB, BA, BAS, BBS, ST, SPX = DATA[m]; w = lab[m]; last = -1e18; out = []
     for t in range(ws + 15_000, ws + 285_000, 100):
@@ -70,13 +71,14 @@ def run(m, D, X, L):
     return out
 def ci(v): b = sorted(S.fmean(rng.choice(v) for _ in v) for _ in range(800)); return b[20], b[779]
 print('\nrule: per-market mean edge per share [market bootstrap 95% CI]  (+5 s markout | to resolution)')
-for D in (500, 1000):
-    for X in (1., 2., 3.):
-        for L in (200, 400, 700, 1000):
+GD = [int(x) for x in os.environ.get('GD', '500,1000').split(',')]; GX = [float(x) for x in os.environ.get('GX', '1,2,3').split(',')]; GL = [int(x) for x in os.environ.get('GL', '200,400,700,1000').split(',')]
+for D in GD:
+    for X in GX:
+        for L in GL:
             row = []
-            for nm, sub in (('DISC', D_), ('CONF', C_)):
+            for nm, sub in ((('ALL(one-shot)', ids),) if JUDGE else (('DISC', D_), ('CONF', C_))):
                 pm = [r for r in (run(m, D, X, L) for m in sub) if r]
                 if len(pm) < 10: row.append('%s n=%d' % (nm, len(pm))); continue
                 e5 = [S.fmean(x[0] for x in r if x[0] == x[0]) for r in pm if any(x[0] == x[0] for x in r)]; er = [S.fmean(x[2] for x in r) for r in pm]; a5, b5 = ci(e5); ar, br = ci(er)
-                row.append('%s mk=%d tr/mk %.1f +5s %+.4f[%+.4f,%+.4f] res %+.4f[%+.4f,%+.4f]' % (nm, len(pm), S.fmean(len(r) for r in pm), S.fmean(e5), a5, b5, S.fmean(er), ar, br))
+                row.append('%s mk=%d tr/mk %.1f +5s %+.4f[%+.4f,%+.4f] res %+.4f[%+.4f,%+.4f]' % (nm, len(pm), S.fmean(len(r) for r in pm), S.fmean(e5), a5, b5, S.fmean(er), ar, br) + (' | +5s-1c %+.4f CIlo %+.4f' % (S.fmean(e5) - .01, a5 - .01) if JUDGE else ''))
             print('  D=%4d X=%.0f L=%4d | %s' % (D, X, L, ' || '.join(row)))
