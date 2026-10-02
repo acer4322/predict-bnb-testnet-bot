@@ -1,0 +1,73 @@
+{
+  "status": "PASS",
+  "event_markets": 15,
+  "official_label_pairs": 15,
+  "cumulative_new_markets": 30,
+  "requested_original_minimum": 100,
+  "remaining_minimum": 70,
+  "threshold_check": "PASS",
+  "exclusion_check": "PASS",
+  "prior_batch_overlap": 0,
+  "original_anonymous_npz_byte_parity": "15/15 PASS",
+  "reference3_byte_parity": "PASS",
+  "official_terminal_unique_WON_resolution_checks": "15/15 PASS",
+  "events": 262719,
+  "public_trades": 27975,
+  "source_start_tail_gap_5000ms_pass": 14,
+  "source_gap_warnings": [
+    {
+      "market_id": 2810422,
+      "observed_source_start_missing_ms": 30,
+      "observed_source_tail_missing_ms": 371,
+      "source_max_gap_ms": 7996
+    }
+  ],
+  "received_start_tail_gap_5000ms_pass": 9,
+  "received_gap_warnings": [
+    {
+      "market_id": 2810219,
+      "observed_received_start_missing_ms": 1205,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 6715
+    },
+    {
+      "market_id": 2810273,
+      "observed_received_start_missing_ms": 1236,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 12209
+    },
+    {
+      "market_id": 2810275,
+      "observed_received_start_missing_ms": 1963,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 15390
+    },
+    {
+      "market_id": 2810332,
+      "observed_received_start_missing_ms": 1230,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 6536
+    },
+    {
+      "market_id": 2810422,
+      "observed_received_start_missing_ms": 959,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 26996
+    },
+    {
+      "market_id": 2810509,
+      "observed_received_start_missing_ms": 1299,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 13892
+    }
+  ],
+  "public_trades_before_window": 767,
+  "public_trades_after_window": 0,
+  "public_trade_collection_completeness": "UNKNOWN",
+  "native_executed": false,
+  "fit": 0,
+  "worker_submissions": 0,
+  "collector_changes": 0,
+  "live_changes": 0,
+  "api_key_or_private_identifiers_published": false
+}

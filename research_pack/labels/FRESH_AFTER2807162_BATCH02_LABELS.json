@@ -1,0 +1,64 @@
+{
+  "records": [
+    {
+      "market_id": 2810219,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2810255,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2810273,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810275,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810278,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810332,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2810339,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810422,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810476,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2810509,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810520,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810761,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810879,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2810883,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2810901,
+      "winner": "DOWN"
+    }
+  ]
+}
