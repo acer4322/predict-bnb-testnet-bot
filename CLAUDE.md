@@ -1,6 +1,6 @@
 # Claude 專案接手入口
 
-先讀 [AGENTS.md](AGENTS.md)，再讀 [Claude 中文交接](docs/handoffs/CLAUDE_HANDOFF_20260925_ZH.md)。本檔只提供入口，不取代使用者指示或各目錄適用的 AGENTS.md。
+先讀 [AGENTS.md](AGENTS.md)，再讀 [Claude 中文交接](docs/handoffs/CLAUDE_HANDOFF_20260925_ZH.md)。最新的雲端研究交接（Target 逆向分析、現貨延遲吃單與影子模式）見 [CLAUDE_LOCAL_HANDOFF_20261003_ZH.md](docs/handoffs/CLAUDE_LOCAL_HANDOFF_20261003_ZH.md)。本檔只提供入口，不取代使用者指示或各目錄適用的 AGENTS.md。
 
 目前工作是 BTC5M 離線 ADD／repair 循環研究。最新狀態以 [RESEARCH_CURRENT.md](docs/agents/RESEARCH_CURRENT.md) 第一項及其具名包為準；不要依檔案時間或 README 的舊執行指令選擇研究主線。
 
