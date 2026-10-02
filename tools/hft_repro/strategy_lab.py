@@ -57,6 +57,28 @@ def run(fx, mid, strat, dec_ms=1000, tick=15., cap=300., stop=270.):
                 if cm >= .75:
                     ud = 'DOWN' if cur == 'UP' else 'UP'; px = (ba if ud == 'UP' else round(1 - bb, 2))
                     qq = clip_for(px); n += 1; submit(bt, n, ud, px, qq, False); orders[n] = dict(n=n, side=ud, qty=qq, cum=0., live=True, t=t)
+        elif strat.startswith('TL_'):
+            # Target-like ladder (pre-declared 2026-10-02, from target_quote_rules: 30-sh parents, join or 1-2 ticks deeper, never improve; balanced shares at the end):
+            # TL_<levels>_G<gap>_<C|N>: bids on BOTH sides at best bid - k ticks (k < levels), 30 sh each; a side is not quoted while it leads the other by > gap shares;
+            # quoting stops at 270 s; C = at 275 s buy the short side at the ask to equalise shares (taker completion), N = no completion.
+            _, lv, gp, cm_ = strat.split('_'); static = lv.startswith('S'); lv = int(lv.lstrip('S')); gp = float(gp[1:])
+            # static variant TL_S<lv>_...: levels best bid-1 .. best bid-lv ticks; resting orders are kept (queue priority) until deeper than bid-(lv+3) or the side is paused
+            want = {'UP': bb, 'DOWN': round(1. - ba, 2)}
+            for side in ('UP', 'DOWN'):
+                opp = 'DOWN' if side == 'UP' else 'UP'; ok = sec < 270 and sh[side] - sh[opp] <= gp
+                prices = ({round(want[side] - .01 * k, 2) for k in range(1, lv + 1)} if static else {round(want[side] - .01 * k, 2) for k in range(lv)}) if ok else set()
+                keep = (lambda px: ok and px is not None and want[side] - .01 * (lv + 3) - 1e-9 <= px <= want[side] + 1e-9) if static else (lambda px: px in prices)
+                for o in orders.values():
+                    if o['live'] and o['side'] == side and o.get('px', 0) >= 0 and not keep(o.get('px')):
+                        cur = bt.orders(0).get(o['n'])
+                        if cur is not None and bool(cur.cancellable): bt.cancel(0, o['n'], False)
+                have = {o.get('px') for o in orders.values() if o['live'] and o['side'] == side}
+                for px in prices - have:
+                    if px >= .02: n += 1; submit(bt, n, side, px, 30., True); orders[n] = dict(n=n, side=side, qty=30., cum=0., live=True, t=t, px=px)
+            if cm_ == 'C' and 275 <= sec < 276:
+                gap_ = sh['UP'] - sh['DOWN']
+                if abs(gap_) >= 1:
+                    side = 'DOWN' if gap_ > 0 else 'UP'; px = ba if side == 'UP' else round(1 - bb, 2); n += 1; submit(bt, n, side, px, round(abs(gap_), 2), False); orders[n] = dict(n=n, side=side, qty=abs(gap_), cum=0., live=True, t=t, px=-1)
         else:
             K, D = (1, 45.) if strat == 'MAKER_PAIR_K1D45' else (2, 1e9)
             want = {'UP': bb, 'DOWN': round(1. - ba, 2)}
