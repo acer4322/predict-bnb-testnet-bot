@@ -1,0 +1,21 @@
+# Second-PC research dispatch
+
+Use only for an authorized research job or recovery of an existing job. This route does not itself request a new experiment. For research design, first use [research.md](research.md).
+
+1. Identify the current run, named job, manifest, expected artifacts and write owner. Search exact/global job status and local `data/research/lan_worker_returns/<job-id>/` before dispatch. A completed result takes priority over preparing a replacement. Load coordination workboards/role bindings only when actually working in that workflow.
+2. Resolve `btc5m-worker`, verify its strict SSH host key and reported identity. Last documented identity is `DESKTOP-JIERAGF`, worker root `C:\BTC5M-worker`; IP addresses and resource state must be checked, not assumed. Keep heavy/native work off the main host. The worker must not receive live-order authority.
+3. Probe capacity, stage only needed inputs, verify source/package hashes and required ABI, then run the package's load-only/small smoke check. Use the pinned worker interpreter `C:\BTC5M-worker\.venv\Scripts\python.exe`.
+4. For the current V49 microworld line use **one heavy job, max_threads=4**. Do not adopt generic 12-thread or four-lane examples from older runbooks. Independent queues in other explicitly scoped plans may use the existing bounded wave workflow, with resource limits declared before dispatch.
+5. Submit the named job once. A timeout, disconnect or UI interruption is not a failed job: attach/status/tail and inspect artifacts. Retry dispatch only when nonexistence is established; use a new pinned package for an authorized repair after diagnosing a real failure. Never bypass identity or tool safety checks.
+6. While the turn is active, inspect meaningful progress about every 60 seconds. Runner heartbeat alone is not scientific progress; use status, logs, CPU/progress artifacts and expected workload. No fixed 30-minute cutoff. Follow existing collection ownership (`wave`/`run_read`/auto-collector); do not spawn duplicate watchers or promise background work beyond the tool's actual behavior.
+7. On terminal completion collect and verify required artifacts and hashes, source-event consumption, ledger/receipt/owner/transport consistency, and declared sample scope. Exit 0 alone is insufficient. Preserve UNKNOWN and EOF bounds. On native rejection preserve frame/plan, owner state, receipt prefix, source index and partial audit before considering a repair/rerun.
+
+Historical ended `runner_error` jobs are not automatically a current resource conflict; inspect live/queued work separately. Existing authorization persists unless revoked; do not require confirmation merely because an old skill says 'authorized'.
+
+## Host worker progress window and completion notification
+
+On the Windows research host, standard dispatcher jobs with auto-collection enabled open a **visible console window by default**. Its title is `BTC5M Worker - <job-id>`. The console stays open while the second-PC job is nonterminal and while successful results are still being collected; after a successful collect it exits and the window closes automatically. Transient SSH/status or collection failures are logged and retried instead of closing the window. The watcher lifetime is currently seven days. Set `BTC5M_WORKER_CONSOLE=0` in the dispatcher's environment to restore the old hidden watcher.
+
+The same watcher also attempts the existing best-effort Windows balloon notification after terminal completion. Notification failures never change job/research success semantics; set `BTC5M_HOST_NOTIFY=0` to disable balloons. Watcher/notification logs are under `data/research/lan_worker_returns/_auto_collect_logs/`. Wave jobs that do not use the background auto-collector are not covered by the visible window.
+
+For exact CLI syntax and paths, read the relevant section of [LAN runbook](../../BTC5M_LAN_WORKER_V1.md). For an actual multi-job queue, read the orchestration portions of [pipeline contract](../../data/research/RESEARCH_EXECUTION_PIPELINE_CONTRACT_V1.md). Their dated resource defaults and legacy strategy gates do not override the current scoped protocol. The [dispatch authorization record](../../SECOND_PC_DISPATCH_LOCK_20260830.md) is historical evidence, not a fresh connectivity probe.

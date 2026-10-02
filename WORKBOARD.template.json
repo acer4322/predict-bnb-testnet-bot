@@ -1,0 +1,91 @@
+{
+  "status": "TEMPLATE_NOT_ACTIVATED",
+  "revision": 0,
+  "coordinator": "UNASSIGNED",
+  "baseline": {
+    "profile": "MINIMAL_TRAINING_NONBINDING_FUNDING_V1",
+    "funding_mode": "VIRTUAL_NONBINDING_RESEARCH",
+    "capital_cap": null,
+    "runtime_path": "tools/open_funding_recovery_runtime_v3.py",
+    "runtime_sha256": null,
+    "policy_sha256": "55a2719518c87541a40a0156c8c0635f8a953ee540d3db531eaa0207a55474e0",
+    "native_sha256": "7de2335528234bea9381bea4208a90594a7bec9795d09b913f430ff1f8cf8ebf",
+    "action_scope": "PASSIVE_NATIVE; ACTIVE_UNIMPLEMENTED",
+    "schema_revision": "MUST_PIN_BEFORE_JOB"
+  },
+  "proposed_scheduling": {
+    "heavy_jobs_concurrent": 1,
+    "max_threads_per_job": 4,
+    "dispatcher": "COORDINATOR_ONLY",
+    "is_service_installed": false
+  },
+  "tasks": [
+    {
+      "id": "A1_ECONOMIC_TEACHING",
+      "owner": "A",
+      "status": "PROPOSED",
+      "depends_on": [
+        "BASELINE_ALIGNMENT"
+      ],
+      "write_scope": "lane A only",
+      "job_id": null
+    },
+    {
+      "id": "B1_RUNTIME_BRIDGE_ALIGNMENT",
+      "owner": "B",
+      "status": "PROPOSED",
+      "depends_on": [
+        "BASELINE_ALIGNMENT"
+      ],
+      "write_scope": "lane B isolated patches",
+      "job_id": null
+    },
+    {
+      "id": "B2_NATIVE_ACTIVE_SHARED_OBJECTIVE",
+      "owner": "B",
+      "status": "BLOCKED_DEPENDENCY",
+      "depends_on": [
+        "B1_RUNTIME_BRIDGE_ALIGNMENT"
+      ],
+      "job_id": null
+    },
+    {
+      "id": "C1_POLICY_STATE_EXPRESSIVITY",
+      "owner": "C",
+      "status": "PROPOSED",
+      "depends_on": [
+        "BASELINE_ALIGNMENT"
+      ],
+      "write_scope": "lane C actor candidate only",
+      "job_id": null
+    },
+    {
+      "id": "D1_DATA_AND_INDEPENDENT_EVAL",
+      "owner": "D",
+      "status": "PROPOSED",
+      "depends_on": [
+        "BASELINE_ALIGNMENT"
+      ],
+      "write_scope": "lane D evaluation outputs",
+      "job_id": null
+    },
+    {
+      "id": "INTEGRATION_1",
+      "owner": "COORDINATOR",
+      "status": "BLOCKED_DEPENDENCY",
+      "depends_on": [
+        "A1_ECONOMIC_TEACHING",
+        "B1_RUNTIME_BRIDGE_ALIGNMENT",
+        "C1_POLICY_STATE_EXPRESSIVITY",
+        "D1_DATA_AND_INDEPENDENT_EVAL"
+      ],
+      "capability_scope": "Explicitly choose PASSIVE or validated new routes; never silently mix.",
+      "job_id": null
+    }
+  ],
+  "authoritative_jobs": [],
+  "notes": [
+    "No new job has been submitted by generating this template.",
+    "New user instructions are binding, but engineering evidence remains version scoped."
+  ]
+}

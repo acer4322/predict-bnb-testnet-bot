@@ -1,0 +1,244 @@
+{
+  "simulationDatabase": "C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\simulation.db",
+  "microstructureDatabase": "C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\microstructure.db",
+  "filterFrom": "2026-07-31T18:00:00+00:00",
+  "filterTo": null,
+  "observationsCompared": 186824,
+  "microstructureSnapshots": 649609,
+  "verdictCounts": {
+    "NO_ACCEPTED_PREDICTION_BOOK": 108636,
+    "ACTIVE_MATCH": 65904,
+    "NO_MICRO_SNAPSHOT": 1647,
+    "NO_PREDICTION_MARKET_ID": 21,
+    "MARKET_ID_MISMATCH": 10616
+  },
+  "firstSuspectInterval": {
+    "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+    "expected_market_id": 6808019,
+    "snapshot_market_id": 6808019,
+    "start": "2026-07-31T18:00:05.083540+00:00",
+    "end": "2026-07-31T18:00:06.925998+00:00",
+    "duration_seconds": 1.842458,
+    "samples": 3,
+    "max_snapshot_gap_ms": 126.90048
+  },
+  "lastSuspectInterval": {
+    "verdict": "MARKET_ID_MISMATCH",
+    "expected_market_id": 6813942,
+    "snapshot_market_id": 6813926,
+    "start": "2026-08-02T23:40:06.073162+00:00",
+    "end": "2026-08-02T23:43:55.300959+00:00",
+    "duration_seconds": 229.227797,
+    "samples": 228,
+    "max_snapshot_gap_ms": 2814.641116
+  },
+  "longestSuspectIntervals": [
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6810654,
+      "snapshot_market_id": 6810654,
+      "start": "2026-08-01T18:55:02.716930+00:00",
+      "end": "2026-08-01T18:59:59.210633+00:00",
+      "duration_seconds": 296.493703,
+      "samples": 295,
+      "max_snapshot_gap_ms": 2605.134544
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6810578,
+      "snapshot_market_id": 6810578,
+      "start": "2026-08-01T18:30:02.747115+00:00",
+      "end": "2026-08-01T18:34:59.141743+00:00",
+      "duration_seconds": 296.394628,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2481.65072
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6810426,
+      "snapshot_market_id": 6810426,
+      "start": "2026-08-01T18:10:02.567783+00:00",
+      "end": "2026-08-01T18:14:58.936021+00:00",
+      "duration_seconds": 296.368238,
+      "samples": 295,
+      "max_snapshot_gap_ms": 1983.222976
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6810414,
+      "snapshot_market_id": 6810414,
+      "start": "2026-08-01T18:00:02.642684+00:00",
+      "end": "2026-08-01T18:04:59.008889+00:00",
+      "duration_seconds": 296.366205,
+      "samples": 295,
+      "max_snapshot_gap_ms": 1898.513128
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6810982,
+      "snapshot_market_id": 6810982,
+      "start": "2026-08-01T21:40:03.018006+00:00",
+      "end": "2026-08-01T21:44:59.370200+00:00",
+      "duration_seconds": 296.352194,
+      "samples": 295,
+      "max_snapshot_gap_ms": 2895.017132
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6811049,
+      "snapshot_market_id": 6811049,
+      "start": "2026-08-01T22:25:02.875824+00:00",
+      "end": "2026-08-01T22:29:59.177705+00:00",
+      "duration_seconds": 296.301881,
+      "samples": 295,
+      "max_snapshot_gap_ms": 2923.663264
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6812241,
+      "snapshot_market_id": 6812241,
+      "start": "2026-08-02T05:40:02.844604+00:00",
+      "end": "2026-08-02T05:44:59.124427+00:00",
+      "duration_seconds": 296.279823,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2570.39828
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6813099,
+      "snapshot_market_id": 6813099,
+      "start": "2026-08-02T17:05:02.817860+00:00",
+      "end": "2026-08-02T17:09:59.089319+00:00",
+      "duration_seconds": 296.271459,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2184.358696
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6810650,
+      "snapshot_market_id": 6810650,
+      "start": "2026-08-01T18:50:02.805634+00:00",
+      "end": "2026-08-01T18:54:59.055107+00:00",
+      "duration_seconds": 296.249473,
+      "samples": 295,
+      "max_snapshot_gap_ms": 2299.46026
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6812978,
+      "snapshot_market_id": 6812978,
+      "start": "2026-08-02T15:40:03.126479+00:00",
+      "end": "2026-08-02T15:44:59.372331+00:00",
+      "duration_seconds": 296.245852,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2279.205764
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6812431,
+      "snapshot_market_id": 6812431,
+      "start": "2026-08-02T08:40:03.062974+00:00",
+      "end": "2026-08-02T08:44:59.296834+00:00",
+      "duration_seconds": 296.23386,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2397.158588
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6812780,
+      "snapshot_market_id": 6812780,
+      "start": "2026-08-02T13:10:02.866466+00:00",
+      "end": "2026-08-02T13:14:59.090654+00:00",
+      "duration_seconds": 296.224188,
+      "samples": 293,
+      "max_snapshot_gap_ms": 2170.038112
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6812958,
+      "snapshot_market_id": 6812958,
+      "start": "2026-08-02T15:20:03.292010+00:00",
+      "end": "2026-08-02T15:24:59.513696+00:00",
+      "duration_seconds": 296.221686,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2333.465076
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6812563,
+      "snapshot_market_id": 6812563,
+      "start": "2026-08-02T10:45:03.189226+00:00",
+      "end": "2026-08-02T10:49:59.400383+00:00",
+      "duration_seconds": 296.211157,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2101.171036
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6811957,
+      "snapshot_market_id": 6811957,
+      "start": "2026-08-02T05:20:02.898119+00:00",
+      "end": "2026-08-02T05:24:59.095255+00:00",
+      "duration_seconds": 296.197136,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2370.887556
+    },
+    {
+      "verdict": "MARKET_ID_MISMATCH",
+      "expected_market_id": 6813614,
+      "snapshot_market_id": 6813608,
+      "start": "2026-08-02T20:30:03.274907+00:00",
+      "end": "2026-08-02T20:34:59.471397+00:00",
+      "duration_seconds": 296.19649,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2184.580856
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6811635,
+      "snapshot_market_id": 6811635,
+      "start": "2026-08-02T03:05:02.879296+00:00",
+      "end": "2026-08-02T03:09:59.068238+00:00",
+      "duration_seconds": 296.188942,
+      "samples": 295,
+      "max_snapshot_gap_ms": 2495.044216
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6812365,
+      "snapshot_market_id": 6812365,
+      "start": "2026-08-02T07:35:02.965036+00:00",
+      "end": "2026-08-02T07:39:59.133650+00:00",
+      "duration_seconds": 296.168614,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2497.265692
+    },
+    {
+      "verdict": "NO_ACCEPTED_PREDICTION_BOOK",
+      "expected_market_id": 6812326,
+      "snapshot_market_id": 6812326,
+      "start": "2026-08-02T06:55:03.298226+00:00",
+      "end": "2026-08-02T06:59:59.460178+00:00",
+      "duration_seconds": 296.161952,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2524.10656
+    },
+    {
+      "verdict": "MARKET_ID_MISMATCH",
+      "expected_market_id": 6813864,
+      "snapshot_market_id": 6813848,
+      "start": "2026-08-02T22:50:03.163491+00:00",
+      "end": "2026-08-02T22:54:59.323832+00:00",
+      "duration_seconds": 296.160341,
+      "samples": 294,
+      "max_snapshot_gap_ms": 2842.141484
+    }
+  ],
+  "rowsCsv": "C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\prediction_feed_availability_rows.csv",
+  "intervalsCsv": "C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\prediction_feed_availability_intervals.csv",
+  "limitations": [
+    "ACTIVE_MATCH means a retained snapshot had the expected market ID and a non-null accepted Prediction mid near the observation.",
+    "NO_ACCEPTED_PREDICTION_BOOK is the strongest retained-snapshot indicator of rollover rejection, unverified orientation, or Prediction feed outage.",
+    "Snapshot retention is usually longer than raw-event retention, so this audit can cover periods whose raw frames were purged."
+  ]
+}

@@ -1,0 +1,42 @@
+name: Rank 1 snapshot V2
+
+on:
+  push:
+    branches:
+      - feature/rank1-snapshot-v2
+  pull_request:
+    branches:
+      - feature/regime-guard
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Existing decision regression tests
+        run: >-
+          python -m pytest
+          tests/test_decision_strategy_native_v2.py
+          tests/test_decision_strategy_config_v2.py
+          -q
+
+      - name: Rank 1 V2 overlay tests
+        run: python -m pytest tests/test_decision_rank1_snapshot_v2.py -q
+
+      - name: Whitelist isolation
+        run: >-
+          python -c "from predict_bot import live_trading, m_realtime; from predict_bot.decision_rank1_snapshot_v2 import RANK1_V1_BASELINE_STRATEGY; assert RANK1_V1_BASELINE_STRATEGY not in live_trading.LIVE_SUPPORTED_STRATEGIES; assert RANK1_V1_BASELINE_STRATEGY not in m_realtime.LIVE_FORWARDABLE_PAPER_STRATEGIES"
+
+      - name: Diff check
+        run: git diff --check

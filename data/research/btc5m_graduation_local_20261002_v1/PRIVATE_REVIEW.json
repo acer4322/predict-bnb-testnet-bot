@@ -1,0 +1,17 @@
+{
+  "files_reviewed": 532,
+  "FLAGGED": [],
+  "private_identifier_hits": [],
+  "label_count": 519,
+  "public_count": 519,
+  "total_bytes": 26902849,
+  "flip_events": 154,
+  "source_top3_covers_qty": 120,
+  "source_full_depth_covers_qty": 154,
+  "received_full_depth_covers_qty": 154,
+  "source_spread_median": 0.01,
+  "source_event_book_delay_median_ms": 517.5,
+  "received_event_snapshot_count": 154,
+  "source_book_not_yet_received_at_decision": 146,
+  "extra_count": 13
+}

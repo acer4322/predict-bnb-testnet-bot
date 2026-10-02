@@ -1,0 +1,25 @@
+{
+  "version": "BTC5M_BATCH_SEARCH_V1",
+  "seed": 20260921,
+  "trials": 128,
+  "startup": 9,
+  "exploration_probability": 0.35,
+  "objectives": ["mean_pending_conservative_floor", "mean_paired_surplus", "mean_best_branch"],
+  "space": {
+    "history": {"type": "choice", "values": ["attempts", "age", "attempts_age"]},
+    "curve": {"type": "choice", "values": ["linear", "sqrt", "saturating"]},
+    "failure_weight": {"type": "log_float", "low": 0.25, "high": 4.0},
+    "age_weight": {"type": "log_float", "low": 0.25, "high": 4.0}
+  },
+  "scope": {
+    "market": "1977248",
+    "consumed_development_market": true,
+    "not_OOS": true,
+    "capital_cap": null,
+    "neural_updates": 0,
+    "active_repair_unchanged": true,
+    "live_authority": false,
+    "fees": "CONDITIONAL_200BPS_NOT_VERIFIED_VENUE_FEES",
+    "source_clock_certification": "UNKNOWN"
+  }
+}

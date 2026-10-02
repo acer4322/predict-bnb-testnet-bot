@@ -1,0 +1,396 @@
+from __future__ import annotations
+
+import argparse
+import base64
+import json
+import subprocess
+import time
+from pathlib import Path
+from typing import Any
+import sys
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
+VERSION = "BTC5M_LAN_DISPATCH_V1"
+DEFAULT_HOST = "btc5m-worker"
+REMOTE_ROOT = r"C:\BTC5M-worker"
+REMOTE_PY = REMOTE_ROOT + r"\.venv\Scripts\python.exe"
+REMOTE_AGENT = REMOTE_ROOT + r"\tools\btc5m_lan_worker_agent_v1.py"
+LOCAL_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_RETURN_ROOT = LOCAL_ROOT / "data" / "research" / "lan_worker_returns"
+
+
+def remote(host: str, args: list[str], timeout: int = 30) -> subprocess.CompletedProcess[str]:
+    command = " ".join([REMOTE_PY, REMOTE_AGENT, *args])
+    return subprocess.run(
+        ["ssh", host, command], capture_output=True, text=True, timeout=timeout,
+        encoding="utf-8", errors="replace",
+    )
+
+
+def ssh_raw(host: str, command: str, timeout: int = 30) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["ssh", host, command], capture_output=True, text=True, timeout=timeout,
+        encoding="utf-8", errors="replace",
+    )
+
+
+def parse_json_output(cp: subprocess.CompletedProcess[str]) -> Any:
+    if cp.returncode != 0:
+        raise RuntimeError(f"remote rc={cp.returncode}: {cp.stderr.strip() or cp.stdout.strip()}")
+    lines = [x.strip() for x in cp.stdout.splitlines() if x.strip()]
+    if not lines:
+        raise RuntimeError("remote returned no JSON")
+    return json.loads(lines[-1])
+
+
+def encode_spec(spec: dict[str, Any]) -> str:
+    raw = json.dumps(spec, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii")
+
+
+def ensure_remote_transfer_dirs(host: str) -> None:
+    code = (
+        "from pathlib import Path; "
+        "[Path(p).mkdir(parents=True,exist_ok=True) for p in "
+        "[r'C:\\BTC5M-worker\\.lan_worker_v1\\staging',r'C:\\BTC5M-worker\\.lan_worker_v1\\results']]"
+    )
+    command = subprocess.list2cmdline([REMOTE_PY, "-c", code])
+    cp = ssh_raw(host, command, timeout=20)
+    if cp.returncode != 0:
+        raise RuntimeError(cp.stderr.strip() or cp.stdout.strip())
+
+
+def cmd_probe(host: str) -> Any:
+    return parse_json_output(remote(host, ["probe"]))
+
+
+def cmd_gpu_probe(host: str) -> Any:
+    command = (
+        'nvidia-smi --query-gpu=name,memory.total,memory.free,utilization.gpu,temperature.gpu,'
+        'driver_version --format=csv,noheader,nounits'
+    )
+    cp = ssh_raw(host, command, timeout=20)
+    if cp.returncode != 0:
+        return {"available": False, "error": cp.stderr.strip() or cp.stdout.strip()}
+    rows = []
+    for i, line in enumerate(x.strip() for x in cp.stdout.splitlines() if x.strip()):
+        parts = [x.strip() for x in line.split(",")]
+        if len(parts) >= 6:
+            rows.append({
+                "index": i, "name": parts[0], "memory_total_mib": int(parts[1]),
+                "memory_free_mib": int(parts[2]), "utilization_gpu_pct": int(parts[3]),
+                "temperature_c": int(parts[4]), "driver_version": parts[5],
+            })
+    torch_code = (
+        "import importlib.util,json; "
+        "s=importlib.util.find_spec('torch'); "
+        "print(json.dumps({'torch_installed':bool(s)}))"
+    )
+    tcp = ssh_raw(host, subprocess.list2cmdline([REMOTE_PY, "-c", torch_code]), timeout=20)
+    torch_info = {"torch_installed": False}
+    if tcp.returncode == 0 and tcp.stdout.strip():
+        try:
+            torch_info = json.loads(tcp.stdout.strip().splitlines()[-1])
+        except Exception:
+            pass
+    return {"available": bool(rows), "gpus": rows, **torch_info}
+
+
+def cmd_status(host: str, job_id: str | None) -> Any:
+    return parse_json_output(remote(host, ["status"] + ([job_id] if job_id else [])))
+
+
+def cmd_tail(host: str, job_id: str, stream: str, max_bytes: int) -> Any:
+    return parse_json_output(remote(host, ["tail", job_id, "--stream", stream, "--max-bytes", str(max_bytes)]))
+
+
+def cmd_cancel(host: str, job_id: str, token: str | None = None, force: bool = False) -> Any:
+    args=["cancel", job_id]
+    if token: args += ["--token", token]
+    if force: args.append("--force")
+    return parse_json_output(remote(host, args))
+
+
+def cmd_stage(host: str, local_path: str) -> Any:
+    source = Path(local_path).expanduser().resolve()
+    if not source.exists():
+        raise FileNotFoundError(source)
+    ensure_remote_transfer_dirs(host)
+    remote_dir = "C:/BTC5M-worker/.lan_worker_v1/staging/"
+    args = ["scp"]
+    if source.is_dir():
+        args.append("-r")
+    args.extend([str(source), f"{host}:{remote_dir}"])
+    cp = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if cp.returncode != 0:
+        raise RuntimeError(cp.stderr.strip() or cp.stdout.strip())
+    return {
+        "ok": True, "source": str(source),
+        "remote_relative": f".lan_worker_v1/staging/{source.name}",
+        "remote_absolute": rf"C:\BTC5M-worker\.lan_worker_v1\staging\{source.name}",
+    }
+
+
+def cmd_collect(host: str, job_id: str, local_root: str | None = None) -> Any:
+    ensure_remote_transfer_dirs(host)
+    root = Path(local_root).expanduser().resolve() if local_root else DEFAULT_RETURN_ROOT
+    root.mkdir(parents=True, exist_ok=True)
+    destination = root / job_id
+    if destination.exists():
+        import shutil
+        shutil.rmtree(destination)
+    source = f"{host}:C:/BTC5M-worker/.lan_worker_v1/results/{job_id}"
+    cp = subprocess.run(["scp", "-r", source, str(root)], capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if cp.returncode != 0:
+        raise RuntimeError(cp.stderr.strip() or cp.stdout.strip())
+    return {"ok": True, "job_id": job_id, "local_path": str(destination)}
+
+
+def cmd_submit(
+    host: str, argv: list[str], cwd: str, job_id: str | None, max_threads: int,
+    min_free_ram_gb: float, max_start_cpu_pct: float, defer_if_copy_active: bool = True,
+    resource_class: str = "cpu", gpu_index: int = 0, min_free_vram_mib: int = 4096,
+    max_start_gpu_pct: float = 70.0, cancel_protected: bool = False,
+) -> Any:
+    if not argv:
+        raise ValueError("missing command after --")
+    # Normalize the worker venv launcher so staged jobs never depend on cwd.
+    a0 = str(argv[0]).replace("/", "\\").lower()
+    if a0 in {r".venv\scripts\python.exe", r".\.venv\scripts\python.exe"}:
+        argv = [REMOTE_PY, *argv[1:]]
+    if resource_class not in {"cpu", "gpu"}:
+        raise ValueError("resource_class must be cpu or gpu")
+    if resource_class == "gpu":
+        gp = cmd_gpu_probe(host)
+        if not gp.get("available"):
+            return {"accepted": False, "reason": "gpu_unavailable", "gpu_probe": gp}
+    spec: dict[str, Any] = {
+        "argv": argv, "cwd": cwd, "max_threads": max_threads,
+        "min_free_ram_gb": min_free_ram_gb, "max_start_cpu_pct": max_start_cpu_pct,
+        "defer_if_copy_active": defer_if_copy_active, "resource_class": resource_class,
+        "gpu_index": gpu_index, "min_free_vram_mib": min_free_vram_mib,
+        "max_start_gpu_pct": max_start_gpu_pct, "cancel_protected": bool(cancel_protected),
+    }
+    if job_id:
+        spec["job_id"] = job_id
+    return parse_json_output(remote(host, ["submit", encode_spec(spec)]))
+
+
+def cmd_smoke(host: str) -> Any:
+    job_id = f"smoke-{time.strftime('%Y%m%d-%H%M%S')}"
+    code = (
+        "import json,os,platform,time,pathlib; "
+        "r=pathlib.Path(os.environ['BTC5M_LAN_RESULT_DIR']); "
+        "(r/'smoke.json').write_text(json.dumps({'smoke':'ok','host':platform.node(),'pid':os.getpid()})); "
+        "print(json.dumps({'smoke':'ok','host':platform.node(),'result_dir':str(r)})); "
+        "time.sleep(1); print('DONE')"
+    )
+    submitted = cmd_submit(host, ["python", "-c", code], ".", job_id, 2, 4.0, 90.0, False, "cpu", 0, 4096, 70.0)
+    if not submitted.get("accepted"):
+        return {"submitted": submitted}
+    deadline = time.time() + 20
+    last = None
+    while time.time() < deadline:
+        last = cmd_status(host, job_id)
+        if last.get("state") in {"succeeded", "failed", "runner_error", "cancelled"}:
+            break
+        time.sleep(0.5)
+    payload = {
+        "submitted": submitted, "status": last,
+        "stdout": cmd_tail(host, job_id, "stdout", 8192),
+        "stderr": cmd_tail(host, job_id, "stderr", 8192),
+    }
+    if last and last.get("state") == "succeeded":
+        payload["collected"] = cmd_collect(host, job_id)
+    return payload
+
+
+def cmd_harvest(host: str, job_ids: list[str], timeout_seconds: int = 180, poll_seconds: float = 1.0, local_root: str | None = None) -> Any:
+    terminal={"succeeded","failed","runner_error","cancelled"}
+    pending=set(job_ids); results: dict[str, Any]={}
+    deadline=time.time()+max(1,int(timeout_seconds))
+    while pending and time.time()<deadline:
+        for jid in list(pending):
+            try:
+                st=cmd_status(host,jid)
+            except Exception as ex:
+                results[jid]={"state":"status_error","error":f"{type(ex).__name__}:{ex}"}
+                pending.remove(jid); continue
+            if st.get("state") in terminal:
+                item={"status":st}
+                if st.get("state")=="succeeded":
+                    try:
+                        item["collected"]=cmd_collect(host,jid,local_root)
+                    except Exception as ex:item["collect_error"]=f"{type(ex).__name__}:{ex}"
+                else:
+                    try:item["stdout"]=cmd_tail(host,jid,"stdout",4096)
+                    except Exception:pass
+                    try:item["stderr"]=cmd_tail(host,jid,"stderr",4096)
+                    except Exception:pass
+                results[jid]=item; pending.remove(jid)
+        if pending: time.sleep(max(0.2,float(poll_seconds)))
+    for jid in sorted(pending):
+        try:st=cmd_status(host,jid)
+        except Exception as ex:st={"state":"status_error","error":f"{type(ex).__name__}:{ex}"}
+        results[jid]={"status":st,"harvestTimedOut":True}
+    return {"ok":not pending,"jobCount":len(job_ids),"completed":len(job_ids)-len(pending),"pending":sorted(pending),"results":results}
+
+
+
+def cmd_wave(host: str, plan_path: str, max_parallel: int = 4, poll_seconds: float = 0.5, local_root: str | None = None) -> Any:
+    """Keep worker lanes saturated: submit queued jobs, collect each terminal job immediately, backfill freed slots."""
+    plan=json.loads(Path(plan_path).read_text(encoding="utf-8"))
+    jobs=plan.get("jobs") if isinstance(plan,dict) else plan
+    progress_artifact=(plan.get("progress_artifact") if isinstance(plan,dict) else None)
+    postprocess=(plan.get("postprocess") if isinstance(plan,dict) else None)
+    if not isinstance(jobs,list) or not jobs:
+        raise ValueError("wave plan must contain non-empty jobs list")
+    max_parallel=max(1,int(max_parallel))
+    queued=list(jobs); running: dict[str,dict[str,Any]]={}; results: dict[str,Any]={}; submit_order=[]
+    terminal={"succeeded","failed","runner_error","cancelled"}
+    t0=time.time()
+    def write_progress() -> None:
+        if not progress_artifact:
+            return
+        pp=Path(progress_artifact)
+        if not pp.is_absolute():
+            pp=LOCAL_ROOT/pp
+        pp.parent.mkdir(parents=True,exist_ok=True)
+        payload={
+            "version":"BTC5M_LAN_WAVE_PROGRESS_V1",
+            "plan":str(plan_path),
+            "jobCount":len(jobs),
+            "completed":len(results),
+            "running":sorted(running),
+            "queued":len(queued),
+            "elapsedSeconds":round(time.time()-t0,3),
+            "updatedAt":time.time(),
+        }
+        pp.write_text(json.dumps(payload,indent=2,ensure_ascii=False),encoding="utf-8")
+    def launch_one(job: dict[str,Any]) -> None:
+        jid=str(job.get("job_id") or job.get("jobId") or "").strip()
+        argv=list(job.get("argv") or [])
+        if not jid or not argv: raise ValueError(f"invalid wave job: {job}")
+        try:
+            sub=cmd_submit(host,argv,str(job.get("cwd") or "."),jid,int(job.get("max_threads") or 4),float(job.get("min_free_ram_gb") or 6.0),float(job.get("max_start_cpu_pct") or 95.0),bool(job.get("defer_if_copy_active",True)),str(job.get("resource") or "cpu"),int(job.get("gpu_index") or 0),int(job.get("min_free_vram_mib") or 2048),float(job.get("max_start_gpu_pct") or 95.0))
+            submit_order.append(jid)
+            if sub.get("accepted"):
+                running[jid]={"job":job,"submitted":sub,"submittedAt":time.time()}
+            else:
+                results[jid]={"submitted":sub,"state":"not_accepted"}
+        except RuntimeError as ex:
+            if "job already exists" not in str(ex):
+                raise
+            st=cmd_status(host,jid); submit_order.append(jid+":ATTACH")
+            if st.get("state") in {"succeeded","failed","runner_error","cancelled"}:
+                item={"status":st,"attachedExisting":True,"queueResidenceSeconds":0.0}
+                if st.get("state")=="succeeded":
+                    try:
+                        item["collected"]=cmd_collect(host,jid,local_root)
+                        req=job.get("required_artifact")
+                        if req:
+                            ap=Path(item["collected"]["local_path"])/str(req)
+                            item["requiredArtifact"]=str(ap); item["artifactPresent"]=ap.exists()
+                    except Exception as ce:item["collect_error"]=f"{type(ce).__name__}:{ce}"
+                results[jid]=item
+            else:
+                running[jid]={"job":job,"submitted":{"accepted":True,"attachedExisting":True},"submittedAt":time.time()}
+    while queued or running:
+        while queued and len(running)<max_parallel:
+            launch_one(queued.pop(0))
+        progressed=False
+        for jid in list(running):
+            try: st=cmd_status(host,jid)
+            except Exception as ex:
+                results[jid]={"state":"status_error","error":f"{type(ex).__name__}:{ex}"}; running.pop(jid,None); progressed=True; continue
+            if st.get("state") in terminal:
+                item={"status":st,"queueResidenceSeconds":time.time()-running[jid]["submittedAt"]}
+                if st.get("state")=="succeeded":
+                    try:
+                        item["collected"]=cmd_collect(host,jid,local_root)
+                        req=running[jid]["job"].get("required_artifact")
+                        if req:
+                            ap=Path(item["collected"]["local_path"])/str(req)
+                            item["requiredArtifact"]=str(ap); item["artifactPresent"]=ap.exists()
+                    except Exception as ex:item["collect_error"]=f"{type(ex).__name__}:{ex}"
+                else:
+                    try:item["stdout"]=cmd_tail(host,jid,"stdout",4096)
+                    except Exception:pass
+                    try:item["stderr"]=cmd_tail(host,jid,"stderr",4096)
+                    except Exception:pass
+                results[jid]=item; running.pop(jid,None); progressed=True; write_progress()
+                # immediately backfill the freed lane before scanning again
+                if queued and len(running)<max_parallel: launch_one(queued.pop(0))
+        if not progressed and running: time.sleep(max(0.2,float(poll_seconds)))
+    succeeded=sum(1 for x in results.values() if (x.get("status") or {}).get("state")=="succeeded" and x.get("artifactPresent") is not False)
+    write_progress()
+    post_result=None
+    if postprocess:
+        pargv=list(postprocess.get("argv") or [])
+        if not pargv:
+            raise ValueError("wave postprocess requires argv")
+        pcwd=str(postprocess.get("cwd") or ".")
+        ptimeout=int(postprocess.get("timeout_seconds") or 30)
+        cp=subprocess.run(pargv,cwd=str((LOCAL_ROOT/pcwd).resolve()),capture_output=True,text=True,timeout=ptimeout,encoding="utf-8",errors="replace")
+        post_result={
+            "returnCode":cp.returncode,
+            "stdout":cp.stdout[-int(postprocess.get("max_output_bytes") or 12000):],
+            "stderr":cp.stderr[-4000:],
+        }
+        req=postprocess.get("required_artifact")
+        if req:
+            ap=Path(req)
+            if not ap.is_absolute(): ap=LOCAL_ROOT/ap
+            post_result["requiredArtifact"]=str(ap); post_result["artifactPresent"]=ap.exists()
+    return {"ok":succeeded==len(jobs) and (post_result is None or post_result.get("returnCode")==0),"version":"BTC5M_LAN_WAVE_V2","jobCount":len(jobs),"succeeded":succeeded,"elapsedSeconds":round(time.time()-t0,3),"maxParallel":max_parallel,"submitOrder":submit_order,"results":results,"postprocess":post_result,"progressArtifact":progress_artifact}
+
+def emit(payload: Any) -> None:
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=VERSION)
+    ap.add_argument("--host", default=DEFAULT_HOST)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("probe")
+    sub.add_parser("gpu-probe")
+    st = sub.add_parser("status"); st.add_argument("job_id", nargs="?")
+    tl = sub.add_parser("tail"); tl.add_argument("job_id"); tl.add_argument("--stream", choices=["stdout", "stderr"], default="stdout"); tl.add_argument("--max-bytes", type=int, default=16384)
+    ca = sub.add_parser("cancel"); ca.add_argument("job_id"); ca.add_argument("--token"); ca.add_argument("--force", action="store_true")
+    sg = sub.add_parser("stage"); sg.add_argument("local_path")
+    co = sub.add_parser("collect"); co.add_argument("job_id"); co.add_argument("--local-root")
+    sub.add_parser("smoke")
+    hv = sub.add_parser("harvest"); hv.add_argument("job_ids", nargs="+"); hv.add_argument("--timeout-seconds", type=int, default=180); hv.add_argument("--poll-seconds", type=float, default=1.0); hv.add_argument("--local-root")
+    wv = sub.add_parser("wave"); wv.add_argument("plan_path"); wv.add_argument("--max-parallel", type=int, default=4); wv.add_argument("--poll-seconds", type=float, default=0.5); wv.add_argument("--local-root")
+    su = sub.add_parser("submit")
+    su.add_argument("--cwd", default="."); su.add_argument("--job-id")
+    su.add_argument("--max-threads", type=int, default=12); su.add_argument("--min-free-ram-gb", type=float, default=8.0)
+    su.add_argument("--max-start-cpu-pct", type=float, default=80.0); su.add_argument("--allow-during-copy", action="store_true")
+    su.add_argument("--resource", choices=["cpu", "gpu"], default="cpu"); su.add_argument("--gpu-index", type=int, default=0)
+    su.add_argument("--min-free-vram-mib", type=int, default=4096); su.add_argument("--max-start-gpu-pct", type=float, default=70.0); su.add_argument("--protect-cancel", action="store_true")
+    su.add_argument("argv", nargs=argparse.REMAINDER)
+    ns = ap.parse_args(); host = ns.host
+    if ns.cmd == "probe": emit(cmd_probe(host))
+    elif ns.cmd == "gpu-probe": emit(cmd_gpu_probe(host))
+    elif ns.cmd == "status": emit(cmd_status(host, ns.job_id))
+    elif ns.cmd == "tail": emit(cmd_tail(host, ns.job_id, ns.stream, ns.max_bytes))
+    elif ns.cmd == "cancel": emit(cmd_cancel(host, ns.job_id, ns.token, ns.force))
+    elif ns.cmd == "stage": emit(cmd_stage(host, ns.local_path))
+    elif ns.cmd == "collect": emit(cmd_collect(host, ns.job_id, ns.local_root))
+    elif ns.cmd == "smoke": emit(cmd_smoke(host))
+    elif ns.cmd == "harvest": emit(cmd_harvest(host, ns.job_ids, ns.timeout_seconds, ns.poll_seconds, ns.local_root))
+    elif ns.cmd == "wave": emit(cmd_wave(host, ns.plan_path, ns.max_parallel, ns.poll_seconds, ns.local_root))
+    elif ns.cmd == "submit":
+        argv = ns.argv[1:] if ns.argv and ns.argv[0] == "--" else ns.argv
+        emit(cmd_submit(host, argv, ns.cwd, ns.job_id, ns.max_threads, ns.min_free_ram_gb,
+                        ns.max_start_cpu_pct, not ns.allow_during_copy, ns.resource, ns.gpu_index,
+                        ns.min_free_vram_mib, ns.max_start_gpu_pct, ns.protect_cancel))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

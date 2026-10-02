@@ -1,0 +1,65 @@
+{
+  "identity": {
+    "worker": "DESKTOP-JIERAGF",
+    "strict_host_key": true,
+    "at": "2026-10-01T17:57:25.568436+00:00"
+  },
+  "probe": {
+    "version": "BTC5M_LAN_WORKER_AGENT_V1",
+    "root": "C:\\BTC5M-worker",
+    "hostname": "DESKTOP-JIERAGF",
+    "python": "3.13.15",
+    "cpu_count": 16,
+    "cpu_pct": 0.5,
+    "memory": {
+      "total_gb": 39.95,
+      "free_gb": 18.82,
+      "used_pct": 52.0
+    },
+    "disk_free_gb": 65.4,
+    "robocopy_active": false,
+    "gpu": {
+      "available": true,
+      "gpus": [
+        {
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 3070 Ti",
+          "memory_total_mib": 8192,
+          "memory_free_mib": 7671,
+          "utilization_gpu_pct": 0,
+          "temperature_c": 42,
+          "driver_version": "591.86"
+        }
+      ]
+    },
+    "jobs_root": "C:\\BTC5M-worker\\.lan_worker_v1\\jobs",
+    "results_root": "C:\\BTC5M-worker\\.lan_worker_v1\\results",
+    "staging_root": "C:\\BTC5M-worker\\.lan_worker_v1\\staging"
+  },
+  "exact": {
+    "job_id": "btc5m-deep-layer-stage1-rest9-20261002-v1",
+    "state": "missing"
+  },
+  "global_state": {
+    "worker": "DESKTOP-JIERAGF",
+    "states": {
+      "succeeded": 4448,
+      "failed": 411,
+      "runner_error": 35,
+      "cancelled": 49
+    },
+    "nonterminal": [],
+    "other_processes": []
+  },
+  "stage": {
+    "remote_absolute": "C:\\BTC5M-worker\\.lan_worker_v1\\staging\\btc5m_deep_layer_stage1_rest9_20261002_v1"
+  },
+  "load_only": {
+    "status": "PASS",
+    "native_executed": 0,
+    "model_fits": 0,
+    "paths": 9,
+    "parallel_paths": 4
+  },
+  "manifest_sha256": "1f14114818c48c04cd2ab54824c28a09407a77d30f691116451bfe83e706a7a8"
+}

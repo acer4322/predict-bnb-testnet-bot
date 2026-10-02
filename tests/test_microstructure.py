@@ -237,6 +237,67 @@ def test_store_uses_independent_wal_database_and_persists_all_three_tables(tmp_p
         assert db.execute("SELECT COUNT(*) FROM microstructure_gap_events").fetchone()[0] == 1
 
 
+def test_store_cleanup_uses_time_indexes_and_preserves_unexpired_rows(tmp_path: Path):
+    store = MicrostructureStore(tmp_path / "microstructure.db")
+    now_ns = time.time_ns()
+    old_ns = 1
+    fresh_event_ns = now_ns
+    event = {
+        "source": "spot", "stream": "trade", "market_id": None,
+        "exchange_event_ms": 1, "exchange_trade_ms": 1,
+        "received_wall_ns": old_ns, "received_monotonic_ns": 3,
+        "enqueued_monotonic_ns": 4, "session_id": "s", "price": 100.0,
+        "quantity": 1.0, "visible_quantity": 1.0, "aggressor": 1,
+        "bids": [], "asks": [], "raw_json": "{}", "parser_version": "test",
+    }
+    with store._connect() as db:
+        store.insert_event(db, event)
+        store.insert_event(db, {**event, "received_wall_ns": fresh_event_ns})
+        store.counts["events"] = 2
+
+        plan = db.execute(
+            """EXPLAIN QUERY PLAN
+               SELECT id FROM microstructure_events INDEXED BY micro_events_receive_idx
+               WHERE received_wall_ns < ? LIMIT ?""",
+            (now_ns - 3_600_000_000_000, 50_000),
+        ).fetchall()
+        assert any("micro_events_receive_idx" in str(row[3]) for row in plan)
+        assert not any("SCAN microstructure_events" in str(row[3]) for row in plan)
+
+        store.cleanup(db, now_ns)
+        remaining = db.execute(
+            "SELECT received_wall_ns FROM microstructure_events ORDER BY received_wall_ns"
+        ).fetchall()
+
+    assert remaining == [(fresh_event_ns,)]
+    assert store.counts["events"] == 1
+
+
+def test_store_bulk_event_insert_preserves_fifo_payloads(tmp_path: Path):
+    store = MicrostructureStore(tmp_path / "microstructure.db")
+    base_event = {
+        "source": "spot", "stream": "trade", "market_id": 42,
+        "exchange_event_ms": 1, "exchange_trade_ms": 1,
+        "received_monotonic_ns": 3, "enqueued_monotonic_ns": 4,
+        "session_id": "s", "quantity": 1.0, "visible_quantity": 1.0,
+        "aggressor": 1, "bids": [], "asks": [], "raw_json": "{}",
+        "parser_version": "test",
+    }
+    events = [
+        {**base_event, "received_wall_ns": index, "price": 100.0 + index}
+        for index in range(1, 4)
+    ]
+
+    with store._connect() as db:
+        store.insert_events(db, events)
+    with sqlite3.connect(store.path) as db:
+        rows = db.execute(
+            "SELECT received_wall_ns, price, raw_json FROM microstructure_events ORDER BY id"
+        ).fetchall()
+
+    assert rows == [(1, 101.0, "{}"), (2, 102.0, "{}"), (3, 103.0, "{}")]
+
+
 def test_observer_filters_other_prediction_markets_and_out_of_order(tmp_path: Path):
     observer = MicrostructureObserver(
         api_key=None, api_secret=None, current_market_id=lambda: 42,
@@ -289,7 +350,9 @@ def test_state_contract_is_dashboard_safe_without_starting_sockets(tmp_path: Pat
         db_path=tmp_path / "micro.db",
     )
     state = observer.state()
-    assert set(state["streams"]) == {"spot", "futures", "prediction"}
+    assert set(state["streams"]) == {
+        "spot_trade", "spot_book", "futures", "prediction"
+    }
     assert "spotMicroprice" in state["metrics"]
     assert state["storage"]["rawRetentionHours"] > 0
     assert state["recentLiquidityEvents"] == []
@@ -352,6 +415,36 @@ def test_unverified_prediction_reconnect_is_timeout_gated_and_throttled(tmp_path
     assert observer.orientation_reconnect_requests == 1
     assert observer.orientation_failure_reason == "ORIENTATION_TIMEOUT"
     assert observer.state()["streams"]["prediction"]["orientationStatus"] == "DEGRADED"
+
+
+def test_spot_trade_watchdog_reconnects_silence_once_with_throttle(tmp_path: Path):
+    class App:
+        def __init__(self):
+            self.closes = 0
+
+        def close(self):
+            self.closes += 1
+
+    observer = MicrostructureObserver(
+        api_key=None, api_secret=None, current_market_id=lambda: None,
+        db_path=tmp_path / "spot-watchdog.db",
+    )
+    app = App()
+    observer.active_apps["spot_trade"] = app
+    observer.stream_stats["spot_trade"].update(
+        status="LIVE",
+        openedMonotonicNs=time.monotonic_ns() - 6_000_000_000,
+    )
+    thread = threading.Thread(target=observer._spot_trade_reconnect_watchdog, daemon=True)
+    thread.start()
+    try:
+        time.sleep(2.2)
+    finally:
+        observer.stop_event.set()
+        thread.join(timeout=2.0)
+
+    assert app.closes == 1
+    assert observer.spot_trade_reconnect_requests == 1
 
 
 def orientation_reference(
@@ -488,7 +581,9 @@ def test_prediction_orientation_rollover_and_reconnect_clear_candidate(tmp_path:
     assert observer.prediction_orientation == "DIRECT_CANDIDATE"
 
 
-def test_prediction_version_age_is_not_transport_latency(tmp_path: Path):
+def test_prediction_version_age_is_not_transport_latency_but_blocks_features(
+    tmp_path: Path,
+):
     now_wall_ns = time.time_ns()
     now_mono_ns = time.monotonic_ns()
     reference = orientation_reference(received_wall_ns=now_wall_ns)
@@ -508,10 +603,15 @@ def test_prediction_version_age_is_not_transport_latency(tmp_path: Path):
     assert state["transportLatencyMs"] is None
     assert state["bookVersionAgeMs"] >= 54_000
     assert state["localReceiptAgeMs"] < 1_000
-    assert state["orientationStatus"] == "HEALTHY"
+    assert state["orientationStatus"] == "DEGRADED"
+    assert state["orientationHealthy"] is False
+    assert state["bookVersionHealthy"] is False
+    assert state["orientationFailureReason"] == "STALE_BOOK_VERSION"
+    assert state["stalePredictionEvents"] == 2
+    assert state["eligiblePredictionEvents"] == 0
 
 
-@pytest.mark.parametrize("stream_name", ["spot", "futures_public"])
+@pytest.mark.parametrize("stream_name", ["spot_trade", "futures_public"])
 def test_spot_and_futures_transport_latency_remains_available(
     tmp_path: Path, stream_name: str,
 ):
@@ -519,7 +619,7 @@ def test_spot_and_futures_transport_latency_remains_available(
         api_key=None, api_secret=None, current_market_id=lambda: None,
         db_path=tmp_path / f"{stream_name}.db",
     )
-    source = "spot" if stream_name == "spot" else "futures"
+    source = "spot" if stream_name == "spot_trade" else "futures"
     event = {
         "source": source,
         "stream": "trade" if source == "spot" else "aggTrade",
@@ -542,3 +642,237 @@ def test_connected_but_silent_stream_becomes_stale(tmp_path: Path):
     prediction = observer.state()["streams"]["prediction"]
     assert prediction["status"] == "STALE"
     assert "no accepted events" in prediction["error"]
+
+
+def test_prediction_rollover_request_records_and_throttles(
+    tmp_path: Path,
+):
+    class App:
+        def __init__(self):
+            self.closes = 0
+
+        def close(self):
+            self.closes += 1
+
+    observer = MicrostructureObserver(
+        api_key="key",
+        api_secret="secret",
+        current_market_id=lambda: 43,
+        db_path=tmp_path / "rollover-request.db",
+    )
+    app = App()
+    observer.prediction_subscription_market_id = 42
+    observer.active_apps["prediction"] = app
+
+    first = observer._request_prediction_rollover_reconnect(
+        wanted_market_id=43,
+        subscribed_market_id=42,
+        reason="TEST_MARKET_ID_MISMATCH",
+    )
+    second = observer._request_prediction_rollover_reconnect(
+        wanted_market_id=43,
+        subscribed_market_id=42,
+        reason="TEST_MARKET_ID_MISMATCH",
+    )
+
+    assert first is True
+    assert second is False
+    assert app.closes == 1
+    assert observer.engine.prediction_market_id == 43
+    assert observer.prediction_rollover_reconnect_requests == 1
+    assert observer.last_rollover_wanted_market_id == 43
+    assert observer.last_rollover_subscribed_market_id == 42
+    assert observer.last_rollover_reconnect_reason == (
+        "TEST_MARKET_ID_MISMATCH"
+    )
+
+
+def test_prediction_market_watch_survives_callback_exception(
+    tmp_path: Path,
+):
+    calls = 0
+
+    def current_market_id():
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("temporary current-market failure")
+        return 43
+
+    observer = MicrostructureObserver(
+        api_key="key",
+        api_secret="secret",
+        current_market_id=current_market_id,
+        db_path=tmp_path / "market-watch-survives.db",
+    )
+    observer.prediction_subscription_market_id = 42
+    worker = threading.Thread(
+        target=observer._prediction_market_loop,
+        daemon=True,
+    )
+    observer.market_watch_thread = worker
+    worker.start()
+    try:
+        deadline = time.monotonic() + 2.0
+        while (
+            observer.prediction_rollover_reconnect_requests < 1
+            and time.monotonic() < deadline
+        ):
+            time.sleep(0.02)
+
+        assert worker.is_alive()
+        assert observer.market_watch_failures == 1
+        assert "temporary current-market failure" in str(
+            observer.market_watch_last_error
+        )
+        assert observer.prediction_rollover_reconnect_requests == 1
+        assert observer.market_watch_heartbeat_ns > 0
+    finally:
+        observer.stop_event.set()
+        observer.prediction_rollover_reconnect.set()
+        worker.join(timeout=1.0)
+
+    assert not worker.is_alive()
+
+
+def test_prediction_supervisor_restarts_dead_market_watch_worker(
+    tmp_path: Path,
+):
+    observer = MicrostructureObserver(
+        api_key="key",
+        api_secret="secret",
+        current_market_id=lambda: 43,
+        db_path=tmp_path / "market-watch-supervisor.db",
+    )
+    observer.prediction_subscription_market_id = 42
+
+    dead_worker = threading.Thread(target=lambda: None)
+    dead_worker.start()
+    dead_worker.join(timeout=1.0)
+    assert not dead_worker.is_alive()
+    observer.market_watch_thread = dead_worker
+
+    supervisor = threading.Thread(
+        target=observer._prediction_market_watch_supervisor_loop,
+        daemon=True,
+    )
+    observer.prediction_supervisor_thread = supervisor
+    supervisor.start()
+    try:
+        deadline = time.monotonic() + 3.0
+        while (
+            (
+                observer.market_watch_restarts < 1
+                or observer.market_watch_thread is dead_worker
+                or not observer.market_watch_thread.is_alive()
+            )
+            and time.monotonic() < deadline
+        ):
+            time.sleep(0.02)
+
+        assert observer.market_watch_restarts >= 1
+        assert observer.market_watch_thread is not dead_worker
+        assert observer.market_watch_thread.is_alive()
+    finally:
+        observer.stop_event.set()
+        observer.prediction_rollover_reconnect.set()
+        supervisor.join(timeout=1.0)
+        if observer.market_watch_thread is not None:
+            observer.market_watch_thread.join(timeout=1.0)
+
+    assert not supervisor.is_alive()
+
+
+def test_prediction_state_exposes_market_watch_health(
+    tmp_path: Path,
+):
+    observer = MicrostructureObserver(
+        api_key="key",
+        api_secret="secret",
+        current_market_id=lambda: 43,
+        db_path=tmp_path / "market-watch-health.db",
+    )
+    observer.prediction_subscription_market_id = 42
+    observer.market_watch_thread = threading.current_thread()
+    observer.prediction_supervisor_thread = threading.current_thread()
+    observer.market_watch_heartbeat_ns = time.monotonic_ns()
+
+    prediction = observer.state()["streams"]["prediction"]
+
+    assert prediction["marketWatchThreadAlive"] is True
+    assert prediction["predictionSupervisorThreadAlive"] is True
+    assert prediction["marketWatchHealthy"] is False
+    assert prediction["wantedMarketId"] == 43
+    assert prediction["subscriptionMarketId"] == 42
+    assert prediction["marketIdMismatch"] is True
+    assert prediction["orientationHealthy"] is False
+    assert prediction["orientationFailureReason"] == (
+        "PREDICTION_MARKET_ID_MISMATCH"
+    )
+
+def test_prediction_content_age_is_distinct_from_transport_receipt_age(
+    tmp_path: Path,
+):
+    observer = MicrostructureObserver(
+        api_key="key",
+        api_secret="secret",
+        current_market_id=lambda: 42,
+        db_path=tmp_path / "content-vs-transport.db",
+    )
+    now_wall_ns = time.time_ns()
+    now_mono_ns = time.monotonic_ns()
+    old_version_ms = int(now_wall_ns / 1_000_000) - 3_500
+    event = {
+        "received_wall_ns": now_wall_ns,
+        "received_monotonic_ns": now_mono_ns,
+        "best_bid": 0.49,
+        "best_bid_qty": 10.0,
+        "best_ask": 0.50,
+        "best_ask_qty": 12.0,
+    }
+    observer.last_prediction_book_version_ms = old_version_ms
+    observer._observe_prediction_content(event, old_version_ms)
+
+    prediction = observer.state()["streams"]["prediction"]
+
+    assert prediction["transportReceiptAgeMs"] < 1_000
+    assert prediction["contentVersionAgeMs"] >= 3_000
+    assert prediction["contentFreshnessClassification"] == (
+        "CONTENT_VERSION_OLD_TRANSPORT_LIVE"
+    )
+    assert prediction["contentFreshnessHealthy"] is False
+
+
+def test_prediction_same_version_and_top_of_book_repeats_are_counted(
+    tmp_path: Path,
+):
+    observer = MicrostructureObserver(
+        api_key="key",
+        api_secret="secret",
+        current_market_id=lambda: 42,
+        db_path=tmp_path / "same-version.db",
+    )
+    version_ms = int(time.time() * 1_000)
+    event = {
+        "received_wall_ns": time.time_ns(),
+        "received_monotonic_ns": time.monotonic_ns(),
+        "best_bid": 0.49,
+        "best_bid_qty": 10.0,
+        "best_ask": 0.50,
+        "best_ask_qty": 12.0,
+    }
+    observer._observe_prediction_content(event, version_ms)
+    second = dict(event)
+    second["received_wall_ns"] = time.time_ns()
+    second["received_monotonic_ns"] = time.monotonic_ns()
+    observer._observe_prediction_content(second, version_ms)
+
+    prediction = observer.state()["streams"]["prediction"]
+
+    assert prediction["contentFrames"] == 2
+    assert prediction["uniqueVersionEvents"] == 1
+    assert prediction["sameVersionEvents"] == 1
+    assert prediction["sameVersionConsecutiveEvents"] == 1
+    assert prediction["topOfBookChangeEvents"] == 1
+    assert prediction["topOfBookUnchangedEvents"] == 1
+    assert prediction["sameVersionReceiptRatio"] == pytest.approx(0.5)

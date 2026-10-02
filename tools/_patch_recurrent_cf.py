@@ -1,0 +1,11 @@
+from pathlib import Path
+p=Path('tools/hftbacktest_r2_fixed_tape_tox_episode_recurrent_cf_v0.py')
+s=p.read_text(encoding='utf-8')
+s=s.replace('    supervisor_decision_done = False\n','')
+s=s.replace('        nonlocal execution_episode, supervisor_decision_done\n','        nonlocal execution_episode\n')
+s=s.replace(' and not supervisor_decision_done','')
+s=s.replace('            supervisor_decision_done=True\n','')
+s=s.replace('            "episodeAtEnd": execution_episode,\n','            "episodeAtEnd": execution_episode,\n            "recurrentEpisodeMode": True,\n')
+s=s.replace("'version':'R2_FIXED_TAPE_TOX_EPISODE_CF_V0'", "'version':'R2_FIXED_TAPE_TOX_EPISODE_RECURRENT_CF_V0'")
+p.write_text(s,encoding='utf-8')
+print('patched')

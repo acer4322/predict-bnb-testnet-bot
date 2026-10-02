@@ -1,0 +1,100 @@
+{
+  "status": "READ_ONLY_SOURCE_SNAPSHOT_NOT_TASK_ACTIVATION",
+  "review_date": "2026-09-11",
+  "source_root": "data/research/r4_v0/p0_provenance_v1/",
+  "files": [
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/MINIMAL_STUDENT_OPEN_FUNDING_RECOVERY_RETURN_V3_20260911.md",
+      "bytes": 6474,
+      "sha256": "4a97c153dee5c0dc8273a8452ed38d3386f5d1c8977c506674735d7476614202"
+    },
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/MINIMAL_STUDENT_OPEN_FUNDING_RECOVERY_ACCEPTANCE_V3_20260911.json",
+      "bytes": 11150,
+      "sha256": "eebba1fc6482e24bdd181695351c09fd30d452a4fc09c5567a7aade37f49e591"
+    },
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/PAIR_CORE_AUTHORIZED_OUTCOME_CURRENT_V1_20260911.md",
+      "bytes": 4487,
+      "sha256": "bc9d3ec59b732f8e2ef4d1a9036b5ad69bd2055a489ac88ec2c3d2a3865c0f5f"
+    },
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/PAIR_CORE_AUTHORIZED_OUTCOME_STUDENT_BRIDGE_RETURN_V1_20260911.md",
+      "bytes": 7676,
+      "sha256": "f4ded2ebc5e9f76823fb43171667b3cf4f81a17964c9ed7a6fbaf9203f3dec81"
+    },
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/PAIR_CORE_NATIVE_RUNNER_RECOVERY_CURRENT_V1_20260911.md",
+      "bytes": 3063,
+      "sha256": "ccfbb19fe81248cf79f6cab59b7ad7e4fc6ae9317170c355c91f8a3d91abf4c0"
+    },
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/TARGET_ROUTE_MECHANISM_DISCRIMINATION_CURRENT_V1_20260911.md",
+      "bytes": 3103,
+      "sha256": "642416e9a0bca226c7603a4a6822273b80045dc1932c21b27510be5608688259"
+    },
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/TARGET_CONCURRENT_ROUTE_ECONOMICS_CURRENT_20260911.md",
+      "bytes": 3678,
+      "sha256": "fd74a4722ac62a1cc03dd9ed51b5c34ad108a8c79a5a0b0d5ca73e62e1e087b6"
+    },
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/TARGET_CROSS_SIZE_PUBLIC_STATE_CURRENT_20260910.md",
+      "bytes": 2846,
+      "sha256": "88edff66b93d87ad0b033eb1b005ea0acbbac6bdc66b170db758095ef934df72"
+    },
+    {
+      "path": "data/research/r4_v0/p0_provenance_v1/BTC5M_LAB_MONTHLY_TESTED_RESEARCH_REGISTRY_20260810_20260910_V1.md",
+      "bytes": 29782,
+      "sha256": "0c7d98b706d1989d0239f7041738ca73e6c4e87384eafc4e488c6a2988cb0f28"
+    }
+  ],
+  "observations": [
+    {
+      "id": "S1",
+      "scope": "OpenFunding recovery runtime V3 only",
+      "claim": "1 golden + 10 evaluations on 3 consumed markets, joint parameter training completed; regular resource censors and terminal pending 0; no strategy promotion; native Active false.",
+      "evidence": "data/research/r4_v0/p0_provenance_v1/MINIMAL_STUDENT_OPEN_FUNDING_RECOVERY_ACCEPTANCE_V3_20260911.json"
+    },
+    {
+      "id": "S2",
+      "scope": "opt-in authorized outcome student bridge / execution runner",
+      "claim": "Component tests exist; runner native acceptance still unverified/blocked. New runner current card still cites the old zero-fill/20pending/51censor blockers. Do not automatically transfer V3 PASS to this different runner.",
+      "evidence": "data/research/r4_v0/p0_provenance_v1/PAIR_CORE_NATIVE_RUNNER_RECOVERY_CURRENT_V1_20260911.md"
+    },
+    {
+      "id": "S3",
+      "scope": "Target route-mechanism observational research",
+      "claim": "144-market study did not identify private desired exposure or risk allowance. Public direction/price common-support gaps and negative controls prevent treating simple price/Floor-credit associations as policy laws.",
+      "evidence": "data/research/r4_v0/p0_provenance_v1/TARGET_ROUTE_MECHANISM_DISCRIMINATION_CURRENT_V1_20260911.md"
+    },
+    {
+      "id": "S4",
+      "scope": "Target cross-size public state",
+      "claim": "198-market source has event observations/public joins but old/new BTC clock comparability limits; filled qty is not known original requested qty; metadata from the completed market is not a same-market earlier feature.",
+      "evidence": "data/research/r4_v0/p0_provenance_v1/TARGET_CROSS_SIZE_PUBLIC_STATE_CURRENT_20260910.md"
+    }
+  ],
+  "official_product_sources": [
+    {
+      "title": "Projects in ChatGPT",
+      "url": "https://help.openai.com/en/articles/10169521-projects-in-chatgpt",
+      "reviewed_claim": "Projects group chats/files/instructions and can reference same-project conversations. This does not supply our research job queue or evidence promotion protocol."
+    },
+    {
+      "title": "Worktrees",
+      "url": "https://developers.openai.com/codex/app/worktrees/",
+      "reviewed_claim": "Codex supports parallel Git worktrees; repository data and caches need separate handling."
+    },
+    {
+      "title": "Custom instructions with AGENTS.md",
+      "url": "https://developers.openai.com/codex/guides/agents-md/",
+      "reviewed_claim": "Codex discovers AGENTS.md guidance; a short pointer can carry project workflow rules. It is guidance, not a permission sandbox."
+    }
+  ],
+  "no_new_native_runs": true,
+  "no_new_model_updates": true,
+  "no_runtime_or_shared_master_changes": true,
+  "new_coordination_service_installed": false,
+  "note": "This package is a proposal and copy-ready task prompts. It neither starts other chats nor creates a background coordinator."
+}

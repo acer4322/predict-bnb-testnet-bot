@@ -1,0 +1,29 @@
+{
+  "paths": 11,
+  "source_files_reviewed": 58,
+  "flagged": [],
+  "private_identifiers": [],
+  "labels": 10,
+  "dry_run_size_mb": 7.9,
+  "public_books": 11,
+  "source_review": "credential scan + nonempty identity fields and address-like strings; engine order ids and ledger owners are synthetic",
+  "before_paths": 136,
+  "before_labels": [
+    {
+      "name": "OFFLINE_SETTLEMENT_LABELS.json",
+      "bytes": 26019,
+      "sha256": "3ddd890ea03b7b86342ad04f7212bc63e3511e05c57c4a359f62a3ee0420224a"
+    },
+    {
+      "name": "OFFLINE_SETTLEMENT_LABELS_STAGE1.json",
+      "bytes": 3094,
+      "sha256": "abbbf53abf7c00b38856d378fff3b8f9c18c3935adf68e8b5e229475d0783d55"
+    }
+  ],
+  "before_index_keys": [
+    "paths",
+    "entries",
+    "labels",
+    "target"
+  ]
+}

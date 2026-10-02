@@ -1,0 +1,36 @@
+{
+  "version": "INITIAL_REPAIR_QUOTA_PARTITION_CANDIDATE_ONLY_1946475_V1",
+  "state": "DONE",
+  "ts": 1788561087.1478784,
+  "baselineFrozen": {
+    "fills": 3,
+    "rounds": 0,
+    "pnlDiagnosticOnly": -0.2631147540983605,
+    "floor": -0.2631147540983605,
+    "repairParentBirths": 1,
+    "repairParentCompletions": 0,
+    "passiveRepairFills": 1,
+    "activeRepairFillQty": 1.639344262295082
+  },
+  "decision": "PARTITION_SUBMIT_NO_FILL",
+  "candidate": {
+    "fills": 3,
+    "rounds": 0,
+    "pnlDiagnosticOnly": -0.2631147540983605,
+    "floor": -0.2631147540983605,
+    "repairParentBirths": 1,
+    "repairParentCompletions": 0,
+    "passiveRepairFills": 1,
+    "activeRepairFillQty": 1.639344262295082
+  },
+  "gates": {
+    "partitionExercised": true,
+    "twoChildrenSubmitted": true,
+    "partitionPhysicalFill": false,
+    "candidateSafetyZero": true,
+    "allocationConservation": true,
+    "allocationParentDebtBounded": true,
+    "executionOccupancyBounded": true,
+    "noNewRepairParent": true
+  }
+}

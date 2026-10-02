@@ -1,0 +1,7 @@
+{
+  "events": 154,
+  "clock_snapshots_checked": 308,
+  "full_depth_counts_shares_top3_vwap": "PASS",
+  "source": "independent checkpoint/delta reconstruction of 154 existing public tapes",
+  "identifiers_exported": false
+}

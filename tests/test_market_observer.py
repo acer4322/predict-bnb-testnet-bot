@@ -23,6 +23,7 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from predict_bot.market_observer import (
     MarketStateObserver,
@@ -117,6 +118,20 @@ class TestEfficiencyRatio(unittest.TestCase):
             )
         self.assertEqual(len(observer.er_60s_samples), 2)
         self.assertEqual(observer._er_60s_sample_times, [60.01, 61.01])
+
+    def test_high_rate_ticks_retain_a_full_er_window_without_retry_storm(self):
+        observer = MarketStateObserver(db_path=None)
+        observer.reset_market(1, 100.0, market_start_ts=0.0)
+        for index in range(12_401):
+            observer.update_tick(
+                now_ts=index / 200.0,
+                spot_price=100.0 + index / 1_000_000.0,
+                market_id=1,
+            )
+
+        self.assertLessEqual(len(observer.spot_price_history), 63)
+        self.assertGreaterEqual(len(observer.er_60s_samples), 1)
+        self.assertIsNotNone(observer._early_er_60s)
 
 
 class TestScoreClassification(unittest.TestCase):
@@ -471,6 +486,45 @@ class TestWinnerTouchSelection(unittest.TestCase):
         self.assertTrue(self.observer.up_touched)
         self.assertFalse(self.observer.down_touched)
 
+    def test_stale_verified_book_cannot_update_touch_or_minimum(self):
+        self.observer.reset_market(106, 100.0, market_start_ts=0.0)
+        self.observer.update_tick(
+            now_ts=10.0,
+            spot_price=None,
+            up_ask=0.01,
+            down_ask=0.02,
+            market_id=106,
+            book_age_seconds=3.0,
+            book_skew_ms=0.0,
+            require_verified_book_freshness=True,
+        )
+
+        self.assertFalse(self.observer.up_touched)
+        self.assertFalse(self.observer.down_touched)
+        self.assertIsNone(self.observer.up_min_ask)
+        self.assertIsNone(self.observer.down_min_ask)
+        self.assertEqual(self.observer._last_book_update_ts, 7.0)
+        self.assertIn("exceeds", self.observer._last_book_quality_error)
+
+    def test_fresh_verified_book_clears_quality_error_and_updates_touch(self):
+        self.observer.reset_market(107, 100.0, market_start_ts=0.0)
+        self.observer.update_tick(
+            now_ts=10.0,
+            spot_price=None,
+            up_ask=0.01,
+            down_ask=0.80,
+            market_id=107,
+            book_age_seconds=0.25,
+            book_skew_ms=12.0,
+            require_verified_book_freshness=True,
+        )
+
+        self.assertTrue(self.observer.up_touched)
+        self.assertFalse(self.observer.down_touched)
+        self.assertEqual(self.observer.up_min_ask, 0.01)
+        self.assertEqual(self.observer._last_book_update_ts, 9.75)
+        self.assertIsNone(self.observer._last_book_quality_error)
+
     def test_previous_market_snapshot_survives_rollover(self):
         self.observer.reset_market(104, 100.0, market_start_ts=0.0)
         self.observer.update_tick(
@@ -628,6 +682,27 @@ class TestStateApiContract(unittest.TestCase):
             "m01SettledFillSampleCount", "costStatus",
         ):
             self.assertIn(key, state)
+
+    def test_slow_historical_read_is_cached_from_completion_time(self):
+        observer = MarketStateObserver(db_path=None, window_size=20)
+        clock = [100.0]
+        reads = [0]
+
+        def slow_recent_rounds(limit=None):
+            reads[0] += 1
+            clock[0] = 102.0
+            return []
+
+        observer.get_recent_rounds = slow_recent_rounds
+        with patch(
+            "predict_bot.market_observer.time.monotonic",
+            side_effect=lambda: clock[0],
+        ):
+            observer._historical_classification_locked()
+            clock[0] = 102.5
+            observer._historical_classification_locked()
+
+        self.assertEqual(reads[0], 1)
 
 
 class TestConditionalFillStats(unittest.TestCase):
@@ -930,6 +1005,18 @@ class TestM01OPaperEntryGate(unittest.TestCase):
         self.assertEqual(not_ready["dataQualityStatus"], "READY")
         self.assertEqual(stale["blockCategory"], "MISSING_OR_STALE")
         self.assertEqual(stale["dataQualityStatus"], "MISSING_OR_STALE")
+
+    def test_observer_gate_marks_book_stale_after_two_seconds_without_update(self):
+        self.set_rounds(self.range_rounds)
+        self.observer._market_open_ts = self.now - 10.0
+        self.observer._last_spot_update_ts = self.now
+        self.observer._last_book_update_ts = self.now - 2.001
+
+        gate = self.observer.m01o_entry_gate(profile="F1", now_ts=self.now)
+
+        self.assertEqual(gate["dataQualityStatus"], "MISSING_OR_STALE")
+        self.assertEqual(gate["blockCategory"], "MISSING_OR_STALE")
+        self.assertGreater(gate["bookAgeSeconds"], 2.0)
 
 
 class TestHelperFunctions(unittest.TestCase):

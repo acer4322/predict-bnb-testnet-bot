@@ -1,0 +1,19 @@
+{
+  "remote_files": 218,
+  "mismatches": [],
+  "global_state": {
+    "worker": "DESKTOP-JIERAGF",
+    "states": {
+      "succeeded": 4449,
+      "failed": 411,
+      "runner_error": 35,
+      "cancelled": 49
+    },
+    "nonterminal": [],
+    "other_processes": []
+  },
+  "terminal_verified": "succeeded",
+  "worker_elapsed_seconds": 147.12,
+  "readback_transient_disconnect": true,
+  "source_manifest": "1f14114818c48c04cd2ab54824c28a09407a77d30f691116451bfe83e706a7a8"
+}

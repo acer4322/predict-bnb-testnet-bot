@@ -1,0 +1,82 @@
+{
+  "status": "PASS",
+  "canonical_receive_axis": true,
+  "races": [
+    {
+      "order_seq": 10,
+      "place_t": 1790551812107,
+      "cancel_t": 1790551814281,
+      "filled_qty_final": 15.0,
+      "confirmed_remaining_at_cancel": 15.0,
+      "fills": [
+        {
+          "exchange_ns": 1790551814500004000,
+          "receive_ns": 1790551814750004000,
+          "exchange_ms": 1790551814500.004,
+          "receive_ms": 1790551814750.004,
+          "price": 0.48,
+          "qty": 15.0,
+          "maker": 1
+        }
+      ],
+      "terminal": "TERMINAL"
+    },
+    {
+      "order_seq": 17,
+      "place_t": 1790551836282,
+      "cancel_t": 1790551838347,
+      "filled_qty_final": 15.0,
+      "confirmed_remaining_at_cancel": 15.0,
+      "fills": [
+        {
+          "exchange_ns": 1790551838347000000,
+          "receive_ns": 1790551838597000000,
+          "exchange_ms": 1790551838347.0,
+          "receive_ms": 1790551838597.0,
+          "price": 0.28,
+          "qty": 15.0,
+          "maker": 1
+        }
+      ],
+      "terminal": "TERMINAL"
+    },
+    {
+      "order_seq": 19,
+      "place_t": 1790551841292,
+      "cancel_t": 1790551843325,
+      "filled_qty_final": 1.1099999999999994,
+      "confirmed_remaining_at_cancel": 15.0,
+      "fills": [
+        {
+          "exchange_ns": 1790551843500000000,
+          "receive_ns": 1790551843750000000,
+          "exchange_ms": 1790551843500.0,
+          "receive_ms": 1790551843750.0,
+          "price": 0.22999999999999998,
+          "qty": 1.11,
+          "maker": 1
+        }
+      ],
+      "terminal": "TERMINAL"
+    },
+    {
+      "order_seq": 51,
+      "place_t": 1790551923088,
+      "cancel_t": 1790551925093,
+      "filled_qty_final": 15.0,
+      "confirmed_remaining_at_cancel": 15.0,
+      "fills": [
+        {
+          "exchange_ns": 1790551924904000000,
+          "receive_ns": 1790551925154000000,
+          "exchange_ms": 1790551924904.0,
+          "receive_ms": 1790551925154.0,
+          "price": 0.18999999999999995,
+          "qty": 15.0,
+          "maker": 1
+        }
+      ],
+      "terminal": "TERMINAL"
+    }
+  ]
+}

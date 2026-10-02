@@ -1,0 +1,76 @@
+from __future__ import annotations
+import os
+os.environ.setdefault('OMP_NUM_THREADS','1');os.environ.setdefault('OPENBLAS_NUM_THREADS','1');os.environ.setdefault('MKL_NUM_THREADS','1')
+import json,time,psutil,sys
+from pathlib import Path
+from collections import defaultdict
+import numpy as np
+ROOT=Path(__file__).resolve().parents[1];P=ROOT/'data/research/r4_v0/p0_provenance_v1'
+H=[5,15,30];K=20
+BASE_FEATURES=['seconds_left','abs_gap','floor','absNet','coverage','floor_per_gross','risk_deficit','weak_active_owners','dominant_active_owners','weak_unresolved_shares','dominant_unresolved_shares','current_mode_age_s','events_15s','transitions_15s','requested_px']
+
+def load_rows():
+ dev=json.loads((P/'r4_p0b_lifecycle_dataset_fresh21_v1.json').read_text(encoding='utf-8'))['rows']
+ for i in range(3): dev+=json.loads((P/f'r4_management_simulator_multistep_unseen_chunk{i}_v1.json').read_text(encoding='utf-8'))['rows']
+ for i in range(3): dev+=json.loads((P/f'r4_management_simulator_multistep_rep22_chunk{i}_v1.json').read_text(encoding='utf-8'))['rows']
+ val=[]
+ for i in range(4): val+=json.loads((P/f'r4_management_simulator_economic_late20d_chunk{i}_v1.json').read_text(encoding='utf-8'))['rows']
+ for i in range(4): val+=json.loads((P/f'r4_management_simulator_economic_late20e_chunk{i}_v1.json').read_text(encoding='utf-8'))['rows']
+ return dev,val
+
+def group(rows,keyfn):
+ d=defaultdict(list)
+ for r in rows:d[keyfn(r)].append(r)
+ for k in d:d[k].sort(key=lambda x:int(x['t']))
+ return d
+
+def nearest(seq,target,tol=1250):
+ if not seq:return None
+ z=min(seq,key=lambda r:abs(int(r['t'])-target));return z if abs(int(z['t'])-target)<=tol else None
+
+def f(r,k):
+ try:return float(r.get(k) or 0)
+ except:return 0.0
+
+def episode_lib(rows):
+ rr=group(rows,lambda r:(int(r['marketId']),str(r['checkpointResponsibilityId'])));mm=group(rows,lambda r:int(r['marketId']));out=[]
+ for key,seq in rr.items():
+  r0=seq[0];ms=mm[int(r0['marketId'])];base_floor=f(r0,'floor');base_abs=f(r0,'absNet');hs={};ok=True
+  for h in H:
+   rt=nearest(seq,int(r0['t'])+h*1000,1750); mt=nearest(ms,int(r0['t'])+h*1000,1750)
+   if rt is None or mt is None:ok=False;break
+   completed=1.0 if str(rt.get('rootLifecycleOutcome5s') or rt.get('rootStatus5s') or '').upper()=='COMPLETED' or f(rt,'checkpointUnresolvedQty')<=1e-9 else 0.0
+   prog=max(f(rt,'checkpointProgressRatio'),1.0-f(rt,'checkpointUnresolvedQty')/max(1e-9,f(rt,'checkpointRequestedQty') or 18.0))
+   active=float(rt.get('checkpointOwnerCount') or 0)
+   hv=np.asarray([completed,prog,f(rt,'checkpointUnresolvedQty'),active],dtype=float)
+   hs[h]={'hv':hv,'floorDelta':f(mt,'floor')-base_floor,'absNetDelta':f(mt,'absNet')-base_abs}
+  if ok:
+   bv=np.asarray([f(r0,k) for k in BASE_FEATURES],dtype=float)
+   out.append({'bv':bv,'h':hs,'marketId':int(r0['marketId']),'root':str(r0['checkpointResponsibilityId'])})
+ return out
+
+def direction(a,b):
+ if abs(a)<1e-9 and abs(b)<1e-9:return 1.0
+ return float((a>=0)==(b>=0))
+
+def main():
+ start=time.perf_counter();vm=psutil.virtual_memory();cpu=psutil.cpu_percent(.2)
+ if vm.percent>=86 or cpu>=75: raise SystemExit('RESOURCE_GUARD '+json.dumps({'cpu':cpu,'ram':vm.percent}))
+ devrows,valrows=load_rows();dl=episode_lib(devrows);vl=episode_lib(valrows)
+ if len(vl)<30: raise SystemExit('INSUFFICIENT_VALIDATION_ROOTS '+str(len(vl)))
+ B=np.vstack([x['bv'] for x in dl]);bscale=np.maximum(1e-6,np.quantile(B,.9,axis=0)-np.quantile(B,.1,axis=0));BN=B/bscale
+ horizons={};pass_count=0
+ for h in H:
+  HV=np.vstack([x['h'][h]['hv'] for x in dl]);hscale=np.maximum(1e-6,np.quantile(HV,.9,axis=0)-np.quantile(HV,.1,axis=0));HN=HV/hscale
+  rows=[]
+  for x in vl:
+   d=np.sum((BN-x['bv']/bscale)**2,axis=1)+1.5*np.sum((HN-x['h'][h]['hv']/hscale)**2,axis=1)
+   kk=min(K,len(dl));inds=np.argpartition(d,kk-1)[:kk]
+   pf=float(np.median([dl[int(i)]['h'][h]['floorDelta'] for i in inds]));pa=float(np.median([dl[int(i)]['h'][h]['absNetDelta'] for i in inds]))
+   af=x['h'][h]['floorDelta'];aa=x['h'][h]['absNetDelta'];rows.append((af,pf,aa,pa))
+  fmae=np.mean([abs(p-a) for a,p,_,__ in rows]);amae=np.mean([abs(p-a) for _,__,a,p in rows]);fscale=max(1.,np.mean([abs(a) for a,_,__,___ in rows]));ascale=max(1.,np.mean([abs(a) for _,__,a,___ in rows]));fdir=np.mean([direction(a,p) for a,p,_,__ in rows]);adir=np.mean([direction(a,p) for _,__,a,p in rows]);fn=fmae/fscale;an=amae/ascale
+  hp=bool(fdir>=.60 and adir>=.60 and fn<=.85 and an<=.85);pass_count+=int(hp)
+  horizons[str(h)]={'n':len(rows),'floorDirectionAccuracy':float(fdir),'absNetDirectionAccuracy':float(adir),'floorNormalizedMAE':float(fn),'absNetNormalizedMAE':float(an),'floorMeanActual':float(np.mean([a for a,_,__,___ in rows])),'floorMeanPred':float(np.mean([p for _,p,__,___ in rows])),'absNetMeanActual':float(np.mean([a for _,__,a,___ in rows])),'absNetMeanPred':float(np.mean([p for _,__,__,p in rows])),'horizonPass':hp}
+ vm=psutil.virtual_memory();rep={'version':'R4_MANAGEMENT_SIMULATOR_V0_ECONOMIC_KERNEL_SUPPORT_EXTENDED_V1','researchOnly':True,'developmentRoots':len(dl),'validationRoots':len(vl),'k':K,'horizons':horizons,'summary':{'horizonsPassingAll':pass_count,'gatePass':pass_count>=2},'resource':{'cpu':psutil.cpu_percent(.05),'ram':vm.percent,'rssMB':psutil.Process().memory_info().rss/1024**2},'elapsedSec':time.perf_counter()-start,'interpretation':'Oracle-lifecycle isolation gate: strict-past base portfolio context plus realized horizon lifecycle state -> portfolio economic deltas. No role labels, no manager action authority.'}
+ (P/'r4_management_simulator_v0_economic_kernel_support_extended_v1.json').write_text(json.dumps(rep,indent=2),encoding='utf-8');print(json.dumps(rep,indent=2))
+if __name__=='__main__':main()

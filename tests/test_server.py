@@ -59,6 +59,58 @@ def snapshot(**overrides):
     return row
 
 
+def test_confirmation_add_shadow_only_adds_after_price_confirms_direction(tmp_path: Path):
+    store = Store(tmp_path / "sim.db")
+    store.open_trade(
+        strategy="R_MICROPRICE", topic_id=701, market_id=702, side="UP",
+        entry=0.20, target=None, stake=5.0, fee_rate_bps=200,
+        note="confirmation-add source",
+    )
+    first = snapshot(
+        topic_id=701, market_id=702,
+        timestamp="2026-08-02T00:00:01+00:00", seconds_left=100.0,
+        up_ask=0.20, up_bid=0.19, up_ask_size=100.0,
+        book_age_ms=10.0, book_skew_ms=0.0, up_book_timestamp_ms=1,
+    )
+    created = store.process_confirmation_add_shadows(first)
+    assert created["created"] == 1
+    assert created["filledStakeUsdt"] == 0.0
+    assert created["paperOnly"] is True
+    assert created["liveOrdersAffected"] is False
+    assert float(store.db.execute(
+        "SELECT stake FROM trades WHERE strategy='R_CONFIRM_ADD_10'"
+    ).fetchone()["stake"]) == pytest.approx(1.0)
+
+    confirmed_once = {
+        **first, "timestamp": "2026-08-02T00:00:02+00:00",
+        "up_ask": 0.225, "up_bid": 0.215, "up_book_timestamp_ms": 2,
+    }
+    result = store.process_confirmation_add_shadows(confirmed_once)
+    assert result["filledStakeUsdt"] == pytest.approx(1.0)
+    assert result["completedTranches"] == 1
+    assert float(store.db.execute(
+        "SELECT stake FROM trades WHERE strategy='R_CONFIRM_ADD_10'"
+    ).fetchone()["stake"]) == pytest.approx(2.0)
+    assert store.process_confirmation_add_shadows(confirmed_once)["filledStakeUsdt"] == 0.0
+
+    all_confirmed = {
+        **first, "timestamp": "2026-08-02T00:00:03+00:00",
+        "up_ask": 0.285, "up_bid": 0.275, "up_book_timestamp_ms": 3,
+    }
+    result = store.process_confirmation_add_shadows(all_confirmed)
+    assert result["filledStakeUsdt"] == pytest.approx(3.0)
+    assert float(store.db.execute(
+        "SELECT stake FROM trades WHERE strategy='R_CONFIRM_ADD_10'"
+    ).fetchone()["stake"]) == pytest.approx(5.0)
+
+    store.settle_market(702, winner="UP", official=True)
+    summary = store.confirmation_add_shadow_summary()
+    assert summary["paperOnly"] is True
+    assert summary["liveOrdersAffected"] is False
+    assert summary["overall"]["officialSamples"] == 1
+    assert summary["overall"]["pnlUsdt"] > 0
+
+
 def test_realtime_dashboard_state_uses_in_memory_snapshots(monkeypatch):
     now_ms = int(time.time() * 1000)
     collector = SimpleNamespace(
@@ -136,7 +188,8 @@ def health_micro(
     return {
         "status": micro_status,
         "streams": {
-            "spot": {"status": "LIVE"},
+            "spot_trade": {"status": "LIVE"},
+            "spot_book": {"status": "LIVE"},
             "futures": {"status": "LIVE"},
             "prediction": {
                 "status": "LIVE",
@@ -156,8 +209,14 @@ def health_micro(
     }
 
 
-def health_m_realtime(*, market_id: int = 22, book_age_ms: float | None = 250.0):
-    return {
+def health_m_realtime(
+    *,
+    market_id: int = 22,
+    book_age_ms: float | None = 250.0,
+    data_source: str | None = None,
+    orientation: str | None = None,
+):
+    payload = {
         "status": "LIVE",
         "marketId": market_id,
         "marketDataIntegrityOk": True,
@@ -165,6 +224,11 @@ def health_m_realtime(*, market_id: int = 22, book_age_ms: float | None = 250.0)
         "error": None,
         "predictionBookAgeMs": book_age_ms,
     }
+    if data_source is not None:
+        payload["predictionDataSource"] = data_source
+    if orientation is not None:
+        payload["predictionOrientation"] = orientation
+    return payload
 
 
 def test_health_is_false_when_prediction_transport_live_but_unverified():
@@ -201,6 +265,33 @@ def test_health_is_true_for_verified_fresh_matching_prediction_book():
     assert result["predictionBookAgeMs"] == pytest.approx(250.0)
     assert result["predictionBookVersionAgeMs"] == pytest.approx(55_000.0)
     assert result["predictionLocalReceiptAgeMs"] == pytest.approx(250.0)
+
+
+def test_health_uses_fresh_direct_rest_prediction_when_wss_content_is_stale():
+    micro = health_micro(
+        mapping="UNVERIFIED",
+        micro_status="PARTIAL",
+    )
+    micro["streams"]["prediction"].update(
+        {
+            "status": "CONNECTING",
+            "orientationFailureReason": "STALE_BOOK_VERSION",
+        }
+    )
+    result = server_module.build_health_payload(
+        collector_status="LIVE",
+        micro=micro,
+        m_realtime=health_m_realtime(
+            data_source="dual_token_rest",
+            orientation="DIRECT_UP_VERIFIED",
+        ),
+    )
+
+    assert result["ok"] is True
+    assert result["streams"]["prediction"] == "CONNECTING"
+    assert result["predictionDataSource"] == "dual_token_rest"
+    assert result["effectivePredictionBookMapping"] == "DIRECT_UP_VERIFIED"
+    assert result["predictionOrientationHealthy"] is True
 
 
 def test_health_is_false_for_verified_but_stale_prediction_book():

@@ -1,0 +1,6 @@
+@echo off
+set OMP_NUM_THREADS=4
+set MKL_NUM_THREADS=4
+cd /d C:\BTC5M-worker
+C:\BTC5M-worker\.venv\Scripts\python.exe C:\BTC5M-worker\.lan_worker_v1\staging\run_eth_v83_same_parent_parallel_repair_hft_smoke_1916869.py --bundle C:\BTC5M-worker\.lan_worker_v1\staging\v92_transition_fresh16_bundle.zip --lifecycle-model C:\BTC5M-worker\.lan_worker_v1\staging\lifecycle_v2b_for_worker.pt --capability-model C:\BTC5M-worker\.lan_worker_v1\staging\capability_v5_for_worker.pt --dagger-cache C:\BTC5M-worker\.lan_worker_v1\staging\eth_repair_exam_v2_dagger_cache.joblib --timing-model C:\BTC5M-worker\.lan_worker_v1\staging\model.joblib --economic-model C:\BTC5M-worker\.lan_worker_v1\staging\eth_target_economic_lane_value_v2_model.joblib --price-model C:\BTC5M-worker\.lan_worker_v1\staging\eth_target_conditional_repair_price_envelope_v2_model.joblib --surplus-model C:\BTC5M-worker\.lan_worker_v1\staging\eth_target_post_safe_surplus_value_v2_model.joblib --v44-model C:\BTC5M-worker\.lan_worker_v1\staging\target_eth_repair_portability_v42d_models.joblib --v47-model C:\BTC5M-worker\.lan_worker_v1\staging\target_eth_generation_aware_v47_models.joblib --market-id 1916869 --output C:\BTC5M-worker\.lan_worker_v1\results\eth-v83-same-parent-parallel-repair-1916869-20260904-v2\scientific.json
+exit /b %ERRORLEVEL%

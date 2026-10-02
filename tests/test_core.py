@@ -229,9 +229,16 @@ def test_prediction_market_order_uses_fok_without_price_limit(monkeypatch):
 
 
 def test_server_timestamp_applies_cached_offset(monkeypatch):
+    from predict_bot import binance_time_sync_hardening as sync
+
     client = BinancePredictionClient("key", "secret")
+    sync._ensure_time_sync_state(client)
     client._time_offset_ms = -1000
-    monkeypatch.setattr("predict_bot.core.time.time", lambda: 10.0)
+    client._time_sync_last_mono = 20.0
+    client._time_sync_last_wall_ms = 10_000
+    client._time_sync_last_server_ms = 9_000
+    monkeypatch.setattr(sync.time, "monotonic", lambda: 20.0)
+    monkeypatch.setattr(sync.time, "time", lambda: 10.0)
     assert client.server_timestamp_ms() == 9000
 
 

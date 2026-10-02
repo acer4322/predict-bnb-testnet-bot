@@ -1,0 +1,34 @@
+{
+  "status": "PASS_DOCUMENT_HANDOFF_ONLY",
+  "local_links_checked": 21,
+  "sealed_sources_verified": [
+    {
+      "package": "data/research/btc5m_prelive_generalization_20260925_v1",
+      "manifest": "FINAL_MANIFEST.json",
+      "verified_files": 132
+    },
+    {
+      "package": "data/research/btc5m_prelive_execution_gate_20260925_v1",
+      "manifest": "MANIFEST.json",
+      "verified_files": 10
+    }
+  ],
+  "source_snapshot_sha256": {
+    "docs/agents/RESEARCH_CURRENT.md": "d6b636e87fb7dca9bcb44365a2b2add741d1b421167a7be79da67b7364c468fa",
+    "data/research/btc5m_prelive_execution_gate_20260925_v1/CURRENT.md": "b3fdcfd99b8bca81a374e14e541da8084075057e8f899bb269add0dbbd305c59",
+    "data/research/btc5m_prelive_execution_gate_20260925_v1/REPORT_ZH.md": "aa6914c8b29477fc4105586f70460ad2837c7403818bde87b16ebb97bdb828bc",
+    "data/research/btc5m_prelive_execution_gate_20260925_v1/READINESS.json": "03231dbcf5725839cf85cfc28b06585f8d6a720cdab32e0dec54a6e37116de8f",
+    "data/research/btc5m_prelive_execution_gate_20260925_v1/VERIFICATION.json": "b49c5e5d5e308e28e1f3c8aa9765e2f9a0f653cd933e441e444d5f22d4c79685",
+    "data/research/btc5m_prelive_generalization_20260925_v1/MAIN_VALIDATION.json": "d75b9b8bf64807fe18abd81b25de11d0c86dbebca484b13cfad5bffda2d683db",
+    "data/research/btc5m_prelive_generalization_20260925_v1/INDEPENDENT_RESULT_REVIEW.json": "cf855883d43944c911b27ae099e4f6ee5822168793a65c0c540df72241d56d50"
+  },
+  "handoff_sha256": {
+    "CLAUDE.md": "8e23b17e2c6cd954f3a0c352b2bcb844de3e74d5d3bd83de07cfdddcf7a6e18f",
+    "docs/handoffs/CLAUDE_HANDOFF_20260925_ZH.md": "31c5932d286492f27c4b03bfcfebee5998370c948c87d8f71e4bd5cbe6187e8a"
+  },
+  "claude_started": false,
+  "external_transmission": false,
+  "new_experiments": 0,
+  "live_changes": 0,
+  "scope": "Local document and frozen source verification; no fresh worker probe or model rerun. Source pointers may change after this snapshot."
+}

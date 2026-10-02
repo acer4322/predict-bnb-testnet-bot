@@ -1,0 +1,86 @@
+{
+  "bundle_version": "BTC5M_MULTI_CHAT_STARTER_V2_20260911",
+  "reasoning_policy_version": "REASONING_ALLOCATION_V1_20260911",
+  "date": "2026-09-11",
+  "proposal_only": true,
+  "changes_applied_to_startup_package_only": true,
+  "source_package": {
+    "filename": "BTC5M_多對話協作啟動包_20260911.zip",
+    "bytes": 26965,
+    "sha256": "1e1567a45a59cf999a63aea67fb839b15c927e5b33d0ac54f6d77c8d01f724c9",
+    "original_preserved": true
+  },
+  "original_manifest_verified": true,
+  "preserved_source_files": [
+    "SOURCE_SNAPSHOT.json",
+    "核對來源與版本落差.md"
+  ],
+  "remote_project_state_reverified_this_update": false,
+  "client_settings_changed": false,
+  "new_worker_jobs": 0,
+  "new_model_training_runs": 0,
+  "validation": {
+    "original_zip_crc_and_manifest": "PASS",
+    "five_role_original_task_bodies_preserved": "PASS",
+    "source_snapshot_and_scope_note_byte_identical": "PASS",
+    "workboard_original_tasks_dependencies_statuses_and_worker_limits_preserved": "PASS",
+    "actual_model_and_effort_fields_not_fabricated": "PASS",
+    "json_documents_parse": "PASS",
+    "markdown_fences_and_relative_links": "PASS"
+  },
+  "files": {
+    "CHANGELOG_V2.md": {
+      "bytes": 2683,
+      "sha256": "3b4647fb683df379a42f26a9f45d402e38a4852fd8917317259e76823262f9ac"
+    },
+    "HANDOFF.template.json": {
+      "bytes": 3465,
+      "sha256": "3025e1f498a947a2b4ca2b2ee4e27acb954083a0b97a63df2485b0d22df4af96"
+    },
+    "PROMPT_00_總控_整合.md": {
+      "bytes": 5674,
+      "sha256": "1708e470d75827a12f7365a6523f5e9b7bfc3c29f1dc6b7abc7e61f7f070958e"
+    },
+    "PROMPT_A_目標機理_經濟教學.md": {
+      "bytes": 5836,
+      "sha256": "b3b31c7bb8b4e105bed1fc9f12a681ca4046983711708bcb76ee2c00750bc9ec"
+    },
+    "PROMPT_B_原生執行_主被動協作.md": {
+      "bytes": 5819,
+      "sha256": "f4208659388e4dc25fa8736fdcf93e356cd1cf82613017c575ba8fa6e243f24d"
+    },
+    "PROMPT_C_完整學生_狀態記憶.md": {
+      "bytes": 5883,
+      "sha256": "af531d0a308572f8b89dcbceda800eeea65c7c48dd26501e8168b8ff23d18c25"
+    },
+    "PROMPT_D_資料_獨立驗收.md": {
+      "bytes": 6017,
+      "sha256": "ff06198d4a3153c0384ba24e663a7d51fe8b4f96040015b2292059f934fca6af"
+    },
+    "README_協作方案.md": {
+      "bytes": 14571,
+      "sha256": "fdb70de068261973298492ee6f4f431a2a8f7c10e0b411d428cd3c7ad065d2af"
+    },
+    "REASONING_POLICY.json": {
+      "bytes": 9054,
+      "sha256": "5e079b08da9013b6f30e5ebef03151f8f192d6dd6ec74ac53e33eb0c76a46a6e"
+    },
+    "SOURCE_SNAPSHOT.json": {
+      "bytes": 5167,
+      "sha256": "594d1b64c02888791ab1d7279ec454c1b69b2ff460efc1b103d824858b38e960"
+    },
+    "WORKBOARD.template.json": {
+      "bytes": 9395,
+      "sha256": "b7f66251d7add2f435294772936bd85a3bb790204c35f72d988e8640c77bb371"
+    },
+    "推理強度配置.md": {
+      "bytes": 7638,
+      "sha256": "cef1151e75d6c4dba92f46f8bd0e311a72882713a78eaf0b3ff9d36e18c2b92b"
+    },
+    "核對來源與版本落差.md": {
+      "bytes": 2823,
+      "sha256": "92dd9166dc7c276a8010b058d0dd09dd69612985a62d7c8636e4a537ae9d4f1c"
+    }
+  },
+  "manifest_self_hash_excluded": true
+}

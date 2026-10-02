@@ -1,0 +1,17 @@
+{
+  "scoped_unit_tests": {
+    "test_sync_research_public_only.py": "4 PASS: public-only exclusion, dry-run immutability, missing-input abort, size/flag guards",
+    "test_graduation_public_evidence.py": "3 PASS: nonbinary exclusion, BTC5M duration boundaries, DOWN depth and receive-chain causality"
+  },
+  "cloud_IO_loader": "519 markets loaded; 0 inferred labels; no simulation or threshold evaluation",
+  "source_hash_review": "741 source files unchanged: 220 frozen public books and 521 existing tapes",
+  "independent_label_review": "519 labels/API unique-WON matches, 519 public hash matches; see INDEPENDENT_REVIEW.json",
+  "independent_full_depth_review": "308 snapshots PASS; see FULL_DEPTH_REVIEW.json",
+  "privacy": "532 published files, FLAGGED=0, identifier hits=0; see PRIVATE_REVIEW.json",
+  "frozen_inputs_modified": false,
+  "database_writes": 0,
+  "economic_gates_computed": false,
+  "orders_submitted": 0,
+  "worker_jobs": 0,
+  "model_fits": 0
+}

@@ -1,0 +1,56 @@
+from __future__ import annotations
+from http.server import ThreadingHTTPServer
+from typing import Any
+from . import echtgeld_engine_v23 as v23
+from . import echtgeld_engine_v26 as v26
+from . import echtgeld_engine_v29 as v29
+from . import echtgeld_engine_v1 as v1
+
+VERSION = "ECHTGELD_ENGINE_V30_R3S_R31_SOURCE_V1"
+HOST=v29.HOST; PORT=v29.PORT
+R3S_R31_SOURCE="R3S_R31_8790"
+R3S_R31_STRATEGY="R3S_R31_ECHTGELD_DATA_COLLECTION_V1"
+R3S_R31_TAKER_CONFIRM_TIMEOUT_MS=2200
+# Extend the proven CAP100/R2+R2.1 venue owner without changing existing sources.
+v23.CAP100_ALLOWED_SOURCES.add(R3S_R31_SOURCE)
+v23.CAP100_STRATEGY_BY_SOURCE[R3S_R31_SOURCE]=R3S_R31_STRATEGY
+v26.CAP100_ALLOWED_SOURCES.add(R3S_R31_SOURCE)
+
+class EchtgeldEngine(v29.EchtgeldEngine):
+    def _cancel_expired_r2_r21_takers(self) -> int:
+        # Preserve parent behavior and additionally enforce the same terminal-ACK
+        # timeout contract for R3-S/R3.1 active Taker children.
+        requested=super()._cancel_expired_r2_r21_takers(); now=v1._now_ms()
+        with self.cap100_lock:
+            for row in self._cap100_rows(active_only=True):
+                if str(row.get("source_id") or "").upper()!=R3S_R31_SOURCE: continue
+                if str(row.get("role") or "").upper()!="TAKER": continue
+                if str(row.get("state") or "").upper() not in {"RESTING","PARTIAL_FILL"}: continue
+                accepted=int(row.get("place_completed_at_ms") or row.get("place_started_at_ms") or 0)
+                if accepted<=0 or now-accepted<R3S_R31_TAKER_CONFIRM_TIMEOUT_MS: continue
+                result=self._cancel_cap100_row_locked(row,reason=f"R3S_R31_TAKER_CONFIRM_TIMEOUT_{R3S_R31_TAKER_CONFIRM_TIMEOUT_MS}MS")
+                if bool(result.get("accepted")) and not bool(result.get("alreadyPending")): requested+=1
+        return requested
+    def cap100_state(self)->dict[str,Any]:
+        p=super().cap100_state(); p["version"]=VERSION
+        p["r3sR31SourceSupported"]=True; p["r3sR31SourceId"]=R3S_R31_SOURCE
+        p["r3sR31TakerConfirmTimeoutMs"]=R3S_R31_TAKER_CONFIRM_TIMEOUT_MS
+        if str(p.get("sourceId") or "").upper()==R3S_R31_SOURCE:
+            p["displayName"]="R3-S + R3.1 V1"
+        return p
+    def state(self):
+        p=super().state(); p["version"]=VERSION; p["strategyExecution"]=self.cap100_state(); return p
+    def health(self):
+        p=super().health(); p["version"]=VERSION; p["r3sR31SourceSupported"]=True; return p
+
+class _Handler(v29._Handler):
+    engine:EchtgeldEngine
+
+def main()->int:
+    engine=EchtgeldEngine(); handler=type("EchtgeldEngineV30Handler",(_Handler,),{"engine":engine}); server=ThreadingHTTPServer((HOST,PORT),handler)
+    print(f"{VERSION} listening on http://{HOST}:{PORT}; sources={sorted(v26.CAP100_ALLOWED_SOURCES)}",flush=True)
+    try: server.serve_forever(poll_interval=.25)
+    except KeyboardInterrupt:return 130
+    finally: server.shutdown();server.server_close();engine.close()
+    return 0
+if __name__=='__main__': raise SystemExit(main())

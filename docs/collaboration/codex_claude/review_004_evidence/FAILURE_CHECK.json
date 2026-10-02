@@ -1,0 +1,150 @@
+{
+  "kind": "READ_ONLY_REVIEW_NO_NATIVE_RUN",
+  "market": 2629019,
+  "public_source": "data/research/v12g_fresh30_20260927_v24/base/inputs/public_2629019.json.gz",
+  "public_sha256": "50060b30b62793e4001349c99a89f153b54cf992f87dd1133f7d5dc51b350071",
+  "window": {
+    "market_id": 2629019,
+    "window_start_ms": 1790440500000,
+    "window_end_ms": 1790440800000,
+    "quality_status": "COMPLETE_FORWARD_V1"
+  },
+  "public_book_count": 1480,
+  "failures": [
+    {
+      "arm": "v12g24_WB100_2629019",
+      "status": "ERROR",
+      "last_state": {
+        "cost": 645.8003776726728,
+        "inv": {
+          "DOWN": 649.4679054054055,
+          "UP": 640.051188888889
+        },
+        "t": 1790440800255
+      },
+      "state_count": 1479,
+      "plan_count": 1479,
+      "last_plan": {
+        "operations": [],
+        "t": 1790440800255
+      },
+      "last_native_action": {
+        "key": "UP_200",
+        "kind": "NEW_ACTIVE",
+        "n": 200,
+        "price": 0.31,
+        "qty": 8.33,
+        "rc": 0,
+        "side": "UP",
+        "t": 1790440799850
+      },
+      "failure_in_run_whole_source_loop": true,
+      "drain_in_exception_stack": false,
+      "saved_processed_receipt_deltas": [],
+      "following_public_frames": [
+        {
+          "source_ms": 1790440799295,
+          "received_ms": 1790440800535
+        }
+      ],
+      "actual_failure_native_clock_ns": null,
+      "raw_failing_receipt_rows": null,
+      "causal_order_id": null,
+      "source_hashes": {
+        "data/research/lan_worker_returns/btc5m-v12g-fresh30-20260927-v24/arms/v12g24_WB100_2629019/result.json": "5a4f85ba9aa058c80ebcb3e9da076c5a3fb9af22f6b28c14d7f7528723769de0",
+        "data/research/lan_worker_returns/btc5m-v12g-fresh30-20260927-v24/arms/v12g24_WB100_2629019/failure_trace.json.gz": "c74119dd71440ca87b3a2310c6030e03c54d5722932346666b743eb3384c93fe",
+        "data/research/lan_worker_returns/btc5m-v12g-fresh30-20260927-v24/arms/v12g24_WB100_2629019/failure_receipts.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f"
+      }
+    },
+    {
+      "arm": "v12g30_MARGIN_ONLY_2629019",
+      "status": "ERROR",
+      "last_state": {
+        "cost": 477.8631776726726,
+        "inv": {
+          "DOWN": 479.4679054054055,
+          "UP": 466.3411888888889
+        },
+        "t": 1790440800255
+      },
+      "state_count": 1479,
+      "plan_count": 1479,
+      "last_plan": {
+        "operations": [],
+        "t": 1790440800255
+      },
+      "last_native_action": {
+        "key": "UP_153",
+        "kind": "NEW_ACTIVE",
+        "n": 153,
+        "price": 0.31,
+        "qty": 10.0,
+        "rc": 0,
+        "side": "UP",
+        "t": 1790440799850
+      },
+      "failure_in_run_whole_source_loop": true,
+      "drain_in_exception_stack": false,
+      "saved_processed_receipt_deltas": [],
+      "following_public_frames": [
+        {
+          "source_ms": 1790440799295,
+          "received_ms": 1790440800535
+        }
+      ],
+      "actual_failure_native_clock_ns": null,
+      "raw_failing_receipt_rows": null,
+      "causal_order_id": null,
+      "source_hashes": {
+        "data/research/lan_worker_returns/btc5m-v12g-admission-components-20260927-v30/arms/v12g30_MARGIN_ONLY_2629019/result.json": "9a62f9489c76332eddda6704fe4c57291fb4075867d88ecbdc5d22d213f38af9",
+        "data/research/lan_worker_returns/btc5m-v12g-admission-components-20260927-v30/arms/v12g30_MARGIN_ONLY_2629019/failure_trace.json.gz": "ab0c321220858f278bfed0eb58e8daf1ff3533550948a5b32d57894d8994527d",
+        "data/research/lan_worker_returns/btc5m-v12g-admission-components-20260927-v30/arms/v12g30_MARGIN_ONLY_2629019/failure_receipts.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f"
+      }
+    }
+  ],
+  "batch": {
+    "status": "STOPPED_PATH_ERROR:2629019",
+    "paths": 26,
+    "rows": 15,
+    "errors": 1,
+    "not_started": [
+      "RESERVE_ONLY:2628553",
+      "RESERVE_ONLY:2628769",
+      "RESERVE_ONLY:2629133",
+      "RESERVE_ONLY:2629199",
+      "RESERVE_ONLY:2628653",
+      "RESERVE_ONLY:2628410",
+      "RESERVE_ONLY:2629019",
+      "RESERVE_ONLY:2628557",
+      "RESERVE_ONLY:2628721",
+      "RESERVE_ONLY:2628999"
+    ],
+    "stop_reason": "PATH_ERROR:2629019"
+  },
+  "invalid_four_cell_interaction_present": {
+    "sum_P": {
+      "FULL_minus_OFF": -81.31035278671484,
+      "MARGIN_minus_OFF": -185.61138160462949,
+      "RESERVE_minus_OFF": -193.2031267310657,
+      "interaction": 297.50415554898035
+    },
+    "sum_L": {
+      "FULL_minus_OFF": -916.6262689147247,
+      "MARGIN_minus_OFF": -1831.3119853512912,
+      "RESERVE_minus_OFF": -3244.4317298452715,
+      "interaction": 4159.117446281838
+    }
+  },
+  "review_four_cell_interaction": null,
+  "review_interaction_status": "UNKNOWN_MISSING_RESERVE_AND_NONMATCHED_COHORT",
+  "missingness": {
+    "MARGIN_ONLY": "9 complete, 1 native ERROR",
+    "RESERVE_ONLY": "10 NOT_STARTED"
+  },
+  "limits": [
+    "The saved empty failure_receipts file contains processed delta rows, not the rejected journal.",
+    "Actual native clock, elapse return code and raw offending receipt were not captured.",
+    "Matching old/new failure sites supports a shared-path hypothesis, not unique root cause.",
+    "Last saved payoff is not terminal payoff; outstanding ownership remains unverified."
+  ]
+}

@@ -1,0 +1,205 @@
+{
+  "version": "R4_ROLLING_QUEUE_OPTION_LIFECYCLE_V1",
+  "researchOnly": true,
+  "question": "Zero-Taker Maker Flex prearm-window test: keep dynamic D2 post-need reprice and small-gap positive-edge veto fixed, vary only queue-option prearm window 0.5/1/2/5s.",
+  "preRegistered": {
+    "maxTrueExchangeRestMs": 5000,
+    "lifecycleCadenceMs": 500,
+    "entryGate": "receipt-clock strict-past current two-sided top5 depth <= same-market prior-30s Q25",
+    "aheadInsideDefinition": "quote_offset_ticks <= -1, matching Target state-machine Q_AHEAD_INSIDE bin",
+    "ROLL_KEEP": "keep while responsibility/MPQ valid",
+    "OWNER1 variants": "same lifecycle but at most one live order per side may own queue responsibility at a time; 18-share parent size unchanged",
+    "REL_OWNER variants": "Target-derived minimal ownership state: FLAT max 1 live owner/side, WEAK max 2, SURPLUS 0; 18-share parent size unchanged",
+    "ROLL_PULL_AHEAD": "ROLL_KEEP but retire live order when ahead/inside",
+    "ROLL_REPRICE_AHEAD": "ROLL_KEEP but cancel+reinsert remainder at current same-side touch when ahead/inside"
+  },
+  "guards": {
+    "entryLatencyMs": 1092,
+    "responseLatencyMs": 273,
+    "cancelConfirmationMs": 1365,
+    "clock": "receivedAtMs for runtime L2",
+    "noDreamFill": true,
+    "noTaker": true,
+    "executionTapeV1": true,
+    "trueMatches": true,
+    "queueModel": "risk",
+    "winnerUsed": false,
+    "liveChanges": false,
+    "futureFrozenNeedSidePrice": "still used as execution-counterfactual anchor; not runtime promotion evidence",
+    "noOutcomeThresholdSweep": true
+  },
+  "aggregate": {
+    "REACTIVE": {
+      "markets": 1,
+      "makerFilledShares": 180.0,
+      "earlyMakerFillShares": 0.0,
+      "earlyFillShareOfMakerFills": 0.0,
+      "earlySurplusFillShares": 0.0,
+      "earlyFloorDamage": 0.0,
+      "prearmedOrders": 0,
+      "responsibilityPrunes": 0,
+      "fallbackOrders": 0,
+      "pruneReasons": {},
+      "everSafeMarkets": 1,
+      "durableBaseMarkets": 0,
+      "durableBaseRate": 0.0,
+      "medianFinalFloor": -29.534400000000005,
+      "p10FinalFloor": -29.534400000000005,
+      "medianFinalAbsNet": 54.0,
+      "p90FinalAbsNet": 54.0,
+      "medianPositiveDurationSec": 7.019,
+      "medianMaxFloorDrawdown": 35.46000000000001
+    },
+    "ROLL_KEEP": {
+      "markets": 0
+    },
+    "FLEX_W500": {
+      "markets": 0
+    },
+    "FLEX_W1000": {
+      "markets": 0
+    },
+    "FLEX_W2000": {
+      "markets": 0
+    },
+    "FLEX_W5000": {
+      "markets": 0
+    }
+  },
+  "pairedVsReactive": {
+    "ROLL_KEEP": {
+      "markets": 0,
+      "durableGained": 0,
+      "durableLost": 0,
+      "everSafeGained": 0,
+      "everSafeLost": 0,
+      "medianDeltaFinalFloor": null,
+      "meanDeltaFinalFloor": null,
+      "floorImprovedMarkets": 0,
+      "floorWorsenedMarkets": 0,
+      "medianDeltaFinalAbsNet": null,
+      "meanDeltaFinalAbsNet": null
+    },
+    "FLEX_W500": {
+      "markets": 0,
+      "durableGained": 0,
+      "durableLost": 0,
+      "everSafeGained": 0,
+      "everSafeLost": 0,
+      "medianDeltaFinalFloor": null,
+      "meanDeltaFinalFloor": null,
+      "floorImprovedMarkets": 0,
+      "floorWorsenedMarkets": 0,
+      "medianDeltaFinalAbsNet": null,
+      "meanDeltaFinalAbsNet": null
+    },
+    "FLEX_W1000": {
+      "markets": 0,
+      "durableGained": 0,
+      "durableLost": 0,
+      "everSafeGained": 0,
+      "everSafeLost": 0,
+      "medianDeltaFinalFloor": null,
+      "meanDeltaFinalFloor": null,
+      "floorImprovedMarkets": 0,
+      "floorWorsenedMarkets": 0,
+      "medianDeltaFinalAbsNet": null,
+      "meanDeltaFinalAbsNet": null
+    },
+    "FLEX_W2000": {
+      "markets": 0,
+      "durableGained": 0,
+      "durableLost": 0,
+      "everSafeGained": 0,
+      "everSafeLost": 0,
+      "medianDeltaFinalFloor": null,
+      "meanDeltaFinalFloor": null,
+      "floorImprovedMarkets": 0,
+      "floorWorsenedMarkets": 0,
+      "medianDeltaFinalAbsNet": null,
+      "meanDeltaFinalAbsNet": null
+    },
+    "FLEX_W5000": {
+      "markets": 0,
+      "durableGained": 0,
+      "durableLost": 0,
+      "everSafeGained": 0,
+      "everSafeLost": 0,
+      "medianDeltaFinalFloor": null,
+      "meanDeltaFinalFloor": null,
+      "floorImprovedMarkets": 0,
+      "floorWorsenedMarkets": 0,
+      "medianDeltaFinalAbsNet": null,
+      "meanDeltaFinalAbsNet": null
+    }
+  },
+  "errors": [
+    {
+      "marketId": 1753396,
+      "config": "ROLL_KEEP",
+      "error": "RuntimeError:AUTHORITY_OVERSHOOT:{'6': 36.0, '8': 36.0}"
+    },
+    {
+      "marketId": 1753396,
+      "config": "FLEX_W500",
+      "error": "RuntimeError:AUTHORITY_OVERSHOOT:{'8': 18.0}"
+    },
+    {
+      "marketId": 1753396,
+      "config": "FLEX_W1000",
+      "error": "RuntimeError:AUTHORITY_OVERSHOOT:{'8': 18.0}"
+    },
+    {
+      "marketId": 1753396,
+      "config": "FLEX_W2000",
+      "error": "RuntimeError:AUTHORITY_OVERSHOOT:{'8': 36.0}"
+    },
+    {
+      "marketId": 1753396,
+      "config": "FLEX_W5000",
+      "error": "RuntimeError:AUTHORITY_OVERSHOOT:{'8': 36.0}"
+    }
+  ],
+  "rows": [
+    {
+      "marketId": 1753396,
+      "policy": "REACTIVE",
+      "leadMs": 0,
+      "orders": 12,
+      "prearmedOrders": 0,
+      "prearmedShares": 0.0,
+      "prearmRelations": {},
+      "prunedOrders": 0,
+      "fallbackOrders": 0,
+      "pruneReasons": {},
+      "makerFilledShares": 180.0,
+      "earlyMakerFillShares": 0.0,
+      "earlySurplusFillShares": 0.0,
+      "earlyFloorDamage": 0.0,
+      "earlyMakerFillRateOfMakerFills": 0.0,
+      "everSafe": true,
+      "durableBase": false,
+      "firstSafeMs": 1787875230890,
+      "firstDurableMs": null,
+      "final": {
+        "up": 126.0,
+        "down": 72.0,
+        "cu": 66.24000000000001,
+        "cd": 35.28,
+        "fees": 0.0144,
+        "cost": 101.5344,
+        "floor": -29.534400000000005,
+        "upside": 24.465599999999995,
+        "paired": 72.0,
+        "absNet": 54.0,
+        "gross": 198.0,
+        "coverage": 0.7272727272727273,
+        "edge": -0.01571428571428579
+      },
+      "positiveDurationSec": 7.019,
+      "maxFloorDrawdown": 35.46000000000001,
+      "minFloor": -31.140000000000015,
+      "config": "REACTIVE"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "real_first_path_audit_regression": true,
+  "all9_existing_schema_checked": true,
+  "policy_and_overlay_byte_identity": true,
+  "native_executed": 0,
+  "first_path_rerun": false,
+  "mandatory_first_fixture": {
+    "freeze_new_zero": true,
+    "STOP290_new_zero": true,
+    "risk_floor_violations_zero": true,
+    "all_owner_pending_terminal": true,
+    "V8_wrong_cancel_zero": true,
+    "fixed_price_qty": true,
+    "trace_receipt_reconciles": true,
+    "capital_cap_null": true,
+    "no_target_or_winner_runtime": true,
+    "one_nonterminal_per_side": true,
+    "TTL_partial_fill_semantics": true
+  }
+}

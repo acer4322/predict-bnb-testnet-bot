@@ -1,0 +1,1509 @@
+..........F.F...................FFFFFFFF.FFFFF.......................... [ 39%]
+.......................FFFF.FFFF............FFF.....F................... [ 78%]
+.............FF.......F........FFFFF...                                  [100%]
+================================== FAILURES ===================================
+__________ test_live_m0w_uses_limit_gtc_with_immutable_one_usdt_cap ___________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_m0w_uses_limit_gtc_w0')
+
+    def test_live_m0w_uses_limit_gtc_with_immutable_one_usdt_cap(tmp_path: Path):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal())
+    
+>       assert len(client.quote_calls) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <test_live_trading.FakeTradingClient object at 0x00000142384F1090>.quote_calls
+
+tests\test_live_trading.py:612: AssertionError
+___________________ test_live_m0w_never_retries_same_market ___________________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_m0w_never_retries_sa0')
+
+    def test_live_m0w_never_retries_same_market(tmp_path: Path):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal())
+        live.process_signal(signal())
+    
+>       assert len(client.quote_calls) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <test_live_trading.FakeTradingClient object at 0x0000014238BBDA70>.quote_calls
+
+tests\test_live_trading.py:645: AssertionError
+__________ test_hourly_guard_uses_cached_snapshot_on_order_hot_path ___________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_hourly_guard_uses_cached_0')
+
+    def test_hourly_guard_uses_cached_snapshot_on_order_hot_path(tmp_path: Path):
+        client = FakeTradingClient()
+        provider_calls = 0
+    
+        def provider():
+            nonlocal provider_calls
+            provider_calls += 1
+            return m0_hourly_performance()
+    
+        live = engine(tmp_path, client, hourly_provider=provider)
+        calls_after_initial_snapshot = provider_calls
+    
+        live.process_signal(signal())
+    
+>       assert len(client.place_calls) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <test_live_trading.FakeTradingClient object at 0x0000014238CCF890>.place_calls
+
+tests\test_live_trading.py:1032: AssertionError
+______________ test_slow_maintenance_does_not_block_order_worker ______________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_slow_maintenance_does_not0')
+
+    def test_slow_maintenance_does_not_block_order_worker(tmp_path: Path):
+        client = FakeTradingClient()
+        maintenance_started = threading.Event()
+        release_maintenance = threading.Event()
+        live = LiveM0WEngine(
+            api_key="key",
+            api_secret="secret",
+            configured_enabled=True,
+            credential_source="TEST",
+            current_market=market_reference,
+            current_verified_prediction_book=verified_prediction_book,
+            db_path=tmp_path / "live.db",
+            client_factory=lambda *_args: client,
+        )
+    
+        def slow_refresh():
+            maintenance_started.set()
+            release_maintenance.wait(timeout=2)
+    
+        live._refresh_account = slow_refresh
+        live.start()
+        try:
+            assert maintenance_started.wait(timeout=1)
+            live.submit_signal(signal())
+            deadline = time.monotonic() + 1
+            while not client.place_calls and time.monotonic() < deadline:
+                time.sleep(0.01)
+>           assert len(client.place_calls) == 1
+E           assert 0 == 1
+E            +  where 0 = len([])
+E            +    where [] = <test_live_trading.FakeTradingClient object at 0x0000014238CCE570>.place_calls
+
+tests\test_live_trading.py:1063: AssertionError
+_____ test_order_sync_requests_restart_after_consecutive_transport_errors _____
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_order_sync_requests_resta0')
+
+    def test_order_sync_requests_restart_after_consecutive_transport_errors(
+        tmp_path: Path,
+    ):
+        client = FakeTradingClient()
+        restart_reasons = []
+        live = engine(
+            tmp_path,
+            client,
+            order_sync_restart_threshold=3,
+            restart_request=restart_reasons.append,
+        )
+        live.process_signal(signal())
+        client.history_error = ApiTransportError(
+            "Request failed for order/history: getaddrinfo failed"
+        )
+    
+        live._sync_orders()
+        live._sync_orders()
+    
+        assert restart_reasons == []
+>       assert live.state()["orderSyncWatchdog"] == {
+            "consecutiveTransportErrors": 2,
+            "restartThreshold": 3,
+            "restartRequested": False,
+        }
+E       AssertionError: assert {'consecutive...ested': False} == {'consecutive...ested': False}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'consecutiveTransportErrors': 0} != {'consecutiveTransportErrors': 2}
+E         Use -v to get more diff
+
+tests\test_live_trading.py:1089: AssertionError
+___________ test_successful_order_sync_resets_transport_error_count ___________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_successful_order_sync_res0')
+
+    def test_successful_order_sync_resets_transport_error_count(tmp_path: Path):
+        client = FakeTradingClient()
+        restart_reasons = []
+        live = engine(
+            tmp_path,
+            client,
+            order_sync_restart_threshold=3,
+            restart_request=restart_reasons.append,
+        )
+        live.process_signal(signal())
+        transport_error = ApiTransportError(
+            "Request failed for order/history: getaddrinfo failed"
+        )
+        client.history_error = transport_error
+        live._sync_orders()
+        live._sync_orders()
+    
+        client.history_error = None
+        live._sync_orders()
+    
+        client.history_error = transport_error
+        live._sync_orders()
+        live._sync_orders()
+    
+        assert restart_reasons == []
+>       assert (
+            live.state()["orderSyncWatchdog"]["consecutiveTransportErrors"] == 2
+        )
+E       assert 0 == 2
+
+tests\test_live_trading.py:1136: AssertionError
+__ test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid[gate_patch0] __
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_m0w_fails_closed_whe0')
+gate_patch = {'previous_m0_status': 'SETTLED_LOSS', 'previous_m0_pnl': -1.0}
+
+    @pytest.mark.parametrize(
+        "gate_patch",
+        [
+            {"previous_m0_status": "SETTLED_LOSS", "previous_m0_pnl": -1.0},
+            {"previous_settlement_status": "PENDING"},
+            {"previous_market_is_adjacent": False},
+            {"previous_market_end_ms": 1_799_999_700_000},
+        ],
+    )
+    def test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid(
+        tmp_path: Path, gate_patch: dict,
+    ):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+        payload = signal()
+        payload["m0w_gate"].update(gate_patch)
+    
+        live.process_signal(payload)
+    
+        assert client.quote_calls == []
+        assert client.place_calls == []
+>       order = live.state()["orders"][0]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:1162: IndexError
+__ test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid[gate_patch1] __
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_m0w_fails_closed_whe1')
+gate_patch = {'previous_settlement_status': 'PENDING'}
+
+    @pytest.mark.parametrize(
+        "gate_patch",
+        [
+            {"previous_m0_status": "SETTLED_LOSS", "previous_m0_pnl": -1.0},
+            {"previous_settlement_status": "PENDING"},
+            {"previous_market_is_adjacent": False},
+            {"previous_market_end_ms": 1_799_999_700_000},
+        ],
+    )
+    def test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid(
+        tmp_path: Path, gate_patch: dict,
+    ):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+        payload = signal()
+        payload["m0w_gate"].update(gate_patch)
+    
+        live.process_signal(payload)
+    
+        assert client.quote_calls == []
+        assert client.place_calls == []
+>       order = live.state()["orders"][0]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:1162: IndexError
+__ test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid[gate_patch2] __
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_m0w_fails_closed_whe2')
+gate_patch = {'previous_market_is_adjacent': False}
+
+    @pytest.mark.parametrize(
+        "gate_patch",
+        [
+            {"previous_m0_status": "SETTLED_LOSS", "previous_m0_pnl": -1.0},
+            {"previous_settlement_status": "PENDING"},
+            {"previous_market_is_adjacent": False},
+            {"previous_market_end_ms": 1_799_999_700_000},
+        ],
+    )
+    def test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid(
+        tmp_path: Path, gate_patch: dict,
+    ):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+        payload = signal()
+        payload["m0w_gate"].update(gate_patch)
+    
+        live.process_signal(payload)
+    
+        assert client.quote_calls == []
+        assert client.place_calls == []
+>       order = live.state()["orders"][0]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:1162: IndexError
+__ test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid[gate_patch3] __
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_m0w_fails_closed_whe3')
+gate_patch = {'previous_market_end_ms': 1799999700000}
+
+    @pytest.mark.parametrize(
+        "gate_patch",
+        [
+            {"previous_m0_status": "SETTLED_LOSS", "previous_m0_pnl": -1.0},
+            {"previous_settlement_status": "PENDING"},
+            {"previous_market_is_adjacent": False},
+            {"previous_market_end_ms": 1_799_999_700_000},
+        ],
+    )
+    def test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid(
+        tmp_path: Path, gate_patch: dict,
+    ):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+        payload = signal()
+        payload["m0w_gate"].update(gate_patch)
+    
+        live.process_signal(payload)
+    
+        assert client.quote_calls == []
+        assert client.place_calls == []
+>       order = live.state()["orders"][0]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:1162: IndexError
+________ test_quote_within_ten_cent_gap_is_refreshed_once_at_hard_cap _________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_quote_within_ten_cent_gap0')
+
+    def test_quote_within_ten_cent_gap_is_refreshed_once_at_hard_cap(tmp_path: Path):
+        client = FakeTradingClient()
+        client.quote_average_prices = [0.41, 0.41]
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal(entry_price=0.40))
+    
+>       assert [call["price_limit"] for call in client.quote_calls] == ["0.4", "0.5"]
+E       AssertionError: assert [] == ['0.4', '0.5']
+E         
+E         Right contains 2 more items, first extra item: '0.4'
+E         Use -v to get more diff
+
+tests\test_live_trading.py:1192: AssertionError
+_________ test_quote_beyond_ten_cent_gap_is_rejected_with_diagnostics _________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_quote_beyond_ten_cent_gap0')
+
+    def test_quote_beyond_ten_cent_gap_is_rejected_with_diagnostics(tmp_path: Path):
+        client = FakeTradingClient()
+        client.quote_average_price = 0.51
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal(entry_price=0.40))
+    
+>       assert len(client.quote_calls) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <test_live_trading.FakeTradingClient object at 0x0000014238C7DB50>.quote_calls
+
+tests\test_live_trading.py:1211: AssertionError
+_ test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap[M01] _
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_low_price_entry_ceiling_i0')
+strategy = 'M01'
+
+    @pytest.mark.parametrize("strategy", ["M01", "M01T180"])
+    def test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap(
+        tmp_path: Path, strategy: str
+    ):
+        client = FakeTradingClient()
+        client.quote_average_prices = [0.31, 0.31]
+        live = engine(tmp_path, client)
+>       live.update_live_rules({"strategy": strategy})
+
+tests\test_live_trading.py:1226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategy': 'M01'}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+_ test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap[M01T180] _
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_low_price_entry_ceiling_i1')
+strategy = 'M01T180'
+
+    @pytest.mark.parametrize("strategy", ["M01", "M01T180"])
+    def test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap(
+        tmp_path: Path, strategy: str
+    ):
+        client = FakeTradingClient()
+        client.quote_average_prices = [0.31, 0.31]
+        live = engine(tmp_path, client)
+>       live.update_live_rules({"strategy": strategy})
+
+tests\test_live_trading.py:1226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategy': 'M01T180'}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+____________ test_refreshed_quote_still_cannot_cross_ten_cent_gap _____________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_refreshed_quote_still_can0')
+
+    def test_refreshed_quote_still_cannot_cross_ten_cent_gap(tmp_path: Path):
+        client = FakeTradingClient()
+        client.quote_average_prices = [0.41]
+        live = engine(tmp_path, client)
+>       live.update_live_rules({"strategy": "M01"})
+
+tests\test_live_trading.py:1249: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategy': 'M01'}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+_____________________ test_sas_rejection_disarms_executor _____________________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_sas_rejection_disarms_exe0')
+
+    def test_sas_rejection_disarms_executor(tmp_path: Path):
+        client = FakeTradingClient()
+        client.place_error = ApiHttpError(
+            "HTTP 400: -31003 SAS authorization required",
+            status_code=400,
+            detail='{"code":-31003}',
+        )
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal())
+    
+        state = live.state()
+>       assert state["armed"] is False
+E       assert True is False
+
+tests\test_live_trading.py:1762: AssertionError
+__________ test_paused_executor_records_signal_without_network_calls __________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_paused_executor_records_s0')
+
+    def test_paused_executor_records_signal_without_network_calls(tmp_path: Path):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+        live.set_runtime_enabled(False)
+    
+        live.process_signal(signal())
+    
+        assert client.quote_calls == []
+        assert client.place_calls == []
+>       assert live.state()["orders"][0]["status"] == "SKIPPED_PAUSED"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:1777: IndexError
+_ test_hourly_guard_blocks_before_quote_when_threshold_is_breached[49.99-40.0-M0 \u52dd\u7387 49.99% < 50.00%] _
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_hourly_guard_blocks_befor0')
+win_rate_pct = 49.99, win_then_loss_rate_pct = 40.0
+expected_reason = 'M0 勝率 49.99% < 50.00%'
+
+    @pytest.mark.parametrize(
+        ("win_rate_pct", "win_then_loss_rate_pct", "expected_reason"),
+        [
+            (49.99, 40.0, "M0 勝率 49.99% < 50.00%"),
+            (60.0, 50.01, "一勝一敗率 50.01% > 50.00%"),
+        ],
+    )
+    def test_hourly_guard_blocks_before_quote_when_threshold_is_breached(
+        tmp_path: Path,
+        win_rate_pct: float,
+        win_then_loss_rate_pct: float,
+        expected_reason: str,
+    ):
+        client = FakeTradingClient()
+        live = engine(
+            tmp_path,
+            client,
+            hourly_provider=lambda: m0_hourly_performance(
+                win_rate_pct=win_rate_pct,
+                win_then_loss_rate_pct=win_then_loss_rate_pct,
+            ),
+        )
+    
+        live.process_signal(signal())
+    
+        assert client.quote_calls == []
+        assert client.place_calls == []
+        state = live.state()
+>       assert state["hourlyGuard"]["hour"] == 8
+E       assert 17 == 8
+
+tests\test_live_trading.py:1808: AssertionError
+_ test_hourly_guard_blocks_before_quote_when_threshold_is_breached[60.0-50.01-\u4e00\u52dd\u4e00\u6557\u7387 50.01% > 50.00%] _
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_hourly_guard_blocks_befor1')
+win_rate_pct = 60.0, win_then_loss_rate_pct = 50.01
+expected_reason = '一勝一敗率 50.01% > 50.00%'
+
+    @pytest.mark.parametrize(
+        ("win_rate_pct", "win_then_loss_rate_pct", "expected_reason"),
+        [
+            (49.99, 40.0, "M0 勝率 49.99% < 50.00%"),
+            (60.0, 50.01, "一勝一敗率 50.01% > 50.00%"),
+        ],
+    )
+    def test_hourly_guard_blocks_before_quote_when_threshold_is_breached(
+        tmp_path: Path,
+        win_rate_pct: float,
+        win_then_loss_rate_pct: float,
+        expected_reason: str,
+    ):
+        client = FakeTradingClient()
+        live = engine(
+            tmp_path,
+            client,
+            hourly_provider=lambda: m0_hourly_performance(
+                win_rate_pct=win_rate_pct,
+                win_then_loss_rate_pct=win_then_loss_rate_pct,
+            ),
+        )
+    
+        live.process_signal(signal())
+    
+        assert client.quote_calls == []
+        assert client.place_calls == []
+        state = live.state()
+>       assert state["hourlyGuard"]["hour"] == 8
+E       assert 17 == 8
+
+tests\test_live_trading.py:1808: AssertionError
+___________ test_hourly_guard_allows_exact_fifty_percent_boundaries ___________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_hourly_guard_allows_exact0')
+
+    def test_hourly_guard_allows_exact_fifty_percent_boundaries(tmp_path: Path):
+        client = FakeTradingClient()
+        live = engine(
+            tmp_path,
+            client,
+            hourly_provider=lambda: m0_hourly_performance(
+                win_rate_pct=50.0,
+                win_then_loss_rate_pct=50.0,
+            ),
+        )
+    
+        live.process_signal(signal())
+    
+>       assert len(client.quote_calls) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <test_live_trading.FakeTradingClient object at 0x0000014238CCEF90>.quote_calls
+
+tests\test_live_trading.py:1846: AssertionError
+__________ test_hourly_guard_ignores_unavailable_win_then_loss_rate ___________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_hourly_guard_ignores_unav0')
+
+    def test_hourly_guard_ignores_unavailable_win_then_loss_rate(tmp_path: Path):
+        client = FakeTradingClient()
+        live = engine(
+            tmp_path,
+            client,
+            hourly_provider=lambda: m0_hourly_performance(
+                win_rate_pct=55.0,
+                win_then_loss_rate_pct=None,
+            ),
+        )
+    
+        live.process_signal(signal())
+    
+>       assert len(client.place_calls) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <test_live_trading.FakeTradingClient object at 0x0000014238CCDB50>.place_calls
+
+tests\test_live_trading.py:1864: AssertionError
+________________ test_hourly_guard_provider_error_fails_closed ________________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_hourly_guard_provider_err0')
+
+    def test_hourly_guard_provider_error_fails_closed(tmp_path: Path):
+        client = FakeTradingClient()
+    
+        def unavailable():
+            raise RuntimeError("statistics database unavailable")
+    
+        live = engine(tmp_path, client, hourly_provider=unavailable)
+    
+        live.process_signal(signal())
+    
+        assert client.quote_calls == []
+        assert client.place_calls == []
+        state = live.state()
+        assert state["hourlyGuard"]["status"] == "ERROR"
+        assert state["hourlyGuard"]["blocked"] is True
+>       assert state["orders"][0]["status"] == "SKIPPED_M0_HOURLY_GUARD"
+               ^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:1883: IndexError
+_________ test_live_rules_select_strategy_and_change_exact_order_cap __________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_rules_select_strateg0')
+
+    def test_live_rules_select_strategy_and_change_exact_order_cap(tmp_path: Path):
+        client = FakeTradingClient()
+        client.quote_amount_in = "2500000000000000000"
+        live = engine(
+            tmp_path,
+            client,
+            hourly_provider=lambda: m0_hourly_performance(),
+        )
+    
+>       state = live.update_live_rules(
+            {
+                "strategy": "M1",
+                "maxStakeUsdt": 2.5,
+                "minHourlyWinRatePct": 45,
+                "maxHourlyWinThenLossRatePct": 65,
+            }
+        )
+
+tests\test_live_trading.py:1895: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategy': 'M1', 'maxStakeUsdt': 2.5, 'minHourlyWinRatePct': 45, 'maxHourlyWinThenLossRatePct': 65}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+______ test_drawdown_control_defaults_off_and_persists_per_strategy_slot ______
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_drawdown_control_defaults0')
+
+    def test_drawdown_control_defaults_off_and_persists_per_strategy_slot(
+        tmp_path: Path,
+    ):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client, drawdown_market_history=drawdown_history)
+>       initial = live.update_live_rules({
+            "strategies": ["M1", "M2"],
+            "strategyStakesUsdt": [1.0, 1.0],
+        })
+
+tests\test_live_trading.py:2291: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategies': ['M1', 'M2'], 'strategyStakesUsdt': [1.0, 1.0]}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+_______ test_drawdown_control_blocks_only_enabled_strategy_before_quote _______
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_drawdown_control_blocks_o0')
+
+    def test_drawdown_control_blocks_only_enabled_strategy_before_quote(
+        tmp_path: Path,
+    ):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client, drawdown_market_history=drawdown_history)
+>       live.update_live_rules({
+            "strategies": ["M1", "M2"],
+            "strategyStakesUsdt": [1.0, 1.0],
+            "strategyDrawdownControlEnabled": [True, False],
+        })
+
+tests\test_live_trading.py:2318: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategies': ['M1', 'M2'], 'strategyStakesUsdt': [1.0, 1.0], 'strategyDrawdownControlEnabled': [True, False]}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+________ test_drawdown_control_fails_closed_when_history_is_incomplete ________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_drawdown_control_fails_cl0')
+
+    def test_drawdown_control_fails_closed_when_history_is_incomplete(
+        tmp_path: Path,
+    ):
+        client = FakeTradingClient()
+        live = engine(
+            tmp_path,
+            client,
+            drawdown_market_history=lambda _market_id, _limit: [],
+        )
+>       live.update_live_rules({
+            "strategy": "M1",
+            "strategyDrawdownControlEnabled": [True],
+        })
+
+tests\test_live_trading.py:2346: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategy': 'M1', 'strategyDrawdownControlEnabled': [True]}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+____ test_two_loss_cooldown_is_independent_and_persists_per_strategy_slot _____
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_two_loss_cooldown_is_inde0')
+
+    def test_two_loss_cooldown_is_independent_and_persists_per_strategy_slot(
+        tmp_path: Path,
+    ):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+>       initial = live.update_live_rules({
+            "strategies": ["M1", "M2"],
+            "strategyStakesUsdt": [1.0, 1.0],
+        })
+
+tests\test_live_trading.py:2555: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategies': ['M1', 'M2'], 'strategyStakesUsdt': [1.0, 1.0]}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+___________ test_live_rule_thresholds_change_hourly_guard_decision ____________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_rule_thresholds_chan0')
+
+    def test_live_rule_thresholds_change_hourly_guard_decision(tmp_path: Path):
+        client = FakeTradingClient()
+        live = engine(
+            tmp_path,
+            client,
+            hourly_provider=lambda: m0_hourly_performance(
+                win_rate_pct=50.0,
+                win_then_loss_rate_pct=55.0,
+            ),
+        )
+        live.update_live_rules(
+            {
+                "minHourlyWinRatePct": 49.0,
+                "maxHourlyWinThenLossRatePct": 60.0,
+            }
+        )
+    
+        live.process_signal(signal())
+    
+>       assert len(client.place_calls) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <test_live_trading.FakeTradingClient object at 0x0000014238CCED50>.place_calls
+
+tests\test_live_trading.py:3647: AssertionError
+_______________ test_live_rules_persist_in_separate_live_ledger _______________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_rules_persist_in_sep0')
+
+    def test_live_rules_persist_in_separate_live_ledger(tmp_path: Path):
+        db_path = tmp_path / "persistent-rules.db"
+        first = LiveM0WEngine(
+            api_key="key",
+            api_secret="secret",
+            configured_enabled=False,
+            credential_source="TEST",
+            current_market=market_reference,
+            db_path=db_path,
+        )
+>       first.update_live_rules(
+            {
+                "strategy": "M7_3",
+                "maxStakeUsdt": 3.25,
+                    "minHourlyWinRatePct": 57.5,
+                    "maxHourlyWinThenLossRatePct": 42.5,
+                    "futuresLeadObserverEnabled": True,
+                    "futuresLeadObserverVersion": "V4",
+            }
+        )
+
+tests\test_live_trading.py:3664: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategy': 'M7_3', 'maxStakeUsdt': 3.25, 'minHourlyWinRatePct': 57.5, 'maxHourlyWinThenLossRatePct': 42.5, ...}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+_________ test_live_ledger_allows_one_attempt_per_strategy_and_market _________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_live_ledger_allows_one_at0')
+
+    def test_live_ledger_allows_one_attempt_per_strategy_and_market(tmp_path: Path):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+>       live.update_live_rules(
+            {
+                "strategies": ["M0", "M1"],
+                "strategyStakesUsdt": [1.0, 1.0],
+            }
+        )
+
+tests\test_live_trading.py:3729: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\predict_bot\live_trading.py:3883: in update_live_rules
+    updated = normalize_live_rules(values, previous)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = {'strategies': ['M0', 'M1'], 'strategyStakesUsdt': [1.0, 1.0]}
+current = {'strategy': 'M01O_F1', 'strategies': ['M01O_F1'], 'maxStakeUsdt': 1.0, 'strategyStakesUsdt': [1.0], ...}
+
+    def normalize_live_rules(
+        values: dict[str, Any], current: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        candidate = {
+            "strategy": LIVE_DEFAULT_STRATEGY,
+            "maxStakeUsdt": float(LIVE_DEFAULT_MAX_STAKE_USDT),
+            "minHourlyWinRatePct": M0_HOURLY_MIN_WIN_RATE_PCT,
+            "maxHourlyWinThenLossRatePct": M0_HOURLY_MAX_WIN_THEN_LOSS_RATE_PCT,
+            "futuresLeadObserverEnabled": False,
+            "futuresLeadObserverVersion": "F1",
+            "strategyExecutionModes": [LIVE_EXECUTION_MODE_FIXED],
+            "strategyInitialStakesUsdt": [float(LIVE_DEFAULT_MAX_STAKE_USDT)],
+            "strategyConfirmationAddStakesUsdt": [
+                float(LIVE_DEFAULT_CONFIRMATION_ADD_STAKE_USDT)
+            ],
+            "strategyDrawdownControlEnabled": [False],
+            "strategyLossCooldownEnabled": [False],
+            "reliabilityGateTags": [],
+            **(current or {}),
+            **values,
+        }
+        raw_strategies = candidate.get("strategies")
+        if "strategies" in values:
+            raw_strategies = values["strategies"]
+        elif "strategy" in values:
+            raw_strategies = [values["strategy"]]
+        if isinstance(raw_strategies, str):
+            try:
+                decoded = json.loads(raw_strategies)
+                raw_strategies = decoded if isinstance(decoded, list) else [raw_strategies]
+            except json.JSONDecodeError:
+                raw_strategies = [raw_strategies]
+        if not isinstance(raw_strategies, list):
+            raw_strategies = [candidate.get("strategy")]
+        strategies = list(dict.fromkeys(
+            str(value or "").strip().upper() for value in raw_strategies
+            if str(value or "").strip()
+        ))
+        if not 1 <= len(strategies) <= LIVE_MAX_SELECTED_STRATEGIES:
+            raise ValueError(
+                "strategies must contain between one and "
+                f"{LIVE_MAX_SELECTED_STRATEGIES} unique strategies"
+            )
+        if (
+            "R_FUTURES_LEAD_REVERSE" in strategies
+            and tuple(strategies[:2]) != FUTURES_LEAD_HEDGE_STRATEGIES
+        ):
+            raise ValueError(
+                "R_FUTURES_LEAD_REVERSE is dependent and must be strategy 2 "
+                "after R_FUTURES_LEAD"
+            )
+        if any(strategy not in LIVE_SUPPORTED_STRATEGIES for strategy in strategies):
+>           raise ValueError(
+                "strategy must be one of: " + ", ".join(LIVE_SUPPORTED_STRATEGIES)
+            )
+E           ValueError: strategy must be one of: M01O_F1, PAIR_ARB_010, PAIR_ARB_QC_015, PAIR_ARB_020, R_MICROPRICE, R_FUTURES_LEAD, R_FUTURES_LEAD_REVERSE, R_FUTURES_LEAD_REGIME_REVERSE_3L, R_FUTURES_LEAD_DISTANCE, R_FUTURES_LEAD_SIGNAL_100, R_FUTURES_LEAD_MIN_ENTRY_020, R_OFI, R_CALIBRATED_VALUE, R_OFI_EVENT_CUM
+
+src\predict_bot\live_trading.py:362: ValueError
+______________ test_invalid_signal_price_never_reaches_quote[0] _______________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_invalid_signal_price_neve0')
+price = 0
+
+    @pytest.mark.parametrize("price", [0, 1, -0.1, 1.1, float("nan")])
+    def test_invalid_signal_price_never_reaches_quote(tmp_path: Path, price: float):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal(entry_price=price))
+    
+        assert client.quote_calls == []
+>       assert live.state()["orders"][0]["status"] == "BLOCKED_INVALID_PRICE"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:3939: IndexError
+______________ test_invalid_signal_price_never_reaches_quote[1] _______________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_invalid_signal_price_neve1')
+price = 1
+
+    @pytest.mark.parametrize("price", [0, 1, -0.1, 1.1, float("nan")])
+    def test_invalid_signal_price_never_reaches_quote(tmp_path: Path, price: float):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal(entry_price=price))
+    
+        assert client.quote_calls == []
+>       assert live.state()["orders"][0]["status"] == "BLOCKED_INVALID_PRICE"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:3939: IndexError
+_____________ test_invalid_signal_price_never_reaches_quote[-0.1] _____________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_invalid_signal_price_neve2')
+price = -0.1
+
+    @pytest.mark.parametrize("price", [0, 1, -0.1, 1.1, float("nan")])
+    def test_invalid_signal_price_never_reaches_quote(tmp_path: Path, price: float):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal(entry_price=price))
+    
+        assert client.quote_calls == []
+>       assert live.state()["orders"][0]["status"] == "BLOCKED_INVALID_PRICE"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:3939: IndexError
+_____________ test_invalid_signal_price_never_reaches_quote[1.1] ______________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_invalid_signal_price_neve3')
+price = 1.1
+
+    @pytest.mark.parametrize("price", [0, 1, -0.1, 1.1, float("nan")])
+    def test_invalid_signal_price_never_reaches_quote(tmp_path: Path, price: float):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal(entry_price=price))
+    
+        assert client.quote_calls == []
+>       assert live.state()["orders"][0]["status"] == "BLOCKED_INVALID_PRICE"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:3939: IndexError
+_____________ test_invalid_signal_price_never_reaches_quote[nan] ______________
+
+tmp_path = WindowsPath('C:/Users/acer4/AppData/Local/Temp/pytest-of-acer4/pytest-565/test_invalid_signal_price_neve4')
+price = nan
+
+    @pytest.mark.parametrize("price", [0, 1, -0.1, 1.1, float("nan")])
+    def test_invalid_signal_price_never_reaches_quote(tmp_path: Path, price: float):
+        client = FakeTradingClient()
+        live = engine(tmp_path, client)
+    
+        live.process_signal(signal(entry_price=price))
+    
+        assert client.quote_calls == []
+>       assert live.state()["orders"][0]["status"] == "BLOCKED_INVALID_PRICE"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_live_trading.py:3939: IndexError
+=========================== short test summary info ===========================
+FAILED tests/test_live_trading.py::test_live_m0w_uses_limit_gtc_with_immutable_one_usdt_cap
+FAILED tests/test_live_trading.py::test_live_m0w_never_retries_same_market - ...
+FAILED tests/test_live_trading.py::test_hourly_guard_uses_cached_snapshot_on_order_hot_path
+FAILED tests/test_live_trading.py::test_slow_maintenance_does_not_block_order_worker
+FAILED tests/test_live_trading.py::test_order_sync_requests_restart_after_consecutive_transport_errors
+FAILED tests/test_live_trading.py::test_successful_order_sync_resets_transport_error_count
+FAILED tests/test_live_trading.py::test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid[gate_patch0]
+FAILED tests/test_live_trading.py::test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid[gate_patch1]
+FAILED tests/test_live_trading.py::test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid[gate_patch2]
+FAILED tests/test_live_trading.py::test_live_m0w_fails_closed_when_adjacent_win_gate_is_invalid[gate_patch3]
+FAILED tests/test_live_trading.py::test_quote_within_ten_cent_gap_is_refreshed_once_at_hard_cap
+FAILED tests/test_live_trading.py::test_quote_beyond_ten_cent_gap_is_rejected_with_diagnostics
+FAILED tests/test_live_trading.py::test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap[M01]
+FAILED tests/test_live_trading.py::test_low_price_entry_ceiling_is_a_trigger_and_quote_can_use_ten_cent_gap[M01T180]
+FAILED tests/test_live_trading.py::test_refreshed_quote_still_cannot_cross_ten_cent_gap
+FAILED tests/test_live_trading.py::test_sas_rejection_disarms_executor - asse...
+FAILED tests/test_live_trading.py::test_paused_executor_records_signal_without_network_calls
+FAILED tests/test_live_trading.py::test_hourly_guard_blocks_before_quote_when_threshold_is_breached[49.99-40.0-M0 \u52dd\u7387 49.99% < 50.00%]
+FAILED tests/test_live_trading.py::test_hourly_guard_blocks_before_quote_when_threshold_is_breached[60.0-50.01-\u4e00\u52dd\u4e00\u6557\u7387 50.01% > 50.00%]
+FAILED tests/test_live_trading.py::test_hourly_guard_allows_exact_fifty_percent_boundaries
+FAILED tests/test_live_trading.py::test_hourly_guard_ignores_unavailable_win_then_loss_rate
+FAILED tests/test_live_trading.py::test_hourly_guard_provider_error_fails_closed
+FAILED tests/test_live_trading.py::test_live_rules_select_strategy_and_change_exact_order_cap
+FAILED tests/test_live_trading.py::test_drawdown_control_defaults_off_and_persists_per_strategy_slot
+FAILED tests/test_live_trading.py::test_drawdown_control_blocks_only_enabled_strategy_before_quote
+FAILED tests/test_live_trading.py::test_drawdown_control_fails_closed_when_history_is_incomplete
+FAILED tests/test_live_trading.py::test_two_loss_cooldown_is_independent_and_persists_per_strategy_slot
+FAILED tests/test_live_trading.py::test_live_rule_thresholds_change_hourly_guard_decision
+FAILED tests/test_live_trading.py::test_live_rules_persist_in_separate_live_ledger
+FAILED tests/test_live_trading.py::test_live_ledger_allows_one_attempt_per_strategy_and_market
+FAILED tests/test_live_trading.py::test_invalid_signal_price_never_reaches_quote[0]
+FAILED tests/test_live_trading.py::test_invalid_signal_price_never_reaches_quote[1]
+FAILED tests/test_live_trading.py::test_invalid_signal_price_never_reaches_quote[-0.1]
+FAILED tests/test_live_trading.py::test_invalid_signal_price_never_reaches_quote[1.1]
+FAILED tests/test_live_trading.py::test_invalid_signal_price_never_reaches_quote[nan]
+35 failed, 148 passed in 27.44s

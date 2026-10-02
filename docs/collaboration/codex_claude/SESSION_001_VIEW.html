@@ -1,0 +1,2111 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>Codex × Claude｜首輪工作階段</title><style>body{font:16px/1.7 system-ui;background:#111827;color:#e5e7eb;max-width:1100px;margin:auto;padding:32px}h1{font-size:28px}h2{font-size:18px}article{background:#1f2937;border:1px solid #374151;border-radius:12px;padding:20px;margin:18px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.7 ui-monospace,monospace}small{color:#9ca3af}summary{cursor:pointer;color:#93c5fd;padding:8px}button{padding:9px 16px;margin-right:10px;cursor:pointer}</style><h1>Codex × Claude｜首輪工作階段</h1><p>模型：claude-opus-5-5 · 狀態：已完成，Codex 已審查</p><p>這是本機工作階段紀錄的閱讀副本，不是 Claude 桌面原生工作階段，也不是即時監看。包含派工、工具呼叫與回傳、最終回答；不展示內部推理區塊。</p><small>工作階段：996bea4a-767f-411a-80c1-9b802a583078</small><p><button onclick="document.querySelectorAll('details').forEach(x=>x.open=true)">展開工具紀錄</button><button onclick="document.querySelectorAll('details').forEach(x=>x.open=false)">收合工具紀錄</button><button onclick="window.scrollTo(0,document.body.scrollHeight)">跳至最終回答</button></p><article><h2>1 · Codex 派工</h2><small>2026-09-26T19:05:36.856Z</small><pre>You are the executor in a Codex-led collaboration. This is the first bounded READ-ONLY task. Use only Read/Glob/Grep. No shell, edits, credentials, raw database/tape scans, research jobs or live changes. Read the repository AGENTS.md and docs/collaboration/codex_claude/README_ZH.md. Return ACK and RETURN content in Traditional Chinese in your final answer; the host saves it. Do not claim your model identity from this prompt. Stop after the requested review.
+
+# TASK_001：接手確認與下一批研究設計覆核
+
+狀態：PREPARED_NOT_DISPATCHED。由Codex編製；只有這次接手／唯讀設計被授權，本任務不包含新native、fit、worker派送或live操作。
+
+## 目的
+
+把現有V12g研究接入「Codex訂目標、Claude執行、Codex審查」循環。先確認最新結果，對固定R25擴大驗證及修復後再ADD的配對研究提出可執行計畫。研究目標與約束見README_ZH.md。
+
+## 先讀範圍
+
+從repo根目錄讀AGENTS.md、docs/agents/research.md，以及docs/agents/RESEARCH_CURRENT.md最新第一項及其指向的CURRENT／PROTOCOL／SUMMARY。2026-09-27建立任務時已更新到v12g_active_repair4_small_20260927_v28，父批是v12g_active_repair3_small_20260927_v27；若已有後繼，先報告差異，不能套用過時任務直接執行。
+
+按需讀該包overlay/economics.py、overlay/run_variant.py，以及v12g_fresh30_20260927_v24的PROTOCOL／市場清單／摘要。僅核具體欄位，不全倉掃描大DB、raw tape或其他代理對話；需要超出範圍時先列明理由。
+
+## 必須回答
+
+1. 目前受測系統、費用情境、選樣方式、對照重现與已消費範圍是什麼？哪些只是宣告，哪些有執行證據？
+2. R25所謂「被動修復處理不了」實際如何判斷？沒有掛單、掛單被甩開、cancel-pending、已送未成交能否被混為一談？
+3. 弱邊角色換邊後，last_H與peak比較是否仍有一致的分支身份？找程式證據，不先假定有bug。
+4. v27的10場與原30場如何對齊？要補固定R25，哪些格可重用、哪些未跑？禁止把其餘20場稱完全未見holdout。
+5. v28已更正2629199：主動修復主要買便宜UP，換邊後繼續ADD DOWN抵銷修復；0.70限制一次未觸發。先以trace核對這個更正，不重複v27「修復在0.8追DOWN」的舊推論。對修回再ADD失守列兩個以上可推翻的解釋與最小同根比較；評估選邊後重開准入的候選是否又會造成停擺，不先假定它有效。
+6. 報告格式怎樣同時保留兩側收益、官方勝方、正收益大於虧損比例、未結責任、費用與缺失分母？
+
+## 交付與停止
+
+桌面模式可只新增本目錄ACK_001.md與RETURN_001.md；其餘檔案不改。直接唯讀模式則將相同內容回傳，由Codex保存，無需寫檔。
+
+ACK包括讀到的最新包、模型身份的可用證據／UNKNOWN、任务理解和任何冲突。RETURN包括上述六項、檔案行號／資料欄位證據、未知項及一個建議的下一批矩陣；明確哪些是觀察、推論或未執行計畫。
+
+交付後停止，等Codex REVIEW。Codex可否決或調整研究設計；Claude可提出反證，不可自行宣稱模型晉級／live-ready。不得因本任務提及後續執行，就提前派job。
+</pre></article><article><h2>2 · Claude</h2><small>2026-09-26T19:05:38.944Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\AGENTS.md&quot;
+}</pre></details></article><article><h2>3 · 工具結果</h2><small>2026-09-26T19:05:38.967Z</small><details><summary>工具回傳內容</summary><pre>1	# BTC5M repository instructions
+2	
+3	## Invariants
+4	
+5	- Research is separate from live trading. Do not place research orders, deploy candidates, or change live enabled/armed state, strategies, stakes, services or schedulers without authorization covering that action. Preserve existing state during authorized maintenance.
+6	- Preserve the dirty worktree and frozen experiment inputs/results. Make scoped edits; do not reset, clean, overwrite another task&#x27;s work, or infer the current research line from file timestamps.
+7	- Autonomous OUR runtime/model inputs must be causal: no Target actions, final direction, winner or settlement leakage. Target and future outcomes belong only in explicitly labelled offline teaching/evaluation or oracle diagnostics.
+8	- Pending, UNKNOWN, cancel-pending and same-plan CANCEL do not release order ownership, cash reservations or self-cross obligations; release requires canonical terminal evidence.
+9	- Keep credentials and private account/tape data out of external reports. Distinguish observed results from configuration, assumptions and historical claims.
+10	
+11	## Read only the route needed for this task
+12	
+13	Reuse instructions already present in context. Do not load every linked document.
+14	
+15	| Task | Read |
+16	| --- | --- |
+17	| Continue or design research | [Research](docs/agents/research.md), then its small current pointer |
+18	| Dispatch/recover a worker job | [Worker](docs/agents/worker.md) before dispatch |
+19	| Change or restart running services | [Runtime](docs/agents/runtime.md) before mutation |
+20	| Code changes / validation | [Development](docs/agents/development.md) |
+21	| Work in `data/research/multi_chat_coordination_v1/` | Its [AGENTS.md](data/research/multi_chat_coordination_v1/AGENTS.md); do not activate roles merely by reading source prompts |
+22	
+23	Old handoffs, role prompts and OpenClaw persona/heartbeat templates are references, not startup instructions or new authorization. User instructions and the applicable current run contract determine scope; resolve material contract conflicts before affected code or dispatch work.
+24	
+25	## Bulk evidence delegation
+26	
+27	When a task needs substantial read-only data search or item-by-item verification, the main agent should first define a bounded scope, source rules, evidence format, and stop conditions, then delegate that concrete subtask to GPT-6 Luna with `xhigh` reasoning when available. The main agent handles complex research decisions and code changes, checks decisive evidence independently, and owns the final conclusion. Do not delegate merely because a task is routine or split work that depends on an unresolved contract.
+28	</pre></details></article><article><h2>4 · Claude</h2><small>2026-09-26T19:05:39.749Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\docs\\collaboration\\codex_claude\\README_ZH.md&quot;
+}</pre></details></article><article><h2>5 · 工具結果</h2><small>2026-09-26T19:05:39.766Z</small><details><summary>工具回傳內容</summary><pre>1	# Codex × Claude 協作契約
+2	
+3	使用者指定：Codex制定任務大目標，Claude Opus 5.5負責實作執行。建立日：2026-09-27。此文件不是已接通或已派工的證據；連線與任務狀態見CURRENT.json。
+4	
+5	## 工作分工
+6	
+7	- **使用者**：決定研究目標與實盤授權。既有授權持續有效，不因交接要求重複確認。
+8	- **Codex（研究設計與驗收）**：設定問題、反例、比較矩陣、成功／失敗判準及任務範圍；檢查方向是否偏離；核對關鍵證據後決定接受、返工或後續任務。
+9	- **Claude Opus 5.5（執行者）**：先確認理解與資料覆蓋，實作、測試、收集證據，保留失敗與未知；可用證據反駁Codex的假說，不能為達標自行改評分或篩掉反例。
+10	
+11	不是兩個代理輪流自由發想。每輪使用具名任務：Codex下達TASK → Claude回ACK／計畫 → 按本輪授權執行 → Claude交RETURN與artifact → Codex寫REVIEW → 下一任務。正常批次完成後停在REVIEW，避免無限追加實驗。
+12	
+13	## 專案大目標
+14	
+15	改善BTC5M空倉開局擴張、主動／被動ADD、主動／被動repair、修復後再ADD的完整循環：減少失控的反向風險，同時保留有意義的正向收益。方向、尺寸、成交可行性及未结責任均須因果處理。模型或元件先取得未消費市場證據，再談實單資格；小額實單也需要另外明確的部署和資金契約。
+16	
+17	保持使用者允許犧牲部分正收益但不可全壓掉的要求；不自行恢復3:1或任意50%成功門檻。研究capital_cap仍依當前契約，不能默默把null改成任意上限。V12／V12g的具體受測版本以各次凍結來源和控制重現為準。
+18	
+19	## 防止研究視角變窄
+20	
+21	每份RETURN必須同時回答：
+22	
+23	1. 這個結果支持哪個假說？仍不能排除哪些替代解釋？
+24	2. 哪些市場／狀態改善、退步？是否只是轉移虧損、壓光收益或減少交易？
+25	3. 本次局部改善有沒有在後續ADD或反轉時消失？
+26	4. 樣本是否按結果挑選、已消費，或只是同市場重複路徑？
+27	5. 是否納入費用、兩側signed payoff、支出、主被動活動、pending／EOF／缺失？
+28	6. 有哪些結論需要下一個同根反事實比較，不能從相關性或單一案例推出？
+29	
+30	Codex負責檢查以上項目，不能只看Claude給的PASS、平均值或文字結論。Claude可提出替代方案，但不得直接把新方案混入已凍結驗收。
+31	
+32	## 檔案與執行責任
+33	
+34	本目錄是新協作入口，不啟動或取代舊multi_chat_coordination_v1的00/A/B/C/D角色。
+35	
+36	- Codex寫TASK、REVIEW、CURRENT.json；Claude只寫任務指定的ACK／RETURN及授權產物。
+37	- 同一任務同時只有一位執行者。桌面既有Claude工作不會因本契約自動停止或轉移；不得用`--continue`盲接最近對話。
+38	- 直接模式使用專用session ID，明確固定`claude-opus-5-5`，以實際回傳的model資訊驗證，不能只憑prompt宣稱模型設定生效。
+39	- 每次指定可改檔案、是否可派worker、唯一job id及停點。版本／測試／樣本更改須由Codex重新記錄任務，不覆寫凍結來源。
+40	- 遠端HFT、訓練、native一律依根AGENTS與docs/agents/worker.md，先核實身份與exact/global status。重用舊結果，不重送。
+41	- live策略、armed、服務、stakes及私人憑證不在一般研究任務授權內。
+42	- 失敗、timeout與UNKNOWN先保存狀態和證據，不能重複派單。新任務不得與另一位代理改同一檔案或搶同一worker。
+43	
+44	## 兩種接入方式
+45	
+46	**直接派工**：Codex用Claude Code非互動介面送任務、接JSON結果並保留session ID，驗收後發下一輪。桌面介面與CLI有各自的對話清單；這不是向使用者正在看的桌面聊天框注入訊息。CLI必須在自己的執行環境完成官方登入。不能複製桌面token或改動登入資料繞過它。
+47	
+48	**桌面協作**：使用者將CLAUDE_BOOTSTRAP.txt貼給桌面Code工作階段；Claude讀TASK並寫RETURN，Codex讀檔驗收。純聊天若無專案檔案存取，需要使用者傳送文件。共用檔案本身不會喚醒閒置對話；尚未建立排程、watcher或背景自動喚醒機制。
+49	
+50	官方參考：[Claude程式化執行](https://code.claude.com/docs/en/headless)、[桌面與CLI差異](https://code.claude.com/docs/en/desktop)、[模型設定](https://code.claude.com/docs/en/model-config)。
+51	
+52	## 本機入口
+53	
+54	在repo根目錄的PowerShell使用：
+55	
+56	```powershell
+57	python tools/claude_collaboration_bridge.py status
+58	python tools/claude_collaboration_bridge.py login
+59	```
+60	
+61	`login`走Claude官方登入流程，需使用者完成帳號驗證；不讀取或搬運桌面憑證。登入後由Codex執行 `run-read-only` 做TASK_001第一輪，結果存本目錄runs及CURRENT.json。這個首版入口只提供Read／Glob／Grep，不授權shell、寫檔或native；後續實作任務需另列精確工具／檔案／worker範圍。尚未登入時會停止，不自動改用API key。請勿在桌面已承接TASK_001時又執行直接派工。
+62	
+63	本次已驗證CLI版本和未登入攔截，尚未驗證模型回應、session續接、桌面顯示或研究執行。`run-read-only`回傳也要經Codex REVIEW才算完成接手。
+64	</pre></details></article><article><h2>6 · Claude</h2><small>2026-09-26T19:05:40.554Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\docs\\agents\\research.md&quot;
+}</pre></details></article><article><h2>7 · 工具結果</h2><small>2026-09-26T19:05:40.569Z</small><details><summary>工具回傳內容</summary><pre>1	# BTC5M research workflow
+2	
+3	Use for research design, training, replay or interpretation. Start at [RESEARCH_CURRENT.md](RESEARCH_CURRENT.md); if the user names another line, use that line&#x27;s CURRENT and frozen protocol instead. Read only the relevant report, fields or producing function. Do not recursively load handoffs, registries, every JSON, or role workboards.
+4	
+5	## Continuity and evidence
+6	
+7	- Before a new experiment, search the current handoff, nearby reports/artifacts and tools for semantic overlap. Record the distinct hypothesis and what prior result it extends. On resumption, inspect the known job and collected artifacts before creating any replacement. Do not repeat completed rounds.
+8	- Keep protocol, source/model/data hashes, parent checkpoint and optimizer continuity, cohorts, execution semantics and outcome tied to the same run. Preserve frozen originals; create a separate successor for an actual new experiment. Update the small current pointer only after verifying the successor&#x27;s state.
+9	- Separate microworld diagnostics, component tests, native execution, economic results and deployment evidence. A process exit or audit PASS does not imply model promotion, positive economics or live readiness. Performance-grade/official forward claims require the applicable realistic HFT + execution-tape contract; optimistic microworld results remain diagnostics.
+10	- Target is an offline observation source, not an oracle for private intent. The current SAFE teacher is a local evaluator, not the Target account. Final-direction experiments must be labelled oracle diagnostics and excluded from autonomous/live capability claims.
+11	- Preserve sealed/fresh/official holdouts. Freeze candidates before held-out evaluation; if results inform later design, mark the cohort consumed. Report both seeds and paired market-level improvements AND regressions, tails and both settlement branches; do not select only a successful example or pooled average.
+12	- Inspect metadata, selected columns and bounded market slices first. Do not dump whole databases, large tapes, or files over 50 MB into context. Local orchestration and small diagnostics are allowed; heavy training/HFT/replay belongs on the verified second PC through [worker.md](worker.md).
+13	- For a large read-only search or reconciliation, the main agent defines the exact market/artifact scope, duplicate-work boundary, fields to verify, evidence links or hashes, output table, and `UNKNOWN` handling before assigning the bounded check to GPT-6 Luna at `xhigh` reasoning. The main agent retains experiment design, interpretation of conflicting evidence, complex code, and final decisions; independently spot-checks consequential claims. Agent delegation does not authorize worker dispatch, live changes, or altering frozen artifacts.
+14	
+15	## Current learning objective
+16	
+17	2026-09-24 使用者進一步要求**把開局主動承擔風險的擴張加入完整研究與教材**，見 [開局完整循環要求](../../data/research/btc5m_opening_full_cycle_20260924_v1/CONTRACT.md)。從空倉評估主動／被動ADD、可並行的主動／被動repair與後續再ADD，並保留開局成本與兩側金額基準。舊修復起點的30秒條件與15份票不等於開局完成；不得只用條件式修復分數代表完整策略，亦不以未滿固定票永久禁止ADD。早期成本優勢仍須包含盤整／反轉對照；條件收益不是現金。V6部分犧牲正收益但不可壓光的要求繼續有效；V12來源未對齊前不得稱為V12接入或續訓。
+18	
+19	2026-09-24 使用者再次澄清：**允許犧牲部分正向收益，但不能完全壓掉。** 當前以 [V6 契約](../../data/research/btc5m_positive_gain_contract_20260924_v6/CONTRACT.md) 為準：固定 F/L，L 改善、F 仍大於零、責任確認可列基本合格修復；F 不減另列較強子類。必須連續報告剩餘收益/保留比例與減虧幅度，避免把近零收益當穩健能力；不新增 50% 或 3:1 門檻。下方 V5 描述為歷史契約，禁止以其更嚴格收益不減解讀覆蓋本次明確指示。舊實驗及分數原檔保留，重評另存。
+20	
+21	The user prioritizes stable hedging and learning repair operations before maximum return amplification. Use fast, repeated single-market microworld exercises to screen distinct mechanisms, then matched cross-market checks. Single-market practice may be continued across markets; it is not generalization evidence by itself.
+22	
+23	On 2026-09-24 the user explicitly changed the current stage to **repairing the loss side while retaining positive earnings**, temporarily removing the 3:1 structure requirement. Use the [repair-retention contract V5](../../data/research/btc5m_repair_retention_contract_20260924_v5/CONTRACT.md). Fix branch identities at expansion time; report both pre-expansion and post-expansion references, continuous loss reduction and positive earnings retention, recovery time, subsequent loss of recovery, activity/spend and unresolved obligations. Assess the full cycle including active/passive ADD and active/passive repair, not just a single fill or the floor. Do not exclude useful repair segments solely because the market never reached 3:1. Reduced loss obtained by sacrificing positive earnings is a disclosed tradeoff, not automatic success; inactivity or flattening away earnings is not success. There is no new 50% retention or market success-rate gate. Separate an ex-post best branch from the runtime&#x27;s causal direction belief; Target and final winners remain offline-only. Do not retrofit this change into frozen experiments.
+24	
+25	The [historical V4 structure target](../../data/research/btc5m_structure_floor_contract_20260923_v4/SUCCESS_TARGET_V4.md) remains unchanged for reproducing its frozen results: both-positive, positive/zero, or positive at least three times the absolute negative branch; its preliminary independent-market target was at least 50%. V5 supersedes these as current-stage gates, including V4&#x27;s instruction to apply its reward to all later training. Keep 3:1 as a secondary descriptive metric, and keep formation, terminal retention, unresolved execution and post-repair expansion separate. No absolute profit threshold has been added. V13 V3 and V12 V2 remain historical definitions, not current training instructions.
+26	
+27	The current V13 76-feature microworld student includes `h/3`, where `h` is the artificial profile&#x27;s remaining receipt opportunities, not actual market seconds. The v6 terminal-obligation screen suppressed every final-step growth action and failed positive-growth preservation. Do not promote or retrain directly from that terminal teacher as if the profile endpoint were market expiry; see [v6 evidence](../../data/research/btc5m_v13_terminal_obligation_teacher_screen_20260923_v6/REPORT_ZH.md).
+28	
+29	The [V9 inclusive-structure reward correction](../../data/research/btc5m_v13_loss_side_teacher_20260923_v9/REPORT_ZH.md) and [V10 matched loss-delta teacher](../../data/research/btc5m_v13_causal_loss_delta_20260923_v10/REPORT_ZH.md) both completed two-seed offline training and failed promotion. V9 often reduced the negative branch by eliminating positive earnings; V10 suppressed nominal severe loss but caused many more unresolved endpoints and fewer qualified structures. Keep V12 as the frozen cycle control. Do not repeat the same 76-feature/fixed-profile Q training with another scalar-weight change; first build a full-cycle paired action teacher with real market time, canonical owner lifecycle, and explicit positive-side retention. Neither run establishes independent-market success or native economics.
+30	
+31	The [V14 causal-frame feasibility package](../../data/research/btc5m_v14_causal_frame_feasibility_20260923_v1/REPORT_ZH.md) confirms that R115 has decision-time market remaining seconds, receive-ordered public books, OUR inventory/payoff and owner state in 5,418 pre-decision frames from nine consumed markets. It provides no action-value labels or model fit. Public-data Target quote inference may supply masked offline auxiliary behavior labels, but cannot establish private terminal PnL, unfilled-order state, or a signed 3:1 success label. Keep Target-derived fields out of autonomous OUR inputs; obtain matched action-to-receipt/terminal results before V14 training.
+32	
+33	The [public-fill cashflow proxy audit](../../data/research/btc5m_v14_public_proxy_audit_20260923_v1/REPORT_ZH.md) found three signed 3:1 winner-positive proxy markets, all DOWN, in an already consumed 50-market capsule; a broader settled BTC result-table aggregate found 447 such proxy markets (202 UP, 245 DOWN) among 7,725. These are historical signed-only subtype counts, **not** the inclusive both-positive-or-3:1 total. The no-explicit-fee proxy is offline label-availability evidence, not Target private accounting or OUR action value. Verify public-book/execution coverage before using any of the 447 as teaching cases, and do not outcome-select an untouched test set.
+34	
+35	The frozen [bundle-repair v1r1 batch and event audit](../../data/research/btc5m_bundle_repair_value_20260922_v1r1/CURRENT.md) completed six consumed markets x three arms. Under inclusive V4, nominal terminal structures were CONTROL 2/6, GAIN 4/6 and JOINT 4/6, but canonical confirmed terminal successes were 0/6 in every arm. GAIN gave a local nominal improvement with two pending owners and three cross-branch tradeoffs; JOINT produced a 99-owner cancel-pending tail in 1977248 and is unsuitable as a teacher. Treat the native HFT outcome as mechanism/execution reference, not model-learning proof, and do not retune its clock.
+36	
+37	Improve the logic coordinating additions and repairs. Do not conceal failures with new arbitrary budgets, permanent KEEP/cancel bans, cooldowns, exposure caps or restored legacy 180-second/Pair/TTL gates. Preserve actual venue legality, receipts, costs, slippage and pending ownership. Sizing, direction switching and teacher settings belong to each frozen protocol, not universal AGENTS constants.
+38	
+39	For the current seconds-microworld research, the user explicitly removed the invented simulation funding ceiling on 2026-09-21: use `capital_cap=null`, not 100 or a huge substitute. Record actual spend and pending funding demand without limiting research by an assumed bankroll. This supersedes older roadmap cash-ceiling assumptions; live capital and deployment remain separately authorized matters.
+40	
+41	Do not resume the low-liquidity Gemini testnet or use the 5m bot plugin for this local research unless the user changes that scope. Research authorization does not authorize live trading. Draw charts when a specific comparison needs them, not every round.
+42	
+43	## Fixed test batches
+44	
+45	The user requests batching ordinary mechanism comparisons and ablations, not only parameter searches. Prefer a frozen arm-by-case matrix using the [shared case batch runner](research_batch_tests.md) when tests are independent. Reuse verified identical cells, preserve all regressions, stop on unknown/failed executions, and report after each logical batch. Do not merge stages that depend on prior findings or turn this into automatic unbounded research.
+46	
+47	## Completion
+48	
+49	Report the hypothesis, evidence scope, paired result/regressions, known limitation, job/collection status and one next action. Save a concise CURRENT plus artifact links; do not append whole reports to AGENTS. There is no project-level 30-minute cutoff or duration-only approval requirement. Stop for real safety/resource/failure conditions or user direction, and report incomplete/UNKNOWN evidence accurately.
+50	</pre></details></article><article><h2>8 · Claude</h2><small>2026-09-26T19:05:41.487Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\docs\\agents\\RESEARCH_CURRENT.md&quot;,
+  &quot;limit&quot;: 80
+}</pre></details></article><article><h2>9 · 工具結果</h2><small>2026-09-26T19:05:41.524Z</small><details><summary>工具回傳內容</summary><pre>1	## 2026-09-27 V12g 主動修復 v4（被甩開條件限弱邊 ≤0.70，10 場）：與 AR3_R25 逐場相同；更正 2629199 的診斷——問題是「修了又加」
+2	
+3	[active repair v4](../../data/research/v12g_active_repair4_small_20260927_v28/CURRENT.md)。
+4	- 0.70 限制從未生效。
+5	- 2629199 的主動修復買的是便宜的 UP（0.17～0.37，也就是最後的勝方），但換邊後 V49 持續加倉 DOWN，兩者互相抵銷。
+6	- 下一步候選：在選邊之後重新打開防止再借准入規則。V12/live 未變。
+7	
+8	## 2026-09-27 V12g 主動修復 v3（被動處理不了才出手，10 場）：AR3_R25 PROMISING（平均 −253→−129），AR3_R50 STOP
+9	
+10	[active repair v3](../../data/research/v12g_active_repair3_small_20260927_v27/CURRENT.md)。
+11	- 出手條件：(a) 被動單被甩開，(b) 弱邊分支 ≤−150 且虧損持續擴大，(c) 弱邊 ≤0.15。
+12	- 最虧 5 場：R50 −376、R25 −288（PADD80 −643）。
+13	- 獲利 5 場：R50 +75、R25 +31（PADD80 +136）。
+14	- 2629199 在所有修復版本都更差：修復在 0.8 追上漲中的弱邊，最後反轉。
+15	- 下一步候選：用全部 30 場驗證 AR3_R25；弱邊高價時不追。V12/live 未變。
+16	
+17	## 2026-09-27 V12g 主動修復 v2（選邊後才啟用、關閉准入規則，10 場）：STOP；大虧縮小，但 RETAIN＝0 會把勝方利潤花光
+18	
+19	[active repair v2](../../data/research/v12g_active_repair2_small_20260927_v26/CURRENT.md)。
+20	- 最虧 5 場平均 −643→−228（2628553：−1,114→−168）。
+21	- 獲利 5 場平均 +136→−5。
+22	- 勝方為正 5→3。
+23	- 每場主動修復約 31 單。
+24	- 下一步候選：保留部分修復，但 RETAIN 設為 0.5 或 0.25。V12/live 未變。
+25	
+26	## 2026-09-27 V12g 放寬主動修復 AR_OPEN／AR_DP（最新 30 場）：規則判定 IMPROVES_BASE，但無經濟意義——系統在開局就停擺
+27	
+28	[active repair 包](../../data/research/v12g_active_repair_20260927_v25/CURRENT.md)。
+29	- 主動修復在第 2～5 秒就出手，之後 V12 原本的防止再借准入規則擋下 99.8% 的下單，成本只剩約 180，兩支分支都約為 0。
+30	- 下一步：放寬後的主動修復只在選邊之後啟用，並放寬防止再借准入規則。V12/live 未變。
+31	
+32	## 2026-09-27 案例 2628553：修復能讓兩支都正卻沒做（使用者指出）；另更正 position mix 的換邊方向 bug
+33	
+34	[CASE_2628553](../../data/research/v12g_fresh30_bigloss_vs_target_20260927_v1/CASE_2628553.md)。
+35	- 140～240 秒 UP 只有 0.18～0.25，而 DOWN 分支為正。只要買 1,400～2,400 份 UP（約 350～400 元），兩支就都能轉正。
+36	- 修復需求一直是 ELIGIBLE，但每 10 秒只有 1～5 張被動修復單；同時選邊加倉用約 0.7 買 DOWN 2,000 份以上；200 秒後完全不動。
+37	- 目標在同一場先把便宜的 UP 超額修復，反轉後再把便宜的 DOWN 補上，最後兩支都正（+476／+531）。
+38	- position mix 更正：FLIP 事件記錄的是 `to` 不是 `side`。修正後 PADD80 選邊加倉占 54%、弱邊修復只占 15%。V12/live 未變。
+39	
+40	## 2026-09-27 最新 30 場 PADD80 大虧場 vs 目標同場：目標在這 8 場也只有 3/8 為正（平均 −132，我們 −491）；我們在後段用 0.68～0.83 追熱門邊
+41	
+42	[bigloss vs target](../../data/research/v12g_fresh30_bigloss_vs_target_20260927_v1/CURRENT.md)。
+43	- 這 8 場多為最後一分鐘反轉。
+44	- 120 秒後我們買熱門邊 8,263 份（均價約 0.70），冷門邊只有 4,773 份。
+45	- 目標贏的 3 場，後段兩邊都大量買，或偏向便宜的冷門邊。
+46	- 下一步候選：以價格為條件，不在 0.70 以上追熱門邊。V12/live 未變。
+47	
+48	## 2026-09-27 V12g 最新 30 場（9/26）WB100 vs PADD80：WB100 DOES_NOT_HOLD（沒有大虧，但勝方為正只有 22～28%）
+49	
+50	[fresh30 包](../../data/research/v12g_fresh30_20260927_v24/CURRENT.md)。
+51	- 以官方結算判定 30 場：
+52	  - PADD80：勝方為正 57%，平均 −70，中位 +28；有 2 場 ≤−500，排除 ≤−100 後平均 +95。
+53	  - WB100：勝方為正 28%，平均 −38，最差 −100。
+54	- 目標在同一批市場（19 場）勝方平均 +166，14/19 為正，而且有明顯的金額不對稱。
+55	- 注意：預先登記的最終中價判定法在新市場只能判定 19 場，而且有一場判錯。V12/live 未變。
+56	
+57	## 2026-09-27 V12g 偏向隨價格形成 PLEAN1／中後段掛單 DRV（10 場）：兩組都 STOP
+58	
+59	[price lean 包](../../data/research/v12g_price_lean_small_20260927_v23/CURRENT.md)。
+60	- PLEAN1：平均 −109（PADD80 −466，WB100 −34），spread5 +16，仍有一場 −531。最大份數領先中位 33%，價格漲高後偏向照樣長大。
+61	- DRV：4 場因自我交叉被拒而失敗（bug）；完成的 6 場有 5 場比 PLEAN1 差。
+62	- 掛在最佳買價的被動單在模擬中會被逆選擇，多成交並不會帶來成交優勢。V12/live 未變。
+63	
+64	## 2026-09-27 更正：同口徑成交價——我們的價位不貴；目標的利潤約等於成交量 × 小幅成交優勢
+65	
+66	[position mix 更正節](../../data/research/v12g_position_mix_20260927_v1/CURRENT.md)。
+67	- 先前「目標熱門邊 0.55」取錯口徑。同口徑下熱門邊均價：目標 0.685、我們 0.663；冷門邊：0.304／0.322。
+68	- 成交優勢（時間取到秒）：目標 +0.95¢、我們 +0.38¢。注意時間精度會讓這個數字移動 1.6¢。
+69	- 目標每場約 5,700 份 × 0.95¢ ≈ +55，接近它的實際收益。我們每場約 2,700 份，而且 63% 押在熱門邊。
+70	- 缺口在成交量（後段缺席）與方向押注，不是單價。
+71	
+72	## 2026-09-27 V12g 排隊模式敏感度 risk→log（worker，50 場）：QUEUE_MINOR；成交價差不是排隊造成的
+73	
+74	[queue log 包](../../data/research/v12g_queue_log_20260927_v22r1/CURRENT.md)。
+75	- 引擎原設定：延遲 250/250ms，排隊為 risk-averse（排最後）。
+76	- 切換到 log_prob 後：
+77	  - PADD80 平均 −168→−140（改善集中在少數大虧場），勝方為正 23→22。
+78	  - WB100 幾乎完全不變。
+79	  - 每份成本不變（約 0.52～0.54）。
+80	- 我們每對成本約 1.04，目標約 0.973，差距來自高價買入與後段缺席，不是排隊。</pre></details></article><article><h2>10 · Claude</h2><small>2026-09-26T19:05:43.283Z</small><details><summary>工具：Glob</summary><pre>{
+  &quot;pattern&quot;: &quot;data/research/v12g_active_repair4_small_20260927_v28/**/*&quot;
+}</pre></details></article><article><h2>11 · Claude</h2><small>2026-09-26T19:05:43.735Z</small><details><summary>工具：Glob</summary><pre>{
+  &quot;pattern&quot;: &quot;data/research/v12g_active_repair3_small_20260927_v27/*&quot;
+}</pre></details></article><article><h2>12 · Claude</h2><small>2026-09-26T19:05:44.076Z</small><details><summary>工具：Glob</summary><pre>{
+  &quot;pattern&quot;: &quot;docs/collaboration/codex_claude/*&quot;
+}</pre></details></article><article><h2>13 · 工具結果</h2><small>2026-09-26T19:06:03.415Z</small><details><summary>工具回傳內容</summary><pre>Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.</pre></details></article><article><h2>14 · 工具結果</h2><small>2026-09-26T19:06:04.061Z</small><details><summary>工具回傳內容</summary><pre>Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.</pre></details></article><article><h2>15 · 工具結果</h2><small>2026-09-26T19:06:04.256Z</small><details><summary>工具回傳內容</summary><pre>Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.</pre></details></article><article><h2>16 · Claude</h2><small>2026-09-26T19:06:06.295Z</small><details><summary>工具：Glob</summary><pre>{
+  &quot;pattern&quot;: &quot;*&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28&quot;
+}</pre></details></article><article><h2>17 · Claude</h2><small>2026-09-26T19:06:06.976Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\CURRENT.md&quot;
+}</pre></details></article><article><h2>18 · 工具結果</h2><small>2026-09-26T19:06:07.193Z</small><details><summary>工具回傳內容</summary><pre>1	# V12g 主動修復 v4：被甩開條件限弱邊 ≤0.70（2026-09-27，worker，10 場）
+2	
+3	**受測系統：V12＋K415 G300_FLIP40＋PADD80**，在 worker 上的 V49 引擎執行。市場與 v26、v27 相同。
+4	- job btc5m-v12g-active-repair4-small-20260927-v28：14 條路徑，0 個錯誤。兩條對照組、2 條檢查路徑都與舊結果完全一致。禁止重送。
+5	- **結果和 v27 AR3_R25 逐場完全相同**（平均 −128.5，勝方為正 5/10）。0.70 的限制一次都沒有生效。依規則判定為 PROMISING，但這只是重複 AR3_R25 的結果。
+6	
+7	## 更正：2629199 並不是追高
+8	v27 的推論（修復在 0.8 追 DOWN）是錯的。實際的修復紀錄（restoration_trace）如下：
+9	- 17 筆主動修復中，16 筆買的是 **UP（最後的勝方）**，價格 0.17～0.37。第 16.1 秒有 1 筆 DOWN @0.43。
+10	- 但 17.7 秒換邊到 DOWN 之後，V49 持續加倉 DOWN（准入規則已關閉），最後 UP 1,484 份／DOWN 2,042 份，成本 2,005。
+11	- **真正的問題是「修了又加」：** 主動修復在便宜價買弱邊，選邊加倉同時在買強邊，兩者互相抵銷。2628553 也有同樣的情況。
+12	
+13	## 下一步候選（未執行）
+14	- **重新打開「防止再借」准入規則。** 它在第一次修復之後，會限制強邊在修復未完成時繼續高價加倉。
+15	- v25 當時停擺，是因為修復在開局 2～5 秒就觸發了這條規則；現在主動修復只在選邊之後才啟用，這條規則也要到選邊後才會被觸發。
+16	- 測試方式：AR4_R25＋准入規則開啟，同樣 10 場。
+17	</pre></details></article><article><h2>19 · 工具結果</h2><small>2026-09-26T19:06:07.599Z</small><details><summary>工具回傳內容</summary><pre>data\research\v12g_active_repair4_small_20260927_v28\overlay\preparation.py
+data\research\v12g_active_repair4_small_20260927_v28\overlay\protocol.json
+data\research\v12g_active_repair4_small_20260927_v28\overlay\economics.py
+data\research\v12g_active_repair4_small_20260927_v28\overlay\run_variant.py
+data\research\v12g_active_repair4_small_20260927_v28\MARKETS.json
+data\research\v12g_active_repair4_small_20260927_v28\overlay\actor_contract.json
+data\research\v12g_active_repair4_small_20260927_v28\dispatch.py
+data\research\v12g_active_repair4_small_20260927_v28\worker.py
+data\research\v12g_active_repair4_small_20260927_v28\freeze.py
+data\research\v12g_active_repair4_small_20260927_v28\analyze.py
+data\research\v12g_active_repair4_small_20260927_v28\PROTOCOL.json
+data\research\v12g_active_repair4_small_20260927_v28\IMPLEMENTATION_MANIFEST.json
+data\research\v12g_active_repair4_small_20260927_v28\PF_OUT.txt
+data\research\v12g_active_repair4_small_20260927_v28\PREFLIGHT.json
+data\research\v12g_active_repair4_small_20260927_v28\SUBMIT.json
+data\research\v12g_active_repair4_small_20260927_v28\SUBMIT_STDOUT.txt
+data\research\v12g_active_repair4_small_20260927_v28\SUMMARY.json
+data\research\v12g_active_repair4_small_20260927_v28\ANALYZE_STDOUT.txt
+data\research\v12g_active_repair4_small_20260927_v28\CURRENT.md</pre></details></article><article><h2>20 · Claude</h2><small>2026-09-26T19:06:10.994Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\PROTOCOL.json&quot;
+}</pre></details></article><article><h2>21 · 工具結果</h2><small>2026-09-26T19:06:11.141Z</small><details><summary>工具回傳內容</summary><pre>1	{
+2	 &quot;version&quot;: &quot;BTC5M_V12G_ACTIVE_REPAIR4_SMALL_20260927_V28&quot;,
+3	 &quot;status&quot;: &quot;FROZEN_PROTOCOL&quot;,
+4	 &quot;frozen_at_utc&quot;: &quot;2026-09-27&quot;,
+5	 &quot;reserved_job_id&quot;: &quot;btc5m-v12g-active-repair4-small-20260927-v28&quot;,
+6	 &quot;system_under_test&quot;: &quot;V12 + K415 (V49 engine, worker); not the simplified PTR quoter&quot;,
+7	 &quot;purpose&quot;: &quot;User 2026-09-27: fix the chasing seen in v27 case 2629199 (the stranded trigger bought a rising expensive weak side at ~0.8 and lost on the last-second reversal) before validating on 30 markets.&quot;,
+8	 &quot;design&quot;: &quot;AR4_R25 = v27 AR3_R25 (DP target, partial, uncapped, after decision, re-borrow gate off, RETAIN .25, triggers stranded / growing deficit &lt;= -150 / weak ask &lt;= 0.15) but the stranded trigger fires only while the weak ask &lt;= 0.70. Price condition, no clock.&quot;,
+9	 &quot;overlay_code_sha256&quot;: {
+10	  &quot;run_variant.py&quot;: &quot;6b3c2f33f771c71d9f854ac973362dfb79cfd0068aaafb8e106fc3fb78323d99&quot;,
+11	  &quot;economics.py&quot;: &quot;e7eeaab870a7bb87256a6e554064fbe947854f8b92b6ac16a8dfee7b03dd29b7&quot;,
+12	  &quot;preparation.py&quot;: &quot;7f5f840af997cff7e94244c2e1e93a34b889b16b7eb93a5af3260d9463af4958&quot;
+13	 },
+14	 &quot;base&quot;: &quot;v12g_fresh30_20260927_v24/base (staged with v24)&quot;,
+15	 &quot;base_manifest_sha256&quot;: &quot;557ae673553e130fe5bc71cd7f185a77cc6ffcdca7748d116e97cc2740c26cb6&quot;,
+16	 &quot;markets&quot;: [
+17	  2628553,
+18	  2628769,
+19	  2629133,
+20	  2629199,
+21	  2628653,
+22	  2628410,
+23	  2629019,
+24	  2628557,
+25	  2628721,
+26	  2628999
+27	 ],
+28	 &quot;flip_markets&quot;: [],
+29	 &quot;check_markets&quot;: [],
+30	 &quot;controls&quot;: {
+31	  &quot;V12_CONTROL&quot;: {
+32	   &quot;market&quot;: 2491311,
+33	   &quot;expected&quot;: {
+34	    &quot;UP&quot;: 199.43431363636296,
+35	    &quot;DOWN&quot;: -91.17614090909183,
+36	    &quot;cost&quot;: 1105.565686363637
+37	   }
+38	  },
+39	  &quot;K415_CONTROL&quot;: {
+40	   &quot;market&quot;: 2491311,
+41	   &quot;expected&quot;: {
+42	    &quot;UP&quot;: 258.75271363636386,
+43	    &quot;DOWN&quot;: -2.217740909090935,
+44	    &quot;cost&quot;: 836.2472863636361
+45	   }
+46	  }
+47	 },
+48	 &quot;arms&quot;: [
+49	  &quot;AR4_R25&quot;,
+50	  &quot;PADD80_CHECK&quot;
+51	 ],
+52	 &quot;selection&quot;: &quot;fresh30: 5 lowest PADD80 winner branches + 5 profitable at ranks 1,5,9,13,17 (official winners); outcome-based, compare arms on the same markets only&quot;,
+53	 &quot;matrix&quot;: {
+54	  &quot;paths&quot;: 14,
+55	  &quot;max_parallel&quot;: 12,
+56	  &quot;model_fits&quot;: 0
+57	 },
+58	 &quot;expected_runtime&quot;: &quot;about 3-5 minutes run + collection&quot;,
+59	 &quot;pooled_evaluation&quot;: &quot;Same 10 markets: AR4_R25 vs PADD80 (v24) and v27 AR3_R25. Winners = official settlement (target_markets.winner).&quot;,
+60	 &quot;caveats&quot;: &quot;V49 engine, zero fee (fee estimate), reused markets.&quot;,
+61	 &quot;analysis&quot;: &quot;analyze.py (written before results).&quot;,
+62	 &quot;rule&quot;: &quot;Valid if both controls exact and both PADD80_CHECK paths reproduce v24. Degeneracy guard: an arm whose mean cost is below 50% of PADD80 is reported DEGENERATE (not an improvement). Otherwise PROMISING if its mean is higher than PADD80 AND winner-positive not lower AND fewer losses &lt;= -200. Reported: winner-positive, both-positive, mean, median, worst, counts, cost, gross shares, loser branch, restoration orders, case 2628553.&quot;,
+63	 &quot;stop&quot;: &quot;One job, one submit. Failure stops; no retry without diagnosis and a new package.&quot;,
+64	 &quot;unchanged&quot;: [
+65	  &quot;V12&quot;,
+66	  &quot;V49&quot;,
+67	  &quot;frozen weights&quot;,
+68	  &quot;live state&quot;,
+69	  &quot;earlier packages&quot;
+70	 ]
+71	}
+72	</pre></details></article><article><h2>22 · Claude</h2><small>2026-09-26T19:06:11.938Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\ANALYZE_STDOUT.txt&quot;
+}</pre></details></article><article><h2>23 · 工具結果</h2><small>2026-09-26T19:06:12.008Z</small><details><summary>工具回傳內容</summary><pre>1	{&quot;rule&quot;: &quot;Valid if both controls exact and both PADD80_CHECK paths reproduce v24. Degeneracy guard: an arm whose mean cost is below 50% of PADD80 is reported DEGENERATE (not an improvement). Otherwise PROMISING if its mean is higher than PADD80 AND winner-positive not lower AND fewer losses &lt;= -200. Reported: winner-positive, both-positive, mean, median, worst, counts, cost, gross shares, loser branch, restoration orders, case 2628553.&quot;, &quot;valid&quot;: true, &quot;arms&quot;: {&quot;AR4_R25&quot;: &quot;PROMISING&quot;}}
+2	</pre></details></article><article><h2>24 · Claude</h2><small>2026-09-26T19:06:12.809Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\MARKETS.json&quot;
+}</pre></details></article><article><h2>25 · 工具結果</h2><small>2026-09-26T19:06:13.083Z</small><details><summary>工具回傳內容</summary><pre>1	{
+2	 &quot;markets&quot;: [
+3	  2628553,
+4	  2628769,
+5	  2629133,
+6	  2629199,
+7	  2628653,
+8	  2628410,
+9	  2629019,
+10	  2628557,
+11	  2628721,
+12	  2628999
+13	 ],
+14	 &quot;worst5&quot;: [
+15	  2628553,
+16	  2628769,
+17	  2629133,
+18	  2629199,
+19	  2628653
+20	 ],
+21	 &quot;good5&quot;: [
+22	  2628410,
+23	  2629019,
+24	  2628557,
+25	  2628721,
+26	  2628999
+27	 ],
+28	 &quot;selection&quot;: &quot;fresh30: 5 lowest PADD80 winner branches + 5 profitable at ranks 1,5,9,13,17 (official winners); outcome-based, compare arms on the same markets only&quot;,
+29	 &quot;padd80_winner&quot;: {
+30	  &quot;2628553&quot;: -1114.1,
+31	  &quot;2628769&quot;: -858.8,
+32	  &quot;2629133&quot;: -465.5,
+33	  &quot;2629199&quot;: -429.2,
+34	  &quot;2628653&quot;: -346.8,
+35	  &quot;2628410&quot;: 347.6,
+36	  &quot;2629019&quot;: 169.4,
+37	  &quot;2628557&quot;: 89.2,
+38	  &quot;2628721&quot;: 57.5,
+39	  &quot;2628999&quot;: 17.6
+40	 }
+41	}</pre></details></article><article><h2>26 · Claude</h2><small>2026-09-26T19:06:15.766Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\SUMMARY.json&quot;
+}</pre></details></article><article><h2>27 · 工具結果</h2><small>2026-09-26T19:06:15.788Z</small><details><summary>工具回傳內容</summary><pre>1	{
+2	 &quot;status&quot;: &quot;COMPLETE_V12G_ACTIVE_REPAIR4_SMALL&quot;,
+3	 &quot;controls&quot;: {
+4	  &quot;V12_CONTROL&quot;: {
+5	   &quot;found&quot;: true,
+6	   &quot;expected&quot;: {
+7	    &quot;UP&quot;: 199.43431363636296,
+8	    &quot;DOWN&quot;: -91.17614090909183,
+9	    &quot;cost&quot;: 1105.565686363637
+10	   },
+11	   &quot;got&quot;: {
+12	    &quot;UP&quot;: 199.43431363636296,
+13	    &quot;DOWN&quot;: -91.17614090909183,
+14	    &quot;cost&quot;: 1105.565686363637
+15	   },
+16	   &quot;exact&quot;: true
+17	  },
+18	  &quot;K415_CONTROL&quot;: {
+19	   &quot;found&quot;: true,
+20	   &quot;expected&quot;: {
+21	    &quot;UP&quot;: 258.75271363636386,
+22	    &quot;DOWN&quot;: -2.217740909090935,
+23	    &quot;cost&quot;: 836.2472863636361
+24	   },
+25	   &quot;got&quot;: {
+26	    &quot;UP&quot;: 258.75271363636386,
+27	    &quot;DOWN&quot;: -2.217740909090935,
+28	    &quot;cost&quot;: 836.2472863636361
+29	   },
+30	   &quot;exact&quot;: true
+31	  }
+32	 },
+33	 &quot;errors&quot;: 0,
+34	 &quot;padd80_check_exact&quot;: {
+35	  &quot;2628769&quot;: true,
+36	  &quot;2628553&quot;: true
+37	 },
+38	 &quot;cells&quot;: {
+39	  &quot;PADD80&quot;: {
+40	   &quot;n&quot;: 10,
+41	   &quot;winner_positive&quot;: 5,
+42	   &quot;winner_positive_rate&quot;: 0.5,
+43	   &quot;both_positive&quot;: 0,
+44	   &quot;mean&quot;: -253.30500254257433,
+45	   &quot;median&quot;: -164.64593650332154,
+46	   &quot;worst&quot;: -1114.0536962927233,
+47	   &quot;best&quot;: 347.6109425576526,
+48	   &quot;cost&quot;: 1707.530887107381,
+49	   &quot;loser_mean&quot;: -139.62186430064747,
+50	   &quot;active_fill_qty&quot;: 518.501523927009,
+51	   &quot;restoration_new_active&quot;: 0.8,
+52	   &quot;gross_shares&quot;: 3022.13490737154,
+53	   &quot;n_le-100&quot;: 5,
+54	   &quot;mean_ex_le-100&quot;: 136.27847743578877,
+55	   &quot;n_le-200&quot;: 5,
+56	   &quot;mean_ex_le-200&quot;: 136.27847743578877,
+57	   &quot;n_le-500&quot;: 2,
+58	   &quot;mean_ex_le-500&quot;: -70.02011363125871
+59	  },
+60	  &quot;v27_AR3_R25&quot;: {
+61	   &quot;n&quot;: 10,
+62	   &quot;winner_positive&quot;: 5,
+63	   &quot;winner_positive_rate&quot;: 0.5,
+64	   &quot;both_positive&quot;: 0,
+65	   &quot;mean&quot;: -128.53785045333268,
+66	   &quot;median&quot;: -70.58027424536778,
+67	   &quot;worst&quot;: -521.4876063827248,
+68	   &quot;best&quot;: 44.414942557653376,
+69	   &quot;cost&quot;: 1998.3157281594076,
+70	   &quot;loser_mean&quot;: -176.58500985808791,
+71	   &quot;active_fill_qty&quot;: 1314.3236399530792,
+72	   &quot;restoration_new_active&quot;: 18.3,
+73	   &quot;gross_shares&quot;: 3691.5085960073948,
+74	   &quot;n_le-100&quot;: 5,
+75	   &quot;mean_ex_le-100&quot;: 31.173222400540887,
+76	   &quot;n_le-200&quot;: 4,
+77	   &quot;mean_ex_le-200&quot;: -0.1777772480051567,
+78	   &quot;n_le-500&quot;: 1,
+79	   &quot;mean_ex_le-500&quot;: -84.87676646117801
+80	  },
+81	  &quot;AR4_R25&quot;: {
+82	   &quot;n&quot;: 10,
+83	   &quot;winner_positive&quot;: 5,
+84	   &quot;winner_positive_rate&quot;: 0.5,
+85	   &quot;both_positive&quot;: 0,
+86	   &quot;mean&quot;: -128.53785045333268,
+87	   &quot;median&quot;: -70.58027424536778,
+88	   &quot;worst&quot;: -521.4876063827248,
+89	   &quot;best&quot;: 44.414942557653376,
+90	   &quot;cost&quot;: 1998.3157281594076,
+91	   &quot;loser_mean&quot;: -176.58500985808791,
+92	   &quot;active_fill_qty&quot;: 1314.3236399530792,
+93	   &quot;restoration_new_active&quot;: 18.3,
+94	   &quot;gross_shares&quot;: 3691.5085960073948,
+95	   &quot;n_le-100&quot;: 5,
+96	   &quot;mean_ex_le-100&quot;: 31.173222400540887,
+97	   &quot;n_le-200&quot;: 4,
+98	   &quot;mean_ex_le-200&quot;: -0.1777772480051567,
+99	   &quot;n_le-500&quot;: 1,
+100	   &quot;mean_ex_le-500&quot;: -84.87676646117801
+101	  }
+102	 },
+103	 &quot;per_market&quot;: {
+104	  &quot;2628553&quot;: {
+105	   &quot;PADD80&quot;: [
+106	    -1114.1,
+107	    422.4
+108	   ],
+109	   &quot;v27_AR3_R25&quot;: [
+110	    -242.2,
+111	    -2.3
+112	   ],
+113	   &quot;AR4_R25&quot;: [
+114	    -242.2,
+115	    -2.3
+116	   ]
+117	  },
+118	  &quot;2628769&quot;: {
+119	   &quot;PADD80&quot;: [
+120	    -858.8,
+121	    462.9
+122	   ],
+123	   &quot;v27_AR3_R25&quot;: [
+124	    -156.9,
+125	    -261.0
+126	   ],
+127	   &quot;AR4_R25&quot;: [
+128	    -156.9,
+129	    -261.0
+130	   ]
+131	  },
+132	  &quot;2629133&quot;: {
+133	   &quot;PADD80&quot;: [
+134	    -465.5,
+135	    -461.7
+136	   ],
+137	   &quot;v27_AR3_R25&quot;: [
+138	    -243.5,
+139	    -254.2
+140	   ],
+141	   &quot;AR4_R25&quot;: [
+142	    -243.5,
+143	    -254.2
+144	   ]
+145	  },
+146	  &quot;2629199&quot;: {
+147	   &quot;PADD80&quot;: [
+148	    -429.2,
+149	    144.3
+150	   ],
+151	   &quot;v27_AR3_R25&quot;: [
+152	    -521.5,
+153	    37.3
+154	   ],
+155	   &quot;AR4_R25&quot;: [
+156	    -521.5,
+157	    37.3
+158	   ]
+159	  },
+160	  &quot;2628653&quot;: {
+161	   &quot;PADD80&quot;: [
+162	    -346.8,
+163	    -282.7
+164	   ],
+165	   &quot;v27_AR3_R25&quot;: [
+166	    -277.2,
+167	    -271.0
+168	   ],
+169	   &quot;AR4_R25&quot;: [
+170	    -277.2,
+171	    -271.0
+172	   ]
+173	  },
+174	  &quot;2628410&quot;: {
+175	   &quot;PADD80&quot;: [
+176	    347.6,
+177	    -57.3
+178	   ],
+179	   &quot;v27_AR3_R25&quot;: [
+180	    44.4,
+181	    -170.2
+182	   ],
+183	   &quot;AR4_R25&quot;: [
+184	    44.4,
+185	    -170.2
+186	   ]
+187	  },
+188	  &quot;2629019&quot;: {
+189	   &quot;PADD80&quot;: [
+190	    169.4,
+191	    -285.6
+192	   ],
+193	   &quot;v27_AR3_R25&quot;: [
+194	    37.8,
+195	    -165.6
+196	   ],
+197	   &quot;AR4_R25&quot;: [
+198	    37.8,
+199	    -165.6
+200	   ]
+201	  },
+202	  &quot;2628557&quot;: {
+203	   &quot;PADD80&quot;: [
+204	    89.2,
+205	    -852.2
+206	   ],
+207	   &quot;v27_AR3_R25&quot;: [
+208	    34.5,
+209	    -335.4
+210	   ],
+211	   &quot;AR4_R25&quot;: [
+212	    34.5,
+213	    -335.4
+214	   ]
+215	  },
+216	  &quot;2628721&quot;: {
+217	   &quot;PADD80&quot;: [
+218	    57.5,
+219	    -347.1
+220	   ],
+221	   &quot;v27_AR3_R25&quot;: [
+222	    23.4,
+223	    -281.0
+224	   ],
+225	   &quot;AR4_R25&quot;: [
+226	    23.4,
+227	    -281.0
+228	   ]
+229	  },
+230	  &quot;2628999&quot;: {
+231	   &quot;PADD80&quot;: [
+232	    17.6,
+233	    -139.2
+234	   ],
+235	   &quot;v27_AR3_R25&quot;: [
+236	    15.8,
+237	    -62.5
+238	   ],
+239	   &quot;AR4_R25&quot;: [
+240	    15.8,
+241	    -62.5
+242	   ]
+243	  }
+244	 },
+245	 &quot;trigger_diag&quot;: {
+246	  &quot;AR4_R25&quot;: {
+247	   &quot;submits_median&quot;: 17.5,
+248	   &quot;stranded_sum&quot;: 151,
+249	   &quot;deficit_sum&quot;: 78,
+250	   &quot;cheap_sum&quot;: 11,
+251	   &quot;blocked_passive_ok_sum&quot;: 768
+252	  }
+253	 },
+254	 &quot;verdict&quot;: {
+255	  &quot;rule&quot;: &quot;Valid if both controls exact and both PADD80_CHECK paths reproduce v24. Degeneracy guard: an arm whose mean cost is below 50% of PADD80 is reported DEGENERATE (not an improvement). Otherwise PROMISING if its mean is higher than PADD80 AND winner-positive not lower AND fewer losses &lt;= -200. Reported: winner-positive, both-positive, mean, median, worst, counts, cost, gross shares, loser branch, restoration orders, case 2628553.&quot;,
+256	  &quot;valid&quot;: true,
+257	  &quot;arms&quot;: {
+258	   &quot;AR4_R25&quot;: &quot;PROMISING&quot;
+259	  }
+260	 }
+261	}
+262	</pre></details></article><article><h2>28 · Claude</h2><small>2026-09-26T19:06:18.704Z</small><pre>正在讀取 v28 的 overlay 程式碼（economics.py／run_variant.py），核對觸發條件與分支身份。</pre></article><article><h2>29 · Claude</h2><small>2026-09-26T19:06:19.664Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\overlay\\run_variant.py&quot;
+}</pre></details></article><article><h2>30 · 工具結果</h2><small>2026-09-26T19:06:20.001Z</small><details><summary>工具回傳內容</summary><pre>1	&quot;&quot;&quot;Native V49: economically qualified early repair, with optional re-borrow protection.&quot;&quot;&quot;
+2	import argparse,gzip,hashlib,importlib.util,json,os,socket,sys
+3	from pathlib import Path
+4	from economics import proposal,admission,with_plan,self_test
+5	from preparation import projection,self_test as preparation_test
+6	assert socket.gethostname().upper()==&#x27;DESKTOP-JIERAGF&#x27;
+7	P=Path(__file__).resolve().parent;ap=argparse.ArgumentParser(add_help=False)
+8	ap.add_argument(&#x27;--variant&#x27;,choices=[&#x27;OFF&#x27;,&#x27;COUNT_STRICT&#x27;,&#x27;PREPARE&#x27;],required=True);a,rest=ap.parse_known_args()
+9	contract=json.loads((P/&#x27;actor_contract.json&#x27;).read_text());BASE=Path(&#x27;C:/BTC5M-worker/.lan_worker_v1/staging&#x27;)/contract[&#x27;baseline_package&#x27;]
+10	sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();assert sha(BASE/&#x27;manifest.json&#x27;)==contract[&#x27;baseline_manifest_sha256&#x27;]
+11	# V12g queue-model switch (inactive unless V12G_QUEUE is set): wraps tools.hftbacktest_execution_shift_audit_v0.new_bt after it is
+12	# imported by the frozen runner and forces its queue_model argument (engine default: &#x27;risk&#x27; = risk-averse, back of queue,
+13	# advances only on trades). Latency unchanged (250 ms entry / 250 ms response).
+14	QUEUE=os.environ.get(&#x27;V12G_QUEUE&#x27;) or None
+15	V12G_Q={&#x27;calls&#x27;:0,&#x27;orig&#x27;:[],&#x27;latency&#x27;:[]}
+16	if QUEUE is not None:
+17	    assert QUEUE in (&#x27;log&#x27;,&#x27;risk&#x27;),QUEUE
+18	    import builtins as _bi
+19	    _orig_import=_bi.__import__
+20	    def _v12g_import(name,globals=None,locals=None,fromlist=(),level=0):
+21	        m_=_orig_import(name,globals,locals,fromlist,level)
+22	        ex_=sys.modules.get(&#x27;tools.hftbacktest_execution_shift_audit_v0&#x27;)
+23	        # r1: the module is in sys.modules while it is still executing; patch only once new_bt exists (later imports re-check).
+24	        if ex_ is not None and not getattr(ex_,&#x27;_v12g_queue_patched&#x27;,False) and hasattr(ex_,&#x27;new_bt&#x27;):
+25	            nb0_=ex_.new_bt
+26	            def new_bt(events,*,entry_latency_ms,response_latency_ms,queue_model):
+27	                V12G_Q[&#x27;calls&#x27;]+=1;V12G_Q[&#x27;orig&#x27;].append(queue_model);V12G_Q[&#x27;latency&#x27;].append([int(entry_latency_ms),int(response_latency_ms)])
+28	                return nb0_(events,entry_latency_ms=entry_latency_ms,response_latency_ms=response_latency_ms,queue_model=QUEUE)
+29	            ex_.new_bt=new_bt;ex_._v12g_queue_patched=True
+30	        return m_
+31	    _bi.__import__=_v12g_import
+32	sys.path.insert(0,str(BASE));spec=importlib.util.spec_from_file_location(&#x27;preparation_immutable_parent&#x27;,BASE/&#x27;money_runner.py&#x27;);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+33	
+34	class Context:
+35	    def __init__(self):self.peak=0.;self.first=None;self.frame=None;self.events=[];self.admissions=[];self.snapshot=None;self.producer=None;self.prepare=None;self.cancel_requests=[];self.first_active=None;self.scope_blocks=0
+36	    def observe(self,frame):
+37	        self.frame=frame;g=float(frame[&#x27;own_view&#x27;][&#x27;inv&#x27;][module.roles.strong])-float(frame[&#x27;own_view&#x27;][&#x27;cost&#x27;]);self.peak=max(self.peak,g)
+38	        if a.variant!=&#x27;PREPARE&#x27; or self.first is not None or self.snapshot is None or not frame[&#x27;start&#x27;]&lt;=frame[&#x27;t&#x27;]&lt;frame[&#x27;end&#x27;]:return
+39	        if self.producer is not None:
+40	            total=len(self.producer.opportunity.submissions)+len(self.producer.coordination.submissions)+len(self.producer.general_finite_active.submissions)
+41	            if total&gt;=5:return
+42	        actual=self.snapshot(frame,frame[&#x27;ledger&#x27;])
+43	        possible,removed=projection(actual,module.roles.strong,frame.get(&#x27;cancellable&#x27;,{}))
+44	        if not removed:return
+45	        bids=module.roles.weak_bid_book(frame);price=round(1.-max(bids),10) if bids else None;depth=float(bids[max(bids)]) if bids else 0.
+46	        real=proposal(actual,module.roles.strong,price,depth,self.peak,frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;])
+47	        projected=proposal(possible,module.roles.strong,price,depth,self.peak,frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;])
+48	        if projected[&#x27;eligible&#x27;] and not real[&#x27;eligible&#x27;]:
+49	            self.prepare={&#x27;t&#x27;:int(frame[&#x27;t&#x27;]),&#x27;index&#x27;:int(frame[&#x27;index&#x27;]),&#x27;actual_proposal&#x27;:real,&#x27;hypothetical_proposal&#x27;:projected,&#x27;candidate_cancellations&#x27;:removed,&#x27;actual_reservations_unchanged&#x27;:True}
+50	            self.first={&#x27;action&#x27;:&#x27;PREPARE_CANCELLABLE_RISK&#x27;,&#x27;t&#x27;:int(frame[&#x27;t&#x27;]),&#x27;index&#x27;:int(frame[&#x27;index&#x27;]),&#x27;state&#x27;:actual,&#x27;preparation&#x27;:self.prepare}
+51	
+52	    def check(self,state,side,p,q,origin):
+53	        if a.variant==&#x27;OFF&#x27; or self.first is None or AR_NOGATE:return True
+54	        row=admission(state,module.roles.strong,side,p,q,self.peak,a.variant!=&#x27;OFF&#x27;)
+55	        self.admissions.append({&#x27;t&#x27;:int(self.frame[&#x27;t&#x27;]),&#x27;index&#x27;:int(self.frame[&#x27;index&#x27;]),&#x27;origin&#x27;:origin,**row})
+56	        return row[&#x27;allowed&#x27;]
+57	GROSS=float(os.environ[&#x27;V12G_GROSS&#x27;]) if os.environ.get(&#x27;V12G_GROSS&#x27;) else None
+58	FALLBACK_S=float(os.environ.get(&#x27;V12G_FALLBACK_S&#x27;) or 30.)
+59	FLIP_DELTA=float(os.environ[&#x27;V12G_FLIP&#x27;]) if os.environ.get(&#x27;V12G_FLIP&#x27;) else None
+60	NEUTRAL_DELTA=float(os.environ[&#x27;V12G_NEUTRAL&#x27;]) if os.environ.get(&#x27;V12G_NEUTRAL&#x27;) else None
+61	FALL_DROP=float(os.environ[&#x27;V12G_FALL_DROP&#x27;]) if os.environ.get(&#x27;V12G_FALL_DROP&#x27;) else None
+62	FALL_WIN_S=float(os.environ.get(&#x27;V12G_FALL_WIN_S&#x27;) or 2.);FALL_PAUSE_S=float(os.environ.get(&#x27;V12G_FALL_PAUSE_S&#x27;) or 2.)
+63	V12G_FALL={&#x27;triggers&#x27;:{&#x27;UP&#x27;:0,&#x27;DOWN&#x27;:0},&#x27;vetoes&#x27;:0,&#x27;cancels&#x27;:0,&#x27;frames&#x27;:0,&#x27;apply_calls&#x27;:0}
+64	BURST_RISE=float(os.environ[&#x27;V12G_BURST_RISE&#x27;]) if os.environ.get(&#x27;V12G_BURST_RISE&#x27;) else None
+65	BURST_WIN_S=float(os.environ.get(&#x27;V12G_BURST_WIN_S&#x27;) or 2.);BURST_HOLD_S=float(os.environ.get(&#x27;V12G_BURST_HOLD_S&#x27;) or 5.);BURST_GAP=float(os.environ.get(&#x27;V12G_BURST_GAP&#x27;) or 0.10)
+66	V12G_BURST={&#x27;starts&#x27;:{&#x27;UP&#x27;:0,&#x27;DOWN&#x27;:0},&#x27;ends_time&#x27;:0,&#x27;ends_gap&#x27;:0,&#x27;events&#x27;:[]}
+67	LCR_PX=float(os.environ[&#x27;V12G_LCR_PX&#x27;]) if os.environ.get(&#x27;V12G_LCR_PX&#x27;) else None
+68	LCR_START_S=float(os.environ.get(&#x27;V12G_LCR_START_S&#x27;) or 180.);LCR_STOP_S=float(os.environ.get(&#x27;V12G_LCR_STOP_S&#x27;) or 10.);LCR_EVERY_S=float(os.environ.get(&#x27;V12G_LCR_EVERY_S&#x27;) or 2.);LCR_QTY=float(os.environ.get(&#x27;V12G_LCR_QTY&#x27;) or 15.)
+69	V12G_LCR={&#x27;orders&#x27;:0,&#x27;qty&#x27;:0.,&#x27;rejected&#x27;:0,&#x27;crossing_skips&#x27;:0,&#x27;last_t&#x27;:-10**15,&#x27;first_t&#x27;:None,&#x27;events&#x27;:[]}
+70	FLIPCAP=float(os.environ[&#x27;V12G_FLIPCAP&#x27;]) if os.environ.get(&#x27;V12G_FLIPCAP&#x27;) else None
+71	V12G_FLIPCAP={&#x27;vetoes&#x27;:0,&#x27;flips&#x27;:0,&#x27;refs&#x27;:[]}
+72	LEANCAP=float(os.environ[&#x27;V12G_LEANCAP&#x27;]) if os.environ.get(&#x27;V12G_LEANCAP&#x27;) else None
+73	V12G_LEANCAP={&#x27;vetoes&#x27;:0,&#x27;max_rel_gap&#x27;:0.}
+74	MAXFLIP_MODE=os.environ.get(&#x27;V12G_MAXFLIP_MODE&#x27;) or None
+75	ADDCAP=float(os.environ[&#x27;V12G_ADDCAP&#x27;]) if os.environ.get(&#x27;V12G_ADDCAP&#x27;) else None
+76	ADDCAP_FROM=os.environ.get(&#x27;V12G_ADDCAP_FROM&#x27;) or &#x27;DECIDE&#x27;
+77	assert ADDCAP_FROM in (&#x27;DECIDE&#x27;,&#x27;FLIP&#x27;)
+78	V12G_ADDCAP={&#x27;vetoes&#x27;:0,&#x27;vetoes_after_flip&#x27;:0}
+79	PACE=float(os.environ[&#x27;V12G_PACE&#x27;]) if os.environ.get(&#x27;V12G_PACE&#x27;) else None
+80	V12G_PACE={&#x27;vetoes&#x27;:0,&#x27;cancels&#x27;:0,&#x27;max_filled_gap&#x27;:0.,&#x27;frames_over&#x27;:0}
+81	AREP_PX=float(os.environ[&#x27;V12G_AREP_PX&#x27;]) if os.environ.get(&#x27;V12G_AREP_PX&#x27;) else None
+82	AREP_RISE=float(os.environ.get(&#x27;V12G_AREP_RISE&#x27;) or 0.02);AREP_WIN_S=float(os.environ.get(&#x27;V12G_AREP_WIN_S&#x27;) or 5.)
+83	V12G_AREP={&#x27;orders&#x27;:0,&#x27;rejected&#x27;:0,&#x27;crossing_skips&#x27;:0,&#x27;last_t&#x27;:-10**15,&#x27;hist&#x27;:[],&#x27;events&#x27;:[]}
+84	DEFENSE=bool(os.environ.get(&#x27;V12G_DEFENSE&#x27;))
+85	ADDGAP=float(os.environ[&#x27;V12G_ADDGAP&#x27;]) if os.environ.get(&#x27;V12G_ADDGAP&#x27;) else None
+86	V12G_ADDGAP={&#x27;vetoes&#x27;:0,&#x27;allowed&#x27;:0,&#x27;last_t&#x27;:-10**15}
+87	WBUDGET=float(os.environ[&#x27;V12G_WBUDGET&#x27;]) if os.environ.get(&#x27;V12G_WBUDGET&#x27;) else None
+88	V12G_WB={&#x27;vetoes&#x27;:0,&#x27;padd_vetoes&#x27;:0,&#x27;min_proj&#x27;:0.}
+89	PLEAN=float(os.environ[&#x27;V12G_PLEAN&#x27;]) if os.environ.get(&#x27;V12G_PLEAN&#x27;) else None
+90	DRIVER=bool(os.environ.get(&#x27;V12G_DRIVER&#x27;))
+91	AR_UNCAP=bool(os.environ.get(&#x27;V12G_AR_UNCAP&#x27;))
+92	AR_AFTER_DECIDE=bool(os.environ.get(&#x27;V12G_AR_AFTER_DECIDE&#x27;))
+93	AR_NOGATE=bool(os.environ.get(&#x27;V12G_AR_NOGATE&#x27;))
+94	AR_TRIGGER=bool(os.environ.get(&#x27;V12G_AR_TRIGGER&#x27;))
+95	AR_STRANDED_MAX=float(os.environ[&#x27;V12G_AR_STRANDED_MAX&#x27;]) if os.environ.get(&#x27;V12G_AR_STRANDED_MAX&#x27;) else None
+96	V12G_AR3={&#x27;blocked_passive_ok&#x27;:0,&#x27;trig_stranded&#x27;:0,&#x27;trig_deficit&#x27;:0,&#x27;trig_cheap&#x27;:0,&#x27;submits&#x27;:0,&#x27;last_H&#x27;:None}
+97	V12G_PL={&#x27;vetoes&#x27;:0,&#x27;padd_vetoes&#x27;:0,&#x27;max_lead&#x27;:0.}
+98	V12G_DRV={&#x27;keys&#x27;:[],&#x27;orders&#x27;:{&#x27;UP&#x27;:0,&#x27;DOWN&#x27;:0},&#x27;requotes&#x27;:0,&#x27;rejected&#x27;:0,&#x27;crossing_skips&#x27;:0,&#x27;to_chosen&#x27;:0,&#x27;to_weak&#x27;:0}
+99	def v12g_plean_cap(frame,side):
+100	    # V12g price-scaled lean cap: allowed share lead of the chosen side = PLEAN * (chosen-side mid - 0.5), never negative.
+101	    b_=frame.get(&#x27;book&#x27;) or {};bb_=b_.get(&#x27;bids&#x27;) or {};aa_=b_.get(&#x27;asks&#x27;) or {}
+102	    if not bb_ or not aa_:return None
+103	    um_=(max(bb_)+min(aa_))/2.;ms_=um_ if side==&#x27;UP&#x27; else 1.-um_
+104	    return max(0.,PLEAN*(ms_-0.5))
+105	V12G_DEF={&#x27;entered_t&#x27;:None,&#x27;vetoes&#x27;:0}
+106	assert MAXFLIP_MODE in (None,&#x27;NEUTRAL&#x27;,&#x27;HOLD&#x27;)
+107	PADD_PX=float(os.environ[&#x27;V12G_PADD_PX&#x27;]) if os.environ.get(&#x27;V12G_PADD_PX&#x27;) else None
+108	PREP_PX=float(os.environ[&#x27;V12G_PREP_PX&#x27;]) if os.environ.get(&#x27;V12G_PREP_PX&#x27;) else None
+109	PAY_QTY=float(os.environ.get(&#x27;V12G_PAY_QTY&#x27;) or 15.);PAY_EVERY_S=float(os.environ.get(&#x27;V12G_PAY_EVERY_S&#x27;) or 2.);PAY_STOP_S=float(os.environ.get(&#x27;V12G_PAY_STOP_S&#x27;) or 10.)
+110	V12G_PAY={&#x27;orders&#x27;:{&#x27;PADD&#x27;:0,&#x27;PREP&#x27;:0},&#x27;ordered_qty&#x27;:{&#x27;PADD&#x27;:0.,&#x27;PREP&#x27;:0.},&#x27;last_t&#x27;:{&#x27;PADD&#x27;:-10**15,&#x27;PREP&#x27;:-10**15},&#x27;rejected&#x27;:0,&#x27;crossing_skips&#x27;:0,&#x27;events&#x27;:[]}
+111	if GROSS is not None:
+112	    # V12g: balanced heavy opening, direction decided when gross inventory reaches GROSS (inactive unless V12G_GROSS is set).
+113	    def gross_observe(self,frame):
+114	        b=frame.get(&#x27;book&#x27;) or {};bids=b.get(&#x27;bids&#x27;) or {};asks=b.get(&#x27;asks&#x27;) or {}
+115	        mid=(max(bids)+min(asks))/2. if bids and asks else None
+116	        if not hasattr(self,&#x27;v12g_events&#x27;):self.v12g_events=[]
+117	        inv=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];gross=float(inv[&#x27;UP&#x27;])+float(inv[&#x27;DOWN&#x27;])
+118	        if FALL_DROP is not None and mid is not None:
+119	            # V12g fall guard: block a side whose public mid fell &gt;= FALL_DROP below its max over the last FALL_WIN_S seconds.
+120	            V12G_FALL[&#x27;frames&#x27;]+=1;h=self.__dict__.setdefault(&#x27;v12g_hist&#x27;,[]);h.append((int(frame[&#x27;t&#x27;]),mid))
+121	            while h and h[0][0]&lt;int(frame[&#x27;t&#x27;])-FALL_WIN_S*1000.:h.pop(0)
+122	            blk=self.__dict__.setdefault(&#x27;v12g_block&#x27;,{&#x27;UP&#x27;:0,&#x27;DOWN&#x27;:0})
+123	            for s_ in (&#x27;UP&#x27;,&#x27;DOWN&#x27;):
+124	                vals=[m_ if s_==&#x27;UP&#x27; else 1.-m_ for _,m_ in h]
+125	                if vals[-1]&lt;=max(vals)-FALL_DROP+1e-9:
+126	                    if blk[s_]&lt;=int(frame[&#x27;t&#x27;]):V12G_FALL[&#x27;triggers&#x27;][s_]+=1
+127	                    blk[s_]=int(frame[&#x27;t&#x27;]+FALL_PAUSE_S*1000.)
+128	        if BURST_RISE is not None and mid is not None:
+129	            # V12g burst: balanced by default; short burst toward the side that just rose (gap-capped).
+130	            hb=self.__dict__.setdefault(&#x27;v12g_bhist&#x27;,[]);hb.append((int(frame[&#x27;t&#x27;]),mid))
+131	            while hb and hb[0][0]&lt;int(frame[&#x27;t&#x27;])-BURST_WIN_S*1000.:hb.pop(0)
+132	            gap_to=lambda s_:((float(inv[s_])-float(inv[&#x27;DOWN&#x27; if s_==&#x27;UP&#x27; else &#x27;UP&#x27;]))/gross) if gross&gt;0 else 0.
+133	            bend=self.__dict__.get(&#x27;v12g_burst_end&#x27;)
+134	            if self.side is not None and bend is not None:
+135	                if int(frame[&#x27;t&#x27;])&gt;=bend or gap_to(self.side)&gt;=BURST_GAP-1e-9:
+136	                    V12G_BURST[&#x27;ends_time&#x27; if int(frame[&#x27;t&#x27;])&gt;=bend else &#x27;ends_gap&#x27;]+=1
+137	                    V12G_BURST[&#x27;events&#x27;].append(dict(kind=&#x27;END&#x27;,t=int(frame[&#x27;t&#x27;]),side=self.side,gap=gap_to(self.side)));self.side=None;self.v12g_burst_end=None
+138	            if self.side is None:
+139	                for s_ in (&#x27;UP&#x27;,&#x27;DOWN&#x27;):
+140	                    vals=[m_ if s_==&#x27;UP&#x27; else 1.-m_ for _,m_ in hb]
+141	                    if vals[-1]&gt;=min(vals)+BURST_RISE-1e-9 and gap_to(s_)&lt;BURST_GAP-1e-9:
+142	                        self.side=s_;self.v12g_burst_end=int(frame[&#x27;t&#x27;]+BURST_HOLD_S*1000.);V12G_BURST[&#x27;starts&#x27;][s_]+=1
+143	                        if self.birth is None:self.birth=dict(t=frame[&#x27;t&#x27;],index=frame[&#x27;index&#x27;],side=s_,inv=dict(inv),mid=mid,provenance=&#x27;V12G_BURST&#x27;)
+144	                        V12G_BURST[&#x27;events&#x27;].append(dict(kind=&#x27;START&#x27;,t=int(frame[&#x27;t&#x27;]),side=s_,mid=mid,gap=gap_to(s_)));break
+145	            self.rows.append(dict(t=frame[&#x27;t&#x27;],index=frame[&#x27;index&#x27;],side=self.side,inv=dict(inv)));return
+146	        if getattr(self,&#x27;v12g_neutral_locked&#x27;,False):
+147	            pass
+148	        elif self.side is None:
+149	            ready=gross&gt;=GROSS-1e-9 or (frame[&#x27;t&#x27;]-frame[&#x27;start&#x27;])&gt;=FALLBACK_S*1000.
+150	            if ready and mid is not None and abs(mid-0.5)&gt;1e-9:
+151	                self.side=&#x27;UP&#x27; if mid&gt;0.5 else &#x27;DOWN&#x27;
+152	                self.birth=dict(t=frame[&#x27;t&#x27;],index=frame[&#x27;index&#x27;],side=self.side,inv=dict(inv),mid=mid,provenance=&#x27;V12G_GROSS_DECISION&#x27;)
+153	                self.v12g_events.append(dict(kind=&#x27;DECIDE&#x27;,t=int(frame[&#x27;t&#x27;]),side=self.side,mid=mid,gross=gross,by=&#x27;GROSS&#x27; if gross&gt;=GROSS-1e-9 else &#x27;FALLBACK&#x27;))
+154	        elif NEUTRAL_DELTA is not None and mid is not None and (mid if self.side==&#x27;UP&#x27; else 1.-mid)&lt;=0.5-NEUTRAL_DELTA+1e-9:
+155	            old=self.side;self.side=None;self.v12g_neutral_locked=True
+156	            self.v12g_events.append(dict(kind=&#x27;NEUTRAL&#x27;,t=int(frame[&#x27;t&#x27;]),frm=old,mid=mid))
+157	        elif DEFENSE and self.__dict__.get(&#x27;v12g_defense&#x27;):
+158	            pass
+159	        elif FLIP_DELTA is not None and mid is not None and DEFENSE and ((mid if self.side==&#x27;UP&#x27; else 1.-mid)&lt;=0.5-FLIP_DELTA+1e-9):
+160	            self.v12g_defense=True;V12G_DEF[&#x27;entered_t&#x27;]=int(frame[&#x27;t&#x27;])
+161	            self.v12g_events.append(dict(kind=&#x27;DEFENSE&#x27;,t=int(frame[&#x27;t&#x27;]),side=self.side,mid=mid))
+162	        elif FLIP_DELTA is not None and mid is not None:
+163	            strong_mid=mid if self.side==&#x27;UP&#x27; else 1.-mid
+164	            if strong_mid&lt;=0.5-FLIP_DELTA+1e-9 and MAXFLIP_MODE is not None and self.__dict__.get(&#x27;v12g_nflips&#x27;,0)&gt;=1:
+165	                if MAXFLIP_MODE==&#x27;NEUTRAL&#x27;:
+166	                    old=self.side;self.side=None;self.v12g_neutral_locked=True
+167	                    self.v12g_events.append(dict(kind=&#x27;NEUTRAL_AFTER_FLIP&#x27;,t=int(frame[&#x27;t&#x27;]),frm=old,mid=mid))
+168	                elif not self.__dict__.get(&#x27;v12g_hold_logged&#x27;):
+169	                    self.v12g_hold_logged=True;self.v12g_events.append(dict(kind=&#x27;HOLD_IGNORED&#x27;,t=int(frame[&#x27;t&#x27;]),side=self.side,mid=mid))
+170	            elif strong_mid&lt;=0.5-FLIP_DELTA+1e-9:
+171	                old=self.side;self.side=&#x27;DOWN&#x27; if old==&#x27;UP&#x27; else &#x27;UP&#x27;;self.v12g_nflips=self.__dict__.get(&#x27;v12g_nflips&#x27;,0)+1
+172	                self.v12g_events.append(dict(kind=&#x27;FLIP&#x27;,t=int(frame[&#x27;t&#x27;]),frm=old,to=self.side,mid=mid))
+173	                if FLIPCAP is not None:
+174	                    self.v12g_flip_ref=dict(side=self.side,base=float(inv[self.side]),gross=gross,t=int(frame[&#x27;t&#x27;]));V12G_FLIPCAP[&#x27;flips&#x27;]+=1
+175	                    if len(V12G_FLIPCAP[&#x27;refs&#x27;])&lt;50:V12G_FLIPCAP[&#x27;refs&#x27;].append(dict(self.v12g_flip_ref))
+176	        self.rows.append(dict(t=frame[&#x27;t&#x27;],index=frame[&#x27;index&#x27;],side=self.side,inv=dict(inv)))
+177	    import types as _types
+178	    module.roles.observe=_types.MethodType(gross_observe,module.roles)  # instance only: V49 self_test uses fresh Roles()
+179	ctx=Context();checks={&#x27;economics&#x27;:self_test(),&#x27;preparation&#x27;:preparation_test()};original_exposure=module.ExposureIntent
+180	class ObservedExposure(original_exposure):
+181	    def apply(self,legacy,own_net,frame):
+182	        value=super().apply(legacy,own_net,frame);ctx.observe(frame);return value
+183	module.ExposureIntent=ObservedExposure;old_load=module.load
+184	
+185	def load(name,path):
+186	    result=old_load(name,path)
+187	    if name==&#x27;payoff_repair_gate&#x27;:ctx.snapshot=result.snapshot
+188	    if name==&#x27;tail_new_stop&#x27;:
+189	        inherited=result.TailNewStop;instrument=result.instrument
+190	        class ProtectedTail(inherited):
+191	            def veto(self,frame,side,route,qty,price,draft=None):
+192	                gate_=ADDGAP is not None and route==&#x27;PASSIVE&#x27; and module.roles.side is not None and side==module.roles.side
+193	                if gate_ and int(frame[&#x27;t&#x27;])-V12G_ADDGAP[&#x27;last_t&#x27;]&lt;ADDGAP*1000.-1e-9:
+194	                    V12G_ADDGAP[&#x27;vetoes&#x27;]+=1;return True
+195	                if PLEAN is not None and module.roles.side is not None and side==module.roles.side:
+196	                    inv__=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];w__=&#x27;DOWN&#x27; if side==&#x27;UP&#x27; else &#x27;UP&#x27;;g__=float(inv__[&#x27;UP&#x27;])+float(inv__[&#x27;DOWN&#x27;]);cap__=v12g_plean_cap(frame,side)
+197	                    try:
+198	                        pq__=float(ctx.snapshot(frame,draft if draft is not None else frame[&#x27;ledger&#x27;])[&#x27;pending_qty&#x27;][side])
+199	                    except Exception:
+200	                        pq__=0.
+201	                    if g__&gt;0 and cap__ is not None:
+202	                        lead__=(float(inv__[side])+pq__+float(qty)-float(inv__[w__]))/g__;V12G_PL[&#x27;max_lead&#x27;]=max(V12G_PL[&#x27;max_lead&#x27;],(float(inv__[side])-float(inv__[w__]))/g__)
+203	                        if lead__&gt;cap__+1e-9:
+204	                            V12G_PL[&#x27;vetoes&#x27;]+=1;return True
+205	                if WBUDGET is not None and module.roles.side is not None and side==module.roles.side:
+206	                    # V12g weak-branch budget: projected weak branch after all chosen-side resting orders and this order fill must stay &gt;= -WBUDGET.
+207	                    inv__=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];w__=&#x27;DOWN&#x27; if side==&#x27;UP&#x27; else &#x27;UP&#x27;;cost__=float(frame[&#x27;own_view&#x27;][&#x27;cost&#x27;])
+208	                    try:
+209	                        pc__=float(ctx.snapshot(frame,draft if draft is not None else frame[&#x27;ledger&#x27;])[&#x27;pending_cash&#x27;][side])
+210	                    except Exception:
+211	                        pc__=0.
+212	                    proj__=float(inv__[w__])-cost__-pc__-float(qty)*float(price);V12G_WB[&#x27;min_proj&#x27;]=min(V12G_WB[&#x27;min_proj&#x27;],proj__)
+213	                    if proj__&lt;-WBUDGET-1e-9:
+214	                        V12G_WB[&#x27;vetoes&#x27;]+=1;return True
+215	                if DEFENSE and getattr(module.roles,&#x27;v12g_defense&#x27;,False) and module.roles.side is not None and side==module.roles.side:
+216	                    V12G_DEF[&#x27;vetoes&#x27;]+=1;return True
+217	                if PACE is not None and module.roles.side is not None and side==module.roles.side:
+218	                    inv__=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];w__=&#x27;DOWN&#x27; if side==&#x27;UP&#x27; else &#x27;UP&#x27;;g__=float(inv__[&#x27;UP&#x27;])+float(inv__[&#x27;DOWN&#x27;])
+219	                    try:
+220	                        pend__=float(ctx.snapshot(frame,draft if draft is not None else frame[&#x27;ledger&#x27;])[&#x27;pending_qty&#x27;][side])
+221	                    except Exception:
+222	                        pend__=0.
+223	                    if g__&gt;0 and (float(inv__[side])+pend__-float(inv__[w__]))/g__&gt;=PACE-1e-9:
+224	                        V12G_PACE[&#x27;vetoes&#x27;]+=1;return True
+225	                if ADDCAP is not None and route==&#x27;PASSIVE&#x27; and module.roles.side is not None and side==module.roles.side and float(price)&gt;ADDCAP+1e-9:
+226	                    nfl_=getattr(module.roles,&#x27;v12g_nflips&#x27;,0)
+227	                    if ADDCAP_FROM==&#x27;DECIDE&#x27; or nfl_&gt;=1:
+228	                        V12G_ADDCAP[&#x27;vetoes&#x27;]+=1;V12G_ADDCAP[&#x27;vetoes_after_flip&#x27;]+=int(nfl_&gt;=1);return True
+229	                if LEANCAP is not None and module.roles.side is not None and side==module.roles.side:
+230	                    inv__=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];g__=float(inv__[&#x27;UP&#x27;])+float(inv__[&#x27;DOWN&#x27;])
+231	                    if g__&gt;0:
+232	                        rel__=(float(inv__[side])-float(inv__[&#x27;DOWN&#x27; if side==&#x27;UP&#x27; else &#x27;UP&#x27;]))/g__;V12G_LEANCAP[&#x27;max_rel_gap&#x27;]=max(V12G_LEANCAP[&#x27;max_rel_gap&#x27;],rel__)
+233	                        if rel__&gt;=LEANCAP-1e-9:
+234	                            V12G_LEANCAP[&#x27;vetoes&#x27;]+=1;return True
+235	                ref_=getattr(module.roles,&#x27;v12g_flip_ref&#x27;,None)
+236	                if FLIPCAP is not None and ref_ is not None and side==ref_[&#x27;side&#x27;] and float(frame[&#x27;own_view&#x27;][&#x27;inv&#x27;][side])-ref_[&#x27;base&#x27;]&gt;=FLIPCAP*ref_[&#x27;gross&#x27;]-1e-9:
+237	                    V12G_FLIPCAP[&#x27;vetoes&#x27;]+=1;return True
+238	                if FALL_DROP is not None and route==&#x27;PASSIVE&#x27; and getattr(module.roles,&#x27;v12g_block&#x27;,{}).get(side,0)&gt;int(frame[&#x27;t&#x27;]):
+239	                    V12G_FALL[&#x27;vetoes&#x27;]+=1;return True
+240	                old=super().veto(frame,side,route,qty,price)
+241	                if old or a.variant==&#x27;OFF&#x27; or ctx.first is None:res_=old
+242	                else:
+243	                    assert draft is not None
+244	                    res_=not ctx.check(ctx.snapshot(frame,draft),side,price,qty,&#x27;NATIVE_PRE_RESERVE_&#x27;+route)
+245	                if gate_ and not res_:V12G_ADDGAP[&#x27;last_t&#x27;]=int(frame[&#x27;t&#x27;]);V12G_ADDGAP[&#x27;allowed&#x27;]+=1
+246	                return res_
+247	        result.TailNewStop=ProtectedTail
+248	        def install(source,replace):
+249	            source=instrument(source,replace);count=0
+250	            for args in [&quot;ss, &#x27;PASSIVE&#x27;, qty, price&quot;,&quot;ss, exec_route, qty, exec_price&quot;,&quot;side, &#x27;ACTIVE&#x27;, qty, float(ask)&quot;,&quot;s, &#x27;PASSIVE&#x27;, qty, price&quot;]:
+251	                old=&#x27;self.tail_new.veto(f, &#x27;+args+&#x27;)&#x27;;count+=source.count(old);source=source.replace(old,&#x27;self.tail_new.veto(f, &#x27;+args+&#x27;, draft)&#x27;)
+252	            assert count==5,count
+253	            return source
+254	        result.instrument=install
+255	    if name in [&#x27;active_opportunity&#x27;,&#x27;commitment_repair_probe&#x27;,&#x27;reexposure_coordination&#x27;,&#x27;general_finite_active&#x27;]:
+256	        original_decide=result.decide
+257	        def guarded_decide(*args,**kwargs):
+258	            row=original_decide(*args,**kwargs)
+259	            if a.variant==&#x27;OFF&#x27; or ctx.first is None or not row.get(&#x27;eligible&#x27;):return row
+260	            if name!=&#x27;commitment_repair_probe&#x27; and ctx.producer is not None:
+261	                total=len(ctx.producer.opportunity.submissions)+len(ctx.producer.coordination.submissions)+len(ctx.producer.general_finite_active.submissions)
+262	                if total&gt;=5:
+263	                    ctx.scope_blocks+=1
+264	                    row.update(eligible=False,reason=&#x27;SHARED_ORIGINAL_ACTIVE_COUNT_AUTHORITY&#x27;)
+265	                    return row
+266	            state=args[0];operations=args[5] if name==&#x27;active_opportunity&#x27; else args[2] if name==&#x27;general_finite_active&#x27; else args[1]
+267	            p=row.get(&#x27;active_ask&#x27;,row.get(&#x27;price&#x27;));q=row.get(&#x27;quantity&#x27;,15.)
+268	            if p is None:p=args[3] if name==&#x27;active_opportunity&#x27; else args[2] if name==&#x27;reexposure_coordination&#x27; else args[3]
+269	            if not ctx.check(with_plan(state,operations),module.roles.weak,p,q,&#x27;ORIGINAL_&#x27;+name):row.update(eligible=False,reason=&#x27;QUALIFIED_RESTORATION_RESERVE_PROTECTION&#x27;)
+270	            return row
+271	        result.decide=guarded_decide
+272	    if name==&#x27;general_finite_active&#x27;:
+273	        inherited=result.GeneralFiniteActive
+274	        class QualifiedActive(inherited):
+275	            def apply(self,frame,producer,operations,validate,crossing):
+276	                if PACE is not None and module.roles.side is not None:
+277	                    s__=module.roles.side;w__=&#x27;DOWN&#x27; if s__==&#x27;UP&#x27; else &#x27;UP&#x27;;inv__=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];g__=float(inv__[&#x27;UP&#x27;])+float(inv__[&#x27;DOWN&#x27;])
+278	                    if g__&gt;0:
+279	                        fg__=(float(inv__[s__])-float(inv__[w__]))/g__;V12G_PACE[&#x27;max_filled_gap&#x27;]=max(V12G_PACE[&#x27;max_filled_gap&#x27;],fg__)
+280	                        if fg__&gt;=PACE-1e-9:
+281	                            V12G_PACE[&#x27;frames_over&#x27;]+=1;st__=ctx.snapshot(frame,frame[&#x27;ledger&#x27;]);pl__=[o[&#x27;key&#x27;] for o in operations if o[&#x27;kind&#x27;]==&#x27;CANCEL&#x27;]
+282	                            for ow in st__[&#x27;owners&#x27;]:
+283	                                if ow[&#x27;side&#x27;]==s__ and ow[&#x27;state&#x27;]!=&#x27;CANCEL_PENDING&#x27; and frame.get(&#x27;cancellable&#x27;,{}).get(ow[&#x27;key&#x27;],False) and ow[&#x27;key&#x27;] not in pl__:
+284	                                    operations=[*operations,{&#x27;kind&#x27;:&#x27;CANCEL&#x27;,&#x27;key&#x27;:ow[&#x27;key&#x27;],&#x27;origin&#x27;:&#x27;WHOLE_POLICY&#x27;,&#x27;reason&#x27;:&#x27;V12G_PACE&#x27;}];pl__.append(ow[&#x27;key&#x27;]);V12G_PACE[&#x27;cancels&#x27;]+=1
+285	                if FALL_DROP is not None:
+286	                    V12G_FALL[&#x27;apply_calls&#x27;]+=1;blk_=getattr(module.roles,&#x27;v12g_block&#x27;,{})
+287	                    if any(v_&gt;int(frame[&#x27;t&#x27;]) for v_ in blk_.values()):
+288	                        st_=ctx.snapshot(frame,frame[&#x27;ledger&#x27;]);planned_=[o[&#x27;key&#x27;] for o in operations if o[&#x27;kind&#x27;]==&#x27;CANCEL&#x27;]
+289	                        for ow in st_[&#x27;owners&#x27;]:
+290	                            if blk_.get(ow[&#x27;side&#x27;],0)&gt;int(frame[&#x27;t&#x27;]) and ow[&#x27;state&#x27;]!=&#x27;CANCEL_PENDING&#x27; and frame.get(&#x27;cancellable&#x27;,{}).get(ow[&#x27;key&#x27;],False) and ow[&#x27;key&#x27;] not in planned_:
+291	                                operations=[*operations,{&#x27;kind&#x27;:&#x27;CANCEL&#x27;,&#x27;key&#x27;:ow[&#x27;key&#x27;],&#x27;origin&#x27;:&#x27;WHOLE_POLICY&#x27;,&#x27;reason&#x27;:&#x27;V12G_FALLING_SIDE&#x27;}];planned_.append(ow[&#x27;key&#x27;]);V12G_FALL[&#x27;cancels&#x27;]+=1
+292	                if LCR_PX is not None and frame[&#x27;start&#x27;]&lt;=frame[&#x27;t&#x27;]&lt;frame[&#x27;end&#x27;] and (frame[&#x27;t&#x27;]-frame[&#x27;start&#x27;])&gt;=LCR_START_S*1000. and (frame[&#x27;end&#x27;]-frame[&#x27;t&#x27;])&gt;LCR_STOP_S*1000. and int(frame[&#x27;t&#x27;])-V12G_LCR[&#x27;last_t&#x27;]&gt;=LCR_EVERY_S*1000. and not any(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; and o.get(&#x27;route&#x27;)==&#x27;ACTIVE&#x27; for o in operations):
+293	                    # V12g late cheap repair: buy the cheap underdog while its branch is negative (inactive unless V12G_LCR_PX is set).
+294	                    b_=frame.get(&#x27;book&#x27;) or {};bb_=b_.get(&#x27;bids&#x27;) or {};aa_=b_.get(&#x27;asks&#x27;) or {}
+295	                    if bb_ and aa_:
+296	                        dog=(&#x27;DOWN&#x27; if (max(bb_)+min(aa_))/2.&gt;=0.5 else &#x27;UP&#x27;);ask_=((frame.get(&#x27;quotes&#x27;) or {}).get(dog) or {}).get(&#x27;ask&#x27;);inv_=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];cost_=float(frame[&#x27;own_view&#x27;][&#x27;cost&#x27;])
+297	                        if ask_ is not None and 0.&lt;float(ask_)&lt;=LCR_PX+1e-9 and float(inv_[dog])-cost_&lt;0:
+298	                            st2=ctx.snapshot(frame,frame[&#x27;ledger&#x27;]);owners_=[{&#x27;key&#x27;:o[&#x27;key&#x27;],&#x27;side&#x27;:o[&#x27;side&#x27;],&#x27;price&#x27;:o[&#x27;limit&#x27;]} for o in st2[&#x27;owners&#x27;]]
+299	                            if crossing(dog,float(ask_),owners_):V12G_LCR[&#x27;crossing_skips&#x27;]+=1
+300	                            else:
+301	                                try:
+302	                                    validate(frame[&#x27;world_profile&#x27;][&#x27;asset&#x27;],&#x27;ACTIVE&#x27;,float(ask_),LCR_QTY,quantity_step=frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;]);ok_=True
+303	                                except Exception:
+304	                                    ok_=False;V12G_LCR[&#x27;rejected&#x27;]+=1
+305	                                if ok_:
+306	                                    n_=frame[&#x27;own_view&#x27;][&#x27;n&#x27;]+sum(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; for o in operations)
+307	                                    op_={&#x27;kind&#x27;:&#x27;NEW&#x27;,&#x27;key&#x27;:f&#x27;{dog}_{n_}&#x27;,&#x27;parent_id&#x27;:module.roles.pid(dog),&#x27;side&#x27;:dog,&#x27;route&#x27;:&#x27;ACTIVE&#x27;,&#x27;price&#x27;:float(ask_),&#x27;qty&#x27;:LCR_QTY,&#x27;role&#x27;:&#x27;V12G_LATE_CHEAP_REPAIR&#x27;}
+308	                                    operations=[*operations,op_];V12G_LCR[&#x27;orders&#x27;]+=1;V12G_LCR[&#x27;qty&#x27;]+=LCR_QTY;V12G_LCR[&#x27;last_t&#x27;]=int(frame[&#x27;t&#x27;])
+309	                                    if V12G_LCR[&#x27;first_t&#x27;] is None:V12G_LCR[&#x27;first_t&#x27;]=int(frame[&#x27;t&#x27;])
+310	                                    if len(V12G_LCR[&#x27;events&#x27;])&lt;200:V12G_LCR[&#x27;events&#x27;].append(dict(t=int(frame[&#x27;t&#x27;]),side=dog,ask=float(ask_),dog_branch=float(inv_[dog])-cost_))
+311	                if (PADD_PX is not None or PREP_PX is not None) and module.roles.side is not None and frame[&#x27;start&#x27;]&lt;=frame[&#x27;t&#x27;]&lt;frame[&#x27;end&#x27;] and (frame[&#x27;end&#x27;]-frame[&#x27;t&#x27;])&gt;PAY_STOP_S*1000.:
+312	                    # V12g payoff keep-alive: PADD buys the chosen favourite while its branch is negative; PREP buys the cheap weak side while its branch is negative.
+313	                    b_=frame.get(&#x27;book&#x27;) or {};bb_=b_.get(&#x27;bids&#x27;) or {};aa_=b_.get(&#x27;asks&#x27;) or {}
+314	                    if bb_ and aa_:
+315	                        upmid_=(max(bb_)+min(aa_))/2.;s_=module.roles.side;w_=&#x27;DOWN&#x27; if s_==&#x27;UP&#x27; else &#x27;UP&#x27;;inv_=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];cost_=float(frame[&#x27;own_view&#x27;][&#x27;cost&#x27;])
+316	                        cands_=[]
+317	                        if PADD_PX is not None and not getattr(module.roles,&#x27;v12g_defense&#x27;,False) and ((upmid_&gt;=0.5) if s_==&#x27;UP&#x27; else (upmid_&lt;0.5)) and float(inv_[s_])-cost_&lt;0:cands_.append((&#x27;PADD&#x27;,s_,PADD_PX,&#x27;V12G_PAYOFF_ADD&#x27;))
+318	                        if PREP_PX is not None and float(inv_[w_])-cost_&lt;0:cands_.append((&#x27;PREP&#x27;,w_,PREP_PX,&#x27;V12G_PAYOFF_REPAIR&#x27;))
+319	                        for kind_,side_,px_,role_ in cands_:
+320	                            if any(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; and o.get(&#x27;route&#x27;)==&#x27;ACTIVE&#x27; for o in operations):break
+321	                            if int(frame[&#x27;t&#x27;])-V12G_PAY[&#x27;last_t&#x27;][kind_]&lt;PAY_EVERY_S*1000.:continue
+322	                            ask_=((frame.get(&#x27;quotes&#x27;) or {}).get(side_) or {}).get(&#x27;ask&#x27;)
+323	                            if ask_ is None or not 0.&lt;float(ask_)&lt;=px_+1e-9:continue
+324	                            st3=ctx.snapshot(frame,frame[&#x27;ledger&#x27;]);owners3=[{&#x27;key&#x27;:o[&#x27;key&#x27;],&#x27;side&#x27;:o[&#x27;side&#x27;],&#x27;price&#x27;:o[&#x27;limit&#x27;]} for o in st3[&#x27;owners&#x27;]]
+325	                            if crossing(side_,float(ask_),owners3):V12G_PAY[&#x27;crossing_skips&#x27;]+=1;continue
+326	                            if PLEAN is not None and kind_==&#x27;PADD&#x27;:
+327	                                g5=float(inv_[&#x27;UP&#x27;])+float(inv_[&#x27;DOWN&#x27;]);cap5=v12g_plean_cap(frame,side_)
+328	                                if g5&gt;0 and cap5 is not None and (float(inv_[side_])+float(st3[&#x27;pending_qty&#x27;][side_])+PAY_QTY-float(inv_[w_]))/g5&gt;cap5+1e-9:V12G_PL[&#x27;padd_vetoes&#x27;]+=1;continue
+329	                            if WBUDGET is not None and kind_==&#x27;PADD&#x27; and float(inv_[w_])-cost_-float(st3[&#x27;pending_cash&#x27;][side_])-PAY_QTY*float(ask_)&lt;-WBUDGET-1e-9:V12G_WB[&#x27;padd_vetoes&#x27;]+=1;continue
+330	                            try:
+331	                                validate(frame[&#x27;world_profile&#x27;][&#x27;asset&#x27;],&#x27;ACTIVE&#x27;,float(ask_),PAY_QTY,quantity_step=frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;]);ok3=True
+332	                            except Exception:
+333	                                ok3=False;V12G_PAY[&#x27;rejected&#x27;]+=1
+334	                            if not ok3:continue
+335	                            n3=frame[&#x27;own_view&#x27;][&#x27;n&#x27;]+sum(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; for o in operations)
+336	                            operations=[*operations,{&#x27;kind&#x27;:&#x27;NEW&#x27;,&#x27;key&#x27;:f&#x27;{side_}_{n3}&#x27;,&#x27;parent_id&#x27;:module.roles.pid(side_),&#x27;side&#x27;:side_,&#x27;route&#x27;:&#x27;ACTIVE&#x27;,&#x27;price&#x27;:float(ask_),&#x27;qty&#x27;:PAY_QTY,&#x27;role&#x27;:role_}]
+337	                            V12G_PAY[&#x27;orders&#x27;][kind_]+=1;V12G_PAY[&#x27;ordered_qty&#x27;][kind_]+=PAY_QTY;V12G_PAY[&#x27;last_t&#x27;][kind_]=int(frame[&#x27;t&#x27;])
+338	                            if len(V12G_PAY[&#x27;events&#x27;])&lt;300:V12G_PAY[&#x27;events&#x27;].append(dict(kind=kind_,t=int(frame[&#x27;t&#x27;]),side=side_,ask=float(ask_),branch=float(inv_[side_])-cost_))
+339	                            break
+340	                if DRIVER and PLEAN is not None and module.roles.side is not None and frame[&#x27;start&#x27;]&lt;=frame[&#x27;t&#x27;]&lt;frame[&#x27;end&#x27;] and (frame[&#x27;end&#x27;]-frame[&#x27;t&#x27;])&gt;PAY_STOP_S*1000.:
+341	                    # V12g mid-game driver: keep at most one passive 15-share bid per side at the best bid; buy the chosen side while its
+342	                    # share lead (incl. resting) is below the price-scaled cap, otherwise the weak side. Stale driver bids are re-quoted.
+343	                    b6=frame.get(&#x27;book&#x27;) or {};bb6=b6.get(&#x27;bids&#x27;) or {};aa6=b6.get(&#x27;asks&#x27;) or {}
+344	                    if bb6 and aa6:
+345	                        s6=module.roles.side;w6=&#x27;DOWN&#x27; if s6==&#x27;UP&#x27; else &#x27;UP&#x27;;inv6=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];g6=float(inv6[&#x27;UP&#x27;])+float(inv6[&#x27;DOWN&#x27;])
+346	                        st6=ctx.snapshot(frame,frame[&#x27;ledger&#x27;]);pq6=st6[&#x27;pending_qty&#x27;];cap6=v12g_plean_cap(frame,s6)
+347	                        lead6=(float(inv6[s6])+float(pq6[s6])-float(inv6[w6])-float(pq6[w6]))/g6 if g6&gt;0 else 0.
+348	                        tgt6=s6 if (cap6 is not None and lead6&lt;cap6) else w6
+349	                        bid6={&#x27;UP&#x27;:round(max(bb6),2),&#x27;DOWN&#x27;:round(1.-min(aa6),2)}
+350	                        live6={o[&#x27;key&#x27;]:o for o in st6[&#x27;owners&#x27;] if o[&#x27;key&#x27;] in V12G_DRV[&#x27;keys&#x27;]}
+351	                        planned6={o[&#x27;key&#x27;] for o in operations if o[&#x27;kind&#x27;]==&#x27;CANCEL&#x27;}
+352	                        for k6,o6 in live6.items():
+353	                            if o6[&#x27;state&#x27;]!=&#x27;CANCEL_PENDING&#x27; and k6 not in planned6 and frame.get(&#x27;cancellable&#x27;,{}).get(k6,False) and float(o6[&#x27;limit&#x27;])&lt;bid6[o6[&#x27;side&#x27;]]-1e-9:
+354	                                operations=[*operations,{&#x27;kind&#x27;:&#x27;CANCEL&#x27;,&#x27;key&#x27;:k6,&#x27;origin&#x27;:&#x27;WHOLE_POLICY&#x27;,&#x27;reason&#x27;:&#x27;V12G_DRIVER_REQUOTE&#x27;}];planned6.add(k6);V12G_DRV[&#x27;requotes&#x27;]+=1
+355	                        if not any(o6[&#x27;side&#x27;]==tgt6 and k6 not in planned6 for k6,o6 in live6.items()) and 0.&lt;bid6[tgt6]&lt;1.:
+356	                            owners6=[{&#x27;key&#x27;:o[&#x27;key&#x27;],&#x27;side&#x27;:o[&#x27;side&#x27;],&#x27;price&#x27;:o[&#x27;limit&#x27;]} for o in st6[&#x27;owners&#x27;]]
+357	                            if crossing(tgt6,float(bid6[tgt6]),owners6):V12G_DRV[&#x27;crossing_skips&#x27;]+=1
+358	                            else:
+359	                                try:
+360	                                    validate(frame[&#x27;world_profile&#x27;][&#x27;asset&#x27;],&#x27;PASSIVE&#x27;,float(bid6[tgt6]),15.,quantity_step=frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;]);ok6=True
+361	                                except Exception:
+362	                                    ok6=False;V12G_DRV[&#x27;rejected&#x27;]+=1
+363	                                if ok6:
+364	                                    n6=frame[&#x27;own_view&#x27;][&#x27;n&#x27;]+sum(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; for o in operations);k6=f&#x27;{tgt6}_{n6}&#x27;
+365	                                    operations=[*operations,{&#x27;kind&#x27;:&#x27;NEW&#x27;,&#x27;key&#x27;:k6,&#x27;parent_id&#x27;:module.roles.pid(tgt6),&#x27;side&#x27;:tgt6,&#x27;route&#x27;:&#x27;PASSIVE&#x27;,&#x27;price&#x27;:float(bid6[tgt6]),&#x27;qty&#x27;:15.,&#x27;role&#x27;:&#x27;V12G_DRIVER&#x27;}]
+366	                                    V12G_DRV[&#x27;keys&#x27;].append(k6);V12G_DRV[&#x27;orders&#x27;][tgt6]+=1;V12G_DRV[&#x27;to_chosen&#x27; if tgt6==s6 else &#x27;to_weak&#x27;]+=1
+367	                if AREP_PX is not None and module.roles.side is not None and frame[&#x27;start&#x27;]&lt;=frame[&#x27;t&#x27;]&lt;frame[&#x27;end&#x27;] and (frame[&#x27;end&#x27;]-frame[&#x27;t&#x27;])&gt;10000.:
+368	                    # V12g active repair: buy a rising weak side at its ask while its branch is negative (inactive unless V12G_AREP_PX is set).
+369	                    b_=frame.get(&#x27;book&#x27;) or {};bb_=b_.get(&#x27;bids&#x27;) or {};aa_=b_.get(&#x27;asks&#x27;) or {}
+370	                    if bb_ and aa_:
+371	                        um_=(max(bb_)+min(aa_))/2.;H_=V12G_AREP[&#x27;hist&#x27;];H_.append((int(frame[&#x27;t&#x27;]),um_))
+372	                        while H_ and H_[0][0]&lt;int(frame[&#x27;t&#x27;])-AREP_WIN_S*1000.-1000.:H_.pop(0)
+373	                        w_=&#x27;DOWN&#x27; if module.roles.side==&#x27;UP&#x27; else &#x27;UP&#x27;;inv_=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];cost_=float(frame[&#x27;own_view&#x27;][&#x27;cost&#x27;])
+374	                        old_=[m_ for t_,m_ in H_ if t_&lt;=int(frame[&#x27;t&#x27;])-AREP_WIN_S*1000.]
+375	                        if old_ and float(inv_[w_])-cost_&lt;0 and int(frame[&#x27;t&#x27;])-V12G_AREP[&#x27;last_t&#x27;]&gt;=2000 and not any(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; and o.get(&#x27;route&#x27;)==&#x27;ACTIVE&#x27; for o in operations):
+376	                            wm_now=um_ if w_==&#x27;UP&#x27; else 1.-um_;wm_old=old_[-1] if w_==&#x27;UP&#x27; else 1.-old_[-1]
+377	                            ask_=((frame.get(&#x27;quotes&#x27;) or {}).get(w_) or {}).get(&#x27;ask&#x27;)
+378	                            if wm_now-wm_old&gt;=AREP_RISE-1e-9 and ask_ is not None and 0.&lt;float(ask_)&lt;=AREP_PX+1e-9:
+379	                                st4=ctx.snapshot(frame,frame[&#x27;ledger&#x27;]);ow4=[{&#x27;key&#x27;:o[&#x27;key&#x27;],&#x27;side&#x27;:o[&#x27;side&#x27;],&#x27;price&#x27;:o[&#x27;limit&#x27;]} for o in st4[&#x27;owners&#x27;]]
+380	                                if crossing(w_,float(ask_),ow4):V12G_AREP[&#x27;crossing_skips&#x27;]+=1
+381	                                else:
+382	                                    try:
+383	                                        validate(frame[&#x27;world_profile&#x27;][&#x27;asset&#x27;],&#x27;ACTIVE&#x27;,float(ask_),15.,quantity_step=frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;]);ok4=True
+384	                                    except Exception:
+385	                                        ok4=False;V12G_AREP[&#x27;rejected&#x27;]+=1
+386	                                    if ok4:
+387	                                        n4=frame[&#x27;own_view&#x27;][&#x27;n&#x27;]+sum(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; for o in operations)
+388	                                        operations=[*operations,{&#x27;kind&#x27;:&#x27;NEW&#x27;,&#x27;key&#x27;:f&#x27;{w_}_{n4}&#x27;,&#x27;parent_id&#x27;:module.roles.pid(w_),&#x27;side&#x27;:w_,&#x27;route&#x27;:&#x27;ACTIVE&#x27;,&#x27;price&#x27;:float(ask_),&#x27;qty&#x27;:15.,&#x27;role&#x27;:&#x27;V12G_ACTIVE_REPAIR&#x27;}]
+389	                                        V12G_AREP[&#x27;orders&#x27;]+=1;V12G_AREP[&#x27;last_t&#x27;]=int(frame[&#x27;t&#x27;])
+390	                                        if len(V12G_AREP[&#x27;events&#x27;])&lt;200:V12G_AREP[&#x27;events&#x27;].append(dict(t=int(frame[&#x27;t&#x27;]),side=w_,ask=float(ask_),rise=wm_now-wm_old,branch=float(inv_[w_])-cost_))
+391	                if a.variant==&#x27;OFF&#x27; or not frame[&#x27;start&#x27;]&lt;=frame[&#x27;t&#x27;]&lt;frame[&#x27;end&#x27;]:return super().apply(frame,producer,operations,validate,crossing)
+392	                ctx.producer=producer;ctx.observe(frame)
+393	                state=ctx.snapshot(frame,frame[&#x27;ledger&#x27;])
+394	                if a.variant==&#x27;PREPARE&#x27; and ctx.prepare is not None:
+395	                    planned_cancels={o[&#x27;key&#x27;] for o in operations if o[&#x27;kind&#x27;]==&#x27;CANCEL&#x27;}
+396	                    for owner in state[&#x27;owners&#x27;]:
+397	                        if owner[&#x27;side&#x27;]!=module.roles.strong or 1.-3.*owner[&#x27;limit&#x27;]&gt;=0:continue
+398	                        if owner[&#x27;state&#x27;]==&#x27;CANCEL_PENDING&#x27; or not frame.get(&#x27;cancellable&#x27;,{}).get(owner[&#x27;key&#x27;],False) or owner[&#x27;key&#x27;] in planned_cancels:continue
+399	                        operation={&#x27;kind&#x27;:&#x27;CANCEL&#x27;,&#x27;key&#x27;:owner[&#x27;key&#x27;],&#x27;origin&#x27;:&#x27;WHOLE_POLICY&#x27;,&#x27;reason&#x27;:&#x27;QUALIFIED_RESTORATION_PREPARE&#x27;}
+400	                        operations=[*operations,operation];planned_cancels.add(owner[&#x27;key&#x27;])
+401	                        ctx.cancel_requests.append({&#x27;t&#x27;:int(frame[&#x27;t&#x27;]),&#x27;index&#x27;:int(frame[&#x27;index&#x27;]),&#x27;owner&#x27;:dict(owner),&#x27;actual_pending_cash&#x27;:dict(state[&#x27;pending_cash&#x27;]),**operation})
+402	                planned=with_plan(state,operations)
+403	                ask=((frame.get(&#x27;quotes&#x27;) or {}).get(module.roles.weak) or {}).get(&#x27;ask&#x27;)
+404	                bids=module.roles.weak_bid_book(frame);depth=float(bids[max(bids)]) if bids else 0.
+405	                row=proposal(planned,module.roles.strong,ask,depth,ctx.peak,float(frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;]))
+406	                row.update(t=int(frame[&#x27;t&#x27;]),index=int(frame[&#x27;index&#x27;]),side=module.roles.weak,activated=ctx.first is not None)
+407	                count=len(producer.opportunity.submissions)+len(producer.coordination.submissions)+len(self.submissions)
+408	                if row[&#x27;eligible&#x27;] and count&gt;=5 and not AR_UNCAP:row.update(eligible=False,reason=&#x27;ORIGINAL_COMBINED_ACTIVE_CAP&#x27;)
+409	                if row[&#x27;eligible&#x27;] and any(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; and o.get(&#x27;route&#x27;)==&#x27;ACTIVE&#x27; for o in operations):row.update(eligible=False,reason=&#x27;EXISTING_ACTIVE_PLAN_PRIORITY&#x27;)
+410	                if row[&#x27;eligible&#x27;] and len(planned[&#x27;owners&#x27;])&gt;=frame[&#x27;world_profile&#x27;][&#x27;max_live_owners&#x27;]:row.update(eligible=False,reason=&#x27;RESOURCE_OWNER_LIMIT&#x27;)
+411	                if row[&#x27;eligible&#x27;]:
+412	                    owners=[{&#x27;key&#x27;:o[&#x27;key&#x27;],&#x27;side&#x27;:o[&#x27;side&#x27;],&#x27;price&#x27;:o[&#x27;limit&#x27;]} for o in planned[&#x27;owners&#x27;]]
+413	                    conflicts=crossing(module.roles.weak,float(ask),owners)
+414	                    if conflicts:row.update(eligible=False,reason=&#x27;PENDING_OR_PLAN_OWN_CROSS&#x27;,conflicts=conflicts)
+415	                if row[&#x27;eligible&#x27;] and AR_AFTER_DECIDE and module.roles.side is None:row.update(eligible=False,reason=&#x27;V12G_AR_BEFORE_DECISION&#x27;)
+416	                if row[&#x27;eligible&#x27;] and AR_TRIGGER:
+417	                    # V12g: active restoration only when passive repair cannot cope: (a) weak ask &gt;= highest own resting weak bid + 0.03
+418	                    # or no resting weak bid; (b) weak branch &lt;= -150 and worse than at the previous active restoration; (c) weak ask &lt;= 0.15.
+419	                    wb7=[float(o[&#x27;limit&#x27;]) for o in state[&#x27;owners&#x27;] if o[&#x27;side&#x27;]==module.roles.weak]
+420	                    a7=float(ask);h7=float(row[&#x27;H&#x27;])
+421	                    t_str=((not wb7) or a7&gt;=max(wb7)+0.03-1e-9) and (AR_STRANDED_MAX is None or a7&lt;=AR_STRANDED_MAX+1e-9)
+422	                    t_def=h7&lt;=-150.+1e-9 and (V12G_AR3[&#x27;last_H&#x27;] is None or h7&lt;V12G_AR3[&#x27;last_H&#x27;]-1e-9)
+423	                    t_chp=a7&lt;=0.15+1e-9
+424	                    if not (t_str or t_def or t_chp):row.update(eligible=False,reason=&#x27;V12G_AR_PASSIVE_OK&#x27;);V12G_AR3[&#x27;blocked_passive_ok&#x27;]+=1
+425	                    else:
+426	                        V12G_AR3[&#x27;trig_stranded&#x27;]+=int(t_str);V12G_AR3[&#x27;trig_deficit&#x27;]+=int(t_def);V12G_AR3[&#x27;trig_cheap&#x27;]+=int(t_chp);row.update(v12g_trigger=dict(stranded=t_str,deficit=t_def,cheap=t_chp))
+427	                ctx.events.append(row)
+428	                if not row[&#x27;eligible&#x27;]:return super().apply(frame,producer,operations,validate,crossing)
+429	                q=row[&#x27;quantity&#x27;];validate(frame[&#x27;world_profile&#x27;][&#x27;asset&#x27;],&#x27;ACTIVE&#x27;,float(ask),q,quantity_step=frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;])
+430	                assert abs(float(ask)/frame[&#x27;world_profile&#x27;][&#x27;tick&#x27;]-round(float(ask)/frame[&#x27;world_profile&#x27;][&#x27;tick&#x27;]))&lt;1e-8
+431	                n=frame[&#x27;own_view&#x27;][&#x27;n&#x27;]+sum(o[&#x27;kind&#x27;]==&#x27;NEW&#x27; for o in operations)
+432	                op={&#x27;kind&#x27;:&#x27;NEW&#x27;,&#x27;key&#x27;:f&#x27;{module.roles.weak}_{n}&#x27;,&#x27;parent_id&#x27;:module.roles.pid(module.roles.weak),&#x27;side&#x27;:module.roles.weak,&#x27;route&#x27;:&#x27;ACTIVE&#x27;,&#x27;price&#x27;:float(ask),&#x27;qty&#x27;:q,&#x27;role&#x27;:&#x27;ACTIVE_QUALIFIED_RATIO_RESTORATION&#x27;}
+433	                if AR_TRIGGER:V12G_AR3[&#x27;last_H&#x27;]=float(row[&#x27;H&#x27;]);V12G_AR3[&#x27;submits&#x27;]+=1
+434	                if ctx.first_active is None:ctx.first_active={&#x27;t&#x27;:int(frame[&#x27;t&#x27;]),&#x27;index&#x27;:int(frame[&#x27;index&#x27;]),&#x27;proposal&#x27;:row,&#x27;key&#x27;:op[&#x27;key&#x27;]}
+435	                if ctx.first is None:ctx.first={&#x27;action&#x27;:a.variant,&#x27;t&#x27;:int(frame[&#x27;t&#x27;]),&#x27;index&#x27;:int(frame[&#x27;index&#x27;]),&#x27;state&#x27;:state,&#x27;proposal&#x27;:row,&#x27;key&#x27;:op[&#x27;key&#x27;]}
+436	                self.submissions.append({&#x27;t&#x27;:int(frame[&#x27;t&#x27;]),&#x27;work_id&#x27;:&#x27;QUALIFIED_RATIO_RESTORATION&#x27;,&#x27;released_reservation&#x27;:0.,&#x27;unreserved_after_plan&#x27;:row[&#x27;net_unreserved&#x27;],**op})
+437	                self.rows.append({&#x27;t&#x27;:int(frame[&#x27;t&#x27;]),&#x27;eligible&#x27;:True,&#x27;reason&#x27;:&#x27;QUALIFIED_RATIO_RESTORATION&#x27;,&#x27;economic_proposal&#x27;:row,&#x27;state&#x27;:state})
+438	                if producer.demand.rows:self._remember(producer.demand.rows[-1])
+439	                return [*operations,op]
+440	        result.GeneralFiniteActive=QualifiedActive
+441	    return result
+442	module.load=load;sys.argv=[str(BASE/&#x27;money_runner.py&#x27;)]+rest;exitcode=0
+443	try:module.main()
+444	except SystemExit as error:exitcode=error.code or 0
+445	out=Path(os.environ[&#x27;BTC5M_LAN_RESULT_DIR&#x27;]);rp=out/&#x27;result.json&#x27;
+446	if rp.exists():
+447	    r=json.loads(rp.read_text())
+448	    if r.get(&#x27;status&#x27;)==&#x27;COMPLETE&#x27;:
+449	        payload={&#x27;events&#x27;:ctx.events,&#x27;admissions&#x27;:ctx.admissions,&#x27;first&#x27;:ctx.first,&#x27;peak_G&#x27;:ctx.peak,&#x27;checks&#x27;:checks,&#x27;variant&#x27;:a.variant,&#x27;preparation&#x27;:ctx.prepare,&#x27;cancel_requests&#x27;:ctx.cancel_requests,&#x27;first_actual_active&#x27;:ctx.first_active,&#x27;scope_blocks&#x27;:ctx.scope_blocks}
+450	        with gzip.GzipFile(filename=str(out/&#x27;restoration_trace.json.gz&#x27;),mode=&#x27;wb&#x27;,mtime=0) as f:f.write(json.dumps(payload,sort_keys=True,separators=(&#x27;,&#x27;,&#x27;:&#x27;)).encode())
+451	        r[&#x27;economic_option&#x27;]={&#x27;mode&#x27;:a.variant,&#x27;selection&#x27;:ctx.first,&#x27;anchors&#x27;:[],&#x27;modified_frames&#x27;:sum(not x[&#x27;allowed&#x27;] for x in ctx.admissions)+sum(x[&#x27;eligible&#x27;] for x in ctx.events),&#x27;direction_writer&#x27;:False,&#x27;target_loaded&#x27;:False,&#x27;winner_loaded&#x27;:False,&#x27;original_exit_code&#x27;:exitcode,&#x27;baseline_manifest_sha256&#x27;:sha(BASE/&#x27;manifest.json&#x27;)}
+452	        from collections import Counter
+453	        r[&#x27;qualified_restoration&#x27;]={&#x27;variant&#x27;:a.variant,&#x27;first&#x27;:ctx.first,&#x27;proposal_reasons&#x27;:dict(Counter(x[&#x27;reason&#x27;] for x in ctx.events)),&#x27;new_qualified_active&#x27;:sum(x[&#x27;eligible&#x27;] for x in ctx.events),&#x27;blocked_strong&#x27;:sum(not x[&#x27;allowed&#x27;] and x[&#x27;side&#x27;]==module.roles.strong for x in ctx.admissions),&#x27;blocked_weak&#x27;:sum(not x[&#x27;allowed&#x27;] and x[&#x27;side&#x27;]==module.roles.weak for x in ctx.admissions),&#x27;peak_G&#x27;:ctx.peak,&#x27;checks&#x27;:checks,&#x27;trace_sha256&#x27;:sha(out/&#x27;restoration_trace.json.gz&#x27;),&#x27;held_amplitude_and_side_unchanged&#x27;:True,&#x27;original_combined_active_cap_retained&#x27;:True}
+454	        r[&#x27;qualified_restoration&#x27;].update(preparation=ctx.prepare,first_actual_active=ctx.first_active,preparation_cancel_requests=len(ctx.cancel_requests),shared_active_scope_blocks=ctx.scope_blocks)
+455	        if LCR_PX is not None:r[&#x27;v12g_lcr&#x27;]=dict(px=LCR_PX,start_s=LCR_START_S,stop_s=LCR_STOP_S,every_s=LCR_EVERY_S,qty=LCR_QTY,**{k:v for k,v in V12G_LCR.items() if k not in (&#x27;last_t&#x27;,&#x27;qty&#x27;)},ordered_qty=V12G_LCR[&#x27;qty&#x27;])
+456	        if FLIPCAP is not None:r[&#x27;v12g_flipcap&#x27;]=dict(cap=FLIPCAP,**V12G_FLIPCAP)
+457	        if LEANCAP is not None:r[&#x27;v12g_leancap&#x27;]=dict(cap=LEANCAP,**V12G_LEANCAP)
+458	        if ADDCAP is not None:r[&#x27;v12g_addcap&#x27;]=dict(cap=ADDCAP,frm=ADDCAP_FROM,**V12G_ADDCAP)
+459	        if PACE is not None:r[&#x27;v12g_pace&#x27;]=dict(cap=PACE,**V12G_PACE)
+460	        if DEFENSE:r[&#x27;v12g_defense&#x27;]=dict(V12G_DEF)
+461	        if QUEUE is not None:r[&#x27;v12g_queue&#x27;]=dict(model=QUEUE,calls=V12G_Q[&#x27;calls&#x27;],orig=V12G_Q[&#x27;orig&#x27;][:5],latency=V12G_Q[&#x27;latency&#x27;][:5])
+462	        if AR_TRIGGER:r[&#x27;v12g_ar3&#x27;]={k:v for k,v in V12G_AR3.items() if k!=&#x27;last_H&#x27;}
+463	        if PLEAN is not None:r[&#x27;v12g_plean&#x27;]=dict(k=PLEAN,**V12G_PL)
+464	        if DRIVER:r[&#x27;v12g_driver&#x27;]={k:v for k,v in V12G_DRV.items() if k!=&#x27;keys&#x27;}
+465	        if WBUDGET is not None:r[&#x27;v12g_wbudget&#x27;]=dict(budget=WBUDGET,**V12G_WB)
+466	        if ADDGAP is not None:r[&#x27;v12g_addgap&#x27;]=dict(gap_s=ADDGAP,vetoes=V12G_ADDGAP[&#x27;vetoes&#x27;],allowed=V12G_ADDGAP[&#x27;allowed&#x27;])
+467	        if AREP_PX is not None:r[&#x27;v12g_arep&#x27;]=dict(px=AREP_PX,rise=AREP_RISE,win_s=AREP_WIN_S,orders=V12G_AREP[&#x27;orders&#x27;],rejected=V12G_AREP[&#x27;rejected&#x27;],crossing_skips=V12G_AREP[&#x27;crossing_skips&#x27;],events=V12G_AREP[&#x27;events&#x27;])
+468	        if PADD_PX is not None or PREP_PX is not None:r[&#x27;v12g_pay&#x27;]=dict(padd_px=PADD_PX,prep_px=PREP_PX,pay_qty=PAY_QTY,every_s=PAY_EVERY_S,stop_s=PAY_STOP_S,orders=V12G_PAY[&#x27;orders&#x27;],ordered_qty=V12G_PAY[&#x27;ordered_qty&#x27;],rejected=V12G_PAY[&#x27;rejected&#x27;],crossing_skips=V12G_PAY[&#x27;crossing_skips&#x27;],events=V12G_PAY[&#x27;events&#x27;])
+469	        if BURST_RISE is not None:r[&#x27;v12g_burst&#x27;]=dict(rise=BURST_RISE,win_s=BURST_WIN_S,hold_s=BURST_HOLD_S,gap=BURST_GAP,starts=V12G_BURST[&#x27;starts&#x27;],ends_time=V12G_BURST[&#x27;ends_time&#x27;],ends_gap=V12G_BURST[&#x27;ends_gap&#x27;],events=V12G_BURST[&#x27;events&#x27;][:400],n_events=len(V12G_BURST[&#x27;events&#x27;]))
+470	        if FALL_DROP is not None:r[&#x27;v12g_fall&#x27;]=dict(drop=FALL_DROP,win_s=FALL_WIN_S,pause_s=FALL_PAUSE_S,**V12G_FALL)
+471	        if GROSS is not None:r[&#x27;v12g&#x27;]=dict(gross=GROSS,fallback_s=FALLBACK_S,flip_delta=FLIP_DELTA,neutral_delta=NEUTRAL_DELTA,events=getattr(module.roles,&#x27;v12g_events&#x27;,[]),final_side=module.roles.side)
+472	        rp.write_text(json.dumps(r,indent=2),encoding=&#x27;utf-8&#x27;)
+473	        print(json.dumps({&#x27;status&#x27;:&#x27;COMPLETE&#x27;,&#x27;variant&#x27;:a.variant,&#x27;activated&#x27;:ctx.first is not None,&#x27;new_qualified_active&#x27;:r[&#x27;qualified_restoration&#x27;][&#x27;new_qualified_active&#x27;],&#x27;original_safety&#x27;:r[&#x27;safety_gate&#x27;][&#x27;pass&#x27;]}),flush=True)
+474	if exitcode:raise SystemExit(exitcode)
+475	</pre></details></article><article><h2>31 · Claude</h2><small>2026-09-26T19:06:20.504Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\overlay\\economics.py&quot;
+}</pre></details></article><article><h2>32 · 工具結果</h2><small>2026-09-26T19:06:20.521Z</small><details><summary>工具回傳內容</summary><pre>1	&quot;&quot;&quot;Payoff-geometric restoration and unresolved-order accounting. No prediction labels.&quot;&quot;&quot;
+2	import math,os
+3	EPS=1e-8
+4	# V12x experiment: only these two constants are parameterised (defaults = original V12).
+5	K=float(os.environ.get(&#x27;V12X_K&#x27;,&#x27;2&#x27;))
+6	RETAIN=float(os.environ.get(&#x27;V12X_RETAIN&#x27;,&#x27;.5&#x27;))
+7	# V12g active-repair experiment (inactive unless V12G_AR is set): OPEN = restore partially when the full ratio target is
+8	# unaffordable; DP = target the weak branch back to &gt;= 0 (both branches positive), funded down to the strong-branch floor, no parity cap.
+9	AR=os.environ.get(&#x27;V12G_AR&#x27;) or None
+10	assert AR in (None,&#x27;OPEN&#x27;,&#x27;DP&#x27;),AR
+11	
+12	def with_plan(state,operations):
+13	    out={**state,&#x27;pending_qty&#x27;:dict(state[&#x27;pending_qty&#x27;]),&#x27;pending_cash&#x27;:dict(state[&#x27;pending_cash&#x27;]),&#x27;owners&#x27;:[dict(x) for x in state[&#x27;owners&#x27;]]}
+14	    known={x[&#x27;key&#x27;] for x in out[&#x27;owners&#x27;]}
+15	    for op in operations:
+16	        if op[&#x27;kind&#x27;]!=&#x27;NEW&#x27;:continue
+17	        assert op[&#x27;key&#x27;] not in known,&#x27;Do not double-count plan reservations&#x27;
+18	        known.add(op[&#x27;key&#x27;]);side=op[&#x27;side&#x27;];q=float(op[&#x27;qty&#x27;]);p=float(op[&#x27;price&#x27;])
+19	        out[&#x27;pending_qty&#x27;][side]+=q;out[&#x27;pending_cash&#x27;][side]+=q*p
+20	        out[&#x27;owners&#x27;].append({&#x27;key&#x27;:op[&#x27;key&#x27;],&#x27;side&#x27;:side,&#x27;qty&#x27;:q,&#x27;limit&#x27;:p,&#x27;state&#x27;:&#x27;SAME_PLAN_UNCONFIRMED&#x27;})
+21	    # CANCEL requests deliberately do not release anything.
+22	    return out
+23	
+24	def geometry(state,strong):
+25	    weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;;g=float(state[&#x27;payoff&#x27;][strong]);h=float(state[&#x27;payoff&#x27;][weak])
+26	    margin=g+K*h;penalty=0.
+27	    for owner in state[&#x27;owners&#x27;]:
+28	        weight=1. if owner[&#x27;side&#x27;]==strong else K
+29	        penalty+=min(0.,float(owner[&#x27;qty&#x27;])*(weight-(K+1)*float(owner[&#x27;limit&#x27;])))
+30	    return {&#x27;G&#x27;:g,&#x27;H&#x27;:h,&#x27;margin&#x27;:margin,&#x27;worst_margin&#x27;:margin+penalty,&#x27;negative_pending_margin&#x27;:penalty,
+31	            &#x27;worst_G&#x27;:g-float(state[&#x27;pending_cash&#x27;][weak]),&#x27;weak_pending_cash&#x27;:float(state[&#x27;pending_cash&#x27;][weak]),
+32	            &#x27;net_unreserved&#x27;:max(0.,float(state[&#x27;inv&#x27;][strong])-float(state[&#x27;inv&#x27;][weak])-float(state[&#x27;pending_qty&#x27;][weak]))}
+33	
+34	def proposal(state,strong,ask,depth,peak,step=.01):
+35	    x=geometry(state,strong);row={**x,&#x27;eligible&#x27;:False,&#x27;price&#x27;:ask,&#x27;visible_depth&#x27;:depth,&#x27;peak_G&#x27;:peak,&#x27;retained_G_floor&#x27;:RETAIN*peak,&#x27;target_ratio&#x27;:K}
+36	    if ask is None or not 0&lt;float(ask)&lt;1 or depth&lt;=0:return {**row,&#x27;reason&#x27;:&#x27;NO_VALID_BOOK&#x27;}
+37	    p=float(ask);slope=K-(K+1)*p;debt=max(0.,-x[&#x27;worst_margin&#x27;])
+38	    if AR==&#x27;DP&#x27;:
+39	        if x[&#x27;G&#x27;]&lt;=0 or x[&#x27;H&#x27;]&gt;=0:return {**row,&#x27;reason&#x27;:&#x27;NO_RESTORABLE_NEGATIVE_BRANCH&#x27;}
+40	        needed=max(debt/slope if slope&gt;EPS else 0.,-x[&#x27;H&#x27;]/(1.-p));cash_capacity=max(0.,x[&#x27;worst_G&#x27;]-RETAIN*peak)/p;total_cap=cash_capacity
+41	    else:
+42	        if x[&#x27;G&#x27;]&lt;=0 or x[&#x27;H&#x27;]&gt;=0 or debt&lt;=EPS:return {**row,&#x27;reason&#x27;:&#x27;NO_RESTORABLE_NEGATIVE_BRANCH&#x27;}
+43	        if slope&lt;=EPS:return {**row,&#x27;reason&#x27;:&#x27;REPAIR_PRICE_CANNOT_IMPROVE_TARGET_RATIO&#x27;}
+44	        needed=debt/slope;cash_capacity=max(0.,x[&#x27;worst_G&#x27;]-RETAIN*peak)/p
+45	        total_cap=min(cash_capacity,x[&#x27;net_unreserved&#x27;])
+46	    row.update(needed_qty=needed,full_target_cost=needed*p,cash_capacity=cash_capacity,total_cap=total_cap,slope=slope,ar_mode=AR)
+47	    if needed&gt;total_cap+EPS:
+48	        if AR is None:return {**row,&#x27;reason&#x27;:&#x27;FULL_RESTORATION_NOT_AFFORDABLE&#x27;}
+49	        row[&#x27;partial&#x27;]=True
+50	    quantity=max(0.,round(math.floor((min(needed,depth,total_cap)+1e-9)/step)*step,8))
+51	    if quantity&lt;=EPS or quantity*p&lt;1.-EPS:return {**row,&#x27;reason&#x27;:&#x27;BELOW_LEGAL_ACTIVE_MINIMUM&#x27;,&#x27;quantity&#x27;:quantity}
+52	    return {**row,&#x27;eligible&#x27;:True,&#x27;reason&#x27;:&#x27;QUALIFIED_RESTORATION_OPPORTUNITY&#x27;,&#x27;quantity&#x27;:quantity,&#x27;quoted_cost&#x27;:quantity*p,
+53	            &#x27;after_G_if_filled&#x27;:x[&#x27;G&#x27;]-quantity*p,&#x27;after_H_if_filled&#x27;:x[&#x27;H&#x27;]+quantity*(1-p),
+54	            &#x27;depth_limited&#x27;:quantity&lt;needed-step,&#x27;not_a_fill&#x27;:True}
+55	
+56	def admission(state,strong,side,price,quantity,peak,joint):
+57	    x=geometry(state,strong);q=float(quantity);p=float(price);weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;
+58	    delta=q*((1. if side==strong else K)-(K+1)*p)
+59	    margin_ok=x[&#x27;worst_margin&#x27;]+delta&gt;=min(0.,x[&#x27;worst_margin&#x27;])-EPS
+60	    reserve_ok=side==strong or x[&#x27;worst_G&#x27;]-p*q&gt;=RETAIN*peak-EPS
+61	    allowed=(reserve_ok and margin_ok) if side==weak else (margin_ok if joint else True)
+62	    return {&#x27;allowed&#x27;:allowed,&#x27;side&#x27;:side,&#x27;price&#x27;:p,&#x27;quantity&#x27;:q,&#x27;delta_margin&#x27;:delta,&#x27;margin_ok&#x27;:margin_ok,&#x27;reserve_ok&#x27;:reserve_ok,&#x27;peak_G&#x27;:peak,**x}
+63	
+64	def self_test():
+65	    # Original fixtures assume the original constants: test them under K=2, RETAIN=.5, then restore.
+66	    global K,RETAIN,AR
+67	    saved=(K,RETAIN,AR);K,RETAIN,AR=2.,.5,None
+68	    try:return _self_test()
+69	    finally:K,RETAIN,AR=saved
+70	
+71	def _self_test():
+72	    checks=[]
+73	    for strong in [&#x27;UP&#x27;,&#x27;DOWN&#x27;]:
+74	        weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;
+75	        s={&#x27;inv&#x27;:{strong:660.,weak:126.},&#x27;payoff&#x27;:{strong:160.,weak:-374.},&#x27;pending_qty&#x27;:{strong:0.,weak:0.},&#x27;pending_cash&#x27;:{strong:0.,weak:0.},&#x27;owners&#x27;:[]}
+76	        p=proposal(s,strong,.12,1000.,225.)
+77	        assert p[&#x27;eligible&#x27;] and p[&#x27;quoted_cost&#x27;]&lt;=47.5+EPS and p[&#x27;after_G_if_filled&#x27;]&gt;=112.5-EPS;checks.append(strong+&#x27;_feasible_repair&#x27;)
+78	        assert not proposal(s,strong,.99,1000.,225.)[&#x27;eligible&#x27;];checks.append(strong+&#x27;_costly_repair_rejected&#x27;)
+79	        assert not proposal(s,strong,.30,1000.,225.)[&#x27;eligible&#x27;];checks.append(strong+&#x27;_unaffordable_full_target_rejected&#x27;)
+80	        limited=proposal(s,strong,.12,20.,225.);assert limited[&#x27;eligible&#x27;] and limited[&#x27;depth_limited&#x27;] and limited[&#x27;quantity&#x27;]==20.;checks.append(strong+&#x27;_visible_depth&#x27;)
+81	        assert not proposal(s,strong,.12,2.,225.)[&#x27;eligible&#x27;];checks.append(strong+&#x27;_minimum_notional&#x27;)
+82	        pending=with_plan(s,[{&#x27;kind&#x27;:&#x27;NEW&#x27;,&#x27;key&#x27;:&#x27;a&#x27;,&#x27;side&#x27;:strong,&#x27;qty&#x27;:15.,&#x27;price&#x27;:.8}])
+83	        assert geometry(pending,strong)[&#x27;worst_margin&#x27;]&lt;geometry(s,strong)[&#x27;worst_margin&#x27;];checks.append(strong+&#x27;_pending_risk&#x27;)
+84	        assert with_plan(pending,[{&#x27;kind&#x27;:&#x27;CANCEL&#x27;,&#x27;key&#x27;:&#x27;a&#x27;}])==pending;checks.append(strong+&#x27;_cancel_no_release&#x27;)
+85	        repaired={**s,&#x27;payoff&#x27;:{strong:120.,weak:-60.}}
+86	        assert not admission(repaired,strong,strong,.7,15.,225.,True)[&#x27;allowed&#x27;];checks.append(strong+&#x27;_no_reborrow&#x27;)
+87	        assert admission(repaired,strong,strong,.2,15.,225.,True)[&#x27;allowed&#x27;];checks.append(strong+&#x27;_productive_add_allowed&#x27;)
+88	        assert admission(repaired,strong,strong,.7,15.,225.,False)[&#x27;allowed&#x27;];checks.append(strong+&#x27;_repair_only_control&#x27;)
+89	        assert not admission(repaired,strong,weak,.99,15.,225.,True)[&#x27;allowed&#x27;];checks.append(strong+&#x27;_reserve_not_destroyed&#x27;)
+90	        profitable_pending=with_plan(repaired,[{&#x27;kind&#x27;:&#x27;NEW&#x27;,&#x27;key&#x27;:&#x27;w&#x27;,&#x27;side&#x27;:weak,&#x27;qty&#x27;:15.,&#x27;price&#x27;:.2}])
+91	        assert geometry(profitable_pending,strong)[&#x27;worst_margin&#x27;]==geometry(repaired,strong)[&#x27;worst_margin&#x27;];checks.append(strong+&#x27;_unfilled_repair_no_credit&#x27;)
+92	    return {&#x27;status&#x27;:&#x27;PASS&#x27;,&#x27;checks&#x27;:len(checks),&#x27;names&#x27;:checks,&#x27;direction_writer&#x27;:False,&#x27;future_data&#x27;:False,&#x27;fixed_time_trigger&#x27;:False}
+93	
+94	if __name__==&#x27;__main__&#x27;:
+95	    import json
+96	    print(json.dumps(self_test()))
+97	</pre></details></article><article><h2>33 · Claude</h2><small>2026-09-26T19:06:32.719Z</small><details><summary>工具：Grep</summary><pre>{
+  &quot;pattern&quot;: &quot;def (strong|weak|weak_bid_book)|strong=|self\\.strong&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_20260927_v24&quot;,
+  &quot;output_mode&quot;: &quot;content&quot;,
+  &quot;glob&quot;: &quot;**/*.py&quot;
+}</pre></details></article><article><h2>34 · 工具結果</h2><small>2026-09-26T19:06:32.840Z</small><details><summary>工具回傳內容</summary><pre>data\research\v12g_fresh30_20260927_v24\overlay\economics.py:21:    weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;;g=float(state[&#x27;payoff&#x27;][strong]);h=float(state[&#x27;payoff&#x27;][weak])
+data\research\v12g_fresh30_20260927_v24\overlay\economics.py:47:    x=geometry(state,strong);q=float(quantity);p=float(price);weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;
+data\research\v12g_fresh30_20260927_v24\overlay\economics.py:64:        weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;
+data\research\v12g_fresh30_20260927_v24\base\addition_growth.py:7:    weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;
+data\research\v12g_fresh30_20260927_v24\base\addition_growth.py:13:    def __init__(self,strong=&#x27;UP&#x27;):
+data\research\v12g_fresh30_20260927_v24\base\addition_growth.py:15:        self.strong=strong;self.anchor=None;self.rows=[]
+data\research\v12g_fresh30_20260927_v24\base\addition_growth.py:18:        strong=self.strong;weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;
+data\research\v12g_fresh30_20260927_v24\base\addition_growth.py:26:        row=dict(t=int(t),strong=strong,inv=dict(inv),cost=float(cost),original_desired=dict(desired),
+data\research\v12g_fresh30_20260927_v24\base\addition_growth.py:31:        if self.anchor is None:self.strong=roles.strong
+data\research\v12g_fresh30_20260927_v24\base\depth_slippage.py:113:    return dict(weak=weak, strong=strong,
+data\research\v12g_fresh30_20260927_v24\base\dual_opening.py:90:        self.strong=strong;self.weak=&#x27;DOWN&#x27; if strong==&#x27;UP&#x27; else &#x27;UP&#x27;;self.roles=roles
+data\research\v12g_fresh30_20260927_v24\base\dual_opening.py:94:        with physical_role_scope(self.roles,self.strong):out=self.goal.update(state,t,end)
+data\research\v12g_fresh30_20260927_v24\base\dual_opening.py:95:        return dict(out,physical_strong=self.strong,physical_repair_side=self.weak)
+data\research\v12g_fresh30_20260927_v24\base\dual_opening.py:100:        if selected_side!=self.strong:return dict(original)
+data\research\v12g_fresh30_20260927_v24\base\dual_opening.py:101:        with physical_role_scope(self.roles,self.strong):return self.goal.desired(original)
+data\research\v12g_fresh30_20260927_v24\base\dual_opening.py:130:        self.rows.append(dict(t=t,strong=selected,record=deepcopy(controller.rows[-1])))
+data\research\v12g_fresh30_20260927_v24\base\failure_add_admission.py:45:        new=self._observe_terminal(frame,ledger);strong=roles.strong;weak=roles.weak;inv=frame[&#x27;own_view&#x27;][&#x27;inv&#x27;];cost=float(frame[&#x27;own_view&#x27;][&#x27;cost&#x27;])
+data\research\v12g_fresh30_20260927_v24\base\failure_add_admission.py:79:        sign=1. if strong==&#x27;UP&#x27; else -1.
+data\research\v12g_fresh30_20260927_v24\base\failure_add_admission.py:109:[Omitted long matching line]
+data\research\v12g_fresh30_20260927_v24\base\growth_hold.py:20:            initial=growth[&#x27;anchor&#x27;][&#x27;original_strong_desired&#x27;];strong=growth[&#x27;strong&#x27;]
+data\research\v12g_fresh30_20260927_v24\base\tail_new.py:24:            start=int(frame[&#x27;start&#x27;]), end=int(frame[&#x27;end&#x27;]), strong=roles.side,
+data\research\v12g_fresh30_20260927_v24\base\roles_runtime.py:17:    def strong(self):
+data\research\v12g_fresh30_20260927_v24\base\roles_runtime.py:22:    def weak(self):
+data\research\v12g_fresh30_20260927_v24\base\roles_runtime.py:23:        return &#x27;DOWN&#x27; if self.strong == &#x27;UP&#x27; else &#x27;UP&#x27;
+data\research\v12g_fresh30_20260927_v24\base\roles_runtime.py:41:        if values is None or self.strong == &#x27;UP&#x27;:
+data\research\v12g_fresh30_20260927_v24\base\roles_runtime.py:49:    def weak_bid_book(self, frame):</pre></details></article><article><h2>35 · Claude</h2><small>2026-09-26T19:06:35.302Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_20260927_v24\\base\\roles_runtime.py&quot;
+}</pre></details></article><article><h2>36 · 工具結果</h2><small>2026-09-26T19:06:35.314Z</small><details><summary>工具回傳內容</summary><pre>1	&quot;&quot;&quot;Physical side roles for the frozen V32 structural transfer, no market labels.&quot;&quot;&quot;
+2	import ast
+3	
+4	
+5	class Roles:
+6	    def __init__(self):
+7	        self.configure(&#x27;NO_DIRECTION&#x27;, None)
+8	
+9	    def configure(self, mode, side):
+10	        assert mode in (&#x27;KNOWN_FINAL_DIRECTION&#x27;, &#x27;NO_DIRECTION&#x27;)
+11	        assert side in (&#x27;UP&#x27;, &#x27;DOWN&#x27;) if mode == &#x27;KNOWN_FINAL_DIRECTION&#x27; else side is None
+12	        self.mode, self.side = mode, side
+13	        self.birth = None
+14	        self.rows = []
+15	
+16	    @property
+17	    def strong(self):
+18	        # Neutral bootstrap uses the original physical ordering until OUR fills select a side.
+19	        return self.side or &#x27;UP&#x27;
+20	
+21	    @property
+22	    def weak(self):
+23	        return &#x27;DOWN&#x27; if self.strong == &#x27;UP&#x27; else &#x27;UP&#x27;
+24	
+25	    @staticmethod
+26	    def pid(side):
+27	        assert side in (&#x27;UP&#x27;, &#x27;DOWN&#x27;)
+28	        return 1 if side == &#x27;UP&#x27; else 2
+29	
+30	    def observe(self, frame):
+31	        inv = frame[&#x27;own_view&#x27;][&#x27;inv&#x27;]
+32	        if self.side is None and abs(inv[&#x27;UP&#x27;] - inv[&#x27;DOWN&#x27;]) &gt; 1e-8:
+33	            self.side = &#x27;UP&#x27; if inv[&#x27;UP&#x27;] &gt; inv[&#x27;DOWN&#x27;] else &#x27;DOWN&#x27;
+34	        if self.side is not None and self.birth is None:
+35	            self.birth = dict(t=frame[&#x27;t&#x27;], index=frame[&#x27;index&#x27;], side=self.side, inv=dict(inv),
+36	                provenance=(&#x27;OFFLINE_FINAL_NET_DIRECTION_CONDITION&#x27; if self.mode == &#x27;KNOWN_FINAL_DIRECTION&#x27;
+37	                            else &#x27;FIRST_CONFIRMED_OWN_NET&#x27;))
+38	        self.rows.append(dict(t=frame[&#x27;t&#x27;], index=frame[&#x27;index&#x27;], side=self.side, inv=dict(inv)))
+39	
+40	    def features(self, values):
+41	        if values is None or self.strong == &#x27;UP&#x27;:
+42	            return values
+43	        x = dict(values)
+44	        x.update(up_bid=round(1. - values[&#x27;up_ask&#x27;], 10), up_ask=round(1. - values[&#x27;up_bid&#x27;], 10),
+45	                 mid=1. - values[&#x27;mid&#x27;], depth_imbalance=-values[&#x27;depth_imbalance&#x27;],
+46	                 own_net=-values[&#x27;own_net&#x27;], up_qty=values[&#x27;down_qty&#x27;], down_qty=values[&#x27;up_qty&#x27;])
+47	        return x
+48	
+49	    def weak_bid_book(self, frame):
+50	        book = frame[&#x27;book&#x27;]
+51	        return book[&#x27;bids&#x27;] if self.weak == &#x27;DOWN&#x27; else {round(1. - p, 10): q for p, q in book[&#x27;asks&#x27;].items()}
+52	
+53	
+54	roles = Roles()
+55	
+56	
+57	def role_expr(side):
+58	    return ast.Attribute(ast.Name(&#x27;roles&#x27;, ast.Load()), &#x27;strong&#x27; if side == &#x27;UP&#x27; else &#x27;weak&#x27;, ast.Load())
+59	
+60	
+61	def pid_expr(side):
+62	    return ast.Call(ast.Attribute(ast.Name(&#x27;roles&#x27;, ast.Load()), &#x27;pid&#x27;, ast.Load()), [role_expr(side)], [])
+63	
+64	
+65	class SideBindings(ast.NodeTransformer):
+66	    &quot;&quot;&quot;Bind economic side references; never rewrite native side encodings or receipt prices.&quot;&quot;&quot;
+67	    def visit_FunctionDef(self, node):
+68	        if node.name == &#x27;instrument&#x27;:
+69	            return node
+70	        return self.generic_visit(node)
+71	
+72	    def visit_Constant(self, node):
+73	        if node.value in (&#x27;UP&#x27;, &#x27;DOWN&#x27;):
+74	            return ast.copy_location(role_expr(node.value), node)
+75	        return node
+76	
+77	    def visit_Tuple(self, node):
+78	        if len(node.elts) == 2 and isinstance(node.elts[0], ast.Constant) and isinstance(node.elts[1], ast.Constant):
+79	            number, side = node.elts[0].value, node.elts[1].value
+80	            if (number, side) in ((1, &#x27;UP&#x27;), (2, &#x27;DOWN&#x27;)):
+81	                return ast.copy_location(ast.Tuple([pid_expr(side), role_expr(side)], node.ctx), node)
+82	        return self.generic_visit(node)
+83	
+84	    def visit_Dict(self, node):
+85	        # Physical grant identities remain UP=1 and DOWN=2 under either orientation.
+86	        if len(node.keys) == 2 and all(isinstance(x, ast.Constant) for x in node.keys + node.values):
+87	            pairs = [(k.value, v.value) for k, v in zip(node.keys, node.values)]
+88	            if pairs == [(&#x27;UP&#x27;, 1), (&#x27;DOWN&#x27;, 2)]:
+89	                return ast.copy_location(ast.Dict([role_expr(k) for k, _ in pairs], [pid_expr(k) for k, _ in pairs]), node)
+90	        return self.generic_visit(node)
+91	
+92	    def visit_JoinedStr(self, node):
+93	        values = []
+94	        for x in node.values:
+95	            if isinstance(x, ast.Constant) and x.value in (&#x27;UP_&#x27;, &#x27;DOWN_&#x27;):
+96	                values += [ast.FormattedValue(role_expr(x.value[:-1]), -1), ast.Constant(&#x27;_&#x27;)]
+97	            else:
+98	                values.append(self.visit(x))
+99	        return ast.copy_location(ast.JoinedStr(values), node)
+100	
+101	    def visit_Call(self, node):
+102	        if isinstance(node.func, ast.Attribute) and node.func.attr == &#x27;process_batch&#x27;:
+103	            # Atomic ledger retains physical UP/DOWN throughout direction discovery.
+104	            return node
+105	        self.generic_visit(node)
+106	        for k in node.keywords:
+107	            if k.arg in (&#x27;UP&#x27;, &#x27;DOWN&#x27;):
+108	                side = k.arg
+109	                k.arg, k.value = None, ast.Dict([role_expr(side)], [k.value])
+110	            elif k.arg == &#x27;parent_id&#x27; and isinstance(k.value, ast.Constant) and k.value.value == 2:
+111	                k.value = pid_expr(&#x27;DOWN&#x27;)
+112	        return node
+113	
+114	
+115	def transform_module(source):
+116	    tree = SideBindings().visit(ast.parse(source))
+117	    tree.body.insert(0, ast.ImportFrom(&#x27;roles_runtime&#x27;, [ast.alias(&#x27;roles&#x27;)], 0))
+118	    return ast.unparse(ast.fix_missing_locations(tree)) + &#x27;\n&#x27;
+119	
+120	
+121	def transform_policy(source):
+122	    tree = ast.parse(source)
+123	    class OnlyPolicy(ast.NodeTransformer):
+124	        def visit_ClassDef(self, node):
+125	            return SideBindings().visit(node) if node.name == &#x27;Policy&#x27; else node
+126	    tree = OnlyPolicy().visit(tree)
+127	    return ast.unparse(ast.fix_missing_locations(tree)) + &#x27;\n&#x27;
+128	
+129	
+130	def self_test():
+131	    for side in (&#x27;UP&#x27;, &#x27;DOWN&#x27;):
+132	        r = Roles(); r.configure(&#x27;KNOWN_FINAL_DIRECTION&#x27;, side)
+133	        assert r.pid(r.strong) != r.pid(r.weak)
+134	        f = dict(t=1,index=1,own_view=dict(inv=dict(UP=0.,DOWN=0.)), book=dict(bids={.9: 20},asks={.92: 30}))
+135	        r.observe(f); assert r.side == side
+136	        assert r.weak_bid_book(f) == ({.9:20} if side == &#x27;UP&#x27; else {.08:30})
+137	    r = Roles()
+138	    for t,u,d in [(1,0,0),(2,0,0),(3,0,15),(4,15,15),(5,30,15)]:
+139	        r.observe(dict(t=t,index=t,own_view=dict(inv=dict(UP=u,DOWN=d))))
+140	    assert r.side == &#x27;DOWN&#x27; and r.birth[&#x27;t&#x27;] == 3
+141	    try: r.configure(&#x27;NO_DIRECTION&#x27;, &#x27;UP&#x27;)
+142	    except AssertionError: pass
+143	    else: raise AssertionError(&#x27;NO_DIRECTION accepted label&#x27;)
+144	    return dict(status=&#x27;PASS&#x27;, physical_parent_identity=True, pending_not_relabelled=True,
+145	                no_direction_target_rejected=True, first_confirmed_side_retained=True)
+146	
+147	
+148	if __name__ == &#x27;__main__&#x27;:
+149	    print(self_test())
+150	</pre></details></article><article><h2>37 · Claude</h2><small>2026-09-26T19:06:37.184Z</small><details><summary>工具：Grep</summary><pre>{
+  &quot;pattern&quot;: &quot;def snapshot&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_20260927_v24\\base&quot;,
+  &quot;output_mode&quot;: &quot;content&quot;,
+  &quot;-A&quot;: 25
+}</pre></details></article><article><h2>38 · 工具結果</h2><small>2026-09-26T19:06:37.308Z</small><details><summary>工具回傳內容</summary><pre>data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py:6:def snapshot(frame, ledger):
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-7-    inv = {s: float(frame[&#x27;own_view&#x27;][&#x27;inv&#x27;][s]) for s in (roles.strong, roles.weak)}
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-8-    cost = float(frame[&#x27;own_view&#x27;][&#x27;cost&#x27;])
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-9-    qty = {roles.strong: 0.0, roles.weak: 0.0}
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-10-    cash = dict(qty)
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-11-    owners = []
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-12-    for k, c in ledger.carriers.items():
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-13-        if c.state == &#x27;TERMINAL&#x27;:
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-14-            continue
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-15-        assert c.route in (&#x27;PASSIVE&#x27;, &#x27;ACTIVE&#x27;) and c.fee_cap == 0.0, &#x27;panel requires the frozen zero-fee mixed-route reservation contract&#x27;
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-16-        side = ledger.grants[c.parent_id].side
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-17-        rem = max(0.0, float(c.qty) - float(c.filled))
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-18-        qty[side] += rem
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-19-        cash[side] += rem * float(c.limit)
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-20-        owners.append(dict(key=k, side=side, state=c.state, qty=rem, limit=float(c.limit)))
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-21-    return dict(inv=inv, cost=cost, payoff={s: inv[s] - cost for s in inv}, pending_qty=qty, pending_cash=cash, owners=owners)
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-22-
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-23-def capacity(state, side, price, requested, mode):
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-24-    if mode == &#x27;INERT&#x27;:
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-25-        return (requested, dict(reason=&#x27;INERT&#x27;))
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-26-    if side == roles.strong:
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-27-        return (0.0, dict(reason=&#x27;FIX_NEW_UP_ADMISSION_OFF&#x27;))
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-28-    inv = state[&#x27;inv&#x27;]
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-29-    pending = state[&#x27;pending_qty&#x27;]
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-30-    cash = state[&#x27;pending_cash&#x27;]
+data\research\v12g_fresh30_20260927_v24\base\isolated_gate.py-31-    quantity_need = max(0.0, inv[roles.strong] - inv[roles.weak] - pending[roles.weak])</pre></details></article><article><h2>39 · Claude</h2><small>2026-09-26T19:06:40.435Z</small><details><summary>工具：Grep</summary><pre>{
+  &quot;pattern&quot;: &quot;snapshot&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_20260927_v24\\base&quot;,
+  &quot;output_mode&quot;: &quot;content&quot;,
+  &quot;glob&quot;: &quot;payoff_repair_gate*.py&quot;
+}</pre></details></article><article><h2>40 · 工具結果</h2><small>2026-09-26T19:06:40.551Z</small><details><summary>工具回傳內容</summary><pre>No matches found</pre></details></article><article><h2>41 · Claude</h2><small>2026-09-26T19:06:43.000Z</small><details><summary>工具：Grep</summary><pre>{
+  &quot;pattern&quot;: &quot;payoff_repair_gate&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_20260927_v24\\base&quot;,
+  &quot;output_mode&quot;: &quot;content&quot;
+}</pre></details></article><article><h2>42 · 工具結果</h2><small>2026-09-26T19:06:43.112Z</small><details><summary>工具回傳內容</summary><pre>data\research\v12g_fresh30_20260927_v24\base\money_gate.py:8:    _path = Path(__file__).with_name(&#x27;btc5m_payoff_repair_gate_v1.py&#x27;)
+data\research\v12g_fresh30_20260927_v24\base\parallel_gate.py:8:    _path = Path(__file__).with_name(&#x27;btc5m_payoff_repair_gate_v1.py&#x27;)
+data\research\v12g_fresh30_20260927_v24\base\money_runner.py:83:    gate=load(&#x27;payoff_repair_gate&#x27;,package/&#x27;money_gate.py&#x27;);gate.self_test()</pre></details></article><article><h2>43 · Claude</h2><small>2026-09-26T19:06:45.398Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_20260927_v24\\base\\money_gate.py&quot;
+}</pre></details></article><article><h2>44 · 工具結果</h2><small>2026-09-26T19:06:45.417Z</small><details><summary>工具回傳內容</summary><pre>1	from roles_runtime import roles
+2	&#x27;Offline fixed-UP parallel capacity diagnostic; no Target price/timing inputs.&#x27;
+3	import importlib.util
+4	import math
+5	from pathlib import Path
+6	_path = Path(__file__).with_name(&#x27;isolated_gate.py&#x27;)
+7	if not _path.exists():
+8	    _path = Path(__file__).with_name(&#x27;btc5m_payoff_repair_gate_v1.py&#x27;)
+9	_spec = importlib.util.spec_from_file_location(&#x27;isolated_payoff_reference&#x27;, _path)
+10	old = importlib.util.module_from_spec(_spec)
+11	_spec.loader.exec_module(old)
+12	MODES = (&#x27;INERT&#x27;, &#x27;PARALLEL_QUANTITY&#x27;, &#x27;PARALLEL_PAYOFF_ZERO&#x27;)
+13	instrument = old.instrument
+14	snapshot = old.snapshot
+15	
+16	def capacity(state, side, price, requested, mode):
+17	    assert mode in MODES
+18	    if mode == &#x27;INERT&#x27;:
+19	        return old.capacity(state, side, price, requested, mode)
+20	    if side == roles.strong:
+21	        return (requested, dict(reason=&#x27;PRESERVE_FROZEN_NEW_UP_CANDIDATE&#x27;))
+22	    translated = &#x27;ISOLATED_QUANTITY&#x27; if mode == &#x27;PARALLEL_QUANTITY&#x27; else &#x27;ISOLATED_PAYOFF_ZERO&#x27;
+23	    return old.capacity(state, side, price, requested, translated)
+24	
+25	class PayoffRepairGate(old.PayoffRepairGate):
+26	
+27	    def __init__(self, selection, mode):
+28	        assert mode in MODES
+29	        self.selection = selection
+30	        self.mode = mode
+31	        self.started = False
+32	        self.events = []
+33	        self.rows = []
+34	
+35	    def cap(self, frame, side, price, qty, draft):
+36	        if not self.started:
+37	            return qty
+38	        state = snapshot(frame, draft)
+39	        limit, why = capacity(state, side, price, qty, self.mode)
+40	        step = float(frame[&#x27;world_profile&#x27;][&#x27;quantity_step&#x27;])
+41	        admitted = qty if self.mode == &#x27;INERT&#x27; or side == roles.strong else min(qty, round(math.floor((limit + 1e-10) / step) * step, 8))
+42	        self.rows.append(dict(t=frame[&#x27;t&#x27;], side=side, price=price, requested=qty, capped=admitted, state=state, **why))
+43	        return admitted
+44	
+45	def self_test():
+46	    old.self_test()
+47	    base = dict(inv={roles.strong: 100.0, roles.weak: 60.0}, payoff={roles.strong: 35.0, roles.weak: -5.0}, pending_qty={roles.strong: 0.0, roles.weak: 0.0}, pending_cash={roles.strong: 0.0, roles.weak: 0.0})
+48	    assert capacity(base, roles.strong, 0.5, 30.0, &#x27;PARALLEL_PAYOFF_ZERO&#x27;)[0] == 30.0
+49	    assert capacity(base, roles.weak, 0.5, 40.0, &#x27;PARALLEL_PAYOFF_ZERO&#x27;)[0] == 10.0
+50	    assert capacity(base, roles.weak, 0.5, 40.0, &#x27;PARALLEL_QUANTITY&#x27;)[0] == 40.0
+51	    up_pending = dict(base, pending_qty={roles.strong: 20.0, roles.weak: 0.0}, pending_cash={roles.strong: 10.0, roles.weak: 0.0})
+52	    assert capacity(up_pending, roles.weak, 0.5, 40.0, &#x27;PARALLEL_PAYOFF_ZERO&#x27;)[0] == 30.0
+53	    down_pending = dict(base, pending_qty={roles.strong: 0.0, roles.weak: 10.0}, pending_cash={roles.strong: 0.0, roles.weak: 5.0})
+54	    assert capacity(down_pending, roles.weak, 0.5, 40.0, &#x27;PARALLEL_PAYOFF_ZERO&#x27;)[0] == 0.0
+55	    assert capacity(base, roles.weak, 0.5, 40.0, &#x27;PARALLEL_PAYOFF_ZERO&#x27;)[0] == 10.0
+56	if __name__ == &#x27;__main__&#x27;:
+57	    self_test()
+58	    print(&#x27;PASS&#x27;)
+59	</pre></details></article><article><h2>45 · Claude</h2><small>2026-09-26T19:06:49.078Z</small><pre>正在核對 v27／v24 的協定與派工設定（dispatch.py），確認費用、選樣與已跑格。</pre></article><article><h2>46 · Claude</h2><small>2026-09-26T19:06:50.482Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\dispatch.py&quot;
+}</pre></details></article><article><h2>47 · 工具結果</h2><small>2026-09-26T19:06:50.495Z</small><details><summary>工具回傳內容</summary><pre>1	&quot;&quot;&quot;Unique stage, strict host-key transport, one submission, hidden collector.
+2	Runs only when no other job is nonterminal and worker CPU &lt;= 60% and free memory &gt;= 8 GB.&quot;&quot;&quot;
+3	import argparse
+4	import importlib.util
+5	import json
+6	import os
+7	import subprocess
+8	from pathlib import Path
+9	
+10	P=Path(__file__).resolve().parent;ROOT=P.parents[2]
+11	spec=importlib.util.spec_from_file_location(&#x27;_v5_transport&#x27;,ROOT/&#x27;data/research/btc5m_public_cost_memory_20260921_r87/dispatch.py&#x27;)
+12	t=importlib.util.module_from_spec(spec);spec.loader.exec_module(t)
+13	JOB=json.loads((P/&#x27;PROTOCOL.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))[&#x27;reserved_job_id&#x27;]
+14	BS=&#x27;\\&#x27;
+15	def save(name,x):
+16	    target=P/name
+17	    if target.exists():raise RuntimeError(&#x27;Do not overwrite &#x27;+name)
+18	    target.write_text(json.dumps(x,ensure_ascii=False,indent=2),encoding=&#x27;utf-8&#x27;)
+19	ALLOWED_CONCURRENT=set()
+20	def concurrency_ok(glob):
+21	    return all(x[&#x27;job_id&#x27;] in ALLOWED_CONCURRENT for x in glob[&#x27;nonterminal&#x27;]) and (bool(glob[&#x27;nonterminal&#x27;]) or not glob[&#x27;other_processes&#x27;])
+22	def preflight():
+23	    t.identity();glob=t.global_state();exact=t.d.cmd_status(t.HOST,JOB);probe=t.d.cmd_probe(t.HOST)
+24	    assert concurrency_ok(glob) and exact[&#x27;state&#x27;]==&#x27;missing&#x27;
+25	    assert probe[&#x27;hostname&#x27;]==&#x27;DESKTOP-JIERAGF&#x27; and probe[&#x27;memory&#x27;][&#x27;free_gb&#x27;]&gt;=8 and probe[&#x27;cpu_pct&#x27;]&lt;=60 and not probe[&#x27;robocopy_active&#x27;]
+26	    assert not (ROOT/&#x27;data/research/lan_worker_returns&#x27;/JOB).exists()
+27	    m=json.loads((P/&#x27;IMPLEMENTATION_MANIFEST.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))
+28	    for n,h in m[&#x27;files&#x27;].items():assert t.sha(P/n)==h,n
+29	    exists=t.remote(&#x27;import pathlib,json;print(json.dumps((pathlib.Path(&quot;C:/BTC5M-worker/.lan_worker_v1/staging&quot;)/&#x27;+repr(P.name)+&#x27;).exists()))&#x27;)
+30	    assert not exists,&#x27;Existing stage: reconcile instead of overwriting&#x27;
+31	    stage=t.d.cmd_stage(t.HOST,str(P));remote=stage[&#x27;remote_absolute&#x27;]
+32	    cmd=subprocess.list2cmdline([t.d.REMOTE_PY,remote+BS+&#x27;worker.py&#x27;,&#x27;--check-only&#x27;])
+33	    loaded=t.d.parse_json_output(t.strict(cmd,900))
+34	    assert loaded[&#x27;status&#x27;]==&#x27;PASS&#x27; and loaded[&#x27;native_executed&#x27;]==0 and loaded[&#x27;model_fits&#x27;]==0
+35	    assert loaded[&#x27;markets&#x27;]==10 and loaded[&#x27;inputs_verified&#x27;] is True and loaded[&#x27;base_check&#x27;][&#x27;status&#x27;]==&#x27;PASS&#x27;
+36	    assert loaded[&#x27;planned_paths&#x27;]==json.loads((P/&#x27;PROTOCOL.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))[&#x27;matrix&#x27;][&#x27;paths&#x27;]
+37	    result=dict(status=&#x27;PASS&#x27;,identity=t.identity(),global_before=glob,exact=exact,probe=probe,stage=stage,load_only=loaded,manifest_sha256=t.sha(P/&#x27;IMPLEMENTATION_MANIFEST.json&#x27;))
+38	    save(&#x27;PREFLIGHT.json&#x27;,result);return result
+39	def submit():
+40	    pre=json.loads((P/&#x27;PREFLIGHT.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))
+41	    assert pre[&#x27;status&#x27;]==&#x27;PASS&#x27; and pre[&#x27;manifest_sha256&#x27;]==t.sha(P/&#x27;IMPLEMENTATION_MANIFEST.json&#x27;)
+42	    t.identity();glob=t.global_state();assert concurrency_ok(glob)
+43	    probe=t.d.cmd_probe(t.HOST);assert probe[&#x27;memory&#x27;][&#x27;free_gb&#x27;]&gt;=8 and probe[&#x27;cpu_pct&#x27;]&lt;=60
+44	    assert t.d.cmd_status(t.HOST,JOB)[&#x27;state&#x27;]==&#x27;missing&#x27;
+45	    save(&#x27;SUBMIT.json&#x27;,dict(status=&#x27;ATTEMPT_IN_PROGRESS&#x27;,attempts=1,job_id=JOB))
+46	    os.environ[&#x27;BTC5M_WORKER_CONSOLE&#x27;]=&#x27;0&#x27;
+47	    return t.d.cmd_submit(t.HOST,[t.d.REMOTE_PY,pre[&#x27;stage&#x27;][&#x27;remote_absolute&#x27;]+BS+&#x27;worker.py&#x27;],&#x27;.&#x27;,JOB,12,8,80,auto_collect=True)
+48	if __name__==&#x27;__main__&#x27;:
+49	    parser=argparse.ArgumentParser();parser.add_argument(&#x27;action&#x27;,choices=[&#x27;preflight&#x27;,&#x27;submit&#x27;,&#x27;status&#x27;]);a=parser.parse_args()
+50	    print(json.dumps(t.d.cmd_status(t.HOST,JOB) if a.action==&#x27;status&#x27; else globals()[a.action](),ensure_ascii=False,indent=2))
+51	</pre></details></article><article><h2>48 · Claude</h2><small>2026-09-26T19:06:51.980Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair3_small_20260927_v27\\CURRENT.md&quot;
+}</pre></details></article><article><h2>49 · 工具結果</h2><small>2026-09-26T19:06:51.991Z</small><details><summary>工具回傳內容</summary><pre>1	# V12g 主動修復 v3：被動處理不了才出手（2026-09-27，worker，10 場）
+2	
+3	**受測系統：V12＋K415 G300_FLIP40＋PADD80**，在 worker 上的 V49 引擎執行。市場與 v26 相同（最新 30 場中挑 10 場：最虧 5 場＋獲利 5 場），以官方結算判定勝方。
+4	- job btc5m-v12g-active-repair3-small-20260927-v27：24 條路徑，0 個錯誤。兩條對照組、2 條 PADD80 檢查路徑都與舊結果完全一致。禁止重送。
+5	- 改動：沿用 v26 的主動修復（DP 目標、部分修復、取消 5 張上限、選邊後才啟用、關閉准入規則），但只在以下任一條件成立時出手：
+6	  - (a) 弱邊賣價 ≥ 我方最高弱邊掛單＋0.03，或弱邊沒有掛單（被動單被甩開）。
+7	  - (b) 弱邊分支 ≤ −150，而且比上一次主動修復時更差（虧損還在擴大）。
+8	  - (c) 弱邊賣價 ≤ 0.15（夠便宜，使用者提議）。
+9	- 花費上限：AR3_R50 保留強邊最高點的 50%，AR3_R25 保留 25%。
+10	
+11	| 組別（同 10 場） | 勝方為正 | 平均 | 中位 | 最差 | ≤−200 | ≤−500 | 最虧 5 場平均 | 獲利 5 場平均 | 成本 | 主動成交份數 | 主動修復單數 |
+12	|---|---|---|---|---|---|---|---|---|---|---|---|
+13	| PADD80 | 5 | −253 | −165 | −1,114 | 5 | 2 | −643 | **+136** | 1,708 | 519 | 0.8 |
+14	| v26 AR2_DP（無條件出手） | 3 | −116 | −42 | −436 | 3 | 0 | **−228** | −5 | 2,062 | 1,632 | 30.7 |
+15	| AR3_R50 | 5 | −150 | −133 | −680 | 5 | 1 | −376 | +75 | 1,963 | 1,144 | 16.1 |
+16	| AR3_R25 | 5 | −129 | −71 | −521 | 4 | 1 | −288 | +31 | 1,998 | 1,314 | 18.3 |
+17	
+18	- 依規則：**AR3_R25 為 PROMISING**（平均較高、勝方為正的場數持平、≤−200 的場數較少）；**AR3_R50 為 STOP**。
+19	- 觸發次數（10 場合計，R50／R25）：
+20	  - 被動單被甩開 128／151 次。
+21	  - 虧損擴大 81／78 次。
+22	  - 夠便宜 3／11 次。
+23	  - 因為被動修復還能處理而被擋下 664／768 次。
+24	
+25	## 結論
+26	1. **加上出手條件後，修復強度介於 PADD80 與 v26 之間，而且保留比例是主要的調節點。**
+27	   - 保留越少，大虧改善越多，但獲利場的利潤也掉越多：
+28	     - 最虧 5 場：R50 −376、R25 −288。
+29	     - 獲利 5 場：R50 +75、R25 +31。
+30	   - 仍然在同一條取捨線上，只是位置不同。
+31	2. **2629199 在所有修復版本中都變得更差**（R50 −680、R25 −522，PADD80 −429）。
+32	   - 原因：當時「弱邊」是正在上漲的 DOWN（熱門邊，約 0.8）。條件 (a) 觸發後，修復在高價買 DOWN；最後 UP 在最後幾秒反轉勝出。
+33	   - 這類「補正在上漲的熱門邊」的修復，會遇到最後反轉的風險。
+34	3. **輸方分支普遍變差**（R50 平均 −219、R25 −177，PADD80 −140）：修復把錢花在弱邊，但沒能讓兩支都轉正。
+35	4. **樣本只有 10 場，而且是依結果挑選的**，PROMISING 需要更多市場確認。
+36	
+37	## 下一步候選（未執行）
+38	- 用全部 30 場（另外 20 場是新的）驗證 AR3_R25。
+39	- 研究條件 (a) 是否應該排除「弱邊已經是高價熱門邊」的情況（例如弱邊賣價 &gt; 0.7 時不追），以避免 2629199 這類損失。
+40	</pre></details></article><article><h2>50 · Claude</h2><small>2026-09-26T19:06:53.285Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_20260927_v24\\CURRENT.md&quot;
+}</pre></details></article><article><h2>51 · 工具結果</h2><small>2026-09-26T19:06:53.296Z</small><details><summary>工具回傳內容</summary><pre>1	# V12g 最新 30 場測試 WB100 vs PADD80（2026-09-27，worker）
+2	
+3	**受測系統：V12＋K415，在 worker 上的 V49 引擎執行（延遲 250/250ms，排隊 risk）。**
+4	- job btc5m-v12g-fresh30-20260927-v24：62 條路徑，兩條對照組完全一致。禁止重送。
+5	  - WB100 在 2629019 出現 V49 內部 AssertionError，所以 WB100 只有 29 場。
+6	- 市場：品質表中最新的 30 場（9/26 美東 10:40AM～1:10PM）。只依資料品質與 tape 是否齊全挑選，沒有讀取結果，也不在先前的 100 場內。
+7	  - 自建輸入資料 base/ 約 16MB；V12 程式碼逐位元組複製自 val100 base。
+8	- 勝方判定：
+9	  - 預先登記的方法（最終中價 ≥0.9 或 ≤0.1）只能判定 19 場，其餘 11 場的最後中價在 0.12～0.895 之間。
+10	  - 另外用官方結算結果（target_markets.winner）判定全部 30 場，見 SUPPLEMENT_TARGET_WINNERS.json。
+11	  - 注意：2628917 的最後中價是 0.755，但官方結果是 DOWN。
+12	
+13	| 組別 | 判定方式 | 場數 | 勝方為正 | 平均 | 中位 | 最差 | ≤−100 | ≤−200 | ≤−500 | 排除 ≤−100 後的平均 | 成本 |
+14	|---|---|---|---|---|---|---|---|---|---|---|---|
+15	| PADD80 | 最終中價 | 19 | 10（53%） | −89.7 | +17.6 | −1,114 | 6 | 5 | 1 | +60.3 | 1,536 |
+16	| WB100 | 最終中價 | 18 | 4（22%） | −44.4 | −50.2 | −100 | 0 | 0 | 0 | −44.4 | 721 |
+17	| PADD80 | 官方結算 | 30 | 17（57%） | −70.2 | +28.0 | −1,114 | 9 | 8 | 2 | +94.5 | |
+18	| WB100 | 官方結算 | 29 | 8（28%） | −37.6 | −43.1 | −100 | 0 | 0 | 0 | −37.6 | |
+19	
+20	依預先登記的規則：**WB100 DOES_NOT_HOLD**。尾部守住了（沒有任何一場 ≤−100），但勝方為正的比例比 PADD80 低了 31 個百分點；畢業標準（&gt;60%）也沒有達到。
+21	
+22	**目標在同一批市場（19 場有成交）：** 勝方平均 +166，14/19 為正，成本約 1,300～6,200。它在很多場的輸方分支是大額負值（例如 −711、−726），代表它在這天有明顯的金額不對稱。
+23	
+24	## 結論
+25	1. **WB100 在新市場上的表現和 50 場挑選樣本一致：** 沒有大虧，但幾乎沒有利潤，勝方為正只有 22～28%。它是「不會大輸」，不是「會贏」。
+26	2. **PADD80 在新市場的中位數是正的**（+18～+28）；排除大虧後平均 +60～+95，勝方為正 53～57%。平均被 2 場 ≤−500 的大虧拖成負值，最差 −1,114。
+27	3. **目標在這 30 場裡賺得很好**（勝方平均 +166），並且做出強烈的金額不對稱。這和 9/10～9/18 樣本中「份數接近各半」的描述不同，之後比較目標行為時要分開看不同時期。
+28	4. 目前兩個版本各有一半問題：PADD80 會賺，但尾部大；WB100 尾部小，但不賺。
+29	
+30	V12、live 與既有各包都未修改。
+31	</pre></details></article><article><h2>52 · Claude</h2><small>2026-09-26T19:06:56.577Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair4_small_20260927_v28\\worker.py&quot;
+}</pre></details></article><article><h2>53 · 工具結果</h2><small>2026-09-26T19:06:56.593Z</small><details><summary>工具回傳內容</summary><pre>1	&quot;&quot;&quot;V12g ACTIVE-REPAIR v4 small test (same 10 markets; v27 overlay + V12G_AR_STRANDED_MAX). Arm AR4_R25 = AR3_R25 but the stranded trigger fires only while the weak ask &lt;= 0.70; 2 PADD80_CHECK paths. Earlier docstring: V12g ACTIVE-REPAIR v3 small test (same 10 markets as v26; v26 overlay + V12G_AR_TRIGGER). Opened restoration (DP target, partial, uncapped, after decision, no re-borrow gate) only when passive repair cannot cope (stranded bids / growing deficit &lt;= -150 / weak ask &lt;= 0.15). Arms AR3_R50 (RETAIN .5) and AR3_R25 (RETAIN .25); 2 PADD80_CHECK paths. Earlier docstring: V12g ACTIVE-REPAIR v2 small test (10 of the fresh30 markets; v25 overlay + V12G_AR_AFTER_DECIDE + V12G_AR_NOGATE). v25 froze at the opening: the opened restoration fired at 2-5 s and the re-borrow admission then blocked 99.8% of native orders. Arms AR2_OPEN / AR2_DP; 2 PADD80_CHECK paths. Earlier docstring: V12g ACTIVE-REPAIR test (latest 30 markets; base = staged v12g_fresh30_20260927_v24/base; overlay = v24 overlay + V12G_AR / V12G_AR_UNCAP). Arms AR_OPEN (partial qualified active restoration, strong-branch floor 0 via V12X_RETAIN=0, no 5-order cap) and AR_DP (+ target weak branch &gt;= 0, no parity cap); 2 PADD80_CHECK paths must reproduce v24 PADD80. Arms zipped. Earlier docstring: V12g FRESH-30 test (latest 30 eligible markets, own base v12g_fresh30_20260927_v24/base; overlay = byte copy of v23 overlay). Arms PADD80 (G300_FLIP40 + PADD80) and WB100 (+ weak-branch budget 100). Arms zipped. Earlier docstring: V12g PRICE-LEAN small test (10 markets; overlay = v22r1 overlay + V12G_PLEAN / V12G_DRIVER). Base G300_FLIP40 + PADD80. PLEAN1: after the decision the chosen-side share lead (incl. resting + this order) may not exceed 1.0*(chosen mid - 0.5) (V49 orders and PADD); PLEAN1_DRV: + mid-game passive driver (one 15-share bid per side at the best bid; chosen side while lead &lt; cap, else weak side; stale bids re-quoted; stops 10 s before end). No clock gates. Arms zipped. Earlier docstring: V12g QUEUE-MODEL test r1 (v22 stopped in smoke: patch hook read new_bt of a partially initialized module; fixed with hasattr). Earlier: V12g QUEUE-MODEL test (50 selected markets = v16 set; overlay = v21 overlay + V12G_QUEUE). Engine queue model risk-averse -&gt; log-probability (hftbacktest log_prob_queue_model); latency unchanged 250/250 ms. Arms PADD80_LOG (G300_FLIP40 + PADD80) and WB100_LOG (+ weak-branch budget 100). Arms zipped. Earlier docstring: V12g WEAK-BRANCH BUDGET test (50 selected markets = v16 set; overlay = v20 overlay + V12G_WBUDGET). Base G300_FLIP40 + PADD80. Arms WB100 / WB200: a chosen-side buy (V49 order of any route, and PADD) is vetoed if the weak branch after all chosen-side resting orders and this order fill would fall below -100 / -200; weak-side buys unchanged, so cheap repair re-opens the budget. No clock. Arms zipped. Earlier docstring: V12g ADD-THROTTLE test (50 selected markets = v16 set; overlay = v19 overlay + V12G_ADDGAP). Base G300_FLIP40 + PADD80 (no PACE). Arms ADDGAP1 / ADDGAP2: after the decision the chosen side may place at most one PASSIVE NEW order per 1 s / 2 s (base ~1.4 orders/s, bursts every ~0.2 s); opening 300 shares, weak-side repair and PADD unchanged. Arms zipped. Earlier docstring: V12g PACE TUNE test (50 selected markets; overlay = byte copy of v12g_pace_20260926_v15/overlay). Arms PACE30 / PACE35 (pace cap 30% / 35%). Arms zipped. Earlier docstring: V12g PACE test (base = staged v12g_val100 base). Arm PACE25: PADD80 + chosen-side orders vetoed / resting ones cancelled while the chosen-side share lead (incl. resting) &gt;= 25% of gross; all 100 markets. Arms zipped. Earlier docstring: V12g ADD-PRICE-CAP test (base = staged v12g_val100 base). Arms ADDCAP_ALL (PADD80 + veto chosen-side PASSIVE orders priced &gt; 0.55 from the decision) on all 100 markets; ADDCAP_POST (same, only after the first flip) on the markets where PADD80 flipped &gt;= 1 time + 2 zero-flip check markets that must reproduce PADD80. Arms zipped. Earlier docstring: V12g MAX-FLIP test (base = staged v12g_val100 base). Arms FN (PADD80 + at the 2nd reversal go balanced for the rest) and FH (PADD80 + ignore reversals after one flip) on the markets where PADD80 flipped &gt;= 2 times; FN also on 2 check markets (0 and 1 flip) that must reproduce PADD80 exactly. Results: arms zipped into arms.zip at the end (faster collection). Earlier docstring: V12g 100-MARKET VALIDATION (own base: 100 roletop-cohort markets). Jobs: G300_FLIP40_PADD80 on the 90 markets not run in v11; G300_FLIP40 on the rest50 markets (old20/new30 already exist); controls V12 and K415 on 2491311. 12 parallel. Phase 1 = 2 controls + 2 paths. Earlier docstring: V12g PAYOFF small test (10 markets; arms G300_FLIP40_PADD80: G300_FLIP40 + payoff add (buy the chosen favourite while its branch &lt; 0, ask &lt;= 0.80); G300_FLIP40_PADD80_PREP30: + payoff repair (buy the weak side while its branch &lt; 0, ask &lt;= 0.30); 15 shares, every 2 s, stop 10 s before end; K415). Phase 1 = 2 controls + 2 paths. Earlier docstring: V12g LEAN-CAP small test (10 markets; arm G300_FLIP40_LEAN20: G300_FLIP40 + veto new orders on the chosen side while its share gap &gt;= 20% of gross; K415). Phase 1 = 2 controls + 2 paths. Earlier docstring: V12g FLIP-CAP small test (10 markets; arm G300_FLIP40_CAP15: G300_FLIP40 + after each flip the new side may add at most 15% of the gross at the flip; K415). Phase 1 = 2 controls + 2 paths. Earlier docstring: V12g LATE-CHEAP-REPAIR small test (10 markets; arm G300_FLIP40_LCR30: G300_FLIP40 + from 180 s buy 15 underdog shares at its ask every 2 s while ask &lt;= 0.30 and the underdog branch is negative, stop 10 s before end; K415). Phase 1 = 2 controls + 2 paths. Earlier docstring: V12g BURST small test (10 markets; arm BURST: balanced building + short bursts toward the side that rose &gt;= 0.02 in 2 s, 5 s hold, gap cap 10% of gross; K415). Phase 1 = 2 controls + 2 paths. Earlier docstring: V12g FALL-GUARD test (arms FALL2 / FALL5 on top of BAL_ONLY: balanced building + K415, never lean; falling side blocked: no new passive bids and resting ones cancelled; see build_package.py). Phase 1 = 2 controls + 2 arm paths (smoke); any error stops the job before phase 2. Earlier docstring: V12g BALANCED-ONLY test (overlay = byte copy of v12g_neutral_20260926_v4/overlay; BAL_ONLY = never decide: V12G_GROSS and V12G_FALLBACK_S set unreachable -&gt; side None all market -&gt; balanced two-sided building + K415 repair). Earlier docstring: V12g NEUTRAL test. System under test: V12 + K415 on the V49 engine (worker). Base = staged v12g_expand_20260926_v3/base
+2	(50 markets). Jobs: 50 x G300_NEUTRAL40 (decide at gross 300 shares = higher-mid side; when the chosen side mid &lt;= 0.40 go
+3	back to balanced two-sided building for the rest of the market, no flip); controls on 2491311: V12 (no env) and K415
+4	(V12X_K=4.15, NO_DIRECTION+INVENTORY). 8 parallel. Worker only.&quot;&quot;&quot;
+5	import os
+6	for k in (&#x27;OMP_NUM_THREADS&#x27;,&#x27;OPENBLAS_NUM_THREADS&#x27;,&#x27;MKL_NUM_THREADS&#x27;,&#x27;NUMEXPR_NUM_THREADS&#x27;):os.environ[k]=&#x27;1&#x27;
+7	import argparse,concurrent.futures,gzip,hashlib,json,lzma,socket,subprocess,sys,tempfile,time,traceback
+8	from pathlib import Path
+9	P=Path(__file__).resolve().parent;ROOT=Path(&#x27;C:/BTC5M-worker&#x27;);STAGING=ROOT/&#x27;.lan_worker_v1&#x27;/&#x27;staging&#x27;
+10	def read(p):
+11	    b=Path(p).read_bytes();return json.loads(gzip.decompress(b) if str(p).endswith(&#x27;.gz&#x27;) else b)
+12	def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+13	def write(p,x):
+14	    p=Path(p);p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(x,ensure_ascii=False,allow_nan=False),encoding=&#x27;utf-8&#x27;)
+15	def prepare():
+16	    assert socket.gethostname().upper()==&#x27;DESKTOP-JIERAGF&#x27;
+17	    assert P.parent.resolve()==STAGING.resolve() and P.name==&#x27;v12g_active_repair4_small_20260927_v28&#x27;
+18	    BASE=STAGING/&#x27;v12g_fresh30_20260927_v24&#x27;/&#x27;base&#x27;
+19	    for n,h in read(P/&#x27;IMPLEMENTATION_MANIFEST.json&#x27;)[&#x27;files&#x27;].items():assert sha(P/n)==h,n
+20	    plan=read(P/&#x27;PROTOCOL.json&#x27;);assert sha(BASE/&#x27;manifest.json&#x27;)==plan[&#x27;base_manifest_sha256&#x27;];man=read(BASE/&#x27;manifest.json&#x27;)
+21	    for n,h in man[&#x27;files&#x27;].items():assert sha(BASE/n)==h,n
+22	    ac=read(P/&#x27;overlay&#x27;/&#x27;actor_contract.json&#x27;);assert ac[&#x27;baseline_package&#x27;]==&#x27;v12g_fresh30_20260927_v24/base&#x27; and ac[&#x27;baseline_manifest_sha256&#x27;]==sha(BASE/&#x27;manifest.json&#x27;)
+23	    for n,h in plan[&#x27;overlay_code_sha256&#x27;].items():assert sha(P/&#x27;overlay&#x27;/n)==h,n
+24	    for m in plan[&#x27;markets&#x27;]+[c[&#x27;market&#x27;] for c in plan[&#x27;controls&#x27;].values()]:
+25	        pub=read(BASE/&#x27;inputs&#x27;/f&#x27;public_{m}.json.gz&#x27;);assert set(pub)=={&#x27;market&#x27;,&#x27;books&#x27;,&#x27;public&#x27;,&#x27;tape&#x27;,&#x27;actor_input_contract&#x27;} and pub[&#x27;market&#x27;][&#x27;market_id&#x27;]==m
+26	        tp=BASE/&#x27;inputs&#x27;/pub[&#x27;tape&#x27;][&#x27;file&#x27;];assert sha(tp)==pub[&#x27;tape&#x27;][&#x27;sha256&#x27;];t=json.loads(lzma.decompress(tp.read_bytes()));assert int(t[&#x27;marketId&#x27;])==m
+27	    return plan
+28	def jobs(plan):
+29	    c=plan[&#x27;controls&#x27;];out=[dict(market=c[&#x27;V12_CONTROL&#x27;][&#x27;market&#x27;],mode=&#x27;NO_DIRECTION&#x27;,rule=&#x27;LEGACY&#x27;,control=True,arm=&#x27;V12_CONTROL&#x27;,K=&#x27;&#x27;,RETAIN=&#x27;&#x27;,GROSS=&#x27;&#x27;,FLIP=&#x27;&#x27;,NEUTRAL=&#x27;&#x27;),
+30	         dict(market=c[&#x27;K415_CONTROL&#x27;][&#x27;market&#x27;],mode=&#x27;NO_DIRECTION&#x27;,rule=&#x27;INVENTORY&#x27;,control=True,arm=&#x27;K415_CONTROL&#x27;,K=&#x27;4.15&#x27;,RETAIN=&#x27;.5&#x27;,GROSS=&#x27;&#x27;,FLIP=&#x27;&#x27;,NEUTRAL=&#x27;&#x27;)]
+31	    for m in plan[&#x27;markets&#x27;]:out.append(dict(market=m,mode=&#x27;NO_DIRECTION&#x27;,rule=&#x27;LEGACY&#x27;,control=False,arm=&#x27;AR4_R25&#x27;,K=&#x27;4.15&#x27;,RETAIN=&#x27;.25&#x27;,GROSS=&#x27;300&#x27;,FLIP=&#x27;0.1&#x27;,NEUTRAL=&#x27;&#x27;,FALLBACK=&#x27;&#x27;,PADD=&#x27;0.80&#x27;,PREP=&#x27;&#x27;,PACE=&#x27;&#x27;,AR=&#x27;DP&#x27;,AR_UNCAP=&#x27;1&#x27;,AR_AFTER=&#x27;1&#x27;,AR_NOGATE=&#x27;1&#x27;,AR_TRIGGER=&#x27;1&#x27;,AR_SMAX=&#x27;0.70&#x27;))
+32	    for m in plan[&#x27;markets&#x27;][:2]:out.append(dict(market=m,mode=&#x27;NO_DIRECTION&#x27;,rule=&#x27;LEGACY&#x27;,control=False,arm=&#x27;PADD80_CHECK&#x27;,K=&#x27;4.15&#x27;,RETAIN=&#x27;.5&#x27;,GROSS=&#x27;300&#x27;,FLIP=&#x27;0.1&#x27;,NEUTRAL=&#x27;&#x27;,FALLBACK=&#x27;&#x27;,PADD=&#x27;0.80&#x27;,PREP=&#x27;&#x27;,PACE=&#x27;&#x27;))
+33	    return out
+34	def cmd(j,extra=()):
+35	    return [sys.executable,str(P/&#x27;overlay&#x27;/&#x27;run_variant.py&#x27;),&#x27;--variant&#x27;,&#x27;PREPARE&#x27;,&#x27;--market-id&#x27;,str(j[&#x27;market&#x27;]),&#x27;--mode&#x27;,j[&#x27;mode&#x27;],&#x27;--money-mode&#x27;,&#x27;PARALLEL_PAYOFF_ZERO&#x27;,
+36	            &#x27;--demand-mode&#x27;,&#x27;AUTO_REPAIR&#x27;,&#x27;--retention&#x27;,&#x27;0&#x27;,&#x27;--opportunity-mode&#x27;,&#x27;ONE_ACTIVE&#x27;,&#x27;--direction-rule&#x27;,j[&#x27;rule&#x27;],*extra]
+37	def snapshots(arm):
+38	    c=read(arm/&#x27;clock_trace.json.gz&#x27;);g=c[&#x27;addition_growth_rows&#x27;]
+39	    if not g:return None
+40	    start=(g[0][&#x27;t&#x27;]//300000)*300000;out={}
+41	    for ck in (15,30,60,120,180,240):
+42	        prev=[r for r in g if (r[&#x27;t&#x27;]-start)/1000&lt;ck];r=prev[-1] if prev else g[0]
+43	        out[str(ck)]=dict(UP=r[&#x27;inv&#x27;][&#x27;UP&#x27;],DOWN=r[&#x27;inv&#x27;][&#x27;DOWN&#x27;],cost=r[&#x27;cost&#x27;])
+44	    first=next(((r[&#x27;t&#x27;]-start)/1000 for r in g if r[&#x27;inv&#x27;][&#x27;UP&#x27;]+r[&#x27;inv&#x27;][&#x27;DOWN&#x27;]&gt;0),None)
+45	    return dict(first_fill_s=first,at=out)
+46	def run_one(j,out):
+47	    arm=out/&#x27;arms&#x27;/f&quot;v12g28_{j[&#x27;arm&#x27;]}_{j[&#x27;market&#x27;]}&quot;;arm.mkdir(parents=True,exist_ok=False)
+48	    env=os.environ.copy();env[&#x27;BTC5M_LAN_RESULT_DIR&#x27;]=str(arm)
+49	    for k in (&#x27;V12X_K&#x27;,&#x27;V12X_RETAIN&#x27;,&#x27;V12G_GROSS&#x27;,&#x27;V12G_FALLBACK_S&#x27;,&#x27;V12G_FLIP&#x27;,&#x27;V12G_NEUTRAL&#x27;,&#x27;V12G_FALL_DROP&#x27;,&#x27;V12G_FALL_WIN_S&#x27;,&#x27;V12G_FALL_PAUSE_S&#x27;,&#x27;V12G_BURST_RISE&#x27;,&#x27;V12G_BURST_WIN_S&#x27;,&#x27;V12G_BURST_HOLD_S&#x27;,&#x27;V12G_BURST_GAP&#x27;,&#x27;V12G_LCR_PX&#x27;,&#x27;V12G_LCR_START_S&#x27;,&#x27;V12G_LCR_STOP_S&#x27;,&#x27;V12G_LCR_EVERY_S&#x27;,&#x27;V12G_LCR_QTY&#x27;,&#x27;V12G_FLIPCAP&#x27;,&#x27;V12G_LEANCAP&#x27;,&#x27;V12G_PADD_PX&#x27;,&#x27;V12G_PREP_PX&#x27;,&#x27;V12G_PAY_QTY&#x27;,&#x27;V12G_PAY_EVERY_S&#x27;,&#x27;V12G_PAY_STOP_S&#x27;,&#x27;V12G_MAXFLIP_MODE&#x27;,&#x27;V12G_ADDCAP&#x27;,&#x27;V12G_ADDCAP_FROM&#x27;,&#x27;V12G_PACE&#x27;,&#x27;V12G_AREP_PX&#x27;,&#x27;V12G_DEFENSE&#x27;,&#x27;V12G_ADDGAP&#x27;,&#x27;V12G_WBUDGET&#x27;,&#x27;V12G_QUEUE&#x27;,&#x27;V12G_PLEAN&#x27;,&#x27;V12G_DRIVER&#x27;,&#x27;V12G_AR&#x27;,&#x27;V12G_AR_UNCAP&#x27;,&#x27;V12G_AR_AFTER_DECIDE&#x27;,&#x27;V12G_AR_NOGATE&#x27;,&#x27;V12G_AR_TRIGGER&#x27;,&#x27;V12G_AR_STRANDED_MAX&#x27;,&#x27;V12D_LEAN_DELTA&#x27;,&#x27;V12D_FLIP_DELTA&#x27;):env.pop(k,None)
+50	    for k,v in ((&#x27;V12X_K&#x27;,j[&#x27;K&#x27;]),(&#x27;V12X_RETAIN&#x27;,j[&#x27;RETAIN&#x27;]),(&#x27;V12G_GROSS&#x27;,j[&#x27;GROSS&#x27;]),(&#x27;V12G_FLIP&#x27;,j[&#x27;FLIP&#x27;]),(&#x27;V12G_NEUTRAL&#x27;,j.get(&#x27;NEUTRAL&#x27;,&#x27;&#x27;)),(&#x27;V12G_FALLBACK_S&#x27;,j.get(&#x27;FALLBACK&#x27;,&#x27;&#x27;)),(&#x27;V12G_FALL_DROP&#x27;,j.get(&#x27;FALL_DROP&#x27;,&#x27;&#x27;)),(&#x27;V12G_FALL_WIN_S&#x27;,j.get(&#x27;FALL_WIN&#x27;,&#x27;&#x27;)),(&#x27;V12G_FALL_PAUSE_S&#x27;,j.get(&#x27;FALL_PAUSE&#x27;,&#x27;&#x27;)),(&#x27;V12G_BURST_RISE&#x27;,j.get(&#x27;BURST_RISE&#x27;,&#x27;&#x27;)),(&#x27;V12G_BURST_WIN_S&#x27;,j.get(&#x27;BURST_WIN&#x27;,&#x27;&#x27;)),(&#x27;V12G_BURST_HOLD_S&#x27;,j.get(&#x27;BURST_HOLD&#x27;,&#x27;&#x27;)),(&#x27;V12G_BURST_GAP&#x27;,j.get(&#x27;BURST_GAP&#x27;,&#x27;&#x27;)),(&#x27;V12G_LCR_PX&#x27;,j.get(&#x27;LCR_PX&#x27;,&#x27;&#x27;)),(&#x27;V12G_FLIPCAP&#x27;,j.get(&#x27;FLIPCAP&#x27;,&#x27;&#x27;)),(&#x27;V12G_LEANCAP&#x27;,j.get(&#x27;LEANCAP&#x27;,&#x27;&#x27;)),(&#x27;V12G_PADD_PX&#x27;,j.get(&#x27;PADD&#x27;,&#x27;&#x27;)),(&#x27;V12G_PREP_PX&#x27;,j.get(&#x27;PREP&#x27;,&#x27;&#x27;)),(&#x27;V12G_MAXFLIP_MODE&#x27;,j.get(&#x27;MAXFLIP&#x27;,&#x27;&#x27;)),(&#x27;V12G_ADDCAP&#x27;,j.get(&#x27;ADDCAP&#x27;,&#x27;&#x27;)),(&#x27;V12G_ADDCAP_FROM&#x27;,j.get(&#x27;ADDCAP_FROM&#x27;,&#x27;&#x27;)),(&#x27;V12G_PACE&#x27;,j.get(&#x27;PACE&#x27;,&#x27;&#x27;)),(&#x27;V12G_ADDGAP&#x27;,j.get(&#x27;ADDGAP&#x27;,&#x27;&#x27;)),(&#x27;V12G_WBUDGET&#x27;,j.get(&#x27;WBUDGET&#x27;,&#x27;&#x27;)),(&#x27;V12G_QUEUE&#x27;,j.get(&#x27;QUEUE&#x27;,&#x27;&#x27;)),(&#x27;V12G_PLEAN&#x27;,j.get(&#x27;PLEAN&#x27;,&#x27;&#x27;)),(&#x27;V12G_DRIVER&#x27;,j.get(&#x27;DRIVER&#x27;,&#x27;&#x27;)),(&#x27;V12G_AR&#x27;,j.get(&#x27;AR&#x27;,&#x27;&#x27;)),(&#x27;V12G_AR_UNCAP&#x27;,j.get(&#x27;AR_UNCAP&#x27;,&#x27;&#x27;)),(&#x27;V12G_AR_AFTER_DECIDE&#x27;,j.get(&#x27;AR_AFTER&#x27;,&#x27;&#x27;)),(&#x27;V12G_AR_NOGATE&#x27;,j.get(&#x27;AR_NOGATE&#x27;,&#x27;&#x27;)),(&#x27;V12G_AR_TRIGGER&#x27;,j.get(&#x27;AR_TRIGGER&#x27;,&#x27;&#x27;)),(&#x27;V12G_AR_STRANDED_MAX&#x27;,j.get(&#x27;AR_SMAX&#x27;,&#x27;&#x27;))):
+51	        if v:env[k]=v
+52	    t0=time.monotonic()
+53	    with (arm/&#x27;stdout.log&#x27;).open(&#x27;w&#x27;,encoding=&#x27;utf-8&#x27;) as so,(arm/&#x27;stderr.log&#x27;).open(&#x27;w&#x27;,encoding=&#x27;utf-8&#x27;) as se:
+54	        pr=subprocess.Popen(cmd(j),cwd=ROOT,env=env,stdout=so,stderr=se)
+55	        try:rc=pr.wait(timeout=1800)
+56	        except subprocess.TimeoutExpired:
+57	            pr.kill();raise RuntimeError(&#x27;watchdog timeout&#x27;)
+58	    rp=arm/&#x27;result.json&#x27;
+59	    if not rp.exists():raise RuntimeError(&#x27;no result: &#x27;+(arm/&#x27;stderr.log&#x27;).read_text(encoding=&#x27;utf-8&#x27;)[-1500:])
+60	    r=read(rp)
+61	    if r.get(&#x27;status&#x27;)!=&#x27;COMPLETE&#x27;:raise RuntimeError(&#x27;status &#x27;+str(r.get(&#x27;status&#x27;))+&#x27; &#x27;+str(r.get(&#x27;error&#x27;))[:500])
+62	    inv=r[&#x27;final_inventory&#x27;];cost=r[&#x27;final_cost&#x27;];cs=r.get(&#x27;clock_smoke&#x27;) or {}
+63	    act=[dict(price=b[&#x27;price&#x27;],qty=b[&#x27;qty&#x27;]) for b in (r.get(&#x27;active_births&#x27;) or [])]
+64	    row=dict(**j,rc=rc,seconds=time.monotonic()-t0,UP=inv[&#x27;UP&#x27;]-cost,DOWN=inv[&#x27;DOWN&#x27;]-cost,inv=inv,cost=cost,submits=r.get(&#x27;submits&#x27;),passive_submits=r.get(&#x27;passive_native_submits&#x27;),
+65	             active_submits=r.get(&#x27;active_native_submits&#x27;),active_fill_qty=r.get(&#x27;active_fill_qty&#x27;),active_requested_qty=r.get(&#x27;active_requested_qty&#x27;),active_births=act,
+66	             passive_fill_qty=r.get(&#x27;passive_fill_qty&#x27;),safety_pass=(r.get(&#x27;safety_gate&#x27;) or {}).get(&#x27;pass&#x27;),selected_direction=cs.get(&#x27;selected_direction&#x27;),direction_switches=cs.get(&#x27;direction_switches&#x27;),
+67	             direction_mode=cs.get(&#x27;direction_mode&#x27;),restoration_new_active=(r.get(&#x27;qualified_restoration&#x27;) or {}).get(&#x27;new_qualified_active&#x27;),early=snapshots(arm),v12g=r.get(&#x27;v12g&#x27;),v12g_fall=r.get(&#x27;v12g_fall&#x27;),v12g_burst=r.get(&#x27;v12g_burst&#x27;),v12g_lcr=r.get(&#x27;v12g_lcr&#x27;),v12g_flipcap=r.get(&#x27;v12g_flipcap&#x27;),v12g_leancap=r.get(&#x27;v12g_leancap&#x27;),v12g_pay=r.get(&#x27;v12g_pay&#x27;),v12g_addcap=r.get(&#x27;v12g_addcap&#x27;),v12g_pace=r.get(&#x27;v12g_pace&#x27;),v12g_addgap=r.get(&#x27;v12g_addgap&#x27;),v12g_wbudget=r.get(&#x27;v12g_wbudget&#x27;),v12g_queue=r.get(&#x27;v12g_queue&#x27;),v12g_plean=r.get(&#x27;v12g_plean&#x27;),v12g_driver=r.get(&#x27;v12g_driver&#x27;),v12g_ar3=r.get(&#x27;v12g_ar3&#x27;))
+68	    raw=rp.read_bytes();(arm/&#x27;result.json.gz&#x27;).write_bytes(gzip.compress(raw,mtime=0));rp.unlink()
+69	    write(arm/&#x27;row.json&#x27;,row);return row
+70	def run(check_only=False):
+71	    plan=prepare()
+72	    if check_only:
+73	        with tempfile.TemporaryDirectory() as td:
+74	            env=os.environ.copy();env[&#x27;BTC5M_LAN_RESULT_DIR&#x27;]=td
+75	            env[&#x27;V12X_K&#x27;]=&#x27;4.15&#x27;;env[&#x27;V12G_GROSS&#x27;]=&#x27;1000000000&#x27;;env[&#x27;V12G_FALLBACK_S&#x27;]=&#x27;1000000000&#x27;;env[&#x27;V12G_GROSS&#x27;]=&#x27;300&#x27;;env[&#x27;V12G_FLIP&#x27;]=&#x27;0.1&#x27;;env[&#x27;V12G_PADD_PX&#x27;]=&#x27;0.80&#x27;;env[&#x27;V12G_AR&#x27;]=&#x27;DP&#x27;;env[&#x27;V12G_AR_UNCAP&#x27;]=&#x27;1&#x27;;env[&#x27;V12X_RETAIN&#x27;]=&#x27;0&#x27;;env[&#x27;V12G_AR_AFTER_DECIDE&#x27;]=&#x27;1&#x27;;env[&#x27;V12G_AR_NOGATE&#x27;]=&#x27;1&#x27;;env[&#x27;V12G_AR_TRIGGER&#x27;]=&#x27;1&#x27;;env[&#x27;V12X_RETAIN&#x27;]=&#x27;.25&#x27;;env[&#x27;V12G_AR_STRANDED_MAX&#x27;]=&#x27;0.70&#x27;
+76	            j=dict(market=plan[&#x27;markets&#x27;][0],mode=&#x27;NO_DIRECTION&#x27;,rule=&#x27;LEGACY&#x27;);cp=subprocess.run(cmd(j,(&#x27;--check-only&#x27;,)),cwd=ROOT,env=env,capture_output=True,text=True,timeout=600)
+77	            assert cp.returncode==0,cp.stderr[-2000:]
+78	            base=[json.loads(x) for x in cp.stdout.splitlines() if x.strip().startswith(&#x27;{&#x27;)];assert base and base[-1][&#x27;status&#x27;]==&#x27;PASS&#x27;,cp.stdout[-1500:]
+79	        print(json.dumps(dict(status=&#x27;PASS&#x27;,native_executed=0,model_fits=0,markets=len(plan[&#x27;markets&#x27;]),control_markets=sorted({c[&#x27;market&#x27;] for c in plan[&#x27;controls&#x27;].values()}),inputs_verified=True,
+80	            base_check=base[-1],planned_paths=len(jobs(plan)))));return
+81	    out=Path(os.environ[&#x27;BTC5M_LAN_RESULT_DIR&#x27;]).resolve()
+82	    assert out.parent==(ROOT/&#x27;.lan_worker_v1&#x27;/&#x27;results&#x27;).resolve() and out.name==plan[&#x27;reserved_job_id&#x27;]
+83	    out.mkdir(parents=True,exist_ok=True);rows=[];errors=[];started=time.monotonic();J=jobs(plan);assert len(J)==plan[&#x27;matrix&#x27;][&#x27;paths&#x27;]
+84	    write(out/&#x27;EXECUTION_PLAN.json&#x27;,plan)
+85	    def progress():write(out/&#x27;PROGRESS.json&#x27;,dict(done=len(rows),errors=len(errors),planned=len(J),seconds=time.monotonic()-started))
+86	    phase1=J[:4];phase2=[j for j in J if j not in phase1];smoke_stop=False
+87	    for batch in (phase1,phase2):
+88	        if smoke_stop:break
+89	        with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
+90	            fut={ex.submit(run_one,j,out):j for j in batch}
+91	            for f in concurrent.futures.as_completed(fut):
+92	                try:rows.append(f.result())
+93	                except Exception as e:errors.append(dict(job=fut[f],error=repr(e)[:2000]))
+94	                write(out/&#x27;ROWS.json&#x27;,rows);write(out/&#x27;ERRORS.json&#x27;,errors);progress()
+95	        if batch is phase1 and errors:smoke_stop=True
+96	    ctrl={}
+97	    for name,c in plan[&#x27;controls&#x27;].items():
+98	        exp=c[&#x27;expected&#x27;];r=next((x for x in rows if x[&#x27;control&#x27;] and x[&#x27;arm&#x27;]==name),None)
+99	        ctrl[name]=dict(found=r is not None,expected=exp,got=None if r is None else dict(UP=r[&#x27;UP&#x27;],DOWN=r[&#x27;DOWN&#x27;],cost=r[&#x27;cost&#x27;]),
+100	            exact=r is not None and all(abs(r[k]-exp[k])&lt;1e-6 for k in (&#x27;UP&#x27;,&#x27;DOWN&#x27;,&#x27;cost&#x27;)))
+101	    artifacts={f.relative_to(out).as_posix():sha(f) for f in out.rglob(&#x27;*&#x27;) if f.is_file() and f.name not in (&#x27;PROGRESS.json&#x27;,&#x27;RESULT.json&#x27;)}
+102	    write(out/&#x27;RESULT.json&#x27;,dict(status=&#x27;SMOKE_FAILED_STOPPED&#x27; if smoke_stop else &#x27;COMPLETE_V12G_ACTIVE_REPAIR4_SMALL&#x27;,smoke_stop=smoke_stop,paths=len(J),rows=len(rows),errors=len(errors),controls=ctrl,seconds=time.monotonic()-started,model_fits=0,V12_modified=False,live_changes=0,artifacts=artifacts))
+103	    progress()
+104	    import shutil as _sh
+105	    if (out/&#x27;arms&#x27;).exists():_sh.make_archive(str(out/&#x27;arms&#x27;),&#x27;zip&#x27;,root_dir=str(out),base_dir=&#x27;arms&#x27;);_sh.rmtree(out/&#x27;arms&#x27;)
+106	if __name__==&#x27;__main__&#x27;:
+107	    ap=argparse.ArgumentParser();ap.add_argument(&#x27;--check-only&#x27;,action=&#x27;store_true&#x27;);a=ap.parse_args()
+108	    try:run(a.check_only)
+109	    except Exception:
+110	        print(traceback.format_exc(),file=sys.stderr);raise
+111	</pre></details></article><article><h2>54 · Claude</h2><small>2026-09-26T19:07:19.583Z</small><details><summary>工具：Grep</summary><pre>{
+  &quot;pattern&quot;: &quot;\&quot;(paths|selection|arms)\&quot;&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_active_repair_20260927_v25\\PROTOCOL.json&quot;,
+  &quot;output_mode&quot;: &quot;content&quot;,
+  &quot;-A&quot;: 3
+}</pre></details></article><article><h2>55 · 工具結果</h2><small>2026-09-26T19:07:19.676Z</small><details><summary>工具回傳內容</summary><pre>68: &quot;arms&quot;: [
+69-  &quot;AR_OPEN&quot;,
+70-  &quot;AR_DP&quot;,
+71-  &quot;PADD80_CHECK&quot;
+--
+73: &quot;selection&quot;: &quot;latest 30 COMPLETE_FORWARD_V1 eligible BTC5M markets with an execution tape at build time (quality table max window_end 1790442600000); none in val100; no price path/Target/outcome read&quot;,
+74- &quot;matrix&quot;: {
+75:  &quot;paths&quot;: 64,
+76-  &quot;max_parallel&quot;: 12,
+77-  &quot;model_fits&quot;: 0
+78- },</pre></details></article><article><h2>56 · Claude</h2><small>2026-09-26T19:07:21.577Z</small><details><summary>工具：Grep</summary><pre>{
+  &quot;pattern&quot;: &quot;26\\d{5}&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\v12g_fresh30_bigloss_vs_target_20260927_v1\\CURRENT.md&quot;,
+  &quot;output_mode&quot;: &quot;content&quot;,
+  &quot;-o&quot;: true
+}</pre></details></article><article><h2>57 · 工具結果</h2><small>2026-09-26T19:07:21.681Z</small><details><summary>工具回傳內容</summary><pre>10:2628553
+11:2628769
+12:2629133
+13:2629199
+14:2628653
+15:2628450
+16:2629050
+17:2628429
+25:2628553
+26:2629199
+28:2628553
+29:2628429
+30:2629050</pre></details></article><article><h2>58 · Claude</h2><small>2026-09-26T19:07:26.483Z</small><details><summary>工具：Glob</summary><pre>{
+  &quot;pattern&quot;: &quot;*&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28&quot;
+}</pre></details></article><article><h2>59 · 工具結果</h2><small>2026-09-26T19:07:26.560Z</small><details><summary>工具回傳內容</summary><pre>data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms.zip
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\ERRORS.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\EXECUTION_PLAN.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\PROGRESS.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\RESULT.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\ROWS.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628410\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628410\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628410\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628410\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628410\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628410\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628553\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628553\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628553\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628553\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628553\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628553\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628557\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628557\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628557\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628557\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628557\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628557\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628653\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628653\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628653\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628653\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628653\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628653\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628721\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628721\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628721\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628721\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628721\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628721\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628769\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628769\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628769\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628769\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628769\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628769\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628999\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628999\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628999\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628999\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628999\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2628999\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629019\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629019\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629019\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629019\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629019\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629019\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629133\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629133\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629133\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629133\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629133\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629133\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629199\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629199\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629199\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629199\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629199\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_AR4_R25_2629199\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_K415_CONTROL_2491311\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_K415_CONTROL_2491311\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_K415_CONTROL_2491311\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_K415_CONTROL_2491311\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_K415_CONTROL_2491311\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_K415_CONTROL_2491311\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628553\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628553\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628553\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628553\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628553\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628553\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628769\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628769\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628769\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628769\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628769\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_PADD80_CHECK_2628769\stdout.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_V12_CONTROL_2491311\clock_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_V12_CONTROL_2491311\restoration_trace.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_V12_CONTROL_2491311\result.json.gz
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_V12_CONTROL_2491311\row.json
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_V12_CONTROL_2491311\stderr.log
+data\research\lan_worker_returns\btc5m-v12g-active-repair4-small-20260927-v28\arms\v12g28_V12_CONTROL_2491311\stdout.log</pre></details></article><article><h2>60 · Claude</h2><small>2026-09-26T19:07:29.553Z</small><details><summary>工具：Read</summary><pre>{
+  &quot;file_path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\arms\\v12g28_AR4_R25_2629199\\row.json&quot;
+}</pre></details></article><article><h2>61 · 工具結果</h2><small>2026-09-26T19:07:29.568Z</small><details><summary>工具回傳內容</summary><pre>1	{&quot;market&quot;: 2629199, &quot;mode&quot;: &quot;NO_DIRECTION&quot;, &quot;rule&quot;: &quot;LEGACY&quot;, &quot;control&quot;: false, &quot;arm&quot;: &quot;AR4_R25&quot;, &quot;K&quot;: &quot;4.15&quot;, &quot;RETAIN&quot;: &quot;.25&quot;, &quot;GROSS&quot;: &quot;300&quot;, &quot;FLIP&quot;: &quot;0.1&quot;, &quot;NEUTRAL&quot;: &quot;&quot;, &quot;FALLBACK&quot;: &quot;&quot;, &quot;PADD&quot;: &quot;0.80&quot;, &quot;PREP&quot;: &quot;&quot;, &quot;PACE&quot;: &quot;&quot;, &quot;AR&quot;: &quot;DP&quot;, &quot;AR_UNCAP&quot;: &quot;1&quot;, &quot;AR_AFTER&quot;: &quot;1&quot;, &quot;AR_NOGATE&quot;: &quot;1&quot;, &quot;AR_TRIGGER&quot;: &quot;1&quot;, &quot;AR_SMAX&quot;: &quot;0.70&quot;, &quot;rc&quot;: 2, &quot;seconds&quot;: 90.00696909998078, &quot;UP&quot;: -521.4876063827248, &quot;DOWN&quot;: 37.33701472836128, &quot;inv&quot;: {&quot;UP&quot;: 1483.5853788889135, &quot;DOWN&quot;: 2042.4099999999996}, &quot;cost&quot;: 2005.0729852716383, &quot;submits&quot;: 485, &quot;passive_submits&quot;: 453, &quot;active_submits&quot;: 32, &quot;active_fill_qty&quot;: 1015.4697395061728, &quot;active_requested_qty&quot;: 1242.69, &quot;active_births&quot;: [{&quot;price&quot;: 0.43000000000000005, &quot;qty&quot;: 60.0}, {&quot;price&quot;: 0.43000000000000005, &quot;qty&quot;: 60.0}, {&quot;price&quot;: 0.33, &quot;qty&quot;: 6.24}, {&quot;price&quot;: 0.34, &quot;qty&quot;: 46.39}, {&quot;price&quot;: 0.33, &quot;qty&quot;: 12.78}, {&quot;price&quot;: 0.34, &quot;qty&quot;: 15.88}, {&quot;price&quot;: 0.34, &quot;qty&quot;: 13.24}, {&quot;price&quot;: 0.37, &quot;qty&quot;: 38.51}, {&quot;price&quot;: 0.36, &quot;qty&quot;: 85.78}, {&quot;price&quot;: 0.36, &quot;qty&quot;: 13.33}, {&quot;price&quot;: 0.36, &quot;qty&quot;: 3.69}, {&quot;price&quot;: 0.36, &quot;qty&quot;: 65.81}, {&quot;price&quot;: 0.17, &quot;qty&quot;: 20.17}, {&quot;price&quot;: 0.21, &quot;qty&quot;: 33.61}, {&quot;price&quot;: 0.21, &quot;qty&quot;: 51.52}, {&quot;price&quot;: 0.2, &quot;qty&quot;: 221.87}, {&quot;price&quot;: 0.2, &quot;qty&quot;: 168.87}, {&quot;price&quot;: 0.18, &quot;qty&quot;: 115.0}], &quot;passive_fill_qty&quot;: 2510.5256393827412, &quot;safety_pass&quot;: false, &quot;selected_direction&quot;: &quot;UP&quot;, &quot;direction_switches&quot;: 0, &quot;direction_mode&quot;: &quot;NO_DIRECTION&quot;, &quot;restoration_new_active&quot;: 17, &quot;early&quot;: {&quot;first_fill_s&quot;: 3.958, &quot;at&quot;: {&quot;15&quot;: {&quot;UP&quot;: 266.60392156862747, &quot;DOWN&quot;: 15.0, &quot;cost&quot;: 171.58592156862747}, &quot;30&quot;: {&quot;UP&quot;: 482.3381429971989, &quot;DOWN&quot;: 300.0, &quot;cost&quot;: 469.8869523543418}, &quot;60&quot;: {&quot;UP&quot;: 577.7481429971988, &quot;DOWN&quot;: 1024.79, &quot;cost&quot;: 988.3596523543408}, &quot;120&quot;: {&quot;UP&quot;: 845.3681429971989, &quot;DOWN&quot;: 1282.4099999999996, &quot;cost&quot;: 1251.078552354341}, &quot;180&quot;: {&quot;UP&quot;: 965.3681429971989, &quot;DOWN&quot;: 1528.2299999999996, &quot;cost&quot;: 1482.15915235434}, &quot;240&quot;: {&quot;UP&quot;: 1483.5853788889135, &quot;DOWN&quot;: 2042.4099999999996, &quot;cost&quot;: 2005.0729852716383}}}, &quot;v12g&quot;: {&quot;gross&quot;: 300.0, &quot;fallback_s&quot;: 30.0, &quot;flip_delta&quot;: 0.1, &quot;neutral_delta&quot;: null, &quot;events&quot;: [{&quot;kind&quot;: &quot;DECIDE&quot;, &quot;t&quot;: 1790441415921, &quot;side&quot;: &quot;UP&quot;, &quot;mid&quot;: 0.575, &quot;gross&quot;: 383.60392156862747, &quot;by&quot;: &quot;GROSS&quot;}, {&quot;kind&quot;: &quot;FLIP&quot;, &quot;t&quot;: 1790441417682, &quot;frm&quot;: &quot;UP&quot;, &quot;to&quot;: &quot;DOWN&quot;, &quot;mid&quot;: 0.365}, {&quot;kind&quot;: &quot;FLIP&quot;, &quot;t&quot;: 1790441700685, &quot;frm&quot;: &quot;DOWN&quot;, &quot;to&quot;: &quot;UP&quot;, &quot;mid&quot;: 0.97}], &quot;final_side&quot;: &quot;UP&quot;}, &quot;v12g_fall&quot;: null, &quot;v12g_burst&quot;: null, &quot;v12g_lcr&quot;: null, &quot;v12g_flipcap&quot;: null, &quot;v12g_leancap&quot;: null, &quot;v12g_pay&quot;: {&quot;padd_px&quot;: 0.8, &quot;prep_px&quot;: null, &quot;pay_qty&quot;: 15.0, &quot;every_s&quot;: 2.0, &quot;stop_s&quot;: 10.0, &quot;orders&quot;: {&quot;PADD&quot;: 14, &quot;PREP&quot;: 0}, &quot;ordered_qty&quot;: {&quot;PADD&quot;: 210.0, &quot;PREP&quot;: 0.0}, &quot;rejected&quot;: 0, &quot;crossing_skips&quot;: 5, &quot;events&quot;: [{&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441418514, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.7, &quot;branch&quot;: -240.53695235434185}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441420678, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.69, &quot;branch&quot;: -236.03695235434185}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441422731, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.69, &quot;branch&quot;: -231.38695235434187}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441424911, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.7, &quot;branch&quot;: -202.73695235434184}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441427085, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.69, &quot;branch&quot;: -198.23695235434184}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441429287, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.7, &quot;branch&quot;: -193.58695235434186}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441431294, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.7, &quot;branch&quot;: -165.0869523543418}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441433534, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.6799999999999999, &quot;branch&quot;: -141.38695235434182}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441435539, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.6699999999999999, &quot;branch&quot;: -102.08695235434163}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441437920, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.69, &quot;branch&quot;: -69.66045235434149}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441440089, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.69, &quot;branch&quot;: -65.01045235434151}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441442285, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.6699999999999999, &quot;branch&quot;: -25.502469161064028}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441444304, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.69, &quot;branch&quot;: -5.760452354341169}, {&quot;kind&quot;: &quot;PADD&quot;, &quot;t&quot;: 1790441446524, &quot;side&quot;: &quot;DOWN&quot;, &quot;ask&quot;: 0.69, &quot;branch&quot;: -1.1104523543411915}]}, &quot;v12g_addcap&quot;: null, &quot;v12g_pace&quot;: null, &quot;v12g_addgap&quot;: null, &quot;v12g_wbudget&quot;: null, &quot;v12g_queue&quot;: null, &quot;v12g_plean&quot;: null, &quot;v12g_driver&quot;: null, &quot;v12g_ar3&quot;: {&quot;blocked_passive_ok&quot;: 59, &quot;trig_stranded&quot;: 15, &quot;trig_deficit&quot;: 10, &quot;trig_cheap&quot;: 0, &quot;submits&quot;: 17}}</pre></details></article><article><h2>62 · Claude</h2><small>2026-09-26T19:07:54.072Z</small><details><summary>工具：Grep</summary><pre>{
+  &quot;pattern&quot;: &quot;\&quot;rc\&quot;: \\d+|\&quot;safety_pass\&quot;: \\w+|\&quot;arm\&quot;: \&quot;\\w+\&quot;|\&quot;market\&quot;: \\d+&quot;,
+  &quot;path&quot;: &quot;C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\lan_worker_returns\\btc5m-v12g-active-repair4-small-20260927-v28\\ROWS.json&quot;,
+  &quot;output_mode&quot;: &quot;content&quot;,
+  &quot;-o&quot;: true
+}</pre></details></article><article><h2>63 · 工具結果</h2><small>2026-09-26T19:07:54.198Z</small><details><summary>工具回傳內容</summary><pre>1:&quot;market&quot;: 2491311
+1:&quot;arm&quot;: &quot;V12_CONTROL&quot;
+1:&quot;rc&quot;: 0
+1:&quot;safety_pass&quot;: true
+1:&quot;market&quot;: 2491311
+1:&quot;arm&quot;: &quot;K415_CONTROL&quot;
+1:&quot;rc&quot;: 0
+1:&quot;safety_pass&quot;: true
+1:&quot;market&quot;: 2628769
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2628553
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2628653
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2628721
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2628410
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2628999
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2628557
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2629133
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2628769
+1:&quot;arm&quot;: &quot;PADD80_CHECK&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2629019
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2629199
+1:&quot;arm&quot;: &quot;AR4_R25&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false
+1:&quot;market&quot;: 2628553
+1:&quot;arm&quot;: &quot;PADD80_CHECK&quot;
+1:&quot;rc&quot;: 2
+1:&quot;safety_pass&quot;: false</pre></details></article><article><h2>64 · Claude</h2><small>2026-09-26T19:09:35.105Z</small><pre># ACK_001
+
+**讀到的最新包：** `docs/agents/RESEARCH_CURRENT.md:1` 最新一項仍是 `v12g_active_repair4_small_20260927_v28`，父批是 v27，沒有後繼，任務前提沒有過期。
+
+**模型身份：** 本工作階段的系統環境說明寫明是 `claude-opus-5-5`。但這只是執行環境給我的自述，工具層面沒有可核對的證據，所以列為 **UNKNOWN**。應以 CLI 回傳 JSON 裡的 model 欄位為準（README_ZH.md:38）。
+
+**任務理解：** 這是 TASK_001 唯讀接手，只用了 Read、Glob、Grep。沒有派工、沒有改檔、沒有動 live，也沒有全倉掃描。restoration_trace 是壓縮的 .gz 檔，用 Read 無法解開，所以 trace 層面的核對只做到 `row.json`／`ROWS.json` 的明文欄位，其餘標為 UNKNOWN。
+
+**發現的衝突（必須先告知）：**
+1. **v28 的 10 條 AR4_R25 路徑和 2 條 PADD80_CHECK 路徑全部 `rc: 2`、`safety_pass: false`**（`lan_worker_returns/.../ROWS.json`）。SUMMARY 寫 `errors: 0`，但這只統計例外，CURRENT 沒有揭露這一點。兩條對照組都是 rc 0／safety true。原因不明。
+2. **v28 CURRENT 沒有寫出第二次換邊。** 2629199 的 `v12g.events` 裡還有一次 `FLIP DOWN→UP`，t=…700685，約在第 300.7 秒，已過市場結束時間。
+3. **v28 說准入規則「要到選邊後才會被觸發」，程式碼不保證這一點。** 理由見 RETURN 第 5 項。
+
+---
+
+# RETURN_001
+
+以下標記：**〔觀〕** 是有檔案證據的觀察；**〔推〕** 是推論；**〔計〕** 是未執行的計畫。
+
+## 1. 受測系統、費用、選樣、對照重現、已消費範圍
+
+| 項目 | 內容 | 證據等級 |
+|---|---|---|
+| 受測系統 | V12＋K415（K=4.15）＋G300＋FLIP 0.1（即 FLIP40）＋PADD 0.80＋AR=DP、AR_UNCAP、AR_AFTER、AR_NOGATE、AR_TRIGGER、RETAIN .25、AR_SMAX 0.70，variant 是 PREPARE，money-mode 是 PARALLEL_PAYOFF_ZERO | 〔觀〕`v28/worker.py:31,35-36`，`row.json` 的欄位與此一致 |
+| 費用 | 零費用。`isolated_gate.py:15` 用 assert 強制 `fee_cap == 0.0`；PROTOCOL 的 caveats 只寫 &quot;zero fee (fee estimate)&quot;。沒有任何費用敏感度分析 | 〔觀〕程式碼；實際費率影響未執行 |
+| 延遲／排隊 | 250/250ms、risk-averse 排隊。`row.v12g_queue=null`，代表沒有被覆蓋 | 屬於宣告（v24 CURRENT:3）；我沒核對引擎內部 |
+| 選樣 | 從 fresh30 挑出 PADD80 最虧 5 場，加上獲利場中排第 1、5、9、13、17 名的 5 場，**依結果挑選** | 〔觀〕`MARKETS.json:28` |
+| 官方勝方 | 來自 target_markets.winner | 屬於宣告，SUPPLEMENT 我沒讀 |
+| 對照重現 | V12／K415 在 2491311 上完全一致；PADD80_CHECK 只重現 2628553、2628769 兩場 | 〔觀〕`SUMMARY.json:3-37`。另外 8 場的 PADD80 數值直接沿用 v24，沒有重跑 |
+| 已消費範圍 | 30 場全部已被 v24（PADD80／WB100）、v25（AR_OPEN／AR_DP，64 條路徑）以及同場目標比較看過；10 場子集又被 v26、v27、v28 反覆使用 | 〔觀〕`v25/PROTOCOL.json:68-75` |
+
+## 2. 「被動修復處理不了」實際怎麼判斷
+
+〔觀〕判斷程式在 `run_variant.py:419-424`：
+- `wb7` 取的是 `state[&#x27;owners&#x27;]` 中所有弱邊 owner 的 limit。`state` 來自 `isolated_gate.snapshot`（`isolated_gate.py:12-20`），它收錄**所有非 TERMINAL 的 carrier**，不分路由（PASSIVE 或 ACTIVE）、不分狀態（包括 CANCEL_PENDING），剩餘量為 0 也照樣收錄。
+- 判斷用的是**計畫前**的 `state`，不是 `planned`（`:393`、`:402`），所以同一幀剛排入的新被動單看不到。
+- 「被甩開」的條件是 `(not wb7) or ask ≥ max(wb7) + 0.03`。
+
+〔推〕所以答案是：**會混為一談。**
+- 「完全沒掛單」「單子全部成交或已終結」「本幀剛要掛」都會落入 `not wb7`。
+- 如果有一張撤單中的高價單，或一張已送出但未成交的主動單，它的 limit 會拉高 `max(wb7)`，反而壓住觸發。
+- 如果弱邊買賣價差本身就 ≥0.03，就算我方掛在最佳買價，也會被判成「被甩開」。
+
+另外，(b) 虧損擴大和 (c) 夠便宜兩個條件根本不看被動單狀態。〔觀〕觸發次數會重疊：151＋78＋11＝240，但實際送單只有約 183 次。現有 trace 的 events 列不含 owner 狀態，**要分類只能加新的記錄欄位**。
+
+## 3. 換邊後 last_H 與 peak 的分支身份
+
+〔觀〕
+- `roles.strong` 就是 `side or &#x27;UP&#x27;`（`roles_runtime.py:17-19`），換邊後立即跟著變。
+- `ctx.peak = max(inv[當下strong] − cost)` 在每一幀累積，從不重設（`run_variant.py:37`）。
+- `V12G_AR3[&#x27;last_H&#x27;]` 只在送單時寫入當下弱邊的 H（`:433`），同樣從不重設。
+- 換邊之後，`t_def`（`:422`）拿「新弱邊的 H」去和「舊弱邊的 last_H」比較；`cash_capacity = worst_G − RETAIN × peak`（`economics.py:40`）裡的 peak 可能是舊強邊的高點。
+
+〔推〕程式證據顯示，**換邊後分支身份確實不一致**。這是否造成實際損害，要用 trace 核對換邊前後的觸發和 cash_capacity 才能確定，目前是 **UNKNOWN**，還不能判定為 bug 的影響。准入規則 `admission` 也用同一個 peak（`economics.py:60`），所以重開准入規則時會繼承同樣的問題。
+
+## 4. v27 的 10 場與原 30 場如何對齊
+
+〔觀〕
+
+| 格子 | 10 場（v26 起的子集） | 其餘 20 場 |
+|---|---|---|
+| PADD80 | v24（其中 2 場在 v27／v28 重現） | v24 |
+| WB100 | v24（2629019 出錯，缺） | v24 |
+| AR_OPEN／AR_DP | v25 | v25 |
+| AR2（v26）／AR3_R50／AR3_R25（v27）／AR4_R25（v28） | 有；AR4 與 AR3_R25 逐場相同 | **未跑** |
+| 目標同場比較 | 有 | 有；其中 2628450、2629050、2628429 另被 bigloss 案例分析 |
+
+**這 20 場是「已消費、結果已知，只是 AR3_R25 沒跑」，不能稱為完全沒看過的 holdout。**
+
+〔推〕AR4 的 0.70 限制在這 10 場從未生效，所以這 10 場的 AR4 格可以直接用 AR3_R25 的結果；但在另外 20 場，兩者可能不同。
+
+## 5. 核對 2629199 的更正，以及「修回再 ADD 失守」
+
+**用 row.json 核對 v28 的更正**〔觀〕，來源是 `v12g28_AR4_R25_2629199/row.json`：
+- **時間線：** 第 15.9 秒選 UP，第 17.7 秒換到 DOWN（UP 中價 0.365），第 300.7 秒換回 UP（已過結束時間）。所以 17.7 秒之後整場都是 DOWN 為強邊、UP 為弱邊。
+- **主動修復的成交價：** active_births 共 18 筆，16 筆在 0.17～0.37，2 筆在 0.43（各 60 份），**沒有任何一筆在 0.8**。17.7 秒後主動修復買的一定是弱邊，也就是 UP。
+- **v27「修復在 0.8 追 DOWN」的說法不成立。** 原因是 PADD 在 18.5～46.5 秒以 0.67～0.70 買了 14 筆、共 210 份 DOWN，那是選邊加倉，不是修復。
+- **兩邊庫存都在同步增加：** 第 30 秒到第 240 秒，DOWN 從 300 增加到 2,042，UP 從 482 增加到 1,484；180～240 秒這段兩邊各增加約 515 份。被動成交 2,510 份，遠大於主動成交 1,015 份。
+- **無法確認的部分：** births 沒有記錄方向，「16 筆 UP」是由弱邊定義推出來的，不是逐筆讀到；另外 PADD 的成交為什麼不在 births 裡，也是 **UNKNOWN**。active_requested 與 active_fill 相差 227 份（未成交或 EOF），現有檔案看不出屬於哪幾筆。
+
+**「修回再 ADD 失守」的可推翻解釋**（每一條都附最小同根比較，同樣 10 場）：
+1. **准入規則關閉（NOGATE），強邊的被動加倉抵銷了修復**（v28 的假說）。比較：AR4_R25 對 AR4_R25＋准入規則開啟。
+2. **問題在過早換邊（選邊後 1.8 秒就換），而不是修復和加倉的協調。** 比較：同一設定下換邊門檻不變，但換邊後讓准入規則保護重新開始計算；或只看已換邊的場次和沒換邊的場次分開算。
+3. **分支身份錯置**（第 3 項）**讓換邊後的觸發和預算失真。** 比較：換邊時重設 peak 與 last_H 的新組，其他全部相同。
+4. **被動單遭逆選擇（v23 已觀察到）成為主要的加倉來源。** 比較：准入規則只擋強邊被動單，對照擋全部強邊單。
+
+**重開准入規則會不會又停擺**〔推〕：**有高風險。**
+- K=4.15 時，強邊加倉的 `delta = q × (1 − 5.15p)`，只要價格 p &gt; 0.194 就是負值。
+- 只要 worst_margin &lt; 0（即 G＋4.15H 加上掛單懲罰為負，換邊後常見），`margin_ok`（`economics.py:59`）就會擋下幾乎所有 0.194 以上的強邊加倉。
+- `guarded_decide`（`run_variant.py:269`）也會擋原生主動模組的弱邊單。
+- `ctx.first` 在 PREPARE 模式下可以在 `observe`（`:38-50`）裡被設定，**不受 AR_AFTER_DECIDE 限制**。所以「要到選邊後才會觸發」沒有程式碼保證。
+- 派工前應先唯讀核對 v27／v28 trace 裡的 `first.action`、`first.t`，和 DECIDE 的時間比較。
+
+## 6. 報告格式
+
+**每場每組一列：**
+- 市場、組別、官方勝方
+- UP／DOWN 兩側的 signed payoff、勝方分支、輸方分支、兩支都正
+- 成本、總份數
+- 每一側的主動／被動成交量
+- AR 送單數與觸發分類（依第 2 項的新記錄）、PADD 單數
+- **未結責任：** EOF 時的掛單 owner 數與金額、主動單請求量減成交量、cancel-pending 數
+- rc、safety_pass
+- 費用情境：零費用為主，另列一欄以成交額 × 假設費率做敏感度（標明是估計）
+- 對 PADD80、對 AR3 的同場差值
+
+**彙總：**
+- 分母要逐一列出：計畫、完成、錯誤、缺勝方、缺目標
+- 勝方為正的場數、兩支都正的場數
+- **正收益總和 ÷ 虧損總和的絕對值**，作為連續值報告，不設門檻
+- 獲利場的收益保留比例、虧損場的減虧比例
+- 輸方分支的轉移量
+- 10 場（重用）與 20 場（新格但已消費）分開列
+
+〔觀〕以 v28 的 10 場為例：
+- 勝方正收益合計：PADD80 681 → AR 156，**只保留約 23%**。
+- 勝方虧損合計：3,214 → 1,441，減虧約 55%。
+- 正負比：0.21 → 0.11。
+- 最虧 5 場的輸方分支合計：+285 → −751，**虧損被轉移到輸方**。
+- 兩支都正：0/10。
+
+## 建議的下一批矩陣〔計〕（未派工，待 Codex 決定）
+
+**派工前先做（唯讀）：**
+- (i) 各場 trace 的 `first.action`／`first.t`
+- (ii) rc=2／safety_pass=false 的原因
+- (iii) 觸發分類需要加的新記錄欄位
+
+| 組別 | 市場 | 路徑數 |
+|---|---|---|
+| AR3_R25（v27 凍結設定） | 其餘 20 場 | 20 |
+| AR4_R25（量測 0.70 限制是否生效） | 其餘 20 場 | 20 |
+| AR4_R25＋准入規則開啟 | 全部 30 場 | 30 |
+| AR4_R25＋換邊時重設 peak／last_H（需要新程式碼，另開包） | 10 場 | 10（可放下一批） |
+| PADD80_CHECK | 20 場中取 2 場 | 2 |
+| V12／K415 對照組 | 2491311 | 2 |
+
+**停止與判定規則：**
+- 對照組不完全一致 → 停止。
+- 平均成本低於 PADD80 的 50%，或強邊被擋比例過高 → 標為 DEGENERATE，不算改善。
+- 所有退步的場次都要保留並報告。
+- 10 場與 20 場分開判定。
+- 任何結論都不能稱為模型晉級或 live-ready。
+
+**未知項：** restoration_trace 的逐筆內容、rc=2 的原因、227 份未成交主動單的去向、PADD 為什麼不在 births、官方勝方的原始來源。
+
+交付完畢，等待 Codex REVIEW。</pre></article></html>

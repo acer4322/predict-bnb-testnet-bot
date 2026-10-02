@@ -1,5 +1,7 @@
 param(
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [ValidateSet("FULL_LAB", "POLY_LIVE", "RESEARCH")]
+    [string]$Profile = "FULL_LAB"
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,8 +26,16 @@ function Get-LanIPv4 {
     return $null
 }
 
-# Always clear previous copies first so an old five-second collector cannot
-# share the same port with the current one.
+function Test-LocalService([string]$Url) {
+    try {
+        $Response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
+        return $Response.StatusCode -eq 200
+    }
+    catch {
+        return $false
+    }
+}
+
 & (Join-Path $Root "stop-local.ps1") -Quiet
 
 $FirewallRuleName = "BTC 5M Lab - Local Subnet"
@@ -50,47 +60,77 @@ if (-not $FirewallReady) {
     }
 }
 
-# Use a dedicated API port. Port 8765 is intentionally left untouched because
-# another local application may already own it.
 $env:PREDICT_SIM_PORT = [string]$ApiPort
+$env:PREDICT_RUNTIME_PROFILE = $Profile
 
 $UserApiKey = [Environment]::GetEnvironmentVariable("BINANCE_API_KEY", "User")
 $UserApiSecret = [Environment]::GetEnvironmentVariable("BINANCE_API_SECRET", "User")
-if ($UserApiKey) {
-    $env:BINANCE_API_KEY = $UserApiKey
-}
-if ($UserApiSecret) {
-    $env:BINANCE_API_SECRET = $UserApiSecret
-}
+if ($UserApiKey) { $env:BINANCE_API_KEY = $UserApiKey }
+if ($UserApiSecret) { $env:BINANCE_API_SECRET = $UserApiSecret }
+
 $OptionalUserEnvironment = @(
     "BINANCE_LIVE_API_KEY",
     "BINANCE_LIVE_API_SECRET",
     "PREDICT_LIVE_ENABLED",
+    "PREDICT_POLY_GAP_LIVE_ENABLED",
+    "PREDICT_POLY_GAP_LIVE_ENTRY_SLIPPAGE_BPS",
+    "PREDICT_POLY_GAP_LIVE_ENTRY_MAX_PRICE_MOVE_BPS",
+    "PREDICT_POLY_GAP_LIVE_EXIT_SLIPPAGE_BPS",
+    "PREDICT_POLY_GAP_LIVE_EXIT_POSITION_SYNC_TIMEOUT_MS",
     "PREDICT_LIVE_ACCOUNT_TYPE",
     "PREDICT_AUTO_REDEEM_ENABLED",
     "PREDICT_API_RESTART_ERROR_THRESHOLD",
     "PREDICT_API_MAX_RESTARTS",
     "PREDICT_API_RESTART_WINDOW_SECONDS",
     "PREDICT_API_RESTART_DELAY_SECONDS",
-    "PREDICT_MICRO_SNAPSHOT_RETENTION_HOURS"
+    "PREDICT_STARTUP_TIMEOUT_SECONDS",
+    "PREDICT_CROSS_ORACLE_STRATEGIES_ENABLED"
 )
 foreach ($Name in $OptionalUserEnvironment) {
     $Value = [Environment]::GetEnvironmentVariable($Name, "User")
-    if ($Value) {
-        Set-Item -LiteralPath "Env:$Name" -Value $Value
+    if ($Value) { Set-Item -LiteralPath "Env:$Name" -Value $Value }
+}
+
+switch ($Profile) {
+    "POLY_LIVE" {
+        $env:PREDICT_MICRO_ENABLED = "0"
+        $env:PREDICT_CROSS_ORACLE_POLY_RAW_ARCHIVE_ENABLED = "0"
+        $env:PREDICT_CROSS_ORACLE_POLY_RAW_RETENTION_HOURS = "6"
+        $env:PREDICT_CROSS_ORACLE_CHAINLINK_RETENTION_HOURS = "72"
+        $env:PREDICT_MICRO_RAW_RETENTION_HOURS = "3"
+        $env:PREDICT_MICRO_SNAPSHOT_RETENTION_HOURS = "24"
+        $env:PREDICT_MICRO_LIQUIDITY_RETENTION_HOURS = "168"
+        Write-Host "Runtime profile: POLY_LIVE (microstructure research disabled; Poly raw archive disabled)."
+    }
+    "RESEARCH" {
+        $env:PREDICT_MICRO_ENABLED = "1"
+        $env:PREDICT_CROSS_ORACLE_POLY_RAW_ARCHIVE_ENABLED = "1"
+        $env:PREDICT_CROSS_ORACLE_POLY_RAW_RETENTION_HOURS = "72"
+        $env:PREDICT_CROSS_ORACLE_CHAINLINK_RETENTION_HOURS = "168"
+        $env:PREDICT_MICRO_RAW_RETENTION_HOURS = "24"
+        $env:PREDICT_MICRO_SNAPSHOT_RETENTION_HOURS = "168"
+        $env:PREDICT_MICRO_LIQUIDITY_RETENTION_HOURS = "720"
+        Write-Host "Runtime profile: RESEARCH (extended raw/detail retention)."
+    }
+    default {
+        $env:PREDICT_MICRO_ENABLED = "1"
+        $env:PREDICT_CROSS_ORACLE_POLY_RAW_ARCHIVE_ENABLED = "1"
+        $env:PREDICT_CROSS_ORACLE_POLY_RAW_RETENTION_HOURS = "6"
+        $env:PREDICT_CROSS_ORACLE_CHAINLINK_RETENTION_HOURS = "72"
+        $env:PREDICT_MICRO_RAW_RETENTION_HOURS = "6"
+        $env:PREDICT_MICRO_SNAPSHOT_RETENTION_HOURS = "48"
+        $env:PREDICT_MICRO_LIQUIDITY_RETENTION_HOURS = "168"
+        Write-Host "Runtime profile: FULL_LAB (all research services enabled; bounded detail retention)."
     }
 }
+
 if (-not $env:BINANCE_API_KEY -or -not $env:BINANCE_API_SECRET) {
     Write-Host "Enter the read-only Binance HMAC credentials for this session only."
     $env:BINANCE_API_KEY = Read-Host "BINANCE_API_KEY"
     $SecureSecret = Read-Host "BINANCE_API_SECRET" -AsSecureString
     $SecretPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureSecret)
-    try {
-        $env:BINANCE_API_SECRET = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($SecretPtr)
-    }
-    finally {
-        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($SecretPtr)
-    }
+    try { $env:BINANCE_API_SECRET = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($SecretPtr) }
+    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($SecretPtr) }
 }
 
 $Api = Start-Process -FilePath "python" -ArgumentList @("-m", "predict_bot.supervisor") `
@@ -110,7 +150,14 @@ $ApiStateUrl = "http://127.0.0.1:${ApiPort}/api/state"
 $LocalUrl = "http://localhost:${WebPort}"
 $ApiReady = $false
 $WebReady = $false
-$StartupDeadline = (Get-Date).AddSeconds(40)
+$StartupTimeoutSeconds = 120
+if ($env:PREDICT_STARTUP_TIMEOUT_SECONDS) {
+    $ParsedTimeout = 0
+    if ([int]::TryParse($env:PREDICT_STARTUP_TIMEOUT_SECONDS, [ref]$ParsedTimeout)) {
+        $StartupTimeoutSeconds = [Math]::Max(40, $ParsedTimeout)
+    }
+}
+$StartupDeadline = (Get-Date).AddSeconds($StartupTimeoutSeconds)
 while ((Get-Date) -lt $StartupDeadline -and (-not $ApiReady -or -not $WebReady)) {
     if (-not $ApiReady) {
         try {
@@ -119,8 +166,7 @@ while ((Get-Date) -lt $StartupDeadline -and (-not $ApiReady -or -not $WebReady))
         }
         catch {
             if ($Api.HasExited) {
-                $ApiError = Get-Content (Join-Path $Root "data\api.stderr.log") -Raw `
-                    -ErrorAction SilentlyContinue
+                $ApiError = Get-Content (Join-Path $Root "data\api.stderr.log") -Raw -ErrorAction SilentlyContinue
                 throw "BTC 5M API failed to start. $ApiError"
             }
         }
@@ -132,46 +178,41 @@ while ((Get-Date) -lt $StartupDeadline -and (-not $ApiReady -or -not $WebReady))
         }
         catch {
             if ($Web.HasExited) {
-                $WebError = Get-Content (Join-Path $Root "data\web.stderr.log") -Raw `
-                    -ErrorAction SilentlyContinue
+                $WebError = Get-Content (Join-Path $Root "data\web.stderr.log") -Raw -ErrorAction SilentlyContinue
                 throw "BTC 5M dashboard failed to start. $WebError"
             }
         }
     }
-    if (-not $ApiReady -or -not $WebReady) {
-        Start-Sleep -Milliseconds 500
-    }
+    if (-not $ApiReady -or -not $WebReady) { Start-Sleep -Milliseconds 500 }
 }
 if (-not $ApiReady -or -not $WebReady) {
-    throw "BTC 5M Lab did not become ready within 40 seconds (API=$ApiReady, dashboard=$WebReady)."
+    $OracleReady = Test-LocalService "http://127.0.0.1:8767/state"
+    $LeaderReady = Test-LocalService "http://127.0.0.1:8768/state"
+    $PolyLiveReady = Test-LocalService "http://127.0.0.1:8769/state"
+    $Status = "API=$ApiReady dashboard=$WebReady oracle8767=$OracleReady leader8768=$LeaderReady polyLive8769=$PolyLiveReady"
+    throw "BTC 5M Lab did not become ready within $StartupTimeoutSeconds seconds ($Status). Check data\api.stderr.log and data\api.stdout.log."
 }
 
 $LanIp = Get-LanIPv4
-Write-Host "BTC 5M Lab ready at $LocalUrl (API port $ApiPort)"
+Write-Host "BTC 5M Lab ready at $LocalUrl (API port $ApiPort; profile=$Profile)"
 if ($LanIp) {
     $PhoneUrl = "http://${LanIp}:4310"
     $PhoneUrl | Set-Content (Join-Path $Root "data\phone-url.txt")
     Write-Host "PHONE (same Wi-Fi/LAN): $PhoneUrl"
 }
-else {
-    Write-Warning "No LAN IPv4 address was found. Localhost is still available."
-}
-if (-not $NoBrowser) {
-    Start-Process $LocalUrl
-}
+else { Write-Warning "No LAN IPv4 address was found. Localhost is still available." }
+if (-not $NoBrowser) { Start-Process $LocalUrl }
 Write-Host "READY: the website is running in the background. You can type another command now."
 if ($env:PREDICT_LIVE_ENABLED -match '^(1|true|yes|on)$') {
     try {
         $ReadyState = Invoke-RestMethod -Uri $ApiStateUrl -TimeoutSec 30
         $LiveState = $ReadyState.liveM0W
-        Write-Warning (
-            "REAL MONEY: status {0}; strategy {1}; per-market cap {2} USDT." -f `
-                $LiveState.status, $LiveState.rules.strategy, $LiveState.rules.maxStakeUsdt
-        )
+        Write-Warning ("REAL MONEY: status {0}; strategy {1}; per-market cap {2} USDT." -f $LiveState.status, $LiveState.rules.strategy, $LiveState.rules.maxStakeUsdt)
     }
-    catch {
-        Write-Warning "REAL MONEY is configured, but its current state could not be read."
-    }
+    catch { Write-Warning "REAL MONEY is configured, but its current state could not be read." }
+}
+if ($env:PREDICT_POLY_GAP_LIVE_ENABLED -match '^(1|true|yes|on)$') {
+    Write-Warning "REAL MONEY: dedicated R_POLY_GAP_SCALP master is enabled. Runtime remains controlled by its own dashboard switch and maximum-loss guard."
 }
 if ($env:PREDICT_AUTO_REDEEM_ENABLED -notmatch '^(0|false|no|off)$') {
     Write-Host "AUTO REDEEM ENABLED: claimable winners are redeemed 60 seconds after settlement."

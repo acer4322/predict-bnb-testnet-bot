@@ -9,6 +9,82 @@ from typing import Any
 from .core import taker_fee
 
 
+CONFIRMATION_ADD_STRATEGY = "R_CONFIRM_ADD_10"
+CONFIRMATION_ADD_SOURCE_STRATEGIES = (
+    "R_MICROPRICE",
+    "R_CALIBRATED_VALUE",
+    "M01O_F1",
+)
+CONFIRMATION_ADD_TRANCHE_USDT = 1.0
+CONFIRMATION_ADD_MULTIPLIERS = (1.0, 1.1, 1.2, 1.3, 1.4)
+CONFIRMATION_ADD_MAX_PRICE = 0.99
+CONFIRMATION_ADD_MIN_SECONDS_LEFT = 30.0
+CONFIRMATION_ADD_SLIPPAGE_BPS = 50.0
+CONFIRMATION_ADD_FEE_BPS = 200
+CONFIRMATION_ADD_MAX_SPREAD = 0.03
+CONFIRMATION_ADD_MAX_BOOK_AGE_MS = 2000.0
+CONFIRMATION_ADD_MAX_BOOK_SKEW_MS = 500.0
+
+
+def confirmation_add_levels(base_price: float) -> tuple[float, ...]:
+    """Return the frozen +10% confirmation ladder for one source fill."""
+    base = float(base_price)
+    if not math.isfinite(base) or not 0 < base < 1:
+        raise ValueError("confirmation-add base price must be between 0 and 1")
+    return tuple(
+        min(CONFIRMATION_ADD_MAX_PRICE, base * multiplier)
+        for multiplier in CONFIRMATION_ADD_MULTIPLIERS
+    )
+
+
+def confirmation_add_book_event_key(
+    snapshot: dict[str, Any], side: str
+) -> str:
+    normalized = str(side).upper()
+    timestamp = snapshot.get(f"{normalized.lower()}_book_timestamp_ms")
+    if timestamp is not None:
+        return f"{normalized}:{timestamp}"
+    return f"{normalized}:observation:{snapshot.get('id') or snapshot.get('timestamp')}"
+
+
+def confirmation_add_book_is_safe(
+    snapshot: dict[str, Any], side: str
+) -> tuple[bool, str]:
+    """Fail closed on the same freshness/spread constraints used in replay."""
+    normalized = str(side).upper()
+    if normalized not in {"UP", "DOWN"}:
+        return False, "unsupported side"
+    prefix = normalized.lower()
+    try:
+        seconds_left = float(snapshot["seconds_left"])
+        ask = float(snapshot[f"{prefix}_ask"])
+        bid = float(snapshot[f"{prefix}_bid"])
+        ask_size = float(snapshot[f"{prefix}_ask_size"])
+        book_age_ms = float(snapshot["book_age_ms"])
+        book_skew_ms = float(snapshot["book_skew_ms"])
+    except (KeyError, TypeError, ValueError):
+        return False, "required book field unavailable"
+    values = (seconds_left, ask, bid, ask_size, book_age_ms, book_skew_ms)
+    if not all(math.isfinite(value) for value in values):
+        return False, "required book field is not finite"
+    if seconds_left <= CONFIRMATION_ADD_MIN_SECONDS_LEFT:
+        return False, "confirmation cutoff reached"
+    if not 0 < ask < 1 or bid < 0 or ask_size <= 0:
+        return False, "book price or depth is unusable"
+    if not 0 <= ask - bid <= CONFIRMATION_ADD_MAX_SPREAD:
+        return False, "spread exceeds confirmation limit"
+    if not 0 <= book_age_ms <= CONFIRMATION_ADD_MAX_BOOK_AGE_MS:
+        return False, "book age exceeds confirmation limit"
+    if not 0 <= book_skew_ms <= CONFIRMATION_ADD_MAX_BOOK_SKEW_MS:
+        return False, "book skew exceeds confirmation limit"
+    return True, "safe"
+
+
+def confirmation_add_execution_price(ask: float) -> float | None:
+    price = float(ask) * (1.0 + CONFIRMATION_ADD_SLIPPAGE_BPS / 10_000.0)
+    return price if math.isfinite(price) and 0 < price < 1 else None
+
+
 PRIMARY_RESEARCH_STRATEGIES = (
     "R_MICROPRICE",
     "R_OFI",
@@ -19,12 +95,16 @@ PRIMARY_RESEARCH_STRATEGIES = (
 
 SHADOW_RESEARCH_STRATEGIES = (
     "R_CALIBRATED_VALUE_CONTINUOUS_V2",
+    "R_MICROPRICE_REVERSE",
+    "R_CALIBRATED_VALUE_REVERSE",
     "R_FUTURES_LEAD_CONTINUOUS_V2",
     "R_FUTURES_LEAD_REVERSE",
     "R_FUTURES_LEAD_REGIME_REVERSE_3L",
     "R_FUTURES_LEAD_EXIT30",
     "R_FUTURES_LEAD_DISTANCE",
     "R_FUTURES_LEAD_EXIT30_DISTANCE",
+    "R_FUTURES_LEAD_SIGNAL_100",
+    "R_FUTURES_LEAD_MIN_ENTRY_020",
     "R_OFI_MIN040",
     "R_OFI_EVENT_CUM",
     "R_OFI_EVENT_CUM_FILTERED",
@@ -37,6 +117,8 @@ SHADOW_RESEARCH_STRATEGIES = (
     "R_MICROPRICE_OBSERVER_V3",
     "R_MICROPRICE_OBSERVER_V6",
     "R_CALIBRATED_VALUE_OBSERVER_V6",
+    "R_MICROPRICE_OBSERVER_AUTO_V6",
+    "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6",
 )
 
 RESEARCH_STRATEGIES = (*PRIMARY_RESEARCH_STRATEGIES, *SHADOW_RESEARCH_STRATEGIES)
@@ -46,6 +128,12 @@ CONTINUOUS_CALIBRATION_RULES = {
     "R_FUTURES_LEAD_CONTINUOUS_V2": "R_FUTURES_LEAD",
 }
 CONTINUOUS_CALIBRATION_STRATEGIES = tuple(CONTINUOUS_CALIBRATION_RULES)
+PAIRED_REVERSE_RULES = {
+    "R_MICROPRICE_REVERSE": "R_MICROPRICE",
+    "R_CALIBRATED_VALUE_REVERSE": "R_CALIBRATED_VALUE",
+}
+
+PAIRED_REVERSE_STRATEGIES = tuple(PAIRED_REVERSE_RULES)
 
 FUTURES_LEAD_EXPERIMENT_STRATEGIES = (
     "R_FUTURES_LEAD_EXIT30",
@@ -60,6 +148,18 @@ FUTURES_LEAD_DISTANCE_STRATEGIES = (
     "R_FUTURES_LEAD_DISTANCE",
     "R_FUTURES_LEAD_EXIT30_DISTANCE",
 )
+
+FUTURES_LEAD_FILTER_RULES = {
+    "R_FUTURES_LEAD_SIGNAL_100": {
+        "source_strategy": "R_FUTURES_LEAD",
+        "min_abs_signal_bps": 1.0,
+    },
+    "R_FUTURES_LEAD_MIN_ENTRY_020": {
+        "source_strategy": "R_FUTURES_LEAD",
+        "min_source_entry_exclusive": 0.20,
+    },
+}
+FUTURES_LEAD_FILTER_STRATEGIES = tuple(FUTURES_LEAD_FILTER_RULES)
 
 FUTURES_LEAD_OBSERVER_VERSIONS = ("F1", "V2", "V3", "V4", "V6")
 FUTURES_LEAD_OBSERVER_STRATEGIES = tuple(
@@ -77,6 +177,8 @@ FUTURES_LEAD_LIVE_OBSERVER_STRATEGIES = (
     "R_FUTURES_LEAD",
     "R_FUTURES_LEAD_REVERSE",
     "R_FUTURES_LEAD_REGIME_REVERSE_3L",
+    "R_FUTURES_LEAD_DISTANCE",
+    *FUTURES_LEAD_FILTER_STRATEGIES,
 )
 
 OBSERVER_COMBINATION_STRATEGY_RULES = {
@@ -88,6 +190,16 @@ OBSERVER_COMBINATION_STRATEGY_RULES = {
 OBSERVER_COMBINATION_STRATEGIES = tuple(
     OBSERVER_COMBINATION_STRATEGY_RULES
 )
+
+OBSERVER_AUTO_V6_STRATEGY_RULES = {
+    "R_MICROPRICE_OBSERVER_AUTO_V6": "R_MICROPRICE",
+    "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6": "R_CALIBRATED_VALUE",
+}
+OBSERVER_AUTO_V6_STRATEGIES = tuple(OBSERVER_AUTO_V6_STRATEGY_RULES)
+OBSERVER_AUTO_V6_FAST_WINDOW = 30
+OBSERVER_AUTO_V6_SLOW_WINDOW = 100
+OBSERVER_AUTO_V6_MIN_FAST_COHORT = 5
+OBSERVER_AUTO_V6_MIN_SLOW_COHORT = 15
 
 FUTURES_LEAD_EXPERIMENT_BASE = {
     "horizon": 180.0,
@@ -107,6 +219,14 @@ FUTURES_LEAD_EXPERIMENT_BASE = {
 
 RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
     "R_MICROPRICE": {"horizon": 180.0, "threshold": 0.20, "max_ask": 0.55},
+    "R_MICROPRICE_REVERSE": {
+        "horizon": 180.0,
+        "max_ask": 0.99,
+    },
+    "R_CALIBRATED_VALUE_REVERSE": {
+        "horizon": 60.0,
+        "max_ask": 0.99,
+    },
     "R_OFI": {"horizon": 60.0, "lag": 10.0, "threshold": 0.20, "max_ask": 0.85},
     "R_OFI_MIN040": {
         "horizon": 60.0,
@@ -136,6 +256,7 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "horizon": 180.0,
         "lag": 3.0,
         "min_lead_bps": 0.25,
+        "max_source_age_ms": 500.0,
         "max_ask": 0.55,
     },
     "R_FUTURES_LEAD_CONTINUOUS_V2": {
@@ -194,6 +315,22 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "beta_0": -0.15376836312439016,
         "beta_1": 0.9895606377583307,
     },
+    "R_MICROPRICE_OBSERVER_AUTO_V6": {
+        "horizon": 180.0,
+        "threshold": 0.20,
+        "max_ask": 0.55,
+        "fast_history_window": float(OBSERVER_AUTO_V6_FAST_WINDOW),
+        "slow_history_window": float(OBSERVER_AUTO_V6_SLOW_WINDOW),
+    },
+    "R_CALIBRATED_VALUE_OBSERVER_AUTO_V6": {
+        "horizon": 60.0,
+        "min_edge": 0.01,
+        "max_ask": 0.70,
+        "beta_0": -0.15376836312439016,
+        "beta_1": 0.9895606377583307,
+        "fast_history_window": float(OBSERVER_AUTO_V6_FAST_WINDOW),
+        "slow_history_window": float(OBSERVER_AUTO_V6_SLOW_WINDOW),
+    },
     "R_FUTURES_LEAD_EXIT30": {
         **FUTURES_LEAD_EXPERIMENT_BASE,
         "max_ask": 0.55,
@@ -212,6 +349,19 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "exit_after_seconds": 30.0,
         "exit_grace_seconds": 15.0,
     },
+    "R_FUTURES_LEAD_SIGNAL_100": {
+        "horizon": 180.0,
+        "lag": 3.0,
+        "min_lead_bps": 1.0,
+        "max_ask": 0.55,
+    },
+    "R_FUTURES_LEAD_MIN_ENTRY_020": {
+        "horizon": 180.0,
+        "lag": 3.0,
+        "min_lead_bps": 0.25,
+        "min_ask": 0.20,
+        "max_ask": 0.55,
+    },
     "R_CALIBRATED_VALUE": {
         "horizon": 60.0,
         "min_edge": 0.01,
@@ -228,7 +378,13 @@ RESEARCH_PARAMETERS: dict[str, dict[str, float]] = {
         "min_bucket_history": 5.0,
         "prior_strength": 10.0,
     },
-    "R_CONSENSUS": {"horizon": 180.0, "lag": 10.0, "votes": 4.0, "max_ask": 0.85},
+    "R_CONSENSUS": {
+        "horizon": 180.0,
+        "lag": 10.0,
+        "votes": 4.0,
+        "max_source_age_ms": 500.0,
+        "max_ask": 0.85,
+    },
 }
 
 
@@ -342,6 +498,124 @@ def futures_lead_observer_decision(
     result["reason"] = "allowed" if allowed else reason
     return result
 
+
+def observer_v6_auto_decision(
+    history: list[dict[str, Any]],
+    current_gate: dict[str, Any] | None,
+    *,
+    expected_market_id: int | None = None,
+) -> dict[str, Any]:
+    """Choose whether V6 should be applied from prior official source results.
+
+    V6 is the safe default. Warm-up, cohort shortage, and mixed evidence no
+    longer bypass the current V6 decision. Bypass is allowed only when the
+    trades V6 would have blocked were profitable in both fast and slow windows.
+    """
+
+    usable: list[dict[str, Any]] = []
+    for row in history[-OBSERVER_AUTO_V6_SLOW_WINDOW:]:
+        try:
+            unit_pnl = float(row["unit_pnl"])
+            v6_allowed = row["v6_allowed"]
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not math.isfinite(unit_pnl) or not isinstance(v6_allowed, bool):
+            continue
+        usable.append(
+            {
+                "market_id": row.get("market_id"),
+                "unit_pnl": unit_pnl,
+                "v6_allowed": v6_allowed,
+            }
+        )
+
+    def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        allowed_rows = [row for row in rows if row["v6_allowed"]]
+        blocked_rows = [row for row in rows if not row["v6_allowed"]]
+        return {
+            "samples": len(rows),
+            "allowedSamples": len(allowed_rows),
+            "blockedSamples": len(blocked_rows),
+            "passRatePct": (
+                len(allowed_rows) / len(rows) * 100.0 if rows else None
+            ),
+            "sourceUnitPnl": sum(row["unit_pnl"] for row in rows),
+            "allowedUnitPnl": sum(row["unit_pnl"] for row in allowed_rows),
+            "blockedUnitPnl": sum(row["unit_pnl"] for row in blocked_rows),
+        }
+
+    fast = summarize(usable[-OBSERVER_AUTO_V6_FAST_WINDOW:])
+    slow = summarize(usable)
+    history_ready = slow["samples"] >= OBSERVER_AUTO_V6_SLOW_WINDOW
+    cohorts_ready = bool(
+        fast["allowedSamples"] >= OBSERVER_AUTO_V6_MIN_FAST_COHORT
+        and fast["blockedSamples"] >= OBSERVER_AUTO_V6_MIN_FAST_COHORT
+        and slow["allowedSamples"] >= OBSERVER_AUTO_V6_MIN_SLOW_COHORT
+        and slow["blockedSamples"] >= OBSERVER_AUTO_V6_MIN_SLOW_COHORT
+    )
+    v6_proven_better = bool(
+        history_ready
+        and cohorts_ready
+        and fast["allowedUnitPnl"] > 0
+        and slow["allowedUnitPnl"] > 0
+        and fast["blockedUnitPnl"] < 0
+        and slow["blockedUnitPnl"] < 0
+    )
+    bypass_proven_better = bool(
+        history_ready
+        and cohorts_ready
+        and fast["blockedUnitPnl"] > 0
+        and slow["blockedUnitPnl"] > 0
+    )
+
+    if not history_ready:
+        mode = "APPLY_V6_WARMUP"
+        mode_reason = "OFFICIAL_HISTORY_WARMUP_USE_V6"
+    elif not cohorts_ready:
+        mode = "APPLY_V6_COHORT_WARMUP"
+        mode_reason = "INSUFFICIENT_ALLOW_BLOCK_COHORTS_USE_V6"
+    elif v6_proven_better:
+        mode = "APPLY_V6_PROVEN"
+        mode_reason = "V6_IMPROVES_FAST_AND_SLOW_OFFICIAL_WINDOWS"
+    elif bypass_proven_better:
+        mode = "BYPASS_V6_PROVEN"
+        mode_reason = "BLOCKED_COHORT_PROFITABLE_FAST_AND_SLOW"
+    else:
+        mode = "APPLY_V6_UNCERTAIN"
+        mode_reason = "MIXED_HISTORY_USE_V6"
+
+    current_v6 = futures_lead_observer_decision(
+        "V6", current_gate, expected_market_id=expected_market_id
+    )
+    bypass = mode == "BYPASS_V6_PROVEN"
+    allowed = bypass or current_v6["allowed"] is True
+    return {
+        "allowed": allowed,
+        "status": "ALLOW" if allowed else "BLOCK",
+        "mode": mode,
+        "reason": (
+            mode_reason
+            if allowed
+            else str(current_v6.get("reason") or mode_reason)
+        ),
+        "modeReason": mode_reason,
+        "paperOnly": True,
+        "liveOrdersAffected": False,
+        "officialHistoryOnly": True,
+        "currentMarketExcluded": True,
+        "currentGateAvailable": isinstance(current_gate, dict),
+        "v6ProvenBetter": v6_proven_better,
+        "bypassProvenBetter": bypass_proven_better,
+        "fallbackPolicy": (
+            "apply V6 unless bypass is proven by profitable blocked cohorts "
+            "in both fast and slow official-history windows"
+        ),
+        "fastWindow": fast,
+        "slowWindow": slow,
+        "minimumFastCohort": OBSERVER_AUTO_V6_MIN_FAST_COHORT,
+        "minimumSlowCohort": OBSERVER_AUTO_V6_MIN_SLOW_COHORT,
+        "currentV6Decision": current_v6,
+    }
 
 def _finite(*values: Any) -> bool:
     try:
@@ -580,23 +854,54 @@ def _log_return(previous: float, current: float) -> float | None:
     if not _finite(previous, current) or previous <= 0 or current <= 0:
         return None
     return math.log(current / previous)
+def reverse_source_signal(
+    source_strategy: str,
+    source_side: str,
+    source_signal: float,
+    *,
+    source_probability: float | None = None,
+) -> dict[str, Any] | None:
+    """Create an opposite-direction shadow from an actually opened source trade."""
+    normalized_strategy = str(source_strategy).strip().upper()
+    normalized_side = str(source_side).strip().upper()
 
+    if (
+        not normalized_strategy
+        or normalized_side not in {"UP", "DOWN"}
+        or not _finite(source_signal)
+    ):
+        return None
+
+    result: dict[str, Any] = {
+        "side": "DOWN" if normalized_side == "UP" else "UP",
+        "signal": -float(source_signal),
+        "source_strategy": normalized_strategy,
+        "source_side": normalized_side,
+        "source_signal": float(source_signal),
+        "direction_reversed": True,
+        "paired_counterfactual": True,
+    }
+
+    # CALIBRATED_VALUE has a probability estimate. Its opposite side has 1-p.
+    if (
+        source_probability is not None
+        and _finite(source_probability)
+        and 0.0 < float(source_probability) < 1.0
+    ):
+        result["model_probability"] = 1.0 - float(source_probability)
+
+    return result
 
 def reverse_futures_lead_signal(
     source_side: str, source_signal: float
 ) -> dict[str, Any] | None:
     """Derive the shadow direction only from an opened Futures Lead trade."""
     normalized_side = str(source_side).upper()
-    if normalized_side not in {"UP", "DOWN"} or not _finite(source_signal):
-        return None
-    return {
-        "side": "DOWN" if normalized_side == "UP" else "UP",
-        "signal": -float(source_signal),
-        "source_strategy": "R_FUTURES_LEAD",
-        "source_side": normalized_side,
-        "source_signal": float(source_signal),
-        "direction_reversed": True,
-    }
+    return reverse_source_signal(
+        "R_FUTURES_LEAD",
+        source_side,
+        source_signal,
+    )
 
 
 def regime_futures_lead_signal(
@@ -631,6 +936,176 @@ def _fresh_source_sample(row: dict[str, float], max_age_ms: float) -> bool:
         and 0 <= float(row["spot_age_ms"]) <= max_age_ms
         and 0 <= float(row["futures_age_ms"]) <= max_age_ms
     )
+
+
+
+def futures_lead_diagnostics(
+    current: dict[str, float],
+    previous: dict[str, float] | None,
+    *,
+    params: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    """Expose the exact inputs and gates used by R_FUTURES_LEAD."""
+    selected = params or RESEARCH_PARAMETERS["R_FUTURES_LEAD"]
+    configured_lag_seconds = float(selected["lag"])
+    min_lead_bps = float(selected["min_lead_bps"])
+    max_source_age_ms = float(selected["max_source_age_ms"])
+
+    def finite_value(value: Any) -> float | None:
+        try:
+            result = float(value)
+        except (TypeError, ValueError):
+            return None
+        return result if math.isfinite(result) else None
+
+    def source_age_ms(row: dict[str, float] | None) -> float | None:
+        if row is None:
+            return None
+        spot_age = finite_value(row.get("spot_age_ms"))
+        futures_age = finite_value(row.get("futures_age_ms"))
+        if spot_age is None or futures_age is None:
+            return None
+        return max(spot_age, futures_age)
+
+    current_timestamp = finite_value(current.get("timestamp_ns"))
+    previous_timestamp = (
+        finite_value(previous.get("timestamp_ns"))
+        if previous is not None
+        else None
+    )
+    actual_lag_seconds = (
+        (current_timestamp - previous_timestamp) / 1_000_000_000
+        if current_timestamp is not None
+        and previous_timestamp is not None
+        else None
+    )
+    lag_valid = bool(
+        actual_lag_seconds is not None
+        and configured_lag_seconds
+        <= actual_lag_seconds
+        <= configured_lag_seconds + 2.5
+    )
+
+    current_spot_age = finite_value(current.get("spot_age_ms"))
+    current_futures_age = finite_value(current.get("futures_age_ms"))
+    previous_spot_age = (
+        finite_value(previous.get("spot_age_ms"))
+        if previous is not None
+        else None
+    )
+    previous_futures_age = (
+        finite_value(previous.get("futures_age_ms"))
+        if previous is not None
+        else None
+    )
+
+    current_fresh = _fresh_source_sample(current, max_source_age_ms)
+    previous_fresh = bool(
+        previous is not None
+        and _fresh_source_sample(previous, max_source_age_ms)
+    )
+
+    current_spot = finite_value(current.get("spot_price"))
+    current_futures = finite_value(current.get("futures_price"))
+    previous_spot = (
+        finite_value(previous.get("spot_price"))
+        if previous is not None
+        else None
+    )
+    previous_futures = (
+        finite_value(previous.get("futures_price"))
+        if previous is not None
+        else None
+    )
+
+    spot_return = (
+        _log_return(previous_spot, current_spot)
+        if previous_spot is not None and current_spot is not None
+        else None
+    )
+    futures_return = (
+        _log_return(previous_futures, current_futures)
+        if previous_futures is not None and current_futures is not None
+        else None
+    )
+    spot_return_bps = (
+        spot_return * 10_000 if spot_return is not None else None
+    )
+    futures_return_bps = (
+        futures_return * 10_000 if futures_return is not None else None
+    )
+    lead_bps = (
+        abs(futures_return_bps) - abs(spot_return_bps)
+        if spot_return_bps is not None and futures_return_bps is not None
+        else None
+    )
+    side = (
+        "UP"
+        if futures_return is not None and futures_return > 0
+        else "DOWN"
+        if futures_return is not None and futures_return < 0
+        else None
+    )
+    signal_bps = (
+        math.copysign(float(lead_bps), float(futures_return))
+        if lead_bps is not None
+        and futures_return is not None
+        and abs(futures_return) >= 1e-12
+        else None
+    )
+
+    if previous is None:
+        reason = "NO_LAGGED_SAMPLE"
+    elif not current_fresh:
+        reason = "CURRENT_SOURCE_STALE"
+    elif not previous_fresh:
+        reason = "PREVIOUS_SOURCE_STALE"
+    elif spot_return is None or futures_return is None:
+        reason = "INVALID_PRICE"
+    elif abs(futures_return) < 1e-12:
+        reason = "FUTURES_NO_MOVE"
+    elif lead_bps is None or lead_bps < min_lead_bps:
+        reason = "LEAD_BELOW_MINIMUM"
+    else:
+        reason = "SIGNAL_READY"
+
+    return {
+        "configuredLagSeconds": configured_lag_seconds,
+        "actualLagSeconds": actual_lag_seconds,
+        "lagSampleFound": previous is not None,
+        "lagValid": lag_valid,
+        "currentTimestampNs": (
+            int(current_timestamp) if current_timestamp is not None else None
+        ),
+        "previousTimestampNs": (
+            int(previous_timestamp) if previous_timestamp is not None else None
+        ),
+        "currentSpot": current_spot,
+        "previousSpot": previous_spot,
+        "currentFutures": current_futures,
+        "previousFutures": previous_futures,
+        "currentSpotAgeMs": current_spot_age,
+        "currentFuturesAgeMs": current_futures_age,
+        "previousSpotAgeMs": previous_spot_age,
+        "previousFuturesAgeMs": previous_futures_age,
+        "currentSourceAgeMs": source_age_ms(current),
+        "previousSourceAgeMs": source_age_ms(previous),
+        "sourceAgeAggregation": "max(spot_age_ms, futures_age_ms)",
+        "maxSourceAgeMs": max_source_age_ms,
+        "currentSourceFresh": current_fresh,
+        "previousSourceFresh": previous_fresh,
+        "sourceFreshPassed": current_fresh and previous_fresh,
+        "spotReturnBps": spot_return_bps,
+        "futuresReturnBps": futures_return_bps,
+        "leadBps": lead_bps,
+        "signalBps": signal_bps,
+        "minLeadBps": min_lead_bps,
+        "leadPassed": bool(
+            lead_bps is not None and lead_bps >= min_lead_bps
+        ),
+        "side": side,
+        "decisionReason": reason,
+    }
 
 
 def _signed_residual_leg(
@@ -883,6 +1358,38 @@ def continuous_calibration_decision(
     }
 
 
+def filtered_futures_lead_signal(
+    strategy: str,
+    *,
+    source_side: str,
+    source_signal: float,
+    source_entry: float,
+) -> dict[str, Any] | None:
+    """Apply a frozen filter to an opened same-market Futures Lead trade."""
+    rule = FUTURES_LEAD_FILTER_RULES.get(strategy)
+    if rule is None or source_side not in {"UP", "DOWN"}:
+        return None
+    if not _finite(source_signal, source_entry):
+        return None
+    minimum_signal = rule.get("min_abs_signal_bps")
+    if minimum_signal is not None and abs(float(source_signal)) < minimum_signal:
+        return None
+    minimum_entry = rule.get("min_source_entry_exclusive")
+    if minimum_entry is not None and float(source_entry) <= minimum_entry:
+        return None
+    return {
+        "side": source_side,
+        "signal": float(source_signal),
+        "source_strategy": str(rule["source_strategy"]),
+        "source_side": source_side,
+        "source_signal": float(source_signal),
+        "source_entry": float(source_entry),
+        "filter_rule": {
+            key: value for key, value in rule.items() if key != "source_strategy"
+        },
+    }
+
+
 def signal_for_strategy(
     strategy: str,
     current: dict[str, float],
@@ -897,10 +1404,13 @@ def signal_for_strategy(
     params = RESEARCH_PARAMETERS[strategy]
     if strategy in {
         *CONTINUOUS_CALIBRATION_STRATEGIES,
+        *PAIRED_REVERSE_STRATEGIES,
+        *FUTURES_LEAD_FILTER_STRATEGIES,
         "R_FUTURES_LEAD_REVERSE",
         "R_FUTURES_LEAD_REGIME_REVERSE_3L",
         *FUTURES_LEAD_OBSERVER_STRATEGIES,
         *OBSERVER_COMBINATION_STRATEGIES,
+        *OBSERVER_AUTO_V6_STRATEGIES,
     }:
         # This shadow is derived from an actual R_FUTURES_LEAD paper entry by
         # the store.  It must never create an independent market signal.
@@ -985,6 +1495,25 @@ def signal_for_strategy(
 
     if previous is None:
         return None
+    if strategy == "R_FUTURES_LEAD":
+        diagnostics = futures_lead_diagnostics(
+            current,
+            previous,
+            params=params,
+        )
+        if diagnostics["decisionReason"] != "SIGNAL_READY":
+            return None
+        return {
+            "side": str(diagnostics["side"]),
+            "signal": float(diagnostics["signalBps"]),
+        }
+    if strategy == "R_CONSENSUS":
+        max_source_age_ms = float(params["max_source_age_ms"])
+        if not (
+            _fresh_source_sample(previous, max_source_age_ms)
+            and _fresh_source_sample(current, max_source_age_ms)
+        ):
+            return None
     spot_return = _log_return(previous["spot_price"], current["spot_price"])
     futures_return = _log_return(previous["futures_price"], current["futures_price"])
     ofi_score = _ofi(previous, current, "UP") - _ofi(previous, current, "DOWN")
@@ -997,17 +1526,6 @@ def signal_for_strategy(
 
     if futures_return is None or spot_return is None:
         return None
-    if strategy == "R_FUTURES_LEAD":
-        lead = abs(futures_return) - abs(spot_return)
-        if abs(futures_return) < 1e-12 or lead * 10_000 < params["min_lead_bps"]:
-            return None
-        source_side = "UP" if futures_return > 0 else "DOWN"
-        source_signal = math.copysign(lead * 10_000, futures_return)
-        return {
-            "side": source_side,
-            "signal": source_signal,
-        }
-
     signals = [_microprice_score(current), ofi_score, futures_return, spot_return, up_mid_change]
     up_votes = sum(value > 0 for value in signals)
     down_votes = sum(value < 0 for value in signals)

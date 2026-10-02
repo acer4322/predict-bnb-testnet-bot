@@ -1,0 +1,42 @@
+{
+  "status": "LOCAL_COMPONENT_TESTS_PASS_NATIVE_INTEGRATION_PENDING",
+  "verified_at_utc": "2026-09-21T11:37:19.699669+00:00",
+  "unit_test_cases": 56,
+  "failures": 0,
+  "errors": 0,
+  "test_scope": "Local synthetic engineering fixtures; includes 128 parameter suggestions and resume reproducibility, not market backtests",
+  "new_native_replays": 0,
+  "new_worker_jobs_submitted": 0,
+  "neural_updates": 0,
+  "live_changes": 0,
+  "remote_code_installed": false,
+  "remote_write_status": "Tool safety check blocked the code-write request; existence check confirmed tools/research_batch_search_v1.py was not written",
+  "project_side_effects": [
+    "An empty data/research/btc5m_batch_search_20260921_r88 directory was created"
+  ],
+  "current_pointer_unchanged": "R87 remains the latest completed research; no R88 promotion",
+  "worker_readback": "Verified DESKTOP-JIERAGF, Python3.13.15; R87 succeeded; no new dispatch attempted",
+  "configured_first_batch": {
+    "candidates": 12,
+    "screen_scenarios": 2,
+    "maximum_shortlist": 3,
+    "additional_scenarios_per_shortlist": 10,
+    "native_replays_max": 55
+  },
+  "declared_search_budget": 128,
+  "not_yet_verified": [
+    "Windows execution of new code",
+    "Actual R87 load-only inherited checks",
+    "Native observer-only exact control",
+    "Candidate policy economics",
+    "Multi-market generalization",
+    "Parameter-neighborhood robustness"
+  ],
+  "limitations": [
+    "One consumed market1977248 only",
+    "Conditional200bps",
+    "Unknown source-clock certification",
+    "No new NN learning",
+    "No deployment authority"
+  ]
+}

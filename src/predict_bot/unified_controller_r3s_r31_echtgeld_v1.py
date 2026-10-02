@@ -1,0 +1,1574 @@
+from __future__ import annotations
+
+import copy
+import math
+import os
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Any
+
+import httpx
+import joblib
+
+from . import unified_controller_paper_v2 as base
+from .r31_echtgeld_state_bridge_v1 import INBOX_FIELD, R31EchtgeldStateBridgeV1
+from .r3s_active_stack_v110 import COMPONENTS as R3S_COMPONENTS, VERSION as R3S_ACTIVE_STACK_VERSION, R3SActiveStackV110
+from .r3s_wtp_v1 import R3SWillingnessToPayV1, VERSION as R3S_WTP_VERSION
+
+VERSION = "R3S_R31_V1_1_3_WTP1_CONTINUOUS_GATE_FIX_ECHTGELD"
+DISPLAY_VERSION = "R3-S + R3.1 V1.1.3 WTP1 Continuous Gate Fix"
+HOST = os.environ.get("UNIFIED_CONTROLLER_R3S_R31_LIVE_HOST", os.environ.get("UNIFIED_CONTROLLER_CAP100_LIVE_HOST", "127.0.0.1"))
+PORT = int(os.environ.get("UNIFIED_CONTROLLER_R3S_R31_LIVE_PORT", "8790"))
+ENGINE_URL = str(os.environ.get("UNIFIED_CONTROLLER_R3S_R31_ENGINE_URL") or os.environ.get("UNIFIED_CONTROLLER_CAP100_ENGINE_URL") or "http://127.0.0.1:8781").rstrip("/")
+ENTRY_SOURCE = "R3S_R31_8790"
+HEARTBEAT_SECONDS = 0.60
+ENGINE_MONITOR_SECONDS = 0.60
+HEARTBEAT_HTTP_TIMEOUT_SECONDS = 0.75
+HEARTBEAT_CONNECT_TIMEOUT_SECONDS = 0.25
+SLOW_STAGE_MS = 1000.0
+RUNTIME_HARDENING_VERSION = "R3S_R31_HBI1_GHOST1_LAT1"
+EVENT_POLL_SECONDS = 0.20
+TAKER_CONFIRM_TIMEOUT_SECONDS = 2.2
+R2_R21_LIVE_SHARES = 10.0
+R2_FROZEN_R2_R21_NOTIONAL_CAP_ENABLED = False
+R2_MULTICHILD_RANKER_PATH = base.ROOT / "data" / "research" / "execution_aware_fill_lifecycle_v0" / "r2_multichild_pairwise_ranker_v3.joblib"
+R2_MULTICHILD_RANKER_VERSION = "R2_MULTICHILD_PAIRWISE_RANKER_V3"
+R3_RAWQ_PATH = base.ROOT / "data" / "research" / "r3_v0" / "r3_active_quantity_strictpast_v2.joblib"
+R3_RAWQ_VERSION = "R3_ACTIVE_QUANTITY_STRICTPAST_V2"
+R3S_R31_MIN_NOTIONAL_USDT = 1.0
+
+
+class EngineDeterministicReject(RuntimeError):
+    """8781 proved that a request was rejected before a venue write."""
+
+    def __init__(self, payload: dict[str, Any], status_code: int) -> None:
+        self.payload = dict(payload)
+        self.status_code = int(status_code)
+        super().__init__(str(payload.get("error") or f"8781 HTTP {status_code}"))
+
+
+class UnifiedControllerR3SR31EchtgeldV1(base.UnifiedControllerPaperV2):
+    """R3-S active intervention plus information-only R3.1 with 8781 as venue owner.
+
+    The Frozen R2 Maker/passive-repair base is retained, while R3-S V1.1.1 owns
+    dynamic active sizing, strict-past ADD/recovery evaluation and triple-confirm
+    containment. Paper queue-clear fills are disabled; inventory changes only on
+    8781 venue-confirmed FILL_DELTA events.
+    """
+
+    def __init__(self) -> None:
+        # The inherited 8786 paper runtime intentionally refuses to initialize when
+        # PREDICT_LIVE_ENABLED=true.  8787 is a separate adapter whose only venue
+        # owner is 8781, so temporarily mask that paper-only startup guard while
+        # constructing the frozen decision machinery, then restore the environment.
+        _live_flag = os.environ.get("PREDICT_LIVE_ENABLED")
+        os.environ["PREDICT_LIVE_ENABLED"] = "false"
+        try:
+            super().__init__()
+        finally:
+            if _live_flag is None:
+                os.environ.pop("PREDICT_LIVE_ENABLED", None)
+            else:
+                os.environ["PREDICT_LIVE_ENABLED"] = _live_flag
+        # This is a separate process from 8786, so give all inherited decision/order
+        # ids the live adapter version and isolate its research trace DB.
+        base.VERSION = VERSION
+        try:
+            self.recorder.close()
+        except Exception:
+            pass
+        # Keep the previous live-adapter I/O boundary: the canonical R2 input
+        # archive belongs to 8784 paper research, not the 8789 live process.
+        input_archive = getattr(self, "input_archive", None)
+        if input_archive is not None:
+            try:
+                input_archive.close()
+            except Exception:
+                pass
+            self.input_archive = None
+        base.SHARES = R2_R21_LIVE_SHARES
+        self.recorder = base.StrategyTargetCompareRecorder(base.ROOT / "data" / "strategy_r3s_r31_echtgeld_v1.db")
+        with self.recorder.lock:
+            self.recorder.db.execute("""CREATE TABLE IF NOT EXISTS r2_autonomous_child_reassess_events (
+                event_id TEXT PRIMARY KEY, decision_id TEXT, market_id INTEGER, requested_at_ms INTEGER,
+                order_key TEXT, side TEXT, age_ms INTEGER, requested_price REAL, requested_qty REAL,
+                confirmed_filled_qty REAL, unresolved_qty REAL, relative_keep_rank INTEGER, relative_keep_score REAL,
+                reason TEXT, assessment_json TEXT, cancel_state TEXT, terminal_state TEXT, terminal_at_ms INTEGER,
+                terminal_event_seq INTEGER, terminal_detail TEXT, created_at_ms INTEGER
+            )""")
+            self.recorder.db.execute("""CREATE TABLE IF NOT EXISTS r3s_active_lifecycle_events (
+                event_id TEXT PRIMARY KEY, market_id INTEGER, at_ms INTEGER, event_type TEXT, intent_id TEXT,
+                decision_id TEXT, side TEXT, structural_effect TEXT, payload_json TEXT, created_at_ms INTEGER
+            )""")
+            self.recorder.db.commit()
+        self.maker_spent_notional = 0.0
+        self.taker_spent_notional = 0.0
+        self.taker_fee_spent = 0.0
+        self.exec_http = httpx.Client(timeout=httpx.Timeout(2.5, connect=0.6))
+        # HBI1: a dedicated HTTP client + thread proves controller liveness. It must
+        # never wait on self.lock, recorder.lock, lifecycle polling, or model work.
+        self.heartbeat_http = httpx.Client(timeout=httpx.Timeout(HEARTBEAT_HTTP_TIMEOUT_SECONDS, connect=HEARTBEAT_CONNECT_TIMEOUT_SECONDS))
+        self.exec_lock = threading.RLock()
+        self.heartbeat_thread: threading.Thread | None = None
+        self.engine_monitor_thread: threading.Thread | None = None
+        self.last_heartbeat_ms: int | None = None
+        self.last_heartbeat_attempt_ms: int | None = None
+        self.last_heartbeat_error: str | None = None
+        self.max_heartbeat_gap_ms = 0
+        self.last_engine_state_ms: int | None = None
+        self.last_engine_monitor_error: str | None = None
+        self.latency_profile: dict[str, dict[str, Any]] = {}
+        self.last_slow_stage: dict[str, Any] | None = None
+        self.engine_state: dict[str, Any] = {}
+        self.execution_ready = False
+        self.execution_block_reason: str | None = "ENGINE_NOT_CHECKED"
+        self.entry_freeze = False
+        self.entry_freeze_detail: str | None = None
+        self.last_event_seq = 0
+        self.active_intervention_required = False
+        self.active_intervention_reason: str | None = None
+        self.r21_active_fault_wait = False
+        self.r21_active_fault_reason: str | None = None
+        self.last_event_poll_mono = 0.0
+        self.pending_cancels: set[str] = set()
+        self.orphan_orders: dict[str, base.PaperOrder] = {}
+        self.taker_pending: dict[str, dict[str, Any]] = {}
+        self.live_activation_market_id: int | None = None
+        self.wait_next_market_after_activation = True
+        # CGF1: only a true source-armed edge may create a clean-boundary wait.
+        # Transient readiness loss from rollover cancels/orphan reconciliation must
+        # not re-arm this gate or continuous mode skips every other market.
+        self.last_source_armed = False
+        self.last_market_bucket_start_sec: int | None = None
+        self.last_market_window_end_ms: int | None = None
+        self.r21_bridge = R31EchtgeldStateBridgeV1(ENTRY_SOURCE)
+        self.r21_state = self._r21_inbox(base.now_ms())
+        self.r21_child_ranker_artifact = joblib.load(R2_MULTICHILD_RANKER_PATH)
+        self.r3_rawq_artifact = joblib.load(R3_RAWQ_PATH)
+        self.r3s_active_stack = R3SActiveStackV110(base.ROOT / "data" / "research" / "r3_v0")
+        self.r3s_wtp_policy = R3SWillingnessToPayV1()
+        self.r3s_last_wtp: dict[str, Any] | None = None
+        self.r3s_post_add_episode: dict[str, Any] | None = None
+        self.r3s_forced_taker_qty: float | None = None
+        self.r3s_forced_taker_context: dict[str, Any] | None = None
+        self.r3s_last_response = "NORMAL_R3S"
+        self.r3s_response_history: list[dict[str, Any]] = []
+        if not isinstance(self.r21_child_ranker_artifact, dict) or str(self.r21_child_ranker_artifact.get("version") or "") != R2_MULTICHILD_RANKER_VERSION:
+            raise RuntimeError("R2 multi-child ranker artifact/version mismatch")
+        self.r21_child_assessment: dict[str, Any] = {
+            "version": R2_MULTICHILD_RANKER_VERSION,
+            "mode": "R2_AUTONOMOUS_KEEP_REASSESS",
+            "rankings": [],
+            "cancelAuthority": False,
+            "absoluteRetireThreshold": None,
+        }
+        self.live_metrics = {
+            "makerSubmitAccepted": 0,
+            "makerSubmitRejected": 0,
+            "makerUnknown": 0,
+            "makerCancelRequested": 0,
+            "makerFillEvents": 0,
+            "makerPartialFillEvents": 0,
+            "takerSubmitAccepted": 0,
+            "takerSubmitRejected": 0,
+            "takerUnknown": 0,
+            "takerFillEvents": 0,
+            "takerNonExecutableQtySkipped": 0,
+            "takerMinNotionalSkipped": 0,
+            "engineHttpErrors": 0,
+            "heartbeatFailures": 0,
+            "heartbeatSendFailures": 0,
+            "engineMonitorFailures": 0,
+            "preVenueGhostsRetired": 0,
+            "slowStages": 0,
+            "orphanRiskBlocks": 0,
+            "foreignEngineEventsFiltered": 0,
+            "r21Reassessments": 0,
+            "r21CancelAckBlocks": 0,
+            "r21PostActiveFaultWaitBlocks": 0,
+            "backgroundLifecyclePolls": 0,
+            "backgroundLifecycleEventsApplied": 0,
+            "r2ChildRankerEvaluations": 0,
+            "r2ChildRankerMultiChildSnapshots": 0,
+            "r3sStableAddEvidence": 0,
+            "r3sPostAddEpisodes": 0,
+            "r3sReAddVetoes": 0,
+            "r3sEarlyRecoveryEvaluations": 0,
+            "r3sTripleConfirmTriggers": 0,
+            "r3sContainmentSubmitted": 0,
+            "r3sLateTakerFills": 0,
+            "r3sSafePreVenueRejects": 0,
+        }
+
+    def start(self) -> None:
+        super().start()
+        if self.heartbeat_thread is None or not self.heartbeat_thread.is_alive():
+            self.heartbeat_thread = threading.Thread(target=self._heartbeat_loop, name="r3s-r31-8790-heartbeat", daemon=True)
+            self.heartbeat_thread.start()
+        if self.engine_monitor_thread is None or not self.engine_monitor_thread.is_alive():
+            self.engine_monitor_thread = threading.Thread(target=self._engine_monitor_loop, name="r3s-r31-8790-engine-monitor", daemon=True)
+            self.engine_monitor_thread.start()
+
+    def stop(self) -> None:
+        self.stop_event.set()
+        if self.heartbeat_thread is not None and self.heartbeat_thread.is_alive():
+            self.heartbeat_thread.join(timeout=2.0)
+        if self.engine_monitor_thread is not None and self.engine_monitor_thread.is_alive():
+            self.engine_monitor_thread.join(timeout=2.0)
+        for client in (getattr(self, "heartbeat_http", None), getattr(self, "exec_http", None)):
+            try:
+                if client is not None:
+                    client.close()
+            except Exception:
+                pass
+        super().stop()
+
+    def _record_latency_ms(self, stage: str, elapsed_ms: float, *, detail: str | None = None) -> None:
+        ms = max(0.0, float(elapsed_ms))
+        row = self.latency_profile.setdefault(str(stage), {"count": 0, "lastMs": 0.0, "maxMs": 0.0, "slowCount": 0})
+        row["count"] = int(row.get("count") or 0) + 1
+        row["lastMs"] = ms
+        row["maxMs"] = max(float(row.get("maxMs") or 0.0), ms)
+        if ms >= SLOW_STAGE_MS:
+            row["slowCount"] = int(row.get("slowCount") or 0) + 1
+            self.live_metrics["slowStages"] = int(self.live_metrics.get("slowStages") or 0) + 1
+            self.last_slow_stage = {"stage": str(stage), "elapsedMs": ms, "detail": detail, "atMs": base.now_ms()}
+            print(f"R3S_R31_SLOW_STAGE stage={stage} elapsedMs={ms:.1f} detail={detail or ''}", flush=True)
+
+    def _engine_get(self, path: str) -> dict[str, Any]:
+        response = self.exec_http.get(f"{ENGINE_URL}{path}", headers={"Cache-Control": "no-store"})
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise RuntimeError("8781 returned non-object JSON")
+        return payload
+
+    def _engine_post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        response = self.exec_http.post(f"{ENGINE_URL}{path}", json=payload)
+        data: dict[str, Any]
+        try:
+            data = response.json()
+        except Exception:
+            data = {"ok": False, "error": f"HTTP {response.status_code} non-JSON response"}
+        if 400 <= response.status_code < 500:
+            raise EngineDeterministicReject(data, response.status_code)
+        if response.status_code >= 400:
+            raise RuntimeError(str(data.get("error") or f"8781 HTTP {response.status_code}"))
+        return data
+
+    def _actual_inventory_by_side(self) -> dict[str, float]:
+        return {
+            "UP": float(self.inventory.maker_up + self.inventory.taker_up),
+            "DOWN": float(self.inventory.maker_down + self.inventory.taker_down),
+        }
+
+    def _r21_inbox(self, at_ms: int) -> dict[str, Any]:
+        try:
+            portfolio_context = self.inventory.features(int(at_ms))
+        except Exception:
+            portfolio_context = {}
+        payload = self.r21_bridge.snapshot(
+            at_ms=int(at_ms),
+            actual_inventory=self._actual_inventory_by_side(),
+            pending_cancels=self.pending_cancels,
+            orphan_count=len(self.orphan_orders),
+            engine_state=self.engine_state,
+            portfolio_context=portfolio_context,
+        )
+        if hasattr(self, "r21_child_assessment"):
+            payload["childAssessment"] = copy.deepcopy(self.r21_child_assessment)
+        self.r21_state = payload
+        if hasattr(self, "r3s_response_history"):
+            self._r3s_response_from_r31(int(at_ms))
+        return payload
+
+    def _r21_rank_children(self, snapshot: dict[str, Any], trace: dict[str, Any] | None) -> None:
+        art = self.r21_child_ranker_artifact
+        children = [
+            row for row in (self.r21_state.get("children") or [])
+            if isinstance(row, dict)
+            and str(row.get("role") or "").upper() == "MAKER"
+            and not bool(row.get("terminal"))
+            and str(row.get("state") or "").upper() in {"PLANNED","QUOTING","QUOTE_READY","PLACING","RESTING","PARTIAL_FILL","CANCEL_PENDING","CANCEL_UNKNOWN","UNKNOWN_SUBMISSION"}
+        ]
+        now = int(base.number(snapshot.get("sampledAtMs")) or base.now_ms())
+        if not children:
+            self.r21_child_assessment = {"version": R2_MULTICHILD_RANKER_VERSION, "mode": "R2_AUTONOMOUS_KEEP_REASSESS", "asOfMs": now, "rankings": [], "cancelAuthority": False, "absoluteRetireThreshold": None}
+            return
+        book = base.outcome_book(self.book.book, None) or {}
+        portfolio = (trace or {}).get("portfolio") if isinstance((trace or {}).get("portfolio"), dict) else {}
+        act = str((trace or {}).get("desiredPortfolioAction") or "")
+        direction = str((((trace or {}).get("direction") or {}).get("side") or "")).upper()
+        live = children
+        ages = [max(0.0, float(now - int(row.get("createdAtMs") or now))) for row in live]
+        prices = [float(base.number(row.get("requestedPrice")) or 0.0) for row in live]
+        maker_net = float(base.number(portfolio.get("maker_net")) or 0.0)
+        deficit_side = "DOWN" if maker_net > base.EPS else ("UP" if maker_net < -base.EPS else "")
+        rows = []
+        for child, age, price in zip(live, ages, prices):
+            side = str(child.get("side") or "").upper()
+            rq = float(base.number(child.get("requestedShares")) or 0.0)
+            cq = float(base.number(child.get("confirmedFilledShares")) or 0.0)
+            rem = max(0.0, rq-cq)
+            same = [r for r in live if str(r.get("side") or "").upper() == side]
+            same_ages = [max(0.0, float(now-int(r.get("createdAtMs") or now))) for r in same] or [age]
+            same_prices = [float(base.number(r.get("requestedPrice")) or 0.0) for r in same] or [price]
+            bid = float(base.number(book.get("up_bid" if side == "UP" else "down_bid")) or 0.0)
+            ask = float(base.number(book.get("up_ask" if side == "UP" else "down_ask")) or 0.0)
+            spread = float(base.number(book.get("up_spread_ticks" if side == "UP" else "down_spread_ticks")) or 0.0)
+            reason = str(child.get("reason") or "")
+            base_vec = [
+                age, price, rem, 0.0 if rq <= base.EPS else min(1.0, max(0.0, cq/rq)),
+                float(len(same)), float(len(live)-len(same)), (bid-price)/0.01 if bid and price else 0.0,
+                bid, ask, spread, 0.0, 0.0,
+                float(base.number(portfolio.get("maker_abs_net")) or 0.0),
+                float(base.number(portfolio.get("combined_abs_net")) or 0.0),
+                float(base.number(portfolio.get("combined_paired_coverage")) or 0.0),
+                float(base.number(portfolio.get("worst_case_floor")) or 0.0),
+            ]
+            extra = [
+                age-max(ages), age-min(ages), float(age >= max(same_ages)-1e-6), float(age >= max(ages)-1e-6),
+                price-(sum(same_prices)/len(same_prices)), (bid-price)/0.01 if bid and price else 0.0,
+                float("HAZARD" in reason), float("BURST" in reason),
+                float(act == "PASSIVE_REPAIR"), float(act == "PASSIVE_MAINTAIN"), float(act == "ACTIVE_INTERVENTION"),
+                float(side == direction), float(side == deficit_side), float(len(live)),
+            ]
+            x = base_vec + extra
+            scaler = art["scaler"]; ranker = art["ranker"]
+            score = float(base.np.dot(scaler.transform([x])[0], ranker.coef_[0]))
+            rows.append({
+                "orderKey": child.get("clientOrderId"), "side": side, "state": child.get("state"),
+                "ageMs": int(age), "requestedPrice": price, "requestedQty": rq, "confirmedFilledQty": cq,
+                "unresolvedQty": rem, "relativeKeepScore": score,
+            })
+        rows.sort(key=lambda r: float(r.get("relativeKeepScore") or 0.0), reverse=True)
+        for i, row in enumerate(rows, start=1): row["relativeKeepRank"] = i
+        self.r21_child_assessment = {
+            "version": R2_MULTICHILD_RANKER_VERSION, "mode": "R2_AUTONOMOUS_KEEP_REASSESS", "asOfMs": now,
+            "rankings": rows, "cancelAuthority": True, "orderMutationAuthority": True,
+            "absoluteRetireThreshold": None, "evidenceClass": "HFT_MECHANISM_TRAINING_ONLY_REAL_MARKET_UNCONFIRMED",
+            "interpretation": "R2 owns KEEP/REASSESS. V3 supplies relative KEEP priority; R2.1 remains information-only. REASSESS cancels only through 8781 and ownership releases only after venue-terminal ACK.",
+        }
+        self.r21_state["childAssessment"] = copy.deepcopy(self.r21_child_assessment)
+        self.live_metrics["r2ChildRankerEvaluations"] += 1
+        if len(rows) > 1: self.live_metrics["r2ChildRankerMultiChildSnapshots"] += 1
+
+    def _r2_autonomous_child_reassessment(self, trace: dict[str, Any] | None, now: int) -> dict[str, Any] | None:
+        """R2-owned child KEEP/REASSESS action. R2.1 remains information-only.
+
+        Conservative live gate: act only during R2 PASSIVE_REPAIR, after the existing
+        R2.1 15s stall horizon, when >=2 live Maker children exist and the oldest
+        unfilled child is also V3's lowest relative KEEP priority. Cancellation is
+        requested through 8781 and ownership remains until venue-terminal ACK.
+        """
+        if not isinstance(trace, dict) or str(trace.get("desiredPortfolioAction") or "") != "PASSIVE_REPAIR":
+            return None
+        if self.pending_cancels:
+            return None
+        rankings = [r for r in (self.r21_child_assessment.get("rankings") or []) if isinstance(r, dict)]
+        if len(rankings) < 2:
+            return None
+        candidates = [
+            r for r in rankings
+            if str(r.get("state") or "").upper() in {"RESTING", "PLANNED", "QUOTING", "QUOTE_READY", "PLACING"}
+            and float(base.number(r.get("confirmedFilledQty")) or 0.0) <= base.EPS
+            and int(base.number(r.get("ageMs")) or 0) >= 15_000
+            and float(base.number(r.get("unresolvedQty")) or 0.0) > base.EPS
+        ]
+        if not candidates:
+            return None
+        oldest_age = max(int(base.number(r.get("ageMs")) or 0) for r in candidates)
+        oldest = [r for r in candidates if int(base.number(r.get("ageMs")) or 0) == oldest_age]
+        worst = min(rankings, key=lambda r: float(base.number(r.get("relativeKeepScore")) or 0.0))
+        if worst not in oldest:
+            return None
+        cid = str(worst.get("orderKey") or "")
+        if not cid:
+            return None
+        key, order = self._find_local_order(cid)
+        if key is None or order is None or cid in self.pending_cancels:
+            return None
+        decision = {
+            "action": "REASSESS_CHILD",
+            "decisionOwner": "R2",
+            "orderKey": cid,
+            "side": worst.get("side"),
+            "ageMs": oldest_age,
+            "relativeKeepRank": worst.get("relativeKeepRank"),
+            "relativeKeepScore": worst.get("relativeKeepScore"),
+            "reason": "R2_PASSIVE_REPAIR_BLOCKED_OLDEST_LOWEST_KEEP_PRIORITY",
+            "r31ActionAuthority": False,
+            "cancelWaitsTerminalAck": True,
+        }
+        event_id = f"{str(trace.get('decisionId') or '')}:REASSESS:{cid}"
+        try:
+            import json
+            with self.recorder.lock:
+                self.recorder.db.execute(
+                    """INSERT OR REPLACE INTO r2_autonomous_child_reassess_events (
+                        event_id,decision_id,market_id,requested_at_ms,order_key,side,age_ms,requested_price,requested_qty,
+                        confirmed_filled_qty,unresolved_qty,relative_keep_rank,relative_keep_score,reason,assessment_json,
+                        cancel_state,terminal_state,terminal_at_ms,terminal_event_seq,terminal_detail,created_at_ms
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (event_id,str(trace.get('decisionId') or ''),int(self.current_market_id or 0),int(now),cid,str(worst.get('side') or ''),
+                     int(oldest_age),float(base.number(worst.get('requestedPrice')) or 0.0),float(base.number(worst.get('requestedQty')) or 0.0),
+                     float(base.number(worst.get('confirmedFilledQty')) or 0.0),float(base.number(worst.get('unresolvedQty')) or 0.0),
+                     int(base.number(worst.get('relativeKeepRank')) or 0),float(base.number(worst.get('relativeKeepScore')) or 0.0),
+                     decision['reason'],json.dumps(self.r21_child_assessment,separators=(',',':'),default=str),
+                     'REQUESTED',None,None,None,None,int(base.now_ms()))
+                )
+                self.recorder.db.commit()
+        except Exception as exc:
+            self.last_error = f"persist R2 REASSESS_CHILD: {type(exc).__name__}: {str(exc)[:250]}"
+        self._cancel_order(key, int(now), "R2_AUTONOMOUS_REASSESS_CHILD")
+        self.live_metrics["r2AutonomousChildReassessRequested"] = int(self.live_metrics.get("r2AutonomousChildReassessRequested", 0)) + 1
+        return decision
+
+    def _enter_r21_post_active_fault_wait(self, reason: str) -> None:
+        self.r21_active_fault_wait = True
+        self.r21_active_fault_reason = str(reason)
+        # The retained cooperation behavior is formal WAIT after a confirmed
+        # active-child failure while the passive loop and actual-fill feedback
+        # remain available. R2.1 does not select a replacement action.
+        self._on_active_intervention_satisfied()
+
+    def _clear_r21_post_active_fault_wait(self, reason: str) -> None:
+        if self.r21_active_fault_wait:
+            self.r21_active_fault_wait = False
+            self.r21_active_fault_reason = None
+            self.live_metrics["r21Reassessments"] += 1
+
+    def _observe_source_armed_edge(self, source_armed: bool) -> bool:
+        """CGF1 activation edge. Only false->true source-armed transitions re-arm the clean-market fence."""
+        rising = bool(source_armed and not self.last_source_armed)
+        self.last_source_armed = bool(source_armed)
+        if rising:
+            self.live_activation_market_id = self.current_market_id
+            self.wait_next_market_after_activation = True
+        return rising
+
+    def _single_market_session_block(self, state: dict[str, Any]) -> str | None:
+        session = state.get("singleMarketRun") if isinstance(state.get("singleMarketRun"), dict) else {}
+        status = str(session.get("status") or "IDLE").strip().upper()
+        target = int(base.number(session.get("targetMarketId")) or 0)
+        current = int(self.current_market_id or 0)
+        if status in {"COMPLETING", "COMPLETED", "COMPLETION_FAILED"}:
+            return f"8781_SINGLE_MARKET_{status}"
+        if status == "RUNNING" and target > 0 and current > 0 and current != target:
+            return f"8781_SINGLE_MARKET_FENCE:{target}->{current}"
+        return None
+
+    def _heartbeat_payload(self) -> dict[str, Any]:
+        return {
+            "entrySource": ENTRY_SOURCE,
+            "controllerVersion": VERSION,
+            "marketId": self.current_market_id,
+            "bucketStartSec": self.last_market_bucket_start_sec,
+            "windowEndMs": self.last_market_window_end_ms,
+        }
+
+    def _send_heartbeat_once(self) -> bool:
+        # HBI1 invariant: do not acquire self.lock/recorder.lock and do not call
+        # lifecycle/state/model code from this method.
+        self.last_heartbeat_attempt_ms = base.now_ms()
+        try:
+            response = self.heartbeat_http.post(f"{ENGINE_URL}/cap100/heartbeat", json=self._heartbeat_payload())
+            data = response.json() if response.content else {}
+            if response.status_code >= 400:
+                raise RuntimeError(str((data or {}).get("error") or f"8781 heartbeat HTTP {response.status_code}"))
+            if not isinstance(data, dict) or not data.get("ok"):
+                raise RuntimeError("8781 heartbeat returned non-ok response")
+            now = base.now_ms()
+            if self.last_heartbeat_ms is not None:
+                self.max_heartbeat_gap_ms = max(self.max_heartbeat_gap_ms, now - int(self.last_heartbeat_ms))
+            self.last_heartbeat_ms = now
+            self.last_heartbeat_error = None
+            return True
+        except Exception as exc:
+            self.live_metrics["heartbeatFailures"] += 1
+            self.live_metrics["heartbeatSendFailures"] += 1
+            self.last_heartbeat_error = f"{type(exc).__name__}: {str(exc)[:300]}"
+            return False
+
+    def _heartbeat_loop(self) -> None:
+        while not self.stop_event.is_set():
+            started = time.monotonic()
+            self._send_heartbeat_once()
+            elapsed = time.monotonic() - started
+            self.stop_event.wait(max(0.05, HEARTBEAT_SECONDS - elapsed))
+
+    def _engine_monitor_once(self) -> None:
+        state = self._engine_get("/cap100/state")
+        cap = state.get("cap100") if isinstance(state.get("cap100"), dict) else {}
+        self.engine_state = dict(cap)
+        self.last_engine_state_ms = base.now_ms()
+        allowed_sources = {str(value).strip().upper() for value in (cap.get("allowedSources") or [])}
+        source_supported = ENTRY_SOURCE in allowed_sources
+        selected_source = str(cap.get("selectedSourceId") or "").strip().upper()
+        selected = bool(cap.get("selected")) and selected_source == ENTRY_SOURCE
+        armed = bool(cap.get("armed"))
+        source_armed = bool(source_supported and selected and armed)
+        source_armed_rising = self._observe_source_armed_edge(source_armed)
+        frozen = bool(cap.get("entryWriteFrozen"))
+        self.entry_freeze = frozen
+        self.entry_freeze_detail = str((cap.get("unknownWrite") or {}).get("client_order_id") or "") or None
+        self.execution_ready = source_supported and selected and armed and not frozen
+        session_block = self._single_market_session_block(cap)
+        if not source_supported:
+            self.execution_block_reason = "8781_R3S_R31_SOURCE_NOT_LOADED"
+        elif not selected:
+            self.execution_block_reason = "8781_SOURCE_NOT_SELECTED"
+        elif not armed:
+            self.execution_block_reason = "8781_PAUSED"
+        elif frozen:
+            self.execution_block_reason = f"8781_UNKNOWN_WRITE:{self.entry_freeze_detail or 'UNKNOWN'}"
+        elif session_block:
+            self.execution_block_reason = session_block
+            self.execution_ready = False
+        elif self.orphan_orders:
+            self.execution_block_reason = "OLD_MARKET_ORDERS_NOT_TERMINAL"
+            self.execution_ready = False
+        else:
+            self.execution_block_reason = None
+        if source_armed_rising:
+            pass
+        # This monitor may block on controller state/lifecycle locks; HBI1 keeps
+        # the dedicated heartbeat thread completely independent of this path.
+        self._poll_lifecycle_without_snapshot()
+        self.last_engine_monitor_error = None
+
+    def _engine_monitor_loop(self) -> None:
+        while not self.stop_event.is_set():
+            started = time.monotonic()
+            try:
+                self._engine_monitor_once()
+            except Exception as exc:
+                self.execution_ready = False
+                self.execution_block_reason = f"ENGINE_STATE_ERROR:{type(exc).__name__}"
+                self.live_metrics["engineMonitorFailures"] += 1
+                self.last_engine_monitor_error = f"{type(exc).__name__}: {str(exc)[:350]}"
+                self.last_error = f"8781 state/lifecycle: {self.last_engine_monitor_error}"
+            elapsed = time.monotonic() - started
+            self.stop_event.wait(max(0.05, ENGINE_MONITOR_SECONDS - elapsed))
+
+    def _deployment_live_ready(self) -> bool:
+        if not self.execution_ready:
+            return False
+        if self.orphan_orders:
+            self.live_metrics["orphanRiskBlocks"] += 1
+            return False
+        if self.wait_next_market_after_activation:
+            if self.current_market_id is None:
+                return False
+            if self.live_activation_market_id is None:
+                # Controller may start while 8781 is already armed. Anchor the first
+                # observed market and still require one clean rollover.
+                self.live_activation_market_id = int(self.current_market_id)
+                return False
+            if self.current_market_id == self.live_activation_market_id:
+                return False
+            self.wait_next_market_after_activation = False
+        return True
+
+    def _payload_market(self, snapshot: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "entrySource": ENTRY_SOURCE,
+            "asset": "BTC",
+            "marketId": int(base.number(snapshot.get("marketId")) or 0),
+            "bucketStartSec": int(base.number(snapshot.get("bucketStartSec")) or 0),
+            "windowEndMs": int(base.number(snapshot.get("windowEndMs")) or 0),
+        }
+
+    def _bridge_confirm_prevenue_reject(self, *, cid: str, role: str, side: str, at_ms: int, reason: str) -> None:
+        # GHOST1: register_intent happens before the 8781 request. A deterministic
+        # pre-venue rejection must therefore terminalize that PLANNED child, while
+        # preserving R2.1/R3.1 terminal-residual semantics through observe_event.
+        event = {
+            "source_id": ENTRY_SOURCE,
+            "client_order_id": str(cid),
+            "source_market_id": int(self.current_market_id or 0),
+            "role": str(role).upper(),
+            "side": str(side).upper(),
+            "state": "REJECTED",
+            "event_type": "ORDER_REJECTED",
+            "occurred_at_ms": int(at_ms),
+            "detail": f"PRE_VENUE_DETERMINISTIC_REJECT:{str(reason)[:300]}",
+        }
+        observe = getattr(self.r21_bridge, "observe_event", None)
+        if callable(observe) and observe(event):
+            self.live_metrics["preVenueGhostsRetired"] = int(self.live_metrics.get("preVenueGhostsRetired", 0)) + 1
+            self._r21_inbox(int(at_ms))
+
+    def _poll_engine_events(self, *, force: bool = False) -> list[dict[str, Any]]:
+        now_mono = time.monotonic()
+        if not force and now_mono - self.last_event_poll_mono < EVENT_POLL_SECONDS:
+            return []
+        self.last_event_poll_mono = now_mono
+        try:
+            payload = self._engine_get(f"/cap100/events?afterSeq={self.last_event_seq}&limit=500")
+            rows = payload.get("events") if isinstance(payload.get("events"), list) else []
+        except Exception as exc:
+            self.live_metrics["engineHttpErrors"] += 1
+            self.last_error = f"8781 event poll: {type(exc).__name__}: {str(exc)[:300]}"
+            return []
+        applied: list[dict[str, Any]] = []
+        for event in rows:
+            if not isinstance(event, dict):
+                continue
+            seq = int(base.number(event.get("seq")) or 0)
+            if seq > self.last_event_seq:
+                self.last_event_seq = seq
+            if self._apply_engine_event(event):
+                applied.append(event)
+        return applied
+
+    def _poll_lifecycle_without_snapshot(self) -> int:
+        """Deliver engine lifecycle events even when public snapshots have stopped."""
+        with self.lock:
+            applied = self._poll_engine_events(force=True)
+            self.live_metrics["backgroundLifecyclePolls"] += 1
+            self.live_metrics["backgroundLifecycleEventsApplied"] += len(applied)
+            self._r21_inbox(base.now_ms())
+            return len(applied)
+
+    def _find_local_order(self, cid: str) -> tuple[tuple[str, int] | None, base.PaperOrder | None]:
+        for key, order in self.orders.items():
+            if order.id == cid:
+                return key, order
+        order = self.orphan_orders.get(cid)
+        return None, order
+
+    def _refresh_r21_state(self, event: dict[str, Any] | None = None) -> None:
+        if isinstance(event, dict):
+            self.r21_bridge.observe_event(event)
+        self._r21_inbox(int(base.number((event or {}).get("occurred_at_ms")) or base.now_ms()))
+
+    def _apply_engine_event(self, event: dict[str, Any]) -> bool:
+        if not self.r21_bridge.belongs_to_source(event):
+            self.r21_bridge.filtered_foreign_events += 1
+            self.live_metrics["foreignEngineEventsFiltered"] += 1
+            return False
+        cid = str(event.get("client_order_id") or "")
+        role = str(event.get("role") or "").upper()
+        state = str(event.get("state") or "").upper()
+        event_type = str(event.get("event_type") or "").upper()
+        if state in {"CANCEL_PENDING", "CANCEL_UNKNOWN"} and cid:
+            # 8781 may autonomously cancel an expired R2+R2.1 Taker. Keep the
+            # controller-side ownership projection pending until terminal proof.
+            self.pending_cancels.add(cid)
+        if event_type == "FILL_DELTA":
+            shares = float(base.number(event.get("delta_shares")) or 0.0)
+            usdt = float(base.number(event.get("delta_usdt")) or 0.0)
+            price = float(base.number(event.get("fill_price")) or 0.0)
+            side = str(event.get("side") or "").upper()
+            event_ms = int(base.number(event.get("occurred_at_ms")) or base.now_ms())
+            event_market_id = int(base.number(event.get("source_market_id")) or 0)
+            current_market_fill = event_market_id > 0 and event_market_id == int(self.current_market_id or 0)
+            if shares > base.EPS and side in {"UP", "DOWN"}:
+                if price <= 0 and usdt > 0:
+                    price = usdt / shares
+                # Old-market/orphan fills remain fully accounted by 8781 PNL, but
+                # must never mutate the new market's controller inventory/capital.
+                if not current_market_fill:
+                    pass
+                elif role == "MAKER":
+                    self.r3s_active_stack.observe_fill(self.r3s_post_add_episode,event_ms=event_ms,role="MAKER")
+                    pre_net = self.inventory.maker_up - self.inventory.maker_down
+                    pre_g = self.inventory.maker_up + self.inventory.maker_down
+                    pre_pc = 2 * min(self.inventory.maker_up, self.inventory.maker_down) / pre_g if pre_g > base.EPS else 1.0
+                    self.inventory.apply({"event_ms": event_ms, "role": "MAKER", "side": side, "price": price, "shares": shares})
+                    self.maker_spent_notional += usdt if usdt > 0 else price * shares
+                    self.current_metrics["makerFills"] += 1
+                    self.run_metrics["makerFills"] += 1
+                    self.live_metrics["makerFillEvents"] += 1
+                    self._clear_r21_post_active_fault_wait("CONFIRMED_MAKER_FILL")
+                    if state == "PARTIAL_FILL":
+                        self.live_metrics["makerPartialFillEvents"] += 1
+                    # The Echtgeld strategy recorder must mirror the same venue
+                    # delta stream that drives inventory.  Engine seq is the
+                    # deterministic idempotency key, so controller restart/replay
+                    # cannot double-count a partial or terminal delta.
+                    try:
+                        self.recorder.record_order_fill_delta(
+                            order_id=cid,
+                            fill_id=f"{cid}:ENGINE_FILL_DELTA:{int(base.number(event.get('seq')) or 0)}",
+                            filled_at_ms=event_ms,
+                            fill_price=price,
+                            shares=shares,
+                            purpose="PASSIVE_MAKER_REAL",
+                            terminal=state == "FILLED",
+                            fill_state={
+                                "venueConfirmed": True,
+                                "engine": "8781",
+                                "engineEventSeq": int(base.number(event.get("seq")) or 0),
+                                "engineState": state,
+                                "deltaShares": shares,
+                                "deltaUsdt": usdt,
+                            },
+                            payload={"paperOnly": False, "executionOwner": "8781_ONLY"},
+                        )
+                    except KeyError:
+                        # A controller restart may observe a durable engine fill for
+                        # an order placement that predates this recorder instance.
+                        # Inventory remains sourced from 8781; surface the audit gap
+                        # instead of fabricating an order row.
+                        self.last_error = f"recorder missing Maker order for venue fill: {cid}"
+                    key, order = self._find_local_order(cid)
+                    occupied = bool(order.occupied_before) if order else False
+                    if order and key is not None and state not in {"FILLED", "CANCELED", "REJECTED"}:
+                        order.shares = max(0.0, float(order.shares) - shares)
+                    post_net = self.inventory.maker_up - self.inventory.maker_down
+                    if occupied:
+                        predom = "UP" if pre_net > base.EPS else "DOWN" if pre_net < -base.EPS else None
+                        if predom == side and abs(pre_net) >= base.SHARES - base.EPS and abs(post_net) > abs(pre_net) + 1:
+                            self.episode = {
+                                "kind": "OVERLAP", "side": side, "risk_start_ms": event_ms,
+                                "risk_pre_abs": abs(pre_net), "start_ms": event_ms, "pre_abs": abs(pre_net),
+                                "start_abs": abs(post_net), "expansion": abs(post_net) - abs(pre_net),
+                                "pre_pc": pre_pc, "unresolved": False,
+                            }
+                            self.readiness = False
+                            self.current_metrics["excursions"] += 1
+                            self.run_metrics["excursions"] += 1
+                elif role == "TAKER":
+                    pending = self.taker_pending.get(cid)
+                    pre_port_r3s = self.inventory.features(int(event_ms))
+                    structural_effect = str((pending or {}).get("structuralEffect") or self.r3s_active_stack.structural_effect(side,float(pre_port_r3s.get("combined_net") or 0.0)))
+                    self.r3s_active_stack.observe_fill(self.r3s_post_add_episode,event_ms=event_ms,role="TAKER",structural_effect=structural_effect)
+                    self.inventory.apply({"event_ms": event_ms, "role": "TAKER", "side": side, "price": price, "shares": shares})
+                    post_port_r3s = self.inventory.features(int(event_ms))
+                    if structural_effect == "ADD_EFFECT" and pending is not None and not bool(pending.get("postAddStarted")):
+                        self.r3s_post_add_episode = self.r3s_active_stack.start_add_episode(fill_ms=event_ms,pre_port=dict((pending or {}).get("prePortfolio") or pre_port_r3s),post_port=post_port_r3s,evidence=dict((pending or {}).get("stableEvidence") or {}),snapshot={"secondsLeft": (self.last_decision or {}).get("secondsLeft") if isinstance(self.last_decision,dict) else None},intent_id=cid)
+                        pending["postAddStarted"] = True
+                        self.live_metrics["r3sPostAddEpisodes"] += 1
+                        self._r3s_audit_event("POST_ADD_EPISODE_START",at_ms=event_ms,intent_id=cid,decision_id=str((pending or {}).get("decisionId") or ''),side=side,structural_effect=structural_effect,payload=self.r3s_post_add_episode)
+                    self.taker_spent_notional += usdt if usdt > 0 else price * shares
+                    fee = base.taker_fee(shares, price, base.FEE_BPS)
+                    self.taker_fee_spent += fee
+                    self.current_metrics["takerFills"] += 1
+                    self.run_metrics["takerFills"] += 1
+                    self.live_metrics["takerFillEvents"] += 1
+                    self.last_taker_ms = event_ms
+                    self._clear_r21_post_active_fault_wait("CONFIRMED_TAKER_FILL")
+                    self._on_active_intervention_satisfied()
+                    pending = self.taker_pending.get(cid)
+                    if pending is not None:
+                        if int(event_ms) - int(pending.get("submittedAtMs") or event_ms) > int(round(TAKER_CONFIRM_TIMEOUT_SECONDS*1000)):
+                            self.live_metrics["r3sLateTakerFills"] += 1
+                            self._r3s_audit_event("TAKER_LATE_FILL",at_ms=event_ms,intent_id=cid,decision_id=str(pending.get("decisionId") or ''),side=side,structural_effect=str(pending.get("structuralEffect") or ''),payload={"deltaShares":shares,"deltaUsdt":usdt,"fillPrice":price,"latencyMs":int(event_ms)-int(pending.get("submittedAtMs") or event_ms)})
+                        pending["filledShares"] = float(pending.get("filledShares") or 0.0) + shares
+                        pending["filledUsdt"] = float(pending.get("filledUsdt") or 0.0) + usdt
+                        pending["lastFillPrice"] = price
+        terminal_states = {"FILLED", "CANCELED", "REJECTED", "EXPIRED", "FAILED"}
+        if event_type in {"ORDER_FILLED", "ORDER_CANCELED", "ORDER_REJECTED", "ORDER_EXPIRED", "ORDER_FAILED"} or state in terminal_states:
+            key, order = self._find_local_order(cid)
+            if key is not None:
+                self.orders.pop(key, None)
+                self.last_closed[key] = int(base.number(event.get("occurred_at_ms")) or base.now_ms())
+            self.orphan_orders.pop(cid, None)
+            self.pending_cancels.discard(cid)
+            if role == "TAKER" and cid in self.taker_pending:
+                self.taker_pending[cid]["terminalState"] = state or event_type.replace("ORDER_", "")
+                self.taker_pending[cid]["terminalAtMs"] = int(base.number(event.get("occurred_at_ms")) or base.now_ms())
+            try:
+                with self.recorder.lock:
+                    self.recorder.db.execute(
+                        """UPDATE r2_autonomous_child_reassess_events
+                           SET terminal_state=?,terminal_at_ms=?,terminal_event_seq=?,terminal_detail=?,cancel_state=?
+                           WHERE order_key=? AND terminal_state IS NULL""",
+                        (state or event_type.replace("ORDER_", ""),
+                         int(base.number(event.get("occurred_at_ms")) or base.now_ms()),
+                         int(base.number(event.get("seq")) or 0),
+                         str(event.get("detail") or ""),
+                         "TERMINAL", cid)
+                    )
+                    self.recorder.db.commit()
+            except Exception as exc:
+                self.last_error = f"persist REASSESS terminal: {type(exc).__name__}: {str(exc)[:250]}"
+            if role == "TAKER" and (state or event_type.replace("ORDER_", "")) in {"REJECTED", "CANCELED", "EXPIRED", "FAILED"}:
+                pending_row = self.taker_pending.get(cid) or {}
+                confirmed_any = max(float(base.number(event.get("filled_share_qty")) or 0.0),float(base.number(pending_row.get("filledShares")) or 0.0))
+                if confirmed_any <= base.EPS:
+                    self._enter_r21_post_active_fault_wait(state or event_type)
+        self._refresh_r21_state(event)
+        return True
+
+    def _fill_orders(self, snapshot: dict[str, Any], now: int) -> list[dict[str, Any]]:
+        # Paper pass-through / queue-depletion fill proxy is forbidden in live mode.
+        events = self._poll_engine_events()
+        snapshot[INBOX_FIELD] = self._r21_inbox(now)
+        fills: list[dict[str, Any]] = []
+        for event in events:
+            if str(event.get("event_type") or "").upper() != "FILL_DELTA":
+                continue
+            if int(base.number(event.get("source_market_id")) or 0) != int(self.current_market_id or 0):
+                continue
+            fills.append({
+                "side": event.get("side"),
+                "price": event.get("fill_price"),
+                "shares": event.get("delta_shares"),
+                "venueConfirmed": True,
+                "role": event.get("role"),
+            })
+        return fills
+
+    def _cancel_order(self, key: tuple[str, int], at_ms: int, reason: str) -> None:
+        order = self.orders.get(key)
+        if order is None:
+            return
+        if order.id in self.pending_cancels:
+            return
+        self.pending_cancels.add(order.id)
+        try:
+            result = self._engine_post("/cap100/cancel", {"entrySource": ENTRY_SOURCE, "clientOrderId": order.id, "reason": reason})
+            self.live_metrics["makerCancelRequested"] += 1
+            if not result.get("ok") and result.get("uncertain"):
+                self.entry_freeze = True
+                self.entry_freeze_detail = order.id
+        except Exception as exc:
+            # Never forget the order. A failed cancel request means it remains live.
+            self.pending_cancels.discard(order.id)
+            self.live_metrics["engineHttpErrors"] += 1
+            self.last_error = f"R3-S+R3.1 cancel {order.id}: {type(exc).__name__}: {str(exc)[:300]}"
+
+    def _reset_market(self, market_id: int, sampled_at: int) -> None:
+        at = base.now_ms()
+        # Request cancellation, but preserve every old-market order until 8781 proves
+        # it terminal. New market execution is blocked while any orphan remains.
+        for key, order in list(self.orders.items()):
+            self._cancel_order(key, at, "MARKET_ROLLOVER")
+            self.orphan_orders[order.id] = order
+        self.orders.clear()
+        self.pending_cancels = {cid for cid in self.pending_cancels if cid in self.orphan_orders}
+        self.current_market_id = int(market_id)
+        self.inventory.reset()
+        self.r21_bridge.reset_market(int(market_id))
+        self.r3s_wtp_policy.reset_market()
+        self.r3s_last_wtp = None
+        self.r21_active_fault_wait = False
+        self.r21_active_fault_reason = None
+        self.last_closed.clear()
+        self.placements.clear()
+        self.episode = None
+        self.readiness = False
+        self.active_intervention_required = False
+        self.active_intervention_reason = None
+        self.r3s_post_add_episode = None
+        self.r3s_forced_taker_qty = None
+        self.r3s_forced_taker_context = None
+        self.last_taker_ms = -10**18
+        self.maker_spent_notional = 0.0
+        self.taker_spent_notional = 0.0
+        self.taker_fee_spent = 0.0
+        self.last_snapshot_ms = None
+        self.last_eval_snapshot_ms = None
+        self.last_decision = None
+        self._reset_metric_counters()
+        self.book_ready = self.book.reset(int(market_id), int(sampled_at))
+        self.rng = base.np.random.default_rng((base.RNG_SEED * 1000003 + int(market_id)) % (2**63 - 1))
+        self.residual_rng = base.np.random.default_rng((base.RNG_SEED * 3000017 + int(market_id) + 7717) % (2**63 - 1))
+        if self.excluded_deployment_market_id is None:
+            self.excluded_deployment_market_id = int(market_id)
+            self.active = False
+        else:
+            self.active = True
+            self.run_metrics["marketsStarted"] += 1
+        if self.execution_ready and self.live_activation_market_id is not None and int(market_id) != int(self.live_activation_market_id):
+            self.wait_next_market_after_activation = False
+
+    def _add_order(self, side: str, now: int, snapshot_ns: int, decision_id: str, reason: str, p: float, snapshot: dict[str, Any], allow_stack: bool = True, bypass_guard: bool = False) -> bool:
+        if not self._deployment_live_ready():
+            return False
+        before_keys = set(self.orders)
+        before_metric = int(self.current_metrics["makerPlacements"])
+        # Canonical Frozen R2 has no strategy notional cap. The live deployment
+        # changes only the per-order quantity to exactly 10 shares.
+        made = super()._add_order(side, now, snapshot_ns, decision_id, reason, p, snapshot, allow_stack=allow_stack, bypass_guard=bypass_guard)
+        if not made:
+            return False
+        new_keys = [key for key in self.orders if key not in before_keys]
+        if len(new_keys) != 1:
+            self.last_error = "R3-S+R3.1 live adapter could not identify newly planned Maker order"
+            return False
+        key = new_keys[0]
+        order = self.orders[key]
+        self.r21_bridge.register_intent(
+            client_order_id=order.id,
+            market_id=int(self.current_market_id or 0),
+            role="MAKER",
+            side=order.side,
+            requested_shares=float(order.shares),
+            created_at_ms=now,
+            reason=reason,
+            requested_price=float(order.price),
+        )
+        payload = {
+            **self._payload_market(snapshot),
+            "clientOrderId": order.id,
+            "side": order.side,
+            "price": float(order.price),
+            "shares": float(order.shares),
+            "decisionId": decision_id,
+            "reason": reason,
+            "controllerVersion": VERSION,
+        }
+        try:
+            result = self._engine_post("/cap100/maker", payload)
+        except EngineDeterministicReject as exc:
+            self.orders.pop(key, None)
+            self._bridge_confirm_prevenue_reject(cid=order.id, role="MAKER", side=order.side, at_ms=base.now_ms(), reason=str(exc))
+            self.last_closed[key] = now
+            self.current_metrics["makerPlacements"] = max(before_metric, int(self.current_metrics["makerPlacements"]) - 1)
+            self.run_metrics["makerPlacements"] = max(0, int(self.run_metrics["makerPlacements"]) - 1)
+            self.live_metrics["makerSubmitRejected"] += 1
+            self.recorder.record_order_cancel(
+                order_id=order.id,
+                cancelled_at_ms=base.now_ms(),
+                reason=f"ENGINE_DETERMINISTIC_REJECT:{str(exc)[:240]}",
+            )
+            return False
+        except Exception as exc:
+            # HTTP uncertainty is not proof of rejection. Keep committed local risk
+            # and block further entries until 8781 state/event feed resolves it.
+            self.entry_freeze = True
+            self.entry_freeze_detail = order.id
+            self.execution_ready = False
+            self.execution_block_reason = f"MAKER_HTTP_UNCERTAIN:{order.id}"
+            self.live_metrics["makerUnknown"] += 1
+            self.live_metrics["engineHttpErrors"] += 1
+            self.last_error = f"R3-S+R3.1 Maker submit uncertain {order.id}: {type(exc).__name__}: {str(exc)[:300]}"
+            return True
+        remote = result.get("order") if isinstance(result.get("order"), dict) else {}
+        state = str(remote.get("state") or "").upper()
+        if result.get("uncertain") or state in {"UNKNOWN_SUBMISSION", "CANCEL_UNKNOWN"}:
+            self.entry_freeze = True
+            self.entry_freeze_detail = order.id
+            self.execution_ready = False
+            self.execution_block_reason = f"8781_UNKNOWN_WRITE:{order.id}"
+            self.live_metrics["makerUnknown"] += 1
+            return True
+        if not result.get("ok") or state == "REJECTED":
+            self.orders.pop(key, None)
+            self._bridge_confirm_prevenue_reject(cid=order.id, role="MAKER", side=order.side, at_ms=base.now_ms(), reason=str(remote.get("error_message") or remote.get("errorKind") or state or "ENGINE_REJECTED"))
+            self.last_closed[key] = now
+            self.current_metrics["makerPlacements"] = max(before_metric, int(self.current_metrics["makerPlacements"]) - 1)
+            self.run_metrics["makerPlacements"] = max(0, int(self.run_metrics["makerPlacements"]) - 1)
+            self.live_metrics["makerSubmitRejected"] += 1
+            self.recorder.record_order_cancel(order_id=order.id, cancelled_at_ms=base.now_ms(), reason=f"LIVE_ENGINE_REJECTED:{state or 'ERROR'}")
+            return False
+        self.live_metrics["makerSubmitAccepted"] += 1
+        return True
+
+    def _has_unresolved_taker(self) -> bool:
+        terminal = {"FILLED", "REJECTED", "CANCELED", "FAILED", "EXPIRED"}
+        return any(str(row.get("terminalState") or "").upper() not in terminal for row in self.taker_pending.values())
+
+    def _r3s_response_from_r31(self, at_ms: int) -> str:
+        st=self.r21_state if isinstance(self.r21_state,dict) else {}
+        f=st.get("formationExecutionContext") if isinstance(st.get("formationExecutionContext"),dict) else {}
+        live=f.get("liveBySide") if isinstance(f.get("liveBySide"),dict) else {}
+        unresolved=unknown=maxage=0.0
+        for side in ("UP","DOWN"):
+            ss=live.get(side) if isinstance(live.get(side),dict) else {}
+            for role in ("maker","taker"):
+                rr=ss.get(role) if isinstance(ss.get(role),dict) else {}
+                unresolved += float(base.number(rr.get("unresolvedQty")) or 0.0)
+                unknown += float(base.number(rr.get("unknownCount")) or 0.0)
+                maxage=max(maxage,float(base.number(rr.get("maxAgeMs")) or 0.0))
+        if unknown>0 or str(st.get("situationCode") or "") in {"UNKNOWN_QUARANTINE","CANCEL_UNKNOWN"}: resp="WAIT_EXECUTION_CERTAINTY"
+        elif str(st.get("situationCode") or "")=="CANCEL_PENDING": resp="WAIT_CANCEL_TERMINAL_ACK"
+        elif unresolved<=base.EPS: resp="NORMAL_R3S"
+        elif int(base.number(f.get("recent15sFillDeltaCount")) or 0)>0 and int(base.number(f.get("recent15sStallCount")) or 0)==0: resp="KEEP_AND_OBSERVE_RECOVERY"
+        elif maxage>=15000 and int(base.number(f.get("recent15sStallCount")) or 0)>0: resp="REASSESS_OLDEST_BLOCKER"
+        else: resp="WAIT_PENDING_CHILDREN"
+        self.r3s_last_response=resp
+        self.r3s_response_history.append({"atMs":int(at_ms),"response":resp,"situationCode":st.get("situationCode"),"ownershipState":st.get("ownershipState"),"unresolvedQty":unresolved,"maxAgeMs":maxage})
+        if len(self.r3s_response_history)>500:self.r3s_response_history=self.r3s_response_history[-500:]
+        return resp
+
+    def _r3s_dynamic_taker_shares(self, side: str, price: float, now: int, snapshot: dict[str, Any]) -> float:
+        if self.r3s_forced_taker_qty is not None:
+            q = float(self.r3s_forced_taker_qty)
+            return q if math.isfinite(q) and q > base.EPS else 0.0
+        art=self.r3_rawq_artifact
+        try: port=self.inventory.features(int(now))
+        except Exception: port={}
+        def finite(v,default=0.0):
+            try:
+                x=float(v); return x if math.isfinite(x) else default
+            except Exception:return default
+        vals={k:finite(port.get(k),0.0) for k in art.get("features",[])}
+        vals["event_index_norm"]=min(1.0,max(0.0,1.0-float(snapshot.get("secondsLeft") or 300.0)/300.0))
+        vals["last_price"]=float(price)
+        vals["last_shares"]=float(port.get("maker_shares_5s") or port.get("taker_shares_5s") or 0.0)
+        vals["last_role_taker"]=float(finite(port.get("last_taker_age_ms"),1e9)<finite(port.get("last_maker_age_ms"),1e9))
+        x=base.np.asarray([[vals.get(f,0.0) for f in art.get("features",[])]],float)
+        net=float(port.get("combined_net") or 0.0)
+        repair=bool((side=="DOWN" and net>base.EPS) or (side=="UP" and net<-base.EPS))
+        model=art["repairRawModel"] if repair else art["addRawModel"]
+        qty=float(base.np.expm1(model.predict(x)[0]))
+        if not math.isfinite(qty) or qty <= base.EPS:
+            return 0.0
+        return qty
+
+    def _r3s_audit_event(self, event_type: str, *, at_ms: int, intent_id: str | None = None, decision_id: str | None = None, side: str | None = None, structural_effect: str | None = None, payload: dict[str, Any] | None = None) -> None:
+        started = time.monotonic()
+        lock_started = started
+        acquired = started
+        try:
+            import json
+            eid = f"{VERSION}:{int(self.current_market_id or 0)}:{str(event_type)}:{int(at_ms)}:{str(intent_id or decision_id or '')}"
+            lock_started = time.monotonic()
+            with self.recorder.lock:
+                acquired = time.monotonic()
+                self.recorder.db.execute(
+                    """INSERT OR REPLACE INTO r3s_active_lifecycle_events
+                       (event_id,market_id,at_ms,event_type,intent_id,decision_id,side,structural_effect,payload_json,created_at_ms)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (eid,int(self.current_market_id or 0),int(at_ms),str(event_type),str(intent_id or ''),str(decision_id or ''),str(side or ''),str(structural_effect or ''),json.dumps(payload or {},separators=(',',':'),default=str),int(base.now_ms())),
+                )
+                self.recorder.db.commit()
+            ended = time.monotonic()
+            self._record_latency_ms(f"audit.{event_type}.lock_wait", (acquired - lock_started) * 1000.0)
+            self._record_latency_ms(f"audit.{event_type}.db_write", (ended - acquired) * 1000.0)
+            self._record_latency_ms(f"audit.{event_type}.total", (ended - started) * 1000.0)
+        except Exception as exc:
+            self.last_error = f"R3-S lifecycle audit: {type(exc).__name__}: {str(exc)[:250]}"
+
+    def _r3s_maybe_containment(self, snapshot: dict[str, Any], now: int, trace: dict[str, Any] | None = None) -> dict[str, Any] | None:
+        ep = self.r3s_post_add_episode
+        if not isinstance(ep, dict) or bool(ep.get("containmentSubmitted")):
+            return None
+        if isinstance(trace, dict) and any(str(a.get("action") or '').startswith("TAKER") or str(a.get("action") or '').startswith("ACTIVE_INTERVENTION_REQUIRED_EXECUTE") for a in (trace.get("actions") or []) if isinstance(a,dict)):
+            return None
+        if ep.get("earlyEvaluatedAtMs") is not None:
+            if not bool(ep.get("tripleConfirm")):
+                return None
+            ok = True
+            detail = dict(ep.get("tripleConfirmDetail") or {})
+        else:
+            ok, detail = self.r3s_active_stack.triple_confirm(self.inventory, ep, int(now), snapshot)
+            if detail is None:
+                return None
+            ep["earlyEvaluatedAtMs"] = int(now)
+            ep["tripleConfirmDetail"] = dict(detail)
+            self.live_metrics["r3sEarlyRecoveryEvaluations"] += 1
+            self._r3s_audit_event("EARLY_RECOVERY_15S", at_ms=now, intent_id=str(ep.get("intentId") or ''), structural_effect="ADD_EFFECT", payload=detail)
+        if not ok:
+            return {"action":"R3S_TRIPLE_CONFIRM_HOLD","detail":detail}
+        self.live_metrics["r3sTripleConfirmTriggers"] += 1
+        port = self.inventory.features(int(now))
+        net = float(port.get("combined_net") or 0.0)
+        if abs(net) <= base.EPS:
+            return {"action":"R3S_TRIPLE_CONFIRM_NO_RESIDUAL","detail":detail}
+        side = "DOWN" if net > 0 else "UP"
+        bf = base.outcome_book(self.book.book, side) or {}
+        ask = bf.get("down_ask") if side == "DOWN" else bf.get("up_ask")
+        if ask is None or not math.isfinite(float(ask)):
+            return {"action":"R3S_TRIPLE_CONFIRM_WAIT_ASK","detail":detail}
+        qty = abs(net) * 0.75
+        if qty <= base.EPS:
+            return {"action":"R3S_TRIPLE_CONFIRM_NO_QTY","detail":detail}
+        before_accepted = int(self.live_metrics.get("takerSubmitAccepted",0))
+        self.r3s_forced_taker_qty = float(qty)
+        self.r3s_forced_taker_context = {"kind":"TRIPLE_CONFIRM_CONTAINMENT","detail":detail,"episodeIntentId":ep.get("intentId"),"repairFraction":0.75}
+        did = f"{VERSION}:{int(self.current_market_id or 0)}:CONTAINMENT:{int(now)}"
+        try:
+            confirmed = bool(self._record_taker(side,float(ask),int(now),did,snapshot,{},math.nan,math.nan,math.nan,"REPAIR_EFFECT"))
+        finally:
+            self.r3s_forced_taker_qty = None
+            self.r3s_forced_taker_context = None
+        accepted = int(self.live_metrics.get("takerSubmitAccepted",0)) > before_accepted
+        if accepted:
+            ep["containmentSubmitted"] = True
+            ep["containmentAtMs"] = int(now)
+            ep["containmentQty"] = float(qty)
+            self.live_metrics["r3sContainmentSubmitted"] += 1
+            self._r3s_audit_event("TRIPLE_CONFIRM_CONTAINMENT_SUBMITTED",at_ms=now,decision_id=did,side=side,structural_effect="REPAIR_EFFECT",payload={**detail,"requestedShares":qty,"confirmedInside2200ms":confirmed})
+            return {"action":"R3S_TRIPLE_CONFIRM_CONTAINMENT","side":side,"requestedShares":qty,"confirmed":confirmed,"detail":detail}
+        return {"action":"R3S_TRIPLE_CONFIRM_NOT_SUBMITTED","side":side,"requestedShares":qty,"detail":detail}
+
+    def _record_taker(self, side: str, price: float, now: int, decision_id: str, snapshot: dict[str, Any], raw: dict[str, Any], p1: float, p3: float, ppass: float, pred_effect: str) -> bool:
+        if not self._deployment_live_ready():
+            return False
+        # The retained R2.1 cooperation contract never completes an active route
+        # before every cancel request has a venue-terminal acknowledgement.
+        if self.pending_cancels:
+            self.live_metrics["r21CancelAckBlocks"] += 1
+            return False
+        # After a confirmed active-child failure, preserve formal WAIT until a
+        # confirmed fill changes actual state.  R2.1 cannot choose a retry.
+        if self.r21_active_fault_wait:
+            self.live_metrics["r21PostActiveFaultWaitBlocks"] += 1
+            return False
+        # Never create a second active Taker while the first venue write/fill is
+        # unresolved. Reconciliation has higher priority than active intervention.
+        if self._has_unresolved_taker():
+            return False
+        pre_port = self.inventory.features(int(now))
+        structural_effect = self.r3s_active_stack.structural_effect(side, float(pre_port.get("combined_net") or 0.0))
+        stable_evidence = None
+        if structural_effect == "ADD_EFFECT":
+            _t = time.monotonic()
+            allowed, gate_reason, post_scores = self.r3s_active_stack.readd_gate(self.inventory, self.r3s_post_add_episode, int(now), snapshot)
+            self._record_latency_ms("taker.readd_gate", (time.monotonic() - _t) * 1000.0)
+            if not allowed:
+                self.live_metrics["r3sReAddVetoes"] += 1
+                self._r3s_audit_event("READD_VETO",at_ms=now,decision_id=decision_id,side=side,structural_effect=structural_effect,payload={"reason":gate_reason,"postAdd":post_scores})
+                return False
+            _t = time.monotonic()
+            stable_evidence = self.r3s_active_stack.pre_add_evidence(self.inventory,int(now),snapshot)
+            self._record_latency_ms("taker.pre_add_evidence", (time.monotonic() - _t) * 1000.0)
+            if stable_evidence is not None:
+                self.live_metrics["r3sStableAddEvidence"] += 1
+        _t = time.monotonic()
+        taker_shares = self._r3s_dynamic_taker_shares(side, price, now, snapshot)
+        self._record_latency_ms("taker.dynamic_quantity", (time.monotonic() - _t) * 1000.0)
+        containment_wtp = bool(isinstance(self.r3s_forced_taker_context,dict) and str(self.r3s_forced_taker_context.get("kind") or "")=="TRIPLE_CONFIRM_CONTAINMENT")
+        _t = time.monotonic()
+        wtp = self.r3s_wtp_policy.quote(
+            structural_effect=structural_effect, side=side, observed_ask=float(price), now_ms=int(now),
+            port=dict(pre_port), containment=containment_wtp, context=dict(self.r3s_forced_taker_context or {}),
+        )
+        self._record_latency_ms("taker.wtp_quote", (time.monotonic() - _t) * 1000.0)
+        max_price = float(wtp["maxPrice"])
+        self.r3s_last_wtp = dict(wtp)
+        self.live_metrics["r3sWtpEvaluations"] = int(self.live_metrics.get("r3sWtpEvaluations",0)) + 1
+        if str(wtp.get("mode") or "").startswith("ADD_EPISODE_ANCHOR_REUSED"):
+            self.live_metrics["r3sWtpAddAnchorReused"] = int(self.live_metrics.get("r3sWtpAddAnchorReused",0)) + 1
+        self._r3s_audit_event("TAKER_WTP_DECISION",at_ms=now,decision_id=decision_id,side=side,structural_effect=structural_effect,payload=wtp)
+        # Never fabricate the old 0.01-share fallback. If the learned quantity is
+        # non-positive/non-finite, or cannot possibly meet the venue's 1 USDT
+        # minimum anywhere inside R3's own max-price envelope, do not create a
+        # lifecycle child and do not enter active-failure WAIT. R3 simply gets a
+        # normal no-execution result and can reassess on the next strict-past state.
+        if not math.isfinite(float(taker_shares)) or float(taker_shares) <= base.EPS:
+            self.live_metrics["takerNonExecutableQtySkipped"] += 1
+            return False
+        if float(max_price) * float(taker_shares) < R3S_R31_MIN_NOTIONAL_USDT - 1e-9:
+            self.live_metrics["takerMinNotionalSkipped"] += 1
+            return False
+        fee = base.taker_fee(taker_shares, price, base.FEE_BPS)
+        need = float(price) * taker_shares + float(fee)
+        committed = sum(float(o.price) * float(o.shares) for o in self.orders.values())
+        spent = self.maker_spent_notional + self.taker_spent_notional + self.taker_fee_spent
+        # Maker remains fixed at 10 shares. R3 Taker preserves the learned raw
+        # quantity with no strategy-side fixed share cap.
+        cid = f"{VERSION}:{self.current_market_id}:TAKER:{side}:{now}:{decision_id[-24:]}"
+        payload = {
+            **self._payload_market(snapshot),
+            "clientOrderId": cid,
+            "side": side,
+            "price": float(price),
+            "maxPrice": max_price,
+            "shares": taker_shares,
+            "decisionId": decision_id,
+            "predEffect": pred_effect,
+            "controllerVersion": VERSION,
+            "r3sWtp": copy.deepcopy(wtp),
+        }
+        self.r21_bridge.register_intent(
+            client_order_id=cid,
+            market_id=int(self.current_market_id or 0),
+            role="TAKER",
+            side=side,
+            requested_shares=float(taker_shares),
+            created_at_ms=now,
+            reason="R3S_TRIPLE_CONFIRM_CONTAINMENT" if self.r3s_forced_taker_context else "R3S_AUTHORIZED_ACTIVE_INTERVENTION",
+            requested_price=float(price),
+        )
+        self.taker_pending[cid] = {
+            "filledShares": 0.0,
+            "filledUsdt": 0.0,
+            "terminalState": None,
+            "submittedAtMs": int(now),
+            "confirmTimeoutMs": int(round(TAKER_CONFIRM_TIMEOUT_SECONDS * 1000)),
+            "decisionId": decision_id,
+            "side": side,
+            "structuralEffect": structural_effect,
+            "prePortfolio": dict(pre_port),
+            "stableEvidence": dict(stable_evidence or {}),
+            "predEffect": pred_effect,
+            "r3sContext": copy.deepcopy(self.r3s_forced_taker_context),
+            "wtp": copy.deepcopy(wtp),
+        }
+        try:
+            result = self._engine_post("/cap100/taker", payload)
+        except EngineDeterministicReject as exc:
+            self.taker_pending.pop(cid, None)
+            self._bridge_confirm_prevenue_reject(cid=cid, role="TAKER", side=side, at_ms=base.now_ms(), reason=str(exc))
+            self.live_metrics["takerSubmitRejected"] += 1
+            ep = exc.payload if isinstance(exc.payload,dict) else {}
+            remote_reject = ep.get("order") if isinstance(ep.get("order"),dict) else {}
+            error_kind = str(remote_reject.get("error_kind") or remote_reject.get("errorKind") or ep.get("error_kind") or ep.get("errorKind") or "").upper()
+            if error_kind in {"MARKET_MIN_NOTIONAL","TAKER_PRICE_CAP","TAKER_INVALID_QUANTITY","INVALID_QUANTITY"}:
+                self.live_metrics["r3sSafePreVenueRejects"] += 1
+                if error_kind == "MARKET_MIN_NOTIONAL": self.live_metrics["takerMinNotionalSkipped"] += 1
+                self._r3s_audit_event("TAKER_PRE_VENUE_REJECT",at_ms=now,intent_id=cid,decision_id=decision_id,side=side,structural_effect=structural_effect,payload={"errorKind":error_kind,"error":str(exc)[:300]})
+                return False
+            self._enter_r21_post_active_fault_wait(f"ENGINE_DETERMINISTIC_REJECT:{error_kind or str(exc)[:200]}")
+            return False
+        except Exception as exc:
+            self.entry_freeze = True
+            self.entry_freeze_detail = cid
+            self.execution_ready = False
+            self.execution_block_reason = f"TAKER_HTTP_UNCERTAIN:{cid}"
+            self.live_metrics["takerUnknown"] += 1
+            self.live_metrics["engineHttpErrors"] += 1
+            self.last_error = f"R3-S+R3.1 Taker submit uncertain {cid}: {type(exc).__name__}: {str(exc)[:300]}"
+            return False
+        remote = result.get("order") if isinstance(result.get("order"), dict) else {}
+        rstate = str(remote.get("state") or "").upper()
+        if result.get("uncertain") or rstate == "UNKNOWN_SUBMISSION":
+            self.entry_freeze = True
+            self.entry_freeze_detail = cid
+            self.execution_ready = False
+            self.execution_block_reason = f"8781_UNKNOWN_WRITE:{cid}"
+            self.live_metrics["takerUnknown"] += 1
+            return False
+        if not result.get("ok") or rstate == "REJECTED":
+            self.taker_pending.pop(cid, None)
+            self._bridge_confirm_prevenue_reject(cid=cid, role="TAKER", side=side, at_ms=base.now_ms(), reason=str(remote.get("error_message") or remote.get("errorKind") or rstate or "ENGINE_REJECTED"))
+            self.live_metrics["takerSubmitRejected"] += 1
+            error_kind = str(remote.get("error_kind") or remote.get("errorKind") or "").upper()
+            # A venue-minimum preflight rejection means no venue child existed.
+            # Do not convert that harmless non-execution into an R3.1 active-fault
+            # WAIT; otherwise a tiny learned quantity could freeze the strategy.
+            if error_kind == "MARKET_MIN_NOTIONAL":
+                self.live_metrics["takerMinNotionalSkipped"] += 1
+                return False
+            self._enter_r21_post_active_fault_wait(rstate or "TAKER_SUBMIT_REJECTED")
+            return False
+        self.live_metrics["takerSubmitAccepted"] += 1
+        self._r3s_audit_event("TAKER_SUBMITTED",at_ms=now,intent_id=cid,decision_id=decision_id,side=side,structural_effect=structural_effect,payload={"requestedShares":taker_shares,"stableEvidence":stable_evidence,"r3sContext":self.r3s_forced_taker_context,"wtp":wtp})
+        # Parent strategy treats True as "actually filled" and clears its repair
+        # episode. Therefore wait for venue-confirmed FILL_DELTA instead of treating
+        # placement acknowledgement as a fill.
+        deadline = time.monotonic() + TAKER_CONFIRM_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            self._poll_engine_events(force=True)
+            pending = self.taker_pending.get(cid) or {}
+            if float(pending.get("filledShares") or 0.0) > base.EPS:
+                fill_price = float(pending.get("lastFillPrice") or price)
+                self.recorder.record_taker_fill(
+                    fill_id=f"{cid}:VENUE_FILL", strategy_version=VERSION,
+                    market_id=int(self.current_market_id), decision_id=decision_id,
+                    purpose="PROMOTED_ACTIVE_INTERVENTION_R2_R21_REAL", side=side,
+                    price=fill_price, shares=float(pending.get("filledShares") or 0.0),
+                    filled_at_ms=base.now_ms(),
+                    decision_state={"version": VERSION, "pTaker1s": p1, "pTaker3s": p3, "pPassiveRepair": ppass, "predEffect": pred_effect, "rawState": raw, "capital": self._capital_state(), "paperOnly": False, "targetDataUsed": False},
+                    fill_state={"snapshot": snapshot, "venueConfirmed": True, "engine": "8781"},
+                    payload={"feeBps": base.FEE_BPS, "paperOnly": False, "liveOrdersAffected": True, "capitalCapUsdt": None, "makerConfiguredShares": R2_R21_LIVE_SHARES, "takerConfiguredShares": taker_shares},
+                )
+                return True
+            if pending.get("terminalState") in {"REJECTED", "CANCELED", "FAILED", "EXPIRED"}:
+                return False
+            time.sleep(0.08)
+        # No fake fill. Engine owns reconciliation; strategy keeps its episode/readiness.
+        self._r3s_audit_event("TAKER_CONFIRM_PENDING",at_ms=base.now_ms(),intent_id=cid,decision_id=decision_id,side=side,structural_effect=structural_effect,payload={"confirmTimeoutMs":int(round(TAKER_CONFIRM_TIMEOUT_SECONDS*1000)),"requestedShares":taker_shares})
+        return False
+
+    def _capital_state(self) -> dict[str, float]:
+        committed = sum(float(o.price) * float(o.shares) for o in self.orders.values())
+        orphan_committed = sum(float(o.price) * float(o.shares) for o in self.orphan_orders.values())
+        spent = self.maker_spent_notional + self.taker_spent_notional + self.taker_fee_spent
+        return {
+            "totalCapUsdt": None,
+            "makerBudgetUsdt": None,
+            "takerReserveUsdt": None,
+            "makerSpentUsdt": self.maker_spent_notional,
+            "makerCommittedUsdt": committed,
+            "orphanCommittedUsdt": orphan_committed,
+            "takerSpentUsdt": self.taker_spent_notional,
+            "takerFeesUsdt": self.taker_fee_spent,
+            "spentUsdt": spent,
+            "worstCaseCommittedUsdt": spent + committed + orphan_committed,
+            "totalRemainingUsdt": None,
+            "makerRemainingUsdt": None,
+        }
+
+    def _rewrite_live_decision_trace(self) -> None:
+        trace = self.last_decision
+        if not isinstance(trace, dict):
+            return
+        trace["version"] = VERSION
+        trace["paperOnly"] = False
+        trace["liveOrdersAffected"] = bool(self._deployment_live_ready())
+        trace["fillProxy"] = "8781_VENUE_CONFIRMED_FILL_DELTA"
+        trace["executionOwner"] = "8781_ONLY"
+        trace["capitalPolicy"] = "R2_R21_10SHARE_NO_NOTIONAL_CAP"
+        trace["configuredShares"] = R2_R21_LIVE_SHARES
+        trace["notionalCapEnabled"] = False
+        decision_id = str(trace.get("decisionId") or "")
+        if not decision_id:
+            return
+        try:
+            with self.recorder.lock:
+                row = self.recorder.db.execute("SELECT payload_json,supporting_reasons_json FROM our_decisions WHERE decision_id=?", (decision_id,)).fetchone()
+                if row is None:
+                    return
+                import json
+                payload = json.loads(str(row["payload_json"] or "{}"))
+                support = json.loads(str(row["supporting_reasons_json"] or "{}"))
+                if not isinstance(payload, dict): payload = {}
+                if not isinstance(support, dict): support = {}
+                payload.update({
+                    "version": VERSION,
+                    "paperOnly": False,
+                    "liveOrdersAffected": bool(self._deployment_live_ready()),
+                    "fillProxy": "8781_VENUE_CONFIRMED_FILL_DELTA",
+                    "executionOwner": "8781_ONLY",
+                    "capitalPolicy": "R2_R21_10SHARE_NO_NOTIONAL_CAP",
+                    "configuredShares": R2_R21_LIVE_SHARES,
+                    "notionalCapEnabled": False,
+                    "r2AutonomousChildReassessment": copy.deepcopy(trace.get("r2AutonomousChildReassessment")),
+                    "r3sContainmentAction": copy.deepcopy(trace.get("r3sContainmentAction")),
+                    "r3sPostAddEpisode": copy.deepcopy(self.r3s_post_add_episode),
+                    "r3sActiveStackVersion": R3S_ACTIVE_STACK_VERSION,
+                    "r3sComponents": copy.deepcopy(R3S_COMPONENTS),
+                    "childAssessment": copy.deepcopy(self.r21_child_assessment),
+                    "r21SemanticCooperation": {
+                        "inboxVisible": True,
+                        "actionAuthority": False,
+                        "situationCode": self.r21_state.get("situationCode"),
+                        "ownershipState": self.r21_state.get("ownershipState"),
+                        "remainingObligation": self.r21_state.get("remainingObligation"),
+                        "postActiveFaultWait": bool(self.r21_active_fault_wait),
+                    },
+                })
+                support.update({
+                    "fillProxy": "8781_VENUE_CONFIRMED_FILL_DELTA",
+                    "executionOwner": "8781_ONLY",
+                    "r21InformationOnly": True,
+                })
+                self.recorder.db.execute("UPDATE our_decisions SET strategy_version=?,payload_json=?,supporting_reasons_json=? WHERE decision_id=?", (VERSION,json.dumps(payload,separators=(",",":"),default=str),json.dumps(support,separators=(",",":"),default=str),decision_id))
+                self.recorder.db.commit()
+        except Exception as exc:
+            self.last_error = f"live recorder trace rewrite: {type(exc).__name__}: {str(exc)[:250]}"
+
+    def _active_intervention_required(self) -> bool:
+        return bool(self.active_intervention_required)
+
+    def _on_active_intervention_required(self, reason: str, now: int) -> None:
+        self.active_intervention_required = True
+        self.active_intervention_reason = str(reason)
+
+    def _on_active_intervention_satisfied(self) -> None:
+        self.active_intervention_required = False
+        self.active_intervention_reason = None
+
+    def _step(self, snapshot: dict[str, Any]) -> None:
+        _step_started = time.monotonic()
+        # Required-intervention scheduling now happens inside the inherited
+        # arbitration point, before passive repair / normal Maker.  The hooks
+        # above are false/no-op in frozen 8786, so its semantics stay unchanged.
+        enriched = dict(snapshot)
+        self.last_market_bucket_start_sec = int(base.number(snapshot.get("bucketStartSec")) or 0) or None
+        self.last_market_window_end_ms = int(base.number(snapshot.get("windowEndMs")) or 0) or None
+        enriched[INBOX_FIELD] = self._r21_inbox(int(base.number(snapshot.get("sampledAtMs")) or base.now_ms()))
+        _t = time.monotonic()
+        super()._step(enriched)
+        self._record_latency_ms("step.parent_r2", (time.monotonic() - _t) * 1000.0)
+        trace = self.last_decision if isinstance(self.last_decision, dict) else None
+        _t = time.monotonic()
+        self._r21_rank_children(enriched, trace)
+        self._record_latency_ms("step.child_rank", (time.monotonic() - _t) * 1000.0)
+        _t = time.monotonic()
+        reassess = self._r2_autonomous_child_reassessment(trace, int(base.number(enriched.get("sampledAtMs")) or base.now_ms()))
+        self._record_latency_ms("step.child_reassess", (time.monotonic() - _t) * 1000.0)
+        _t = time.monotonic()
+        containment = self._r3s_maybe_containment(enriched,int(base.number(enriched.get("sampledAtMs")) or base.now_ms()),trace)
+        self._record_latency_ms("step.containment", (time.monotonic() - _t) * 1000.0)
+        if trace is not None:
+            trace["r3sContainmentAction"] = copy.deepcopy(containment)
+            trace["r3sPostAddEpisode"] = copy.deepcopy(self.r3s_post_add_episode)
+            trace["r3sActiveStackVersion"] = R3S_ACTIVE_STACK_VERSION
+            trace["r3sComponents"] = copy.deepcopy(R3S_COMPONENTS)
+            trace["r2AutonomousChildReassessment"] = copy.deepcopy(reassess)
+            trace["activeInterventionRequired"] = bool(self.active_intervention_required)
+            trace["activeInterventionReason"] = self.active_intervention_reason
+            trace["r21SemanticCooperation"] = {
+                "inboxVisible": True,
+                "actionAuthority": False,
+                "situationCode": self.r21_state.get("situationCode"),
+                "ownershipState": self.r21_state.get("ownershipState"),
+                "remainingObligation": self.r21_state.get("remainingObligation"),
+                "postActiveFaultWait": bool(self.r21_active_fault_wait),
+                "postActiveFaultReason": self.r21_active_fault_reason,
+                "childAssessmentVersion": R2_MULTICHILD_RANKER_VERSION,
+                "childAssessmentMode": "R2_AUTONOMOUS_KEEP_REASSESS",
+                "childAssessmentCount": len(self.r21_child_assessment.get("rankings") or []),
+            }
+        _t = time.monotonic()
+        self._rewrite_live_decision_trace()
+        self._record_latency_ms("step.trace_rewrite", (time.monotonic() - _t) * 1000.0)
+        self._record_latency_ms("step.total", (time.monotonic() - _step_started) * 1000.0, detail=str((trace or {}).get("decisionId") or ""))
+
+    def snapshot(self) -> dict[str, Any]:
+        result = super().snapshot()
+        result.update(
+            version=VERSION,
+            candidate="R3S_R31_V1_1_1_WTP1_FULL_ACTIVE_STACK",
+            paperOnly=False,
+            liveOrdersAffected=True,
+            executionOwner="8781_ONLY",
+            entrySource=ENTRY_SOURCE,
+        )
+        last = result.get("lastDecision")
+        if isinstance(last, dict):
+            last["paperOnly"] = False
+            last["liveOrdersAffected"] = bool(self._deployment_live_ready())
+            last["fillProxy"] = "8781_VENUE_CONFIRMED_FILL_DELTA"
+            last["capitalPolicy"] = "R2_R21_10SHARE_NO_NOTIONAL_CAP"
+            last["configuredShares"] = R2_R21_LIVE_SHARES
+            last["notionalCapEnabled"] = False
+        result["liveExecution"] = {
+            "engineUrl": ENGINE_URL,
+            "executionReady": self.execution_ready,
+            "deploymentLiveReady": self._deployment_live_ready(),
+            "blockReason": self.execution_block_reason,
+            "entryFreeze": self.entry_freeze,
+            "entryFreezeDetail": self.entry_freeze_detail,
+            "waitNextMarketAfterActivation": self.wait_next_market_after_activation,
+            "activationMarketId": self.live_activation_market_id,
+            "lastHeartbeatMs": self.last_heartbeat_ms,
+            "lastHeartbeatAttemptMs": self.last_heartbeat_attempt_ms,
+            "lastHeartbeatError": self.last_heartbeat_error,
+            "maxHeartbeatGapMs": self.max_heartbeat_gap_ms,
+            "heartbeatIsolated": True,
+            "heartbeatUsesDedicatedHttpClient": True,
+            "engineMonitorSeparated": True,
+            "lastEngineStateMs": self.last_engine_state_ms,
+            "lastEngineMonitorError": self.last_engine_monitor_error,
+            "runtimeHardeningVersion": RUNTIME_HARDENING_VERSION,
+            "latencyProfile": copy.deepcopy(self.latency_profile),
+            "lastSlowStage": copy.deepcopy(self.last_slow_stage),
+            "lastEventSeq": self.last_event_seq,
+            "pendingCancels": sorted(self.pending_cancels),
+            "orphanOrders": [o.__dict__ for o in self.orphan_orders.values()],
+            "takerPending": dict(self.taker_pending),
+            "engineState": self.engine_state,
+            "metrics": dict(self.live_metrics),
+            "safety": {
+                "paperQueueClearFillDisabled": True,
+                "inventoryFromVenueFillOnly": True,
+                "makerCancelWaitsForTerminalConfirmation": True,
+                "marketRolloverPreservesUnconfirmedOldOrders": True,
+                "newMarketBlockedByOrphanRisk": True,
+                "takerPlacementAckNeverEqualsFill": True,
+                "takerConfirmTimeoutCancelOwnedBy8781": True,
+                "takerTimeoutCancelWaitsForTerminalAck": True,
+                "lifecyclePollingIndependentOfMarketSnapshots": True,
+                "heartbeatIndependentOfControllerLock": True,
+                "preVenuePlannedGhostRetirement": True,
+                "slowPathLatencyProfiling": True,
+                "httpWriteUncertaintyFreezesEntries": True,
+                "midMarketArmWaitsNextMarket": True,
+                "8781IsOnlyCredentialOwner": True,
+            },
+        }
+        result["r3sR31Bundle"] = {
+            "enabled": True,
+            "entrySource": ENTRY_SOURCE,
+            "displayVersion": DISPLAY_VERSION,
+            "r3sController": "R3S_FULL_ACTIVE_INTERVENTION_STACK_PLUS_R31",
+            "activeStackVersion": R3S_ACTIVE_STACK_VERSION,
+            "components": {**copy.deepcopy(R3S_COMPONENTS), "willingnessToPay": R3S_WTP_VERSION},
+            "wtpVersion": R3S_WTP_VERSION,
+            "lastWtp": copy.deepcopy(self.r3s_last_wtp),
+            "postAddEpisode": copy.deepcopy(self.r3s_post_add_episode),
+            "configuredShares": R2_R21_LIVE_SHARES,
+            "semanticAcceptance": "PASS_R31_LEGACY_R21_PLUS_REAL_ECHTGELD_INCIDENTS_15_OF_15",
+            "learnedActiveResponseHead": "NOT_PROMOTED",
+            "multiChildRanker": R2_MULTICHILD_RANKER_VERSION,
+            "multiChildRankerMode": "READ_ONLY_RELATIVE_RANKING",
+            "multiChildRankerCancelAuthority": True,
+            "v33ContextSequence": True,
+            "notionalCapEnabled": False,
+            "takerArtificialShareCap": None,
+            "takerArtificialMinShareClamp": False,
+            "venueMinNotionalUsdt": R3S_R31_MIN_NOTIONAL_USDT,
+            "r31": copy.deepcopy(self.r21_state),
+            "r3sLastResponse": self.r3s_last_response,
+            "r3sResponseHistoryTail": copy.deepcopy(self.r3s_response_history[-20:]),
+            "r31ActionAuthority": False,
+            "r31ExecutorCallbackAllowed": False,
+            "executionOwner": "8781_ONLY",
+            "postActiveFaultWait": bool(self.r21_active_fault_wait),
+            "postActiveFaultReason": self.r21_active_fault_reason,
+        }
+        result["capital"] = self._capital_state()
+        result["policy"] = dict(result.get("policy") or {})
+        result["policy"]["makerFill"] = "8781 venue-confirmed cumulative FILL_DELTA only; paper QUEUECLEAR_PASS forbidden"
+        result["policy"]["maker"] = "Frozen R2 Maker/passive-repair logic; runtime quantity exactly 10 shares; no strategy notional cap"
+        result["policy"]["taker"] = "R3-S V1.1.1 WTP1 full active stack: AQ2 dynamic sizing + SA2/SE1 strict-past ADD evidence + PA2 re-ADD lifecycle gate + ER2 early-recovery + TC1 containment + WT1 R3-owned willingness-to-pay; ADD retry ceiling never ratchets upward within 15s, repair/containment use audited risk budgets; no fixed share cap/no 0.01 clamp"
+        result["policy"]["execution"] = "8790 R3-S decides with information-only R3.1 lifecycle inbox; 8781 quotes/places/cancels/reconciles and terminal ACK is required before ownership release"
+        result["researchStatus"] = dict(result.get("researchStatus") or {})
+        result["researchStatus"]["capitalShadow"] = "R2_R21_10SHARE_NO_NOTIONAL_CAP"
+        return result
+
+
+class Handler(BaseHTTPRequestHandler):
+    runtime: UnifiedControllerR3SR31EchtgeldV1
+
+    def log_message(self, *_args: Any) -> None:
+        return
+
+    def _write(self, payload: Any, code: int = 200) -> None:
+        import json
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def do_GET(self) -> None:
+        path = self.path.split("?", 1)[0]
+        if path in {"/", "/state", "/health"}:
+            payload = self.runtime.snapshot()
+            if path == "/health":
+                live = payload.get("liveExecution") or {}
+                payload = {
+                    "ok": bool(payload.get("sourceReady")) and self.runtime.last_error is None,
+                    "version": VERSION,
+                    "paperOnly": False,
+                    "liveOrdersAffected": True,
+                    "executionReady": bool(live.get("executionReady")),
+                    "deploymentLiveReady": bool(live.get("deploymentLiveReady")),
+                    "blockReason": live.get("blockReason"),
+                    "entryFreeze": bool(live.get("entryFreeze")),
+                    "orphanOrders": len(live.get("orphanOrders") or []),
+                    "lastError": self.runtime.last_error,
+                }
+            self._write(payload)
+        else:
+            self._write({"ok": False, "error": "not found"}, 404)
+
+
+def main() -> int:
+    runtime = UnifiedControllerR3SR31EchtgeldV1()
+    runtime.start()
+    handler = type("UnifiedControllerR3SR31EchtgeldV1Handler", (Handler,), {"runtime": runtime})
+    server = ThreadingHTTPServer((HOST, PORT), handler)
+    print(
+        f"{VERSION} listening on http://{HOST}:{PORT}/state; engine={ENGINE_URL}; source={ENTRY_SOURCE}; "
+        "paperFillProxy=false; venueConfirmedFillOnly=true; live activation requires 8781 arm + next market boundary",
+        flush=True,
+    )
+    try:
+        server.serve_forever(poll_interval=0.25)
+    except KeyboardInterrupt:
+        return 130
+    finally:
+        server.shutdown(); server.server_close(); runtime.stop()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

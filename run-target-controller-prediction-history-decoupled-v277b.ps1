@@ -1,0 +1,5 @@
+$ErrorActionPreference = 'Stop'
+
+python -m py_compile tools/audit_target_controller_prediction_history_decoupled_v277b.py
+python -m pytest tests/test_target_controller_prediction_history_decoupled_v277b.py -q
+python tools/audit_target_controller_prediction_history_decoupled_v277b.py

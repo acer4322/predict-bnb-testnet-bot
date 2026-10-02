@@ -1,0 +1,75 @@
+{
+  "status": "PASS_WITH_EVIDENCE_LIMITS",
+  "reviewer": "/root/deep_overlap_audit",
+  "model": "gpt-6-luna",
+  "reasoning_effort": "xhigh",
+  "scope": "Read-only REST9 source, frozen input hashes, plans, keyed receipts, risk traces and audits; previously checked first path reused. No worker, labels, settlement or PnL read; no file edits by reviewer.",
+  "source_review": {
+    "rest9_matches_original_not_started": true,
+    "env_identical_original_DEEP": true,
+    "CG1AT_only_DEEP_ON_difference": true,
+    "baseline_hashes_matched": 45,
+    "runtime_policy_and_overlay_byte_identical": true,
+    "original_result_and_manifest_pinned": true,
+    "audit_fix_and_rest9_namespace_only": true,
+    "max_threads": 4,
+    "native_threads_per_path": 1,
+    "BASE_not_rerun": true,
+    "first_path_not_rerun": true,
+    "model_fits": 0
+  },
+  "artifact_review": {
+    "paths": 9,
+    "mandatory_checks_per_path": 11,
+    "all_mandatory_match": true,
+    "orders_keyed_to_NEW": 423,
+    "canonical_fill_events_matched": 159,
+    "receipt_mismatches": 0,
+    "receipt_binding": "Ordered NEW to anonymous order_seq, keyed full_raw_receipts, execution_clock receipt sequence/order_id; exact event count and exchange/receive time, contract price, qty and maker fields.",
+    "duplicate_event_tuples_preserved": true,
+    "all_pre_NEW_prefixes_empty": true,
+    "pre_NEW_plan_action_state_observation_direction_receipt_clock_counts": 0,
+    "owner_and_final_pending_closed": true,
+    "risk_floor_violations": 0,
+    "V8_cancels_of_DEEP": 0,
+    "STOP290_DEEP_NEW": 0,
+    "frozen_DEEP_NEW": 0,
+    "DEEP_side_nonterminal_overlaps": 0,
+    "TTL_received_asof_semantics_pass": true,
+    "late_fill_receipt_after_TTL_CANCEL_orders": 19,
+    "late_receipt_final_full_orders": 18,
+    "late_receipt_final_partial_orders": 1,
+    "late_receipt_known_at_cancel": 0
+  },
+  "rows": [
+    {"market_id":2671719,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":29,"filled_orders":7,"filled_qty":105,"ttl_cancels":22},
+    {"market_id":2671768,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":10,"filled_orders":1,"filled_qty":15,"ttl_cancels":10},
+    {"market_id":2671808,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":159,"filled_orders":34,"filled_qty":509.7367924528302,"ttl_cancels":129},
+    {"market_id":2671979,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":10,"filled_orders":4,"filled_qty":60,"ttl_cancels":6},
+    {"market_id":2672208,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":29,"filled_orders":4,"filled_qty":60,"ttl_cancels":23},
+    {"market_id":2672226,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":23,"filled_orders":8,"filled_qty":120,"ttl_cancels":16},
+    {"market_id":2672244,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":5,"filled_orders":0,"filled_qty":0,"ttl_cancels":5},
+    {"market_id":2672250,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":49,"filled_orders":15,"filled_qty":225,"ttl_cancels":39},
+    {"market_id":2672431,"audit":"PASS","parity":"PASS_EMPTY_PREFIX","orders":109,"filled_orders":22,"filled_qty":330,"ttl_cancels":89}
+  ],
+  "rest9_stats": {
+    "attempts":25532,"orders":423,"filled_orders":95,"filled_qty":1424.7367924528302,"ttl_cancels":339,
+    "blocks":{"freeze":6784,"STOP290":638,"risk_floor":9881,"self_cross":20,"maintenance_conflict":55,"governor":0,"occupied":4763,"below_price":1152,"venue_validation":394,"missing_book":1422}
+  },
+  "combined10_stats": {
+    "attempts":28506,"orders":474,"filled_orders":107,"filled_qty":1590.8467924528302,"ttl_cancels":380,"late_fill_receipt_after_TTL_CANCEL_orders":23
+  },
+  "legacy_raw_failures_preserved": {
+    "DEEP_active_matches_opportunity":[2671719,2671808,2672250],
+    "BASE_active_matches_opportunity":[2671719,2672208,2672250]
+  },
+  "evidence_limits": [
+    "All first DEEP NEWs occur at the first plan; pre-NEW equality has an empty prefix, not nonempty trajectory evidence.",
+    "Disabled inert check is local source identity plus existing BASE-plan replay, not a new native OFF run.",
+    "Empty enabled risk-floor-check sets on applicable non-flip paths are vacuous.",
+    "Final fill size cannot be used as knowledge at TTL cancel time; canonical receive-as-of is used.",
+    "Max-one applies to DEEP owners, not every same-side BASE order. Same-plan CANCEL does not release reservations.",
+    "No new economic criteria, verdict or next-stage dispatch."
+  ],
+  "root_receipt_readback": "RECEIPT_READBACK.json: all 10 paths, 474 orders and 179 canonical fills independently matched."
+}

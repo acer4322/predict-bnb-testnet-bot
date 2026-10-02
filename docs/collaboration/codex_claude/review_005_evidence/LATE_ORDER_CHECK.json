@@ -1,0 +1,87 @@
+{
+  "scope": "frozen 2629019, offline arithmetic; no replay or canonical receipt acceptance",
+  "failure_trace_byte_identical": true,
+  "window": {
+    "market_id": 2629019,
+    "window_start_ms": 1790440500000,
+    "window_end_ms": 1790440800000,
+    "quality_status": "COMPLETE_FORWARD_V1"
+  },
+  "order": {
+    "available_cash": null,
+    "key": "UP_153",
+    "kind": "NEW",
+    "parent_id": 1,
+    "payoff_cap": 16.698534469251715,
+    "price": 0.31,
+    "qty": 10.0,
+    "quantity_cap": 13.12671651651658,
+    "role": "ACTIVE_OPPORTUNITY_REPAIR",
+    "route": "ACTIVE",
+    "side": "UP",
+    "t": 1790440799850
+  },
+  "decision_reason": "FIRST_LEGAL_ACTIVE_OPPORTUNITY_NO_CASH_GATE",
+  "passive_candidate_price": 0.05,
+  "fixed_passive_15_notional": 0.75,
+  "remaining_ms_at_submit": 150,
+  "before_payoff": {
+    "DOWN": 1.604727732732897,
+    "UP": -11.521988783783684
+  },
+  "candidate_limit_cost": 3.1,
+  "candidate_full_fill_at_limit_payoff": {
+    "UP": -4.621988783783683,
+    "DOWN": -1.495272267267103
+  },
+  "observed_exchange_ms": [
+    1790440800100,
+    1790440800100
+  ],
+  "observed_receive_ms": [
+    1790440800350,
+    1790440800350
+  ],
+  "exchange_after_window_ms": [
+    100,
+    100
+  ],
+  "native_clock_ns": 1790440800255000000,
+  "receipt_clock_lead_ns": [
+    95000000,
+    95000000
+  ],
+  "raw_receipt_total_qty": 10.0,
+  "raw_receipt_cost": 1.781322,
+  "arithmetic_only_receipt_delta_payoff": {
+    "UP": -3.303310783783683,
+    "DOWN": -0.17659426726710303
+  },
+  "not_confirmed_terminal_payoff": true,
+  "advance_calls_captured": 0,
+  "carrier": {
+    "__type__": "Carrier",
+    "key": "UP_153",
+    "parent_id": 1,
+    "route": "ACTIVE",
+    "qty": 10.0,
+    "limit": 0.31,
+    "fee_cap": 0.0,
+    "filled": 0.0,
+    "payment": 0.0,
+    "fees": 0.0,
+    "state": "SUBMITTED"
+  },
+  "limits": [
+    "Exchange timestamps describe this simulator, not verified real-venue expiry rules.",
+    "At-limit values are decision-time candidate arithmetic, not guaranteed fills.",
+    "Raw receipt arithmetic is not accepted OUR accounting or a terminal result.",
+    "MARGIN_ONLY intentionally disabled reserve; this is not proof FULL took the same path."
+  ],
+  "source_hashes": {
+    "data/research/lan_worker_returns/btc5m-v12g-admission-components-20260927-v30/arms/v12g30_MARGIN_ONLY_2629019/failure_trace.json.gz": "ab0c321220858f278bfed0eb58e8daf1ff3533550948a5b32d57894d8994527d",
+    "data/research/lan_worker_returns/btc5m-v12g-receipt-clock-diagnostic-20260927-v31/arms/v12g31_MARGIN_ONLY_DIAG_2629019/failure_trace.json.gz": "ab0c321220858f278bfed0eb58e8daf1ff3533550948a5b32d57894d8994527d",
+    "data/research/lan_worker_returns/btc5m-v12g-receipt-clock-diagnostic-20260927-v31/arms/v12g31_MARGIN_ONLY_DIAG_2629019/receipt_clock_capture.json": "cd2383e01d81c74b45539b6a5e2bea8ebae4491cdd6c529199fc7b9a538b314b",
+    "data/research/v12g_fresh30_20260927_v24/base/inputs/public_2629019.json.gz": "50060b30b62793e4001349c99a89f153b54cf992f87dd1133f7d5dc51b350071"
+  }
+}

@@ -1,0 +1,96 @@
+.echtgeld-alert { margin-bottom: 12px; }
+
+.echtgeld-status-hero {
+  border: 1px solid #d9e7f7;
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbff 58%, #f3f8ff 100%);
+}
+.echtgeld-status-hero .ant-card-body { padding: 20px; }
+.echtgeld-status-hero h2,
+.echtgeld-position-card h3,
+.echtgeld-position-card h4 { margin: 0 !important; }
+.echtgeld-status-reason { font-size: 16px; }
+.echtgeld-confidence {
+  padding: 14px;
+  border: 1px solid #e7edf4;
+  border-radius: 10px;
+  background: rgba(255,255,255,.78);
+}
+.echtgeld-confidence h2 { margin: 2px 0 4px !important; }
+
+.echtgeld-trajectory-wrap { height: 220px; }
+.echtgeld-trajectory-wrap .trajectory-chart { height: 205px; }
+.echtgeld-down-line {
+  stroke: #722ed1;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.legend-line.echtgeld-down-legend { background: #722ed1; }
+.echtgeld-entry-line {
+  stroke: #cf1322;
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+}
+.legend-line.echtgeld-entry-legend { background: #cf1322; }
+
+.echtgeld-position-card { height: 100%; }
+.echtgeld-position-card .ant-card-body { min-height: 300px; }
+.echtgeld-flat-state {
+  min-height: 235px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 10px;
+  background: #fafbfc;
+  color: #8c8c8c;
+}
+.echtgeld-flat-state > .anticon { font-size: 34px; }
+.echtgeld-position-hero {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.echtgeld-position-hero > div {
+  padding: 12px;
+  border: 1px solid #edf0f3;
+  border-radius: 9px;
+  background: #fafbfc;
+}
+.echtgeld-positive { color: #389e0d !important; }
+.echtgeld-negative { color: #cf1322 !important; }
+
+.echtgeld-condition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.echtgeld-condition {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 58px;
+  padding: 9px;
+  border: 1px solid #edf0f3;
+  border-radius: 9px;
+  background: #fafbfc;
+}
+.echtgeld-condition .ant-tag { margin-top: 1px; }
+.echtgeld-intent-summary,
+.echtgeld-accounting-details { margin-top: 14px; }
+.echtgeld-control-form { margin-top: 14px; }
+
+@media (max-width: 900px) {
+  .echtgeld-position-hero { grid-template-columns: 1fr; }
+  .echtgeld-condition-grid { grid-template-columns: 1fr; }
+  .echtgeld-trajectory-wrap { height: 190px; }
+  .echtgeld-trajectory-wrap .trajectory-chart { height: 175px; }
+}
+
+@media (max-width: 640px) {
+  .echtgeld-status-hero .ant-card-body { padding: 14px; }
+  .echtgeld-flat-state { align-items: flex-start; min-height: 0; }
+}
