@@ -1,4 +1,4 @@
-"""Fetch BTCUSDT 1-second klines from data-api.binance.vision for the windows of our markets (window start - LOOKBACK .. window end), merged into intervals, written as gz json {sec: [close, quote_volume, trades]}.
+"""Fetch BTCUSDT 1-second klines from data-api.binance.vision for the windows of our markets (window start - LOOKBACK .. window end), merged into intervals, written as gz json {sec: [close, quote_volume, trades, taker_buy_quote_volume]}.
 usage: python tools/fetch_spot_1s.py window_starts.json out.json.gz [--lookback 1800]   (public data, no credentials)"""
 import sys, json, gzip, time, urllib.request, concurrent.futures as cf
 ws = json.load(open(sys.argv[1])); out = sys.argv[2]; LB = int(sys.argv[sys.argv.index('--lookback') + 1]) * 1000 if '--lookback' in sys.argv else 1_800_000
@@ -18,6 +18,6 @@ data = {}; bad = 0
 with cf.ThreadPoolExecutor(8) as ex:
     for res in ex.map(get, jobs):
         if res is None: bad += 1; continue
-        for r in res: data[int(r[0]) // 1000] = [float(r[4]), float(r[7]), int(r[8])]
+        for r in res: data[int(r[0]) // 1000] = [float(r[4]), float(r[7]), int(r[8]), float(r[10])]
 print('seconds', len(data), 'failed calls', bad)
 json.dump(data, gzip.open(out, 'wt'))
