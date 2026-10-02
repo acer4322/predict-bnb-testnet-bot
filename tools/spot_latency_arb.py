@@ -67,7 +67,7 @@ def run(m, D, X, L):
         px = ba if side == 'UP' else round(1 - bb, 2)
         def smid(tt):
             x, y = at(T, BB, tt), at(T, BA, tt); mm = (x + y) / 2; return mm if side == 'UP' else 1 - mm
-        out.append((smid(te + 5000) - px, smid(te + 30000) - px, (1. if w == side else 0.) - px)); last = t
+        out.append((smid(te + 5000) - px, smid(te + 30000) - px, (1. if w == side else 0.) - px, px)); last = t
     return out
 def ci(v): b = sorted(S.fmean(rng.choice(v) for _ in v) for _ in range(800)); return b[20], b[779]
 print('\nrule: per-market mean edge per share [market bootstrap 95% CI]  (+5 s markout | to resolution)')
@@ -80,5 +80,5 @@ for D in GD:
                 pm = [r for r in (run(m, D, X, L) for m in sub) if r]
                 if len(pm) < 10: row.append('%s n=%d' % (nm, len(pm))); continue
                 e5 = [S.fmean(x[0] for x in r if x[0] == x[0]) for r in pm if any(x[0] == x[0] for x in r)]; er = [S.fmean(x[2] for x in r) for r in pm]; a5, b5 = ci(e5); ar, br = ci(er)
-                row.append('%s mk=%d tr/mk %.1f +5s %+.4f[%+.4f,%+.4f] res %+.4f[%+.4f,%+.4f]' % (nm, len(pm), S.fmean(len(r) for r in pm), S.fmean(e5), a5, b5, S.fmean(er), ar, br) + (' | +5s-1c %+.4f CIlo %+.4f' % (S.fmean(e5) - .01, a5 - .01) if JUDGE else ''))
+                row.append('%s mk=%d tr/mk %.1f +5s %+.4f[%+.4f,%+.4f] res %+.4f[%+.4f,%+.4f]' % (nm, len(pm), S.fmean(len(r) for r in pm), S.fmean(e5), a5, b5, S.fmean(er), ar, br) + (' | +5s-1c %+.4f CIlo %+.4f' % (S.fmean(e5) - .01, a5 - .01) if JUDGE else '') + ((' | FEE(2%%*p) +5s %+.4f CI[%+.4f,%+.4f] res %+.4f | FEE(2%%*min(p,1-p)) +5s %+.4f CIlo %+.4f | avg px %.3f' % (*(lambda v: (S.fmean(v), *ci(v)))([S.fmean(x[0] - .02 * x[3] for x in r if x[0] == x[0]) for r in pm if any(x[0] == x[0] for x in r)]), S.fmean(S.fmean(x[2] - .02 * x[3] for x in r) for r in pm), *(lambda v: (S.fmean(v), ci(v)[0]))([S.fmean(x[0] - .02 * min(x[3], 1 - x[3]) for x in r if x[0] == x[0]) for r in pm if any(x[0] == x[0] for x in r)]), S.fmean(x[3] for r in pm for x in r))) if JUDGE else ''))
             print('  D=%4d X=%.0f L=%4d | %s' % (D, X, L, ' || '.join(row)))
