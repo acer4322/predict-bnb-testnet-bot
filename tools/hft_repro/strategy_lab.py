@@ -4,7 +4,7 @@ FIXTURES_DIR contains <market_id>/events.npz + FIXTURE.json (as in the repro pac
 Strategies (pre-declared; every parameter fixed here): FAV_TAKER / FAV_PASSIVE (buy the decided favourite F every 2 s from 12 s while F mid in [.55,.70], 15-share clips, cap 300, FREEZE at flip F mid<=.4,
 cancel live orders at flip; passive = GTX at F best bid, TTL 10 s; taker = marketable GTC at F ask), MAKER_PAIR_K1D45 / MAKER_PAIR_K2INF (two-sided passive best-bid pair maker, see maker_pair.py).
 Graduation criteria (same as the cloud study): G1 overall CI lower>0, G2 no-flip CI lower>0, D1 rev-mean >= -.5*noflip, worst loss < 3x avg win, 4/3/3 book > 0; plus true-flip mean and worst-5%."""
-import sys, json, random, statistics as S, argparse
+import sys, os, math, json, random, statistics as S, argparse
 from pathlib import Path
 import numpy as np
 ap = argparse.ArgumentParser(); ap.add_argument('repro'); ap.add_argument('fixtures'); ap.add_argument('labels'); ap.add_argument('--only', default=''); ap.add_argument('--out', default=''); ap.add_argument('--infer', action='store_true', help='markets without a true label use the final mid as winner (flagged inferred)')
@@ -18,7 +18,10 @@ def submit(bt, n, side, price, qty, gtx):
     ns, npx = ex.native_order(side, price); f = bt.submit_buy_order if ns == 'BUY' else bt.submit_sell_order
     return f(0, int(n), npx, float(qty), GTX if gtx else GTC, LIMIT, False)
 
+SCALE = float(os.environ.get('SCALE', '1'))  # small-amount mode: clip = max(SCALE*15, 1 USDT / price) shares, cap = SCALE*300 shares (FAV_TAKER / UNDER_TAKER only)
+def clip_for(px, tick=15.): return tick if SCALE == 1. else max(tick * SCALE, math.ceil(100. / max(px, .01)) / 100.)
 def run(fx, mid, strat, dec_ms=1000, tick=15., cap=300., stop=270.):
+    cap = cap * SCALE
     ev = np.load(f'{fx}/{mid}/events.npz')['data']; bt = ex.new_bt(ev, entry_latency_ms=250, response_latency_ms=250, queue_model='risk'); ex.initialize_bt(bt)
     first = int(json.load(open(f'{fx}/{mid}/FIXTURE.json'))['conversion_info']['firstReceivedMs']); start = first - first % 300_000; t_end = int(ev['exch_ts'].max()) // 1_000_000
     orders = {}; n = 0; sh = {'UP': 0., 'DOWN': 0.}; mids = {}; frozen = False; fav = None; t = first + 2000
@@ -46,14 +49,14 @@ def run(fx, mid, strat, dec_ms=1000, tick=15., cap=300., stop=270.):
                     cur = 'UP' if m >= .5 else 'DOWN'; cm = m if cur == 'UP' else 1 - m
                     if .55 <= cm <= .70:
                         px = (bb if cur == 'UP' else round(1 - ba, 2)) if strat == 'FAV_PASSIVE' else (ba if cur == 'UP' else round(1 - bb, 2))
-                        n += 1; submit(bt, n, cur, px, tick, strat == 'FAV_PASSIVE'); orders[n] = dict(n=n, side=cur, qty=tick, cum=0., live=True, t=t)
+                        qq = clip_for(px); n += 1; submit(bt, n, cur, px, qq, strat == 'FAV_PASSIVE'); orders[n] = dict(n=n, side=cur, qty=qq, cum=0., live=True, t=t)
                 if strat == 'FAV_PASSIVE': cancel_all(lambda o: t - o['t'] >= 10_000)
         elif strat == 'UNDER_TAKER':
             if int(sec) % 2 == 0 and sec < 290 and sh['UP'] + sh['DOWN'] + sum(o['qty'] - o['cum'] for o in orders.values() if o['live']) < cap:
                 cur = 'UP' if m >= .5 else 'DOWN'; cm = m if cur == 'UP' else 1 - m
                 if cm >= .75:
                     ud = 'DOWN' if cur == 'UP' else 'UP'; px = (ba if ud == 'UP' else round(1 - bb, 2))
-                    n += 1; submit(bt, n, ud, px, tick, False); orders[n] = dict(n=n, side=ud, qty=tick, cum=0., live=True, t=t)
+                    qq = clip_for(px); n += 1; submit(bt, n, ud, px, qq, False); orders[n] = dict(n=n, side=ud, qty=qq, cum=0., live=True, t=t)
         else:
             K, D = (1, 45.) if strat == 'MAKER_PAIR_K1D45' else (2, 1e9)
             want = {'UP': bb, 'DOWN': round(1. - ba, 2)}
