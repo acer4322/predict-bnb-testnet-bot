@@ -1,0 +1,346 @@
+{
+  "contract": "ETH5M_BINANCE_BUY_UP_1USDT_ONCE_20261003_V1",
+  "mode": "submit",
+  "outcome": "BINANCE_ACK_OBSERVED_CHECK_ORDER_OBSERVATIONS",
+  "fixed_order": {
+    "symbol": "ETHUSDT",
+    "window_ms": 300000,
+    "side": "BUY",
+    "outcome": "UP",
+    "amount_in_usdt": 1,
+    "order_type": "MARKET",
+    "time_in_force": "FOK",
+    "slippage_bps": 1,
+    "funding_source": "MPC"
+  },
+  "place_call_count": 1,
+  "clock": {
+    "before": {
+      "offset_ms": -1207.924072265625,
+      "uncertainty_ms": 22.2283,
+      "rtt_ms": 42.4566
+    },
+    "after": {
+      "offset_ms": -1209.439453125,
+      "uncertainty_ms": 22.87325,
+      "rtt_ms": 43.7465
+    },
+    "offset_drift_ms": -1.515380859375,
+    "model": "Shortest-RTT midpoint estimate; +/- RTT/2 + 1ms model uncertainty, not a proven network bound.",
+    "max_wall_mono_disagreement_ms": 0.001299999999986312
+  },
+  "feed": {
+    "binance_spot_event_to_receipt_ms": {
+      "aggTrade": {
+        "n": 270,
+        "median_ms": 22.6705322265625,
+        "p95_ms": 25.60628662109375,
+        "min_ms": 20.908203125,
+        "max_ms": 49.08740234375
+      },
+      "depthUpdate": {
+        "n": 419,
+        "median_ms": 21.400390625,
+        "p95_ms": 25.71420898437499,
+        "min_ms": 20.336181640625,
+        "max_ms": 62.777587890625
+      }
+    },
+    "prediction_book_version_age_ms": {
+      "n": 198,
+      "median_ms": 105.2486572265625,
+      "p95_ms": 199.30921630859362,
+      "min_ms": 48.380859375,
+      "max_ms": 251.453369140625
+    },
+    "prediction_transport_latency_ms": null,
+    "parse_ms": {
+      "prediction": {
+        "n": 198,
+        "median_ms": 0.08735000000000001,
+        "p95_ms": 0.15672499999999992,
+        "min_ms": 0.0761,
+        "max_ms": 0.2179
+      },
+      "binance_spot": {
+        "n": 689,
+        "median_ms": 0.0312,
+        "p95_ms": 0.0593,
+        "min_ms": 0.0084,
+        "max_ms": 0.1971
+      }
+    },
+    "ws_error_count": 0
+  },
+  "wallet_notifications": {
+    "subscription_success_observed": true,
+    "canonical_terminal_notification_observed": true
+  },
+  "round_ms": {
+    "book_receipt_to_decision": 0.1652,
+    "rest_up_book_call": 68.0463,
+    "book_receipt_to_quote_start": 108.6778,
+    "quote_call": 92.1004,
+    "book_receipt_to_place_start": 226.41,
+    "place_call_to_ack": 275.8739,
+    "place_call_to_return_or_error": 275.878,
+    "book_receipt_to_binance_ack": 502.2839,
+    "body_write_complete_to_response_headers": 274.7615,
+    "body_write_complete_to_binance_ack": 275.1283,
+    "ack_to_first_vendor_reference_observation": 219.5315,
+    "ack_to_wallet_terminal_notification": 1024.5622,
+    "ack_to_first_positive_fill_observation": 1024.5622,
+    "book_receipt_to_first_positive_fill_observation": 1526.8461,
+    "book_receipt_to_rest_filled_observation": 2155.5079
+  },
+  "http_requests": [
+    {
+      "request_id": 1,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 157.2767,
+      "sign_ms": null,
+      "headers_write_ms": 0.1831,
+      "body_write_ms": 0.0424,
+      "body_complete_to_response_headers_ms": 44.105,
+      "response_headers_to_json_ms": 0.6041
+    },
+    {
+      "request_id": 2,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 48.5651,
+      "sign_ms": null,
+      "headers_write_ms": 0.1362,
+      "body_write_ms": 0.0297,
+      "body_complete_to_response_headers_ms": 47.7658,
+      "response_headers_to_json_ms": 0.365
+    },
+    {
+      "request_id": 3,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 42.4528,
+      "sign_ms": null,
+      "headers_write_ms": 0.1296,
+      "body_write_ms": 0.0278,
+      "body_complete_to_response_headers_ms": 41.5903,
+      "response_headers_to_json_ms": 0.4715
+    },
+    {
+      "request_id": 4,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 47.4276,
+      "sign_ms": null,
+      "headers_write_ms": 0.1545,
+      "body_write_ms": 0.0272,
+      "body_complete_to_response_headers_ms": 46.6566,
+      "response_headers_to_json_ms": 0.3154
+    },
+    {
+      "request_id": 5,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 43.1343,
+      "sign_ms": null,
+      "headers_write_ms": 0.1438,
+      "body_write_ms": 0.0248,
+      "body_complete_to_response_headers_ms": 42.341,
+      "response_headers_to_json_ms": 0.3675
+    },
+    {
+      "request_id": 6,
+      "route": "/sapi/v1/w3w/wallet/prediction/market/list",
+      "method": "GET",
+      "call_ms": 163.2979,
+      "sign_ms": 0.0814,
+      "headers_write_ms": 0.1511,
+      "body_write_ms": 0.0251,
+      "body_complete_to_response_headers_ms": 152.2951,
+      "response_headers_to_json_ms": 10.4652
+    },
+    {
+      "request_id": 7,
+      "route": "/sapi/v1/w3w/wallet/prediction/wallet/list",
+      "method": "GET",
+      "call_ms": 97.6526,
+      "sign_ms": 0.1035,
+      "headers_write_ms": 0.2433,
+      "body_write_ms": 0.0529,
+      "body_complete_to_response_headers_ms": 59.3609,
+      "response_headers_to_json_ms": 0.5868
+    },
+    {
+      "request_id": 8,
+      "route": "/sapi/v1/w3w/wallet/prediction/order-book",
+      "method": "GET",
+      "call_ms": 68.0278,
+      "sign_ms": 0.0966,
+      "headers_write_ms": 0.2495,
+      "body_write_ms": 0.0431,
+      "body_complete_to_response_headers_ms": 66.3536,
+      "response_headers_to_json_ms": 0.6383
+    },
+    {
+      "request_id": 9,
+      "route": "/sapi/v1/w3w/wallet/prediction/trade/get-quote",
+      "method": "POST",
+      "call_ms": 92.0725,
+      "sign_ms": 0.0975,
+      "headers_write_ms": 0.2267,
+      "body_write_ms": 0.1352,
+      "body_complete_to_response_headers_ms": 90.5976,
+      "response_headers_to_json_ms": 0.6396
+    },
+    {
+      "request_id": 10,
+      "route": "/sapi/v1/w3w/wallet/prediction/trade/place-order-bundle",
+      "method": "POST",
+      "call_ms": 275.8518,
+      "sign_ms": 0.0816,
+      "headers_write_ms": 0.2298,
+      "body_write_ms": 0.0943,
+      "body_complete_to_response_headers_ms": 274.7615,
+      "response_headers_to_json_ms": 0.3413
+    },
+    {
+      "request_id": 11,
+      "route": "/sapi/v1/w3w/wallet/prediction/order/list",
+      "method": "GET",
+      "call_ms": 74.9412,
+      "sign_ms": 0.0564,
+      "headers_write_ms": 0.1487,
+      "body_write_ms": 0.0264,
+      "body_complete_to_response_headers_ms": 74.047,
+      "response_headers_to_json_ms": 0.3322
+    },
+    {
+      "request_id": 12,
+      "route": "/sapi/v1/w3w/wallet/prediction/order/history",
+      "method": "GET",
+      "call_ms": 108.1394,
+      "sign_ms": 0.067,
+      "headers_write_ms": 0.2269,
+      "body_write_ms": 0.0315,
+      "body_complete_to_response_headers_ms": 105.1292,
+      "response_headers_to_json_ms": 2.294
+    },
+    {
+      "request_id": 13,
+      "route": "/sapi/v1/w3w/wallet/prediction/order/list",
+      "method": "GET",
+      "call_ms": 76.8949,
+      "sign_ms": 0.0647,
+      "headers_write_ms": 0.1607,
+      "body_write_ms": 0.0283,
+      "body_complete_to_response_headers_ms": 75.979,
+      "response_headers_to_json_ms": 0.3112
+    },
+    {
+      "request_id": 14,
+      "route": "/sapi/v1/w3w/wallet/prediction/order/history",
+      "method": "GET",
+      "call_ms": 117.7588,
+      "sign_ms": 0.0603,
+      "headers_write_ms": 0.1798,
+      "body_write_ms": 0.0285,
+      "body_complete_to_response_headers_ms": 115.6828,
+      "response_headers_to_json_ms": 1.4623
+    },
+    {
+      "request_id": 15,
+      "route": "/sapi/v1/w3w/wallet/prediction/order/list",
+      "method": "GET",
+      "call_ms": 72.4449,
+      "sign_ms": 0.07,
+      "headers_write_ms": 0.1639,
+      "body_write_ms": 0.0298,
+      "body_complete_to_response_headers_ms": 71.5026,
+      "response_headers_to_json_ms": 0.3273
+    },
+    {
+      "request_id": 16,
+      "route": "/sapi/v1/w3w/wallet/prediction/order/history",
+      "method": "GET",
+      "call_ms": 106.0594,
+      "sign_ms": 0.0564,
+      "headers_write_ms": 0.1604,
+      "body_write_ms": 0.0263,
+      "body_complete_to_response_headers_ms": 104.0834,
+      "response_headers_to_json_ms": 1.4012
+    },
+    {
+      "request_id": 17,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 82.4799,
+      "sign_ms": null,
+      "headers_write_ms": 0.1361,
+      "body_write_ms": 0.0306,
+      "body_complete_to_response_headers_ms": 46.1052,
+      "response_headers_to_json_ms": 0.3183
+    },
+    {
+      "request_id": 18,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 43.7424,
+      "sign_ms": null,
+      "headers_write_ms": 0.1219,
+      "body_write_ms": 0.0254,
+      "body_complete_to_response_headers_ms": 43.0448,
+      "response_headers_to_json_ms": 0.3238
+    },
+    {
+      "request_id": 19,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 44.908,
+      "sign_ms": null,
+      "headers_write_ms": 0.1288,
+      "body_write_ms": 0.0254,
+      "body_complete_to_response_headers_ms": 44.2062,
+      "response_headers_to_json_ms": 0.3213
+    },
+    {
+      "request_id": 20,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 44.8595,
+      "sign_ms": null,
+      "headers_write_ms": 0.1235,
+      "body_write_ms": 0.0244,
+      "body_complete_to_response_headers_ms": 44.1749,
+      "response_headers_to_json_ms": 0.3189
+    },
+    {
+      "request_id": 21,
+      "route": "/api/v3/time",
+      "method": "GET",
+      "call_ms": 45.3613,
+      "sign_ms": null,
+      "headers_write_ms": 0.1328,
+      "body_write_ms": 0.024,
+      "body_complete_to_response_headers_ms": 44.2927,
+      "response_headers_to_json_ms": 0.6619
+    }
+  ],
+  "predict_internal_acceptance_time_ms": null,
+  "actual_fill_time_ms": null,
+  "meaning": "Binance ack, vendor-reference observation and positive-fill observation are separate. Spot event age includes server/publication delay; Prediction book age is NOT transport delay. Socket write completion is a local library marker, not packet arrival. No actual vendor acceptance/fill clock is exposed.",
+  "api_rejections": [],
+  "case_alias": "CASE_001",
+  "order_result": {
+    "status": "FILLED",
+    "outcome": "UP",
+    "side": "BUY",
+    "vendor": "PREDICT_FUN",
+    "positive_fill_observed": true,
+    "full_fill_percentage_verified": true,
+    "input_amount_usdt": 1,
+    "one_quote_one_place": true,
+    "official_api_read_only_recheck_passed": true
+  },
+  "collector_preparation_commit": "05eb180e8002a7669080f53f005a980338b66f51"
+}

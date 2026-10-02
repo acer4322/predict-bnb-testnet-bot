@@ -1,0 +1,18 @@
+{
+  "case_alias": "CASE_001",
+  "official_history_exact_order_match": true,
+  "market_matches": true,
+  "side_buy_matches": true,
+  "order_type_market_matches": true,
+  "vendor_predict_fun_matches": true,
+  "vendor_order_reference_present": true,
+  "status": "FILLED",
+  "positive_filled_share_qty": true,
+  "positive_filled_usdt_amount": true,
+  "fill_percentage_equals_one": true,
+  "terminal_time_present": true,
+  "history_outcome_up_matches": true,
+  "read_only_verification_place_calls": 0,
+  "predict_internal_acceptance_time": "UNKNOWN",
+  "actual_fill_time": "UNKNOWN"
+}

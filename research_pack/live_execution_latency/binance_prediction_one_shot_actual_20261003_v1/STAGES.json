@@ -1,0 +1,62 @@
+{
+  "records": [
+    {
+      "event": "book_anchor",
+      "from_book_receipt_ms": 0.0
+    },
+    {
+      "event": "decision_fixed_buy_up",
+      "from_book_receipt_ms": 0.1652
+    },
+    {
+      "event": "rest_up_book_start",
+      "from_book_receipt_ms": 0.1669
+    },
+    {
+      "event": "rest_up_book_return",
+      "from_book_receipt_ms": 68.2132
+    },
+    {
+      "event": "once_guard_committed",
+      "from_book_receipt_ms": 90.0027
+    },
+    {
+      "event": "quote_start",
+      "from_book_receipt_ms": 108.6778
+    },
+    {
+      "event": "quote_return",
+      "from_book_receipt_ms": 200.7771
+    },
+    {
+      "event": "quote_end",
+      "from_book_receipt_ms": 200.7782
+    },
+    {
+      "event": "quote_validated",
+      "from_book_receipt_ms": 200.8118
+    },
+    {
+      "event": "place_start",
+      "from_book_receipt_ms": 226.41
+    },
+    {
+      "event": "binance_ack_observed",
+      "from_book_receipt_ms": 502.2839
+    },
+    {
+      "event": "place_end",
+      "from_book_receipt_ms": 502.288
+    },
+    {
+      "event": "wallet_terminal_observation",
+      "from_book_receipt_ms": 1526.8461
+    },
+    {
+      "event": "first_rest_filled_observation",
+      "from_book_receipt_ms": 2155.5079
+    }
+  ],
+  "predict_internal_acceptance_time_ms": null,
+  "actual_fill_time_ms": null
+}

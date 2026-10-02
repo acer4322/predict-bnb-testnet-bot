@@ -1,0 +1,34 @@
+{
+  "files": [
+    {
+      "path": "CANONICAL_VERIFICATION.json",
+      "bytes": 580,
+      "sha256": "589e5481292c6e8639567d5731a458ee9055cedb36f851355825a18697d4e710"
+    },
+    {
+      "path": "COLLECTION_INTEGRITY.json",
+      "bytes": 768,
+      "sha256": "ec0d8639f9ac4cfc095824076714e1da3a88d16d4a6ba427f00c62cd1b96c063"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3304,
+      "sha256": "a202991e06574cae13c9679aa22d3b5bdb84b0759ca251e4825d93df1b41aee3"
+    },
+    {
+      "path": "STAGES.json",
+      "bytes": 1314,
+      "sha256": "f0e273862943c8b7ef5ba1a29127f8df737bc4e9cb4bc06772942073945c43c8"
+    },
+    {
+      "path": "SUMMARY.json",
+      "bytes": 10429,
+      "sha256": "34c7abc84fc78eb40444a9b4a9d39b5a798347050756642d7dd21ae4886a7147"
+    },
+    {
+      "path": "TIMELINE_RELATIVE.json",
+      "bytes": 313657,
+      "sha256": "d76b462578cd70e21903db0745800f644b315afa6d6cd3c4c69147a9ae86336f"
+    }
+  ]
+}

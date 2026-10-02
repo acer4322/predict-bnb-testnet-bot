@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "timeline_rows": 1283,
+  "sequences_complete_and_unique": true,
+  "single_monotonic_clock_domain": true,
+  "duration_seconds": 43.9971912,
+  "post_fill_notification_capture_seconds": 21.0060483,
+  "prediction_frames": 198,
+  "spot_aggtrade_frames": 270,
+  "spot_depth_frames": 419,
+  "ws_error_count": 0,
+  "quote_request_count": 1,
+  "place_request_count": 1,
+  "submit_guard_consumed_by_this_run": true,
+  "original_private_evidence_sha256": {
+    "SUMMARY.json": "d2f0d51d3fd25132eb2e9492e910ae9aafdb3a8afbd2f61b9a1d1ee86f91d140",
+    "timeline.json": "900b35d2589f221ab094a6d410e8a223cdfcda2256248db4687b1b21a814f7f7"
+  },
+  "public_time_basis": "Only relative elapsed milliseconds; no absolute account chronology or raw identifiers."
+}
