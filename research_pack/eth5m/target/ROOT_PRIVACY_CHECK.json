@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "major_dataset_files": 6,
+  "records_checked": 180297,
+  "forbidden_identifier_outcome_fields_present": false,
+  "hex_addresses_present": false,
+  "raw_payloads_present": false,
+  "scope": "root independent major datasets; full per-market and depth check in INDEPENDENT_VALIDATION"
+}

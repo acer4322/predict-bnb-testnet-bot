@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "markets": 861,
+  "fills": 55900,
+  "maker_parents": 19215,
+  "selection_order_equal": true,
+  "unknowns_preserved": true,
+  "minimum_evidence_clock_checked": true,
+  "candidate_time_window_checked": true,
+  "future_parent_fill_use_marked": true
+}

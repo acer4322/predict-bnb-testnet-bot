@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "cases": [
+    "fully_removed_add_cannot_support_later_fill",
+    "two_parents_cannot_reuse_same_add_capacity",
+    "bootstrap_stock_is_not_observed_placement",
+    "late_receipt_excluded_from_first_observed_fill_support",
+    "inconsistent_level_chain_resets_to_unknown_baseline"
+  ],
+  "scope": "regression counterexamples for evidence semantics; not prediction accuracy"
+}

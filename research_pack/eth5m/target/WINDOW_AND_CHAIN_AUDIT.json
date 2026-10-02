@@ -1,0 +1,10 @@
+{
+  "target_fill_window_counts": {
+    "INSIDE_WINDOW": 55900
+  },
+  "event_ms_modulo_1000_values": [
+    0
+  ],
+  "parents_with_chain_reset": 3,
+  "parents_without_full_60s_source_prefix": 3222
+}

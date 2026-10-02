@@ -1,0 +1,27 @@
+{
+  "version": "ETH5M_TARGET_OBSERVED_FILL_CARRIER_V1",
+  "captured_at_ms": 1790953371463,
+  "completed_at_ms": 1790953395257,
+  "official_source": "Cached Predict GET /v1/orders/matches, signerAddress=Target, isSignerMaker=true/false",
+  "snapshot_method": "Separate read-only SQLite BEGIN transactions; rows checked against cached API raw match before removing raw/wallet fields.",
+  "target_identity_count": 1,
+  "target_identity_matches_eth_collector_meta": true,
+  "official_raw_match_normalization_verified": true,
+  "context_receipt_clock_verified": true,
+  "role_quote_counts": {
+    "TAKER_BID": 32936,
+    "MAKER_BID": 22964
+  },
+  "source_code_sha256": {
+    "target_wallet_official_v1.py": "9149c61ee40d6fa5edbee2040d4d3c0ad97e514cca38a85d9f67d811d26077e1",
+    "predict_wallet_maker_book_inference_collector_eth5m.py": "4778660f5bd2a2a2de27dc278115ffca054b8b7f34390c869d8d16d8a204c994",
+    "predict_wallet_maker_book_inference_collector_v2_1_impl.py": "cc9f400ac82a2d90febf87ea43987b1a62c641797af2281551c3d7b8510ad2e2"
+  },
+  "private_snapshot_manifest_sha256": "f6c7383ef5240106310909606202e7770f0a0471d3539d08b6114936d1687469",
+  "source_raw_payloads_published": false,
+  "identifiers_published": false,
+  "event_clock": "Official executedAt with 1000ms precision in this cohort; event_ms is the start of the reported second.",
+  "observed_clock": "Official collector per-page receipt, verified equal to ledger context.",
+  "depth_survival_cutoff": "source_ms < first_fill_ms; actual within-second fill/quote ordering is UNKNOWN.",
+  "inference_scope": "Retrospective observed Maker BID filled parents only; no calibrated next-order forecast."
+}

@@ -1,0 +1,83 @@
+{
+  "version": "ETH5M_INDEPENDENT_VALIDATION_V1",
+  "status": "PASS",
+  "scope": {
+    "cohort_markets": 861,
+    "cohort_source": ".tmp/eth5m_research_data_20261002/research_pack/eth5m/SELECTION.json",
+    "frozen_private_comparison_source": ".tmp/eth5m_target_frozen_20261002_v1",
+    "target_export_source": ".tmp/eth5m_research_data_20261002/research_pack/eth5m/target"
+  },
+  "terminal_signed_depth_replay": {
+    "monitored_session_id": 45865,
+    "exit_code": 0,
+    "status": "completed",
+    "markets": 861,
+    "original_archives_hash_matched_selection": 861,
+    "source_updates": 1120358,
+    "signed_changes": 8662660,
+    "positive_changes": 4407247,
+    "negative_changes": 4255413,
+    "maker_bid_parent_predictions_replayed": 19215,
+    "allocation_rows_replayed": 13186,
+    "allocation_fields_exact": 158232,
+    "shared_add_capacity_reuse_failures": 0,
+    "level_chain_reset_parents": 3,
+    "support_counts": {
+      "FULL_LOWER_BOUND_SUPPORT": 11219,
+      "PARTIAL_LOWER_BOUND_SUPPORT": 1033,
+      "UNKNOWN": 6963
+    },
+    "failures": {}
+  },
+  "independent_checks": {
+    "selection_unique_market_set_and_windows_match_frozen_cohort": true,
+    "official_fill_rows_and_role_quote_totals_match_frozen_snapshot": true,
+    "maker_bid_parent_grouping_quantities_and_level_transforms_match_fills": true,
+    "legacy_v21_parent_and_allocation_fields_match_frozen_snapshot": true,
+    "signed_depth_evidence_matches_all_original_archives": true,
+    "fifo_removal_and_shared_add_capacity_replay_passed": true,
+    "support_coverage_uses_full_observed_parent_shares": true,
+    "order_birth_size_unfilled_cancel_and_calibrated_probability_remain_unknown": true,
+    "plus5_fields_labeled_future_offline_diagnostic": true,
+    "up_down_source_and_receipt_book_features_match_spotchecks": true,
+    "all_target_json_and_gzip_privacy_scan_clean": true
+  },
+  "counts": {
+    "official_fill_rows": 55900,
+    "maker_bid_fill_rows": 22964,
+    "maker_bid_filled_shares": 139571.81758753,
+    "maker_bid_observed_parent_groups": 19215,
+    "new_allocation_rows": 13186,
+    "legacy_v21_parent_rows": 18256,
+    "legacy_v21_allocation_rows": 54525,
+    "legacy_partial_markets": 157,
+    "support_counts": {
+      "FULL_LOWER_BOUND_SUPPORT": 11219,
+      "PARTIAL_LOWER_BOUND_SUPPORT": 1033,
+      "UNKNOWN": 6963
+    },
+    "weighted_support_percent_of_full_observed_shares": 56.856051,
+    "future_offline_plus5_feature_rows": 19215,
+    "book_feature_rows_spotchecked": 6,
+    "book_source_and_receipt_clock_values_compared": 48,
+    "target_json_and_gzip_files_scanned": 3459,
+    "distinct_private_identifier_values_compared": 195377,
+    "exact_private_identifier_hits": 0,
+    "forbidden_raw_identity_payload_or_outcome_key_hits": 0,
+    "hex_value_hits": 0,
+    "malformed_json_files": 0
+  },
+  "interpretation": {
+    "support": "Anonymous lower-bound public-depth carrier evidence for already observed Maker/BID fills; it does not identify the true order or prove order birth.",
+    "fixed_18": "No fixed 18-share quantity is used as the support denominator. Coverage is allocated surviving public depth divided by each parent actual observed filled shares; order_quantity stays UNKNOWN.",
+    "offline_boundary": "The +5 second fields are diagnostic features marked FUTURE_OFFLINE_DIAGNOSTIC and are not runtime inputs.",
+    "remaining_unknowns": [
+      "true order identity and birth",
+      "total order quantity",
+      "unfilled orders or quantity",
+      "cancellation state",
+      "calibrated prediction probability",
+      "within-second fill ordering"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "public_inputs_only": true,
+  "markets": 861,
+  "maker_parents": 19215,
+  "per_market_prediction_gzip_bytes_equal": true,
+  "aggregate_gzip_bytes_equal": {
+    "target_order_predictions.json.gz": {
+      "passed": true,
+      "sha256": "6348c35eae23887d9232e3bfd88cbd4afa3737ae5eb3b2299b3b8444cd6621ba"
+    },
+    "target_lifecycle_features.json.gz": {
+      "passed": true,
+      "sha256": "0afc4f1948ed16d003db9eb96fd5b776c060e9158cf85dae053b2096c1a227cc"
+    },
+    "placement_allocations.json.gz": {
+      "passed": true,
+      "sha256": "e58c5b200123e28b106f3ce4717e0efdc10be1231228c2830aae641236a535a9"
+    }
+  },
+  "no_private_identifiers_or_db_required": true,
+  "exporter_sha256": "7fbe34f84db89abd35f29f9b3b62435710890de50a7d7c8fffd4a11f364d1328"
+}
