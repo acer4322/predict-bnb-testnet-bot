@@ -1,0 +1,100 @@
+{
+  "market_id": 2810906,
+  "title": "Bitcoin Up or Down - October 1, 8:40PM-8:45PM ET",
+  "window_start_ms": 1790901600000,
+  "window_end_ms": 1790901900000,
+  "window_start_derivation": "window_end_ms - 300000, after title BTC + five-minute interval validation",
+  "archive_status": "RECORDING",
+  "source_tape_sha256": "bcc18628757d7c49985ccb37f4127557e859c7126b357229765bbbb6bd8ee94b",
+  "source_tape_bytes": 374268,
+  "source_min_ms": 1790901600386,
+  "source_max_ms": 1790901899922,
+  "received_min_ms": 1790901601432,
+  "received_max_ms": 1790901900926,
+  "first_full_checkpoint_source_ms": 1790901600386,
+  "first_full_checkpoint_received_ms": 1790901601432,
+  "observed_source_start_missing_ms": 386,
+  "observed_source_tail_missing_ms": 78,
+  "source_max_gap_ms": 1815,
+  "source_gaps_over_5000_ms": 0,
+  "full_window_boundaries_covered_source": false,
+  "first_public_trade_ms": 1790897043000,
+  "last_public_trade_ms": 1790901885000,
+  "public_trades_before_window": 40,
+  "public_trades_within_window": 1248,
+  "public_trades_after_window": 0,
+  "raw_match_market_id_mismatch_count": 0,
+  "observed_received_start_missing_ms": 1432,
+  "observed_received_tail_missing_ms": 0,
+  "received_max_gap_ms": 2842,
+  "full_window_boundaries_covered_received": false,
+  "public_trade_collection_completeness": "UNKNOWN: archive has no complete pagination/venue-matching certificate",
+  "source_clock_unit": "Unix ms",
+  "event_clock_unit": "Unix ns",
+  "event_dtype": [
+    [
+      "ev",
+      "<u8"
+    ],
+    [
+      "exch_ts",
+      "<i8"
+    ],
+    [
+      "local_ts",
+      "<i8"
+    ],
+    [
+      "px",
+      "<f8"
+    ],
+    [
+      "qty",
+      "<f8"
+    ],
+    [
+      "order_id",
+      "<u8"
+    ],
+    [
+      "ival",
+      "<i8"
+    ],
+    [
+      "fval",
+      "<f8"
+    ]
+  ],
+  "event_itemsize": 64,
+  "event_array_sha256": "6b1f4224afb9275f4b03c116cf79c5b96e3e183814ec25fd74b2fe6fae23fe8d",
+  "local_wakeup_count": 1586,
+  "local_wakeup_array_sha256": "01260e058065a44e17fcde8e444da942e4c88da617b7968b96b72597acf18d30",
+  "anonymous_sort_parity": "PASS",
+  "native_executed": false,
+  "conversion": {
+    "version": "HFTBACKTEST_EXECUTION_TAPE_FEED_V1",
+    "marketId": 2810906,
+    "archiveVersion": "PREDICT_EXECUTION_TAPE_ARCHIVE_V1",
+    "updates": 1361,
+    "executionMetaRows": 1361,
+    "rawMatchRows": 1288,
+    "normalizedTrades": 1288,
+    "trueMatchQty": 33011.52238038423,
+    "events": 11498,
+    "firstReceivedMs": 1790901601432,
+    "lastReceivedMs": 1790901900926,
+    "negativeDepthQty": 426760.90641149605,
+    "timestampBasis": "L2 uses receivedAtMs as exchange/local replay clock; historical raw match executedAt remains second-granular",
+    "tradeOffsetPolicy": "mid",
+    "pendingMetadataUsedAsDepth": false,
+    "settlementMetadataUsedForTradeTiming": false
+  },
+  "target_exports": [],
+  "selection_group": "fresh_after2807162_batch03",
+  "npz_sha256": "62b3d57cd21eacdca8e53d3684ef2fbf49f4b4a9b4f5cf82f171031c028d564c",
+  "npz_bytes": 104890,
+  "npz_readback_parity": "PASS",
+  "source_start_tail_gap_5000ms_pass": true,
+  "received_start_tail_gap_5000ms_pass": true,
+  "official_label_available": true
+}

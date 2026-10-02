@@ -1,0 +1,99 @@
+{
+  "status": "PASS",
+  "event_markets": 85,
+  "official_label_pairs": 85,
+  "cumulative_new_markets": 115,
+  "requested_original_minimum": 100,
+  "remaining_minimum": 0,
+  "original_minimum_met_by_count": true,
+  "threshold_check": "PASS",
+  "exclusion_check": "PASS",
+  "prior_batch_overlap": 0,
+  "original_anonymous_npz_byte_parity": "85/85 PASS",
+  "reference3_byte_parity": "PASS",
+  "official_terminal_unique_WON_resolution_checks": "85/85 PASS",
+  "events": 1878252,
+  "public_trades": 169729,
+  "source_start_tail_gap_5000ms_pass": 84,
+  "source_gap_warnings": [
+    {
+      "market_id": 2813448,
+      "observed_source_start_missing_ms": 1185,
+      "observed_source_tail_missing_ms": 309,
+      "source_max_gap_ms": 5475
+    }
+  ],
+  "received_start_tail_gap_5000ms_pass": 75,
+  "received_gap_warnings": [
+    {
+      "market_id": 2811147,
+      "observed_received_start_missing_ms": 898,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 9034
+    },
+    {
+      "market_id": 2811462,
+      "observed_received_start_missing_ms": 866,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 8870
+    },
+    {
+      "market_id": 2811516,
+      "observed_received_start_missing_ms": 1338,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 18423
+    },
+    {
+      "market_id": 2812106,
+      "observed_received_start_missing_ms": 1122,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 13637
+    },
+    {
+      "market_id": 2812488,
+      "observed_received_start_missing_ms": 1104,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 21746
+    },
+    {
+      "market_id": 2813213,
+      "observed_received_start_missing_ms": 857,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 14789
+    },
+    {
+      "market_id": 2813384,
+      "observed_received_start_missing_ms": 940,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 9084
+    },
+    {
+      "market_id": 2813448,
+      "observed_received_start_missing_ms": 2242,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 7746
+    },
+    {
+      "market_id": 2814660,
+      "observed_received_start_missing_ms": 2530,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 8624
+    },
+    {
+      "market_id": 2814678,
+      "observed_received_start_missing_ms": 1732,
+      "observed_received_tail_missing_ms": 0,
+      "received_max_gap_ms": 18758
+    }
+  ],
+  "both_clocks_start_tail_gap_5000ms_pass": 75,
+  "public_trades_before_window": 4911,
+  "public_trades_after_window": 0,
+  "public_trade_collection_completeness": "UNKNOWN",
+  "native_executed": false,
+  "fit": 0,
+  "worker_submissions": 0,
+  "collector_changes": 0,
+  "live_changes": 0,
+  "api_key_or_private_identifiers_published": false
+}

@@ -1,0 +1,344 @@
+{
+  "records": [
+    {
+      "market_id": 2810903,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2810906,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810926,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2810966,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2810973,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811052,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811058,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811063,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811122,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811125,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811129,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811147,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811149,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811152,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811206,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811210,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811213,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811239,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811302,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811306,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811324,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811400,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811437,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811456,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811457,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2811462,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2811516,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812106,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2812289,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812307,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812327,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2812333,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812403,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2812404,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812407,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812425,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812427,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812431,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812474,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2812488,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812491,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812514,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812605,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2812645,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2812793,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812795,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812863,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2812881,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2813213,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2813227,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2813290,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2813384,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2813448,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2813524,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2813837,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2813844,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2813894,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2813989,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2813992,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814010,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814012,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814015,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814069,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814099,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814103,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814122,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814123,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814126,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814147,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814149,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814156,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814250,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814254,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814257,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814277,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814318,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814322,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814383,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814443,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814447,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814462,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814559,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814660,
+      "winner": "UP"
+    },
+    {
+      "market_id": 2814678,
+      "winner": "DOWN"
+    },
+    {
+      "market_id": 2814776,
+      "winner": "DOWN"
+    }
+  ]
+}

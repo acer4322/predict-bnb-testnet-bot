@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "FLAGGED_values": 0,
+  "npz_fixed_numeric_schema": true,
+  "zero_order_id_ival_fval": true,
+  "metadata_and_official_response_allowlist": true,
+  "raw_tapes_published": false,
+  "actual_source_identifier_token_lookup": true
+}

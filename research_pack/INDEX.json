@@ -15191,6 +15191,16 @@
       "name": "FRESH_AFTER2807162_BATCH02_LABEL_PROVENANCE.json",
       "bytes": 12547,
       "sha256": "323bf2999bf908f5cc49fee8bf0e70ad4aceb2f1204d356f672b8b05781918c6"
+    },
+    {
+      "name": "FRESH_AFTER2807162_BATCH03_LABELS.json",
+      "bytes": 5722,
+      "sha256": "8368bfde02ddcfd21b9c2f825ebf9daec172de3b37654ce9032a41af091939d4"
+    },
+    {
+      "name": "FRESH_AFTER2807162_BATCH03_LABEL_PROVENANCE.json",
+      "bytes": 61064,
+      "sha256": "907c85cb279559b6b8212a5834ce5ed5146f87f5adda399812f96f82f095c751"
     }
  ],
  "target": [
@@ -18230,6 +18240,22 @@
       "remaining_minimum": 70,
       "index_sha256": "171a6453b28fa5778f53c167242dcdd4cedaa1790cfe987f4ac6c6c31d16462f",
       "sha256sums_sha256": "870460c4a9e4b0ad9a66663e9c1600c5744235b942faa194e43f306634b58d58"
+    },
+    {
+      "id": "hft244_fresh_after2807162_20261002_batch03",
+      "path": "events/hft244_fresh_after2807162_20261002_batch03",
+      "markets": 85,
+      "events": 1878252,
+      "public_trades": 169729,
+      "format": "HFTBACKTEST_EXECUTION_TAPE_FEED_V1",
+      "labels": "labels/FRESH_AFTER2807162_BATCH03_LABELS.json",
+      "label_provenance": "labels/FRESH_AFTER2807162_BATCH03_LABEL_PROVENANCE.json",
+      "threshold_exclusive": 2807162,
+      "original_minimum_markets": 100,
+      "cumulative_new_markets": 115,
+      "remaining_minimum": 0,
+      "index_sha256": "b4e7543738039093d0b30c2712b20b55a341b1f2010c3dedc5625cb20cb66426",
+      "sha256sums_sha256": "dd176e2a268745c5bf42261e9766a41396ad7fb9b6a207ae102919b8ee1244ac"
     }
  ]
 }
