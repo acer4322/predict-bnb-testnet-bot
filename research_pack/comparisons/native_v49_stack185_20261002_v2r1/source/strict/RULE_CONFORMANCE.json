@@ -1,0 +1,17 @@
+{
+  "parent_package": "native_engine_stack_variants185_20261002_v1",
+  "status": "FROZEN_RULE_CONFORMANCE_CORRECTION",
+  "changes": [
+    "ACTIVE GTC to IOC; no resting/maker fills",
+    "strategy holdings predicate uses confirmed inventory only; owner reservations unchanged",
+    "FAV exact 12s initial F required; absent context invalid with no new orders"
+  ],
+  "original_runtime_files_modified_only_in_new_package": [
+    "tools/open_funding_native_active_adapter_v1.py"
+  ],
+  "source_parent_preserved": true,
+  "criteria_changed": false,
+  "RV_threshold": 3.1834e-05,
+  "fits": 0,
+  "live_changes": 0
+}

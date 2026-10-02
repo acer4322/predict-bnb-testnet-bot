@@ -1,0 +1,14 @@
+{
+  "status": "COMPLETE_STACK_SWITCH_THROTTLE185",
+  "job_id": "native-engine-stack-switch-throttle-185-20261002-v1",
+  "markets": 185,
+  "rows": 370,
+  "elapsed_seconds": 190.77202420006506,
+  "V1_SWITCH": "COMPLETE",
+  "V2_THROTTLE": "COMPLETE",
+  "rv_threshold": 3.1834e-05,
+  "fits": 0,
+  "live_changes": 0,
+  "policy_scope": "FROZEN_SPEC_PRODUCER_ON_V49_MIXED_WHOLE_PLAN_OWNER_RECEIPT_KERNEL",
+  "original_CG1AT_alpha_replayed": false
+}

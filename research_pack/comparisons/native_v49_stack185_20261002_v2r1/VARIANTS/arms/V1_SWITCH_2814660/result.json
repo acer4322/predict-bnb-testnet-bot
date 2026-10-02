@@ -1,0 +1,28 @@
+{
+  "market": 2814660,
+  "strategy": "V1_SWITCH",
+  "pnl": -60.44999999999999,
+  "cost": 60.44999999999999,
+  "up": 0.0,
+  "dn": 300.0,
+  "win": "UP",
+  "inferred": false,
+  "pnl_fee_1pct": -61.05449999999999,
+  "pnl_fee_2pct": -61.65899999999999,
+  "submits": 20,
+  "fills": 26,
+  "average_fill_price": 0.20149999999999996,
+  "average_order_seconds": 163.8,
+  "unresolved_owners_at_eof": 0,
+  "owner_status": "ALL_TERMINAL",
+  "stats": {
+    "DECISION_CLOCKS": 144,
+    "UNDER_MID_BELOW_THRESHOLD": 80,
+    "INTENTS": 20,
+    "OWNED_GE_300": 44
+  },
+  "blocked": [],
+  "native_clock_ms": 1790926201233.0,
+  "accounting_reconciled": true,
+  "fits": 0
+}

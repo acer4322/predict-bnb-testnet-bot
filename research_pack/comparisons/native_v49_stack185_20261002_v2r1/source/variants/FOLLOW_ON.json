@@ -1,0 +1,14 @@
+{
+  "parent_package": "native_engine_stack185_20261002_v1",
+  "parent_script_sha256": "53196e98bbf9dc14e7c0d6422d26ce752d127a82a4545473b044237a70136bad",
+  "child_script_sha256": "3c056905338584f2af7a5186a2089e4d21c1dacbf53e3bbae820764aa2c51c41",
+  "only_semantic_change": "predeclared per-market RV strategy selection; same replay, price, ownership and receipt semantics",
+  "RV_source_commit": "72095db1",
+  "RV_source_path": "docs/research_specs/results/SPOT_RV5_TABLE_20261002.json",
+  "RV_sha256": "3ad868f04daba7e89a441ef3d9e6f908409396e1233b946499ccd13febda46a6",
+  "RV_rows": 215,
+  "selected_markets": 185,
+  "high_RV": 114,
+  "raw_spot_bar_independent_reconstruction": "NOT_PROVIDED_BY_TABLE; supplied preregistered exogenous input",
+  "model_fits": 0
+}

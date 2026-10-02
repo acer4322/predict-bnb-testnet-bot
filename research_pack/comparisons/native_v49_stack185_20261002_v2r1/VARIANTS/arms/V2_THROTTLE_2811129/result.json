@@ -1,0 +1,28 @@
+{
+  "market": 2811129,
+  "strategy": "V2_THROTTLE",
+  "pnl": -58.65,
+  "cost": 58.65,
+  "up": 300.0,
+  "dn": 0.0,
+  "win": "DOWN",
+  "inferred": false,
+  "pnl_fee_1pct": -59.2365,
+  "pnl_fee_2pct": -59.823,
+  "submits": 20,
+  "fills": 26,
+  "average_fill_price": 0.1955,
+  "average_order_seconds": 103.0,
+  "unresolved_owners_at_eof": 0,
+  "owner_status": "ALL_TERMINAL",
+  "stats": {
+    "DECISION_CLOCKS": 143,
+    "UNDER_MID_BELOW_THRESHOLD": 51,
+    "INTENTS": 20,
+    "OWNED_GE_300": 72
+  },
+  "blocked": [],
+  "native_clock_ms": 1790904600308.0,
+  "accounting_reconciled": true,
+  "fits": 0
+}

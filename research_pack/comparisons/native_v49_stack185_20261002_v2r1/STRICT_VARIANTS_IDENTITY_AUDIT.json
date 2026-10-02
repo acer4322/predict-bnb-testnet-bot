@@ -1,0 +1,2598 @@
+{
+  "status": "PASS",
+  "rows": 370,
+  "native_replayed": 370,
+  "verified_orders_fills_or_zero": 370,
+  "rows_detail": [
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802399,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802457,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802465,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802478,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802523,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802581,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802688,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802836,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802854,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802952,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802983,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2802995,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803007,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803125,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803245,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803301,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803370,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803390,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803458,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803462,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803490,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803540,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803561,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803615,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2803675,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2804139,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2804142,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2804452,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2804574,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2805046,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2805216,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2805223,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2805228,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2805305,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2805349,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2805964,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2805967,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2806497,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2806933,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807061,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807079,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807092,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807096,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807151,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807156,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807193,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807268,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807308,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807389,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807574,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807667,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807725,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807745,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807825,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2807895,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2808604,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2808964,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2808988,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2808990,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809018,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809074,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809076,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809086,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809104,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809119,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809122,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809188,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809212,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809222,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809251,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809252,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809259,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809322,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809326,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809470,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809490,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809563,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809579,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809633,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809635,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809834,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809925,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809929,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2809966,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810203,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810219,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810255,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810273,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810275,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810278,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810332,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810339,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810422,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810476,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810509,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810520,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810761,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810879,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810883,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810901,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810903,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810906,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810926,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810966,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2810973,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811052,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811058,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811063,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811122,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811125,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811129,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811147,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811149,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811152,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811206,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811210,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811213,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811239,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811302,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811306,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811324,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811400,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811437,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811456,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811457,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811462,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2811516,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812106,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812289,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812307,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812327,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812333,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812403,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812404,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812407,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812425,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812427,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812431,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812474,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812488,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812491,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812514,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812605,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812645,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812793,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812795,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812863,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2812881,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813213,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813227,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813290,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813384,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813448,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813524,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813837,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813844,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813894,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813989,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2813992,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814010,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814012,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814015,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814069,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814099,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814103,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814122,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814123,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814126,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814147,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814149,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814156,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814250,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814254,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814257,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814277,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814318,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814322,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814383,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814443,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814447,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814462,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814559,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814660,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814678,
+      "effective_strategy": "FAV_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V1_SWITCH",
+      "market_id": 2814776,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802399,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802457,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802465,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802478,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802523,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802581,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802688,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802836,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802854,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802952,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802983,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2802995,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803007,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803125,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803245,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803301,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803370,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803390,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803458,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803462,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803490,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803540,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803561,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803615,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2803675,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2804139,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2804142,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2804452,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2804574,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2805046,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2805216,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2805223,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2805228,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2805305,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2805349,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2805964,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2805967,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2806497,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2806933,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807061,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807079,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807092,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807096,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807151,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807156,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807193,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807268,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807308,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807389,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807574,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807667,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807725,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807745,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807825,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2807895,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2808604,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2808964,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2808988,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2808990,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809018,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809074,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809076,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809086,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809104,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809119,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809122,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809188,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809212,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809222,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809251,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809252,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809259,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809322,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809326,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809470,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809490,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809563,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809579,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809633,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809635,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809834,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809925,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809929,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2809966,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810203,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810219,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810255,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810273,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810275,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810278,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810332,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810339,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810422,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810476,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810509,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810520,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810761,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810879,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810883,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810901,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810903,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810906,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810926,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810966,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2810973,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811052,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811058,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811063,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811122,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811125,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811129,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811147,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811149,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811152,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811206,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811210,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811213,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811239,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811302,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811306,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811324,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811400,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811437,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811456,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811457,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811462,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2811516,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812106,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812289,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812307,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812327,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812333,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812403,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812404,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812407,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812425,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812427,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812431,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812474,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812488,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812491,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812514,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812605,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812645,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812793,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812795,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812863,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2812881,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813213,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813227,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813290,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813384,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813448,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813524,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813837,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813844,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813894,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813989,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2813992,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814010,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814012,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814015,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814069,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814099,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814103,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814122,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814123,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814126,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814147,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814149,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814156,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814250,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814254,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814257,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814277,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814318,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814322,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814383,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814443,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814447,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814462,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814559,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814660,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814678,
+      "effective_strategy": "NO_TRADE",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    },
+    {
+      "strategy": "V2_THROTTLE",
+      "market_id": 2814776,
+      "effective_strategy": "UNDER_TAKER",
+      "native_replayed": true,
+      "exact_parent_orders_and_fills_or_zero": true
+    }
+  ]
+}

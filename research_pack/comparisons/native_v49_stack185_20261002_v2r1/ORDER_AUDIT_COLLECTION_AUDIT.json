@@ -1,0 +1,14 @@
+{
+  "status": "PASS_REMOTE_LOCAL_HASH_AND_EXACT_FIXTURE_IDENTITY",
+  "job_id": "native-engine-platform-order-audit185-20261002-v1",
+  "files": 5,
+  "sha256": {
+    "A_ORDER_SUMMARIES.json": "ff78016df913abcdb196b5b6dae55c8b9a5337356eabd5f38c10f0b6d7505df9",
+    "ENGINE_READBACK.json": "833f6442c8a5e89bf7a8fe501641a7b34a8209cea8cec5fc27ea6507ee8c3c6c",
+    "local.json": "7bf82a59df62e69f2a4a1f42083c94c9edf34ffe17867eef120573d1d69b2b4c",
+    "PARTIAL.json": "da73e3d8a72a1dd1a8a5a73e59f7c900465dfc54af32c41cb5d46934ea51bbd5",
+    "RESULT.json": "4016f2b1d511c948b87646f4d341644a895eb065b819a7f1025c342039a92abe"
+  },
+  "fixtures_verified": 185,
+  "bytes": 1612394
+}

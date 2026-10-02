@@ -1,0 +1,28 @@
+{
+  "market": 2812403,
+  "strategy": "FAV_TAKER",
+  "pnl": -177.60000000000002,
+  "cost": 177.60000000000002,
+  "up": 300.0,
+  "dn": 0.0,
+  "win": "DOWN",
+  "inferred": false,
+  "pnl_fee_1pct": -179.37600000000003,
+  "pnl_fee_2pct": -181.15200000000002,
+  "submits": 20,
+  "fills": 22,
+  "average_fill_price": 0.5920000000000001,
+  "average_order_seconds": 45.0,
+  "unresolved_owners_at_eof": 0,
+  "owner_status": "ALL_TERMINAL",
+  "stats": {
+    "DECISION_CLOCKS": 130,
+    "FAV_MID_OUTSIDE_BAND": 17,
+    "INTENTS": 20,
+    "OWNED_GE_300": 93
+  },
+  "blocked": [],
+  "native_clock_ms": 1790911200045.0,
+  "accounting_reconciled": true,
+  "fits": 0
+}

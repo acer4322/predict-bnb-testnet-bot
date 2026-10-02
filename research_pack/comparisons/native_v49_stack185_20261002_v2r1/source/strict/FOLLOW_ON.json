@@ -1,0 +1,10 @@
+{
+  "parent": "native_engine_stack_strict185_20261002_v2",
+  "correction": "Import existing IOC=3 from hftbacktest.order, not the top-level package. No wrapper/binary/Rust modifications.",
+  "prior_check": "LOAD_ONLY_FAIL_IOC_TOP_LEVEL_ATTRIBUTE_ABSENT",
+  "prior_native_executed": 0,
+  "prior_submitted": false,
+  "rules": "RULE_CONFORMANCE.json",
+  "rules_patch": "RULE_CONFORMANCE.patch",
+  "fits": 0
+}

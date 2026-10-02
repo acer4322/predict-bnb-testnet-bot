@@ -1,0 +1,55 @@
+--- FAV_UNDER_parent/stack_replay.py
++++ SWITCH_THROTTLE_child/stack_replay.py
+@@ -83,6 +83,11 @@
+     lib=ctypes.CDLL(str(binary));lib.hashmapbt_receipt_size_v1.restype=ctypes.c_size_t
+     assert lib.hashmapbt_receipt_size_v1()==104
+     assert self_test()['status']=='PASS'
++    rv=json.loads((P/'RV5.json').read_text())
++    for row in json.loads((P/'LABELS.json').read_text())['records']:
++        mid=row['market_id'];r=rv[str(mid)];meta=json.loads((P/'META'/f'{mid}.json').read_text())
++        assert r['window_start_s']*1000==meta['window_start_ms']
++        assert math.isfinite(r['rv_5m']) and r['rv_5m']>=0
+     return locals()
+ 
+ def book_at(bt):
+@@ -91,7 +96,7 @@
+     if not (math.isfinite(bb) and math.isfinite(ba) and 0<bb<ba<1):return {'bids':{},'asks':{}}
+     return {'bids':{bb:float(d.bid_qty_at_tick(round(bb/.01)))},'asks':{ba:float(d.ask_qty_at_tick(round(ba/.01)))}}
+ 
+-def run_market(k,fixtures,mid,strategy,winner,out):
++def run_market(k,fixtures,mid,strategy,winner,out,rv_5m=None):
+     import numpy as np
+     from eof_runtime import advance_to,valid_clock
+     base=k['minimal'].v2.base
+@@ -101,7 +106,7 @@
+     first=json.loads((fx/'FIXTURE.json').read_text())['conversion_info']['firstReceivedMs']
+     with np.load(fx/'events.npz') as z:events=z['data'].copy();times=z['local_times_ms'].tolist()
+     t_end=int(events['exch_ts'].max())//1000000
+-    producer=Producer(strategy);trace=Trace();sim=None
++    producer=Producer(strategy,rv_5m);trace=Trace();sim=None
+     # The constructor receives the exact NPZ array, bypassing reconversion only.
+     # Its tape stub contains no Target action, winner, settlement or future book.
+     payload={'marketId':mid,'market':{'window_start_ms':start,'window_end_ms':end},'updates':[]}
+@@ -164,17 +169,18 @@
+     labels=json.loads((P/'LABELS.json').read_text())['records']
+     assert len(labels)==185
+     fixtures=Path(manifest['fixtures_remote'])
+-    rows={s:[] for s in ('FAV_TAKER','UNDER_TAKER')};began=time.monotonic()
++    rows={s:[] for s in ('V1_SWITCH','V2_THROTTLE')};began=time.monotonic()
++    rv=json.loads((P/'RV5.json').read_text())
+     for strategy in rows:
+         for r in labels:
+             arm=out/'arms'/f"{strategy}_{r['market_id']}";arm.mkdir(parents=True,exist_ok=False)
+-            rows[strategy].append(run_market(k,fixtures,r['market_id'],strategy,r['winner'],arm))
++            rows[strategy].append(run_market(k,fixtures,r['market_id'],strategy,r['winner'],arm,rv[str(r['market_id'])]['rv_5m']))
+             if len(rows[strategy])%5==0:
+                 save(out/'PARTIAL.json',rows)
+                 print(json.dumps({'strategy':strategy,'completed':len(rows[strategy]),'expected':185}),flush=True)
+     save(out/'stack_local.json',rows)
+-    save(out/'RESULT.json',{'status':'COMPLETE_STACK_FAV_UNDER185','job_id':os.environ['BTC5M_LAN_WORKER_JOB_ID'],'markets':185,'rows':370,'elapsed_seconds':time.monotonic()-began,'V1_SWITCH':'NOT_RUN_MISSING_REQUIRED_RV5','V2_THROTTLE':'NOT_RUN_MISSING_REQUIRED_RV5','fits':0,'live_changes':0,'policy_scope':'FROZEN_SPEC_PRODUCER_ON_V49_MIXED_WHOLE_PLAN_OWNER_RECEIPT_KERNEL','original_CG1AT_alpha_replayed':False})
+-    print('COMPLETE_STACK_FAV_UNDER185',flush=True)
++    save(out/'RESULT.json',{'status':'COMPLETE_STACK_SWITCH_THROTTLE185','job_id':os.environ['BTC5M_LAN_WORKER_JOB_ID'],'markets':185,'rows':370,'elapsed_seconds':time.monotonic()-began,'V1_SWITCH':'COMPLETE','V2_THROTTLE':'COMPLETE','rv_threshold':3.1834e-05,'fits':0,'live_changes':0,'policy_scope':'FROZEN_SPEC_PRODUCER_ON_V49_MIXED_WHOLE_PLAN_OWNER_RECEIPT_KERNEL','original_CG1AT_alpha_replayed':False})
++    print('COMPLETE_STACK_SWITCH_THROTTLE185',flush=True)
+ 
+ if __name__=='__main__':
+     for key in ('OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS','NUMBA_NUM_THREADS','RAYON_NUM_THREADS'):os.environ[key]='1'

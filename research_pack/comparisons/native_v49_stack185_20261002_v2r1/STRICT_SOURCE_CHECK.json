@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "source_parent_runtime_files": 44,
+  "unchanged_runtime_files": 43,
+  "scoped_changed_file": [
+    "tools/open_funding_native_active_adapter_v1.py"
+  ],
+  "manifest_files_verified": 244,
+  "frozen_parent_packages_modified": false,
+  "native_executed_by_this_check": 0,
+  "fits": 0
+}

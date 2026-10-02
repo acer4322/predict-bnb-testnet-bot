@@ -1,0 +1,124 @@
+--- GTC_parent/comparison_policy.py
++++ STRICT_child/comparison_policy.py
+@@ -24,6 +24,7 @@
+         self.continuation_id = self.policy_id + ':FROZEN_RULES'
+         self.fav = None
+         self.frozen = False
++        self.initial_context_invalid = False
+         self.last_decision_ms = None
+         self.counts = Counter()
+         self.decisions = []
+@@ -35,8 +36,10 @@
+             return None
+         age = t-start
+         mid = (bid+ask)/2
+-        if age >= 12000 and self.fav is None:
++        if age == 12000 and self.fav is None:
+             self.fav = 'UP' if mid >= .5 else 'DOWN'
++        if self.effective == 'FAV_TAKER' and age > 12000 and self.fav is None:
++            self.initial_context_invalid = True
+         fmid = mid if self.fav == 'UP' else 1-mid
+         if self.effective == 'FAV_TAKER' and self.fav is not None and age > 12000 and fmid <= .4:
+             self.frozen = True
+@@ -45,14 +48,15 @@
+         self.last_decision_ms = t
+         self.counts['DECISION_CLOCKS'] += 1
+         reason = None
+-        owned = sum(inventory.values()) + sum(pending.values())
++        owned = sum(inventory.values())  # Frozen rule: confirmed holdings. Ledger keeps pending reservations.
+         current = 'UP' if mid >= .5 else 'DOWN'
+         current_mid = mid if current=='UP' else 1-mid
+         side = None
+         if self.effective=='NO_TRADE': reason='V2_LOW_RV_NO_TRADE'
+         elif owned >= 300: reason='OWNED_GE_300'
+         elif self.effective=='FAV_TAKER':
+-            if self.frozen: reason='FAV_PERMANENT_STOP'
++            if self.initial_context_invalid: reason='INVALID_MISSING_12S_INITIAL_F'
++            elif self.frozen: reason='FAV_PERMANENT_STOP'
+             elif age >= 270000: reason='FAV_STOP270'
+             elif not .55 <= current_mid <= .70: reason='FAV_MID_OUTSIDE_BAND'
+             else: side=current
+@@ -86,14 +90,18 @@
+     assert p.intent(**frame(14000,.19,.21))['side']=='UP'
+     assert p.intent(**frame(290000,.79,.81)) is None
+     p=ComparisonPolicy('UNDER_TAKER')
+-    assert p.intent(**frame(12000,.79,.81,inventory={'UP':290.,'DOWN':0.},pending={'UP':10.,'DOWN':0.})) is None
++    assert p.intent(**frame(12000,.79,.81,inventory={'UP':290.,'DOWN':0.},pending={'UP':10.,'DOWN':0.}))['qty']==15
++    assert p.intent(**frame(14000,.79,.81,inventory={'UP':300.,'DOWN':0.})) is None
++    p=ComparisonPolicy('FAV_TAKER')
++    assert p.intent(**frame(20000)) is None and p.initial_context_invalid and p.fav is None
++    assert p.intent(**frame(22000)) is None
+     assert ComparisonPolicy('V1_SWITCH',RV_THRESHOLD).effective=='UNDER_TAKER'
+     assert ComparisonPolicy('V1_SWITCH',0).effective=='FAV_TAKER'
+     assert ComparisonPolicy('V2_THROTTLE',0).effective=='NO_TRADE'
+     try: ComparisonPolicy('V1_SWITCH')
+     except AssertionError: pass
+     else: raise AssertionError('Missing rv must not silently select an arm')
+-    return {'status':'PASS','engine_executed':0,'fits':0,'coverage':['decision_grid','permanent_flip_stop','270/290_exclusive','side_own_price','pending_in_owned_cap','switch_boundary','missing_rv_rejected']}
++    return {'status':'PASS','engine_executed':0,'fits':0,'coverage':['decision_grid','permanent_flip_stop','270/290_exclusive','side_own_price','confirmed_holdings_cap_pending_retained_by_ledger','missing_exact_12s_F_invalid','switch_boundary','missing_rv_rejected']}
+ 
+ if __name__=='__main__':
+     import json
+
+--- GTC_parent/runtime/tools/open_funding_native_active_adapter_v1.py
++++ STRICT_child/runtime/tools/open_funding_native_active_adapter_v1.py
+@@ -1,7 +1,7 @@
+ """Research-only mixed PASSIVE/ACTIVE native adapter for the OpenFunding student.
+ 
+ This module adds actuator capability only. It does not decide side, role, price,
+-quantity, objective, timing, or risk allowance. ACTIVE is a GTC LIMIT at the
++quantity, objective, timing, or risk allowance. ACTIVE is an IOC LIMIT (comparison follow-on only) at the
+ current same-side ask supplied by the caller's complete whole-plan envelope.
+ All existing ownership, receipt, send-uncertainty, terminal and OpenFunding
+ accounting remain authoritative.
+@@ -103,8 +103,8 @@
+                 else:
+                     n=self.n;self.n+=1;native_side,native_price=base.ex.native_order(op['side'],op['price'])
+                     try:
+-                        if native_side=='BUY':rc=int(self.bt.submit_buy_order(0,int(n),native_price,float(op['qty']),base.ex.hbt.GTC,base.ex.hbt.LIMIT,False))
+-                        else:rc=int(self.bt.submit_sell_order(0,int(n),native_price,float(op['qty']),base.ex.hbt.GTC,base.ex.hbt.LIMIT,False))
++                        if native_side=='BUY':rc=int(self.bt.submit_buy_order(0,int(n),native_price,float(op['qty']),base.ex.hbt.IOC,base.ex.hbt.LIMIT,False))
++                        else:rc=int(self.bt.submit_sell_order(0,int(n),native_price,float(op['qty']),base.ex.hbt.IOC,base.ex.hbt.LIMIT,False))
+                     except Exception:
+                         self.gateway.record_send(op['key'],'UNKNOWN',evidence='ACTIVE_NATIVE_SEND_EXCEPTION_KEEP_RESERVED');raise
+                     if rc!=0:
+
+--- GTC_parent/stack_replay.py
++++ STRICT_child/stack_replay.py
+@@ -69,6 +69,7 @@
+     sys.path.insert(0,str(Path(candidate['backend'])))
+     sys.path.insert(0,str(P/'runtime'));sys.path.insert(0,str(P/'runtime/src'))
+     import hftbacktest
++    assert hasattr(hftbacktest,"IOC"), "IOC native capability required"
+     assert Path(hftbacktest.__file__).resolve()==binary.parent/'__init__.py'
+     from tools import run_eth_role_separated_minimal_pair_safety_smoke as minimal
+     from tools.minimal_student_quantity_seam_v1 import make_student_class
+@@ -141,7 +142,7 @@
+         fills=[{'order_sequence':r['order_id'],'exchange_ms':r['exchange_ts']/1000000,'received_ms':r['receive_ts']/1000000,'side':'UP' if r['side']==1 else 'DOWN','price':r['price'] if r['side']==1 else 1-r['price'],'qty':r['qty'],'maker':bool(r['maker']),'fee':r['fee']} for r in receipts]
+         orders=[{'order_sequence':o['n'],'place_ms':o['placed'],'seconds':(o['placed']-start)/1000,'side':o['side'],'price':o['price'],'qty':o['qty'],'status':o['status'],'filled_qty':o['cum']} for o in sim.orders.values()]
+         unresolved=sum(c.state!='TERMINAL' for c in sim.gateway.ledger.carriers.values())
+-        result={'market':mid,'strategy':strategy,'pnl':pnl,'cost':cost,'up':inv['UP'],'dn':inv['DOWN'],'win':winner,'inferred':False,'pnl_fee_1pct':pnl-.01*cost,'pnl_fee_2pct':pnl-.02*cost,'submits':len(orders),'fills':len(fills),'average_fill_price':cost/sum(inv.values()) if sum(inv.values()) else None,'average_order_seconds':sum(o['seconds'] for o in orders)/len(orders) if orders else None,'unresolved_owners_at_eof':unresolved,'owner_status':'RIGHT_CENSORED_EOF' if unresolved else 'ALL_TERMINAL','stats':dict(producer.counts),'blocked':producer.blocked,'native_clock_ms':now/1000000,'accounting_reconciled':True,'fits':0}
++        result={'market':mid,'strategy':strategy,'pnl':pnl,'cost':cost,'up':inv['UP'],'dn':inv['DOWN'],'win':winner,'inferred':False,'pnl_fee_1pct':pnl-.01*cost,'pnl_fee_2pct':pnl-.02*cost,'submits':len(orders),'fills':len(fills),'average_fill_price':cost/sum(inv.values()) if sum(inv.values()) else None,'average_order_seconds':sum(o['seconds'] for o in orders)/len(orders) if orders else None,'unresolved_owners_at_eof':unresolved,'owner_status':'RIGHT_CENSORED_EOF' if unresolved else 'ALL_TERMINAL','policy_validity':'INVALID_MISSING_12S_INITIAL_F' if producer.initial_context_invalid else 'VALID_OBSERVED_CONTEXT','effective_strategy':producer.effective,'time_in_force':'IOC','stats':dict(producer.counts),'blocked':producer.blocked,'native_clock_ms':now/1000000,'accounting_reconciled':True,'fits':0}
+         save(out/'result.json',result)
+         with gzip.GzipFile(filename=str(out/'orders_and_fills.json.gz'),mode='wb',mtime=0) as f:f.write(json.dumps({'market_id':mid,'strategy':strategy,'orders':orders,'fills':fills,'decisions':producer.decisions,'plans':trace.plans},separators=(',',':'),allow_nan=False).encode())
+         save(out/'AUDIT.json',{'status':'PASS_OBSERVED_ACCOUNTING','receipt_native_reconciled':True,'inventory_and_cost_reconciled':True,'unresolved_owners':unresolved,'EOF_terminal_gate':'UNKNOWN' if unresolved else 'PASS','legacy_active_matches_opportunity':'NOT_APPLICABLE_POLICY_REPLACEMENT_NOT_RETESTED','all_old_gates_passed':False})
+@@ -169,7 +170,7 @@
+     labels=json.loads((P/'LABELS.json').read_text())['records']
+     assert len(labels)==185
+     fixtures=Path(manifest['fixtures_remote'])
+-    rows={s:[] for s in ('V1_SWITCH','V2_THROTTLE')};began=time.monotonic()
++    rows={s:[] for s in ('FAV_TAKER','UNDER_TAKER','V1_SWITCH','V2_THROTTLE')};began=time.monotonic()
+     rv=json.loads((P/'RV5.json').read_text())
+     for strategy in rows:
+         for r in labels:
+@@ -179,8 +180,8 @@
+                 save(out/'PARTIAL.json',rows)
+                 print(json.dumps({'strategy':strategy,'completed':len(rows[strategy]),'expected':185}),flush=True)
+     save(out/'stack_local.json',rows)
+-    save(out/'RESULT.json',{'status':'COMPLETE_STACK_SWITCH_THROTTLE185','job_id':os.environ['BTC5M_LAN_WORKER_JOB_ID'],'markets':185,'rows':370,'elapsed_seconds':time.monotonic()-began,'V1_SWITCH':'COMPLETE','V2_THROTTLE':'COMPLETE','rv_threshold':3.1834e-05,'fits':0,'live_changes':0,'policy_scope':'FROZEN_SPEC_PRODUCER_ON_V49_MIXED_WHOLE_PLAN_OWNER_RECEIPT_KERNEL','original_CG1AT_alpha_replayed':False})
+-    print('COMPLETE_STACK_SWITCH_THROTTLE185',flush=True)
++    save(out/'RESULT.json',{'status':'COMPLETE_STACK_STRICT_FOUR_ARM185','job_id':os.environ['BTC5M_LAN_WORKER_JOB_ID'],'markets':185,'rows':740,'elapsed_seconds':time.monotonic()-began,'V1_SWITCH':'COMPLETE','V2_THROTTLE':'COMPLETE','rv_threshold':3.1834e-05,'fits':0,'live_changes':0,'policy_scope':'FROZEN_SPEC_PRODUCER_ON_V49_MIXED_WHOLE_PLAN_OWNER_RECEIPT_KERNEL','original_CG1AT_alpha_replayed':False})
++    print('COMPLETE_STACK_STRICT_FOUR_ARM185',flush=True)
+ 
+ if __name__=='__main__':
+     for key in ('OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMEXPR_NUM_THREADS','NUMBA_NUM_THREADS','RAYON_NUM_THREADS'):os.environ[key]='1'

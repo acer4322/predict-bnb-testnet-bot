@@ -1,0 +1,2628 @@
+{
+  "version": "native_engine_comparison_strict_rule_audit_v2r1",
+  "overall_status": "SOURCE_AND_META_AUDIT_WITH_LIMITED_UNKNOWNS",
+  "summary": {
+    "PASS": 7,
+    "DIFFERENCE": 2,
+    "UNKNOWN": 2
+  },
+  "scope": {
+    "strict_package": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1",
+    "gtc_parent_package": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1",
+    "comparison_spec": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+    "performed": "Bounded read-only source comparison and validation of all 185 META files plus declared package hashes.",
+    "not_performed": [
+      "No native engine, worker or replay was run.",
+      "No event NPZ, result, orders/fills, official-label content, actual maker receipt, or return hash was read.",
+      "No source or frozen file was edited.",
+      "No runtime Python source was opened except the explicitly listed strict active adapter; the other 43 runtime files were hash-compared only."
+    ]
+  },
+  "findings": [
+    {
+      "id": "FROZEN_RULE_WINDOWS_AND_THRESHOLDS",
+      "status": "PASS",
+      "finding": "The strict policy preserves the frozen Section B decisions: the 12+2k grid; FAV current-hot band [.55,.70], fixed-F permanent stop <=.40 and t<270s; UNDER current-hot >=.75, opposite side and t<290s; 15 shares at the same-side ask. V1/V2 retain the 3.1834e-05 pre-window RV threshold and declared switch/throttle mapping.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "line_start": 15,
+          "line_end": 18,
+          "supports": "Frozen FAV, UNDER, V1 and V2 rule text"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 9,
+          "line_end": 20,
+          "supports": "RV threshold and effective arm selection"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 46,
+          "line_end": 69,
+          "supports": "2-second grid, stop boundaries, current-hot bands, side and 15-share intent"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 126,
+          "line_end": 134,
+          "supports": "1 Hz observation; the policy filters it to exact 12+2k decision clocks"
+        }
+      ],
+      "limitation": "Source-level conformance only; no replay was executed."
+    },
+    {
+      "id": "FAV_EXACT_12S_CONTEXT_AND_NO_BACKFILL",
+      "status": "PASS",
+      "finding": "For FAV-effective paths (FAV_TAKER and low-RV V1), F is set only on a valid book at age exactly 12,000 ms. The first later valid call with no F marks initial_context_invalid and the FAV branch emits no intent. It never substitutes a later side for F. UNDER-effective branches do not depend on fixed F; V2 low-RV is no-trade.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 34,
+          "line_end": 45,
+          "supports": "Invalid books return; F initializes only at age==12000; later missing F is invalid"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 55,
+          "line_end": 62,
+          "supports": "FAV invalid-context branch blocks before strategy intent"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 76,
+          "line_end": 104,
+          "supports": "Self-test source covers exact-12 and later-missing-F cases; it was not run"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 146,
+          "line_end": 146,
+          "supports": "Result schema writes INVALID_MISSING_12S_INITIAL_F when the producer flag is set"
+        }
+      ],
+      "known_data_invalids": "META shows source and received data begin after 12 seconds for market IDs 2807895 and 2809188. Preserve both as INVALID_MISSING_12S_INITIAL_F; do not synthesize an F."
+    },
+    {
+      "id": "INVALID_CONTEXT_MARKER_REQUIRES_LATER_VALID_BOOK",
+      "status": "DIFFERENCE",
+      "finding": "The invalid-book guard returns before age/F validity logic, and the runner skips policy.intent when q is None. If a FAV-effective market lacks a valid 12-second book and has no later valid book before EOF, it generates no intents but initial_context_invalid may remain false; result policy_validity can then say VALID_OBSERVED_CONTEXT. The no-trade outcome holds, but invalid marker coverage is not total for this edge case.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 34,
+          "line_end": 42,
+          "supports": "Book-invalid return precedes the missing-12s invalid flag"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 48,
+          "line_end": 49,
+          "supports": "No policy call when quotes are None"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 146,
+          "line_end": 146,
+          "supports": "Result validity label depends only on initial_context_invalid"
+        }
+      ],
+      "cohort_incidence": "The main agent reports no such case in the 185 strict paths; that run-level assertion was not independently inspected in this bounded source/META audit."
+    },
+    {
+      "id": "CONFIRMED_HOLDINGS_GATE_RETAINS_PENDING_OWNERS",
+      "status": "PASS",
+      "finding": "The 300-share predicate uses confirmed inventory only. The producer still derives pending quantity from nonterminal ledger carriers and supplies it to the policy; excluding pending from the holdings predicate does not mutate that ledger. The adapter validates that every prior nonterminal owner remains explicit as KEEP or CANCEL, commits the plan against the existing gateway ledger, and the comparison producer emits no CANCEL. The pre-order predicate is not a hard post-fill ceiling because an allowed 15-share intent is not clipped.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 51,
+          "line_end": 56,
+          "supports": "owned=sum(inventory.values()) and the 300-share gate"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 46,
+          "line_end": 61,
+          "supports": "Pending comes from nonterminal carriers; reserve precheck is on a ledger copy"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/runtime/tools/open_funding_native_active_adapter_v1.py",
+          "line_start": 31,
+          "line_end": 33,
+          "supports": "Prior nonterminal owner keys must remain explicit in the whole plan"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/runtime/tools/open_funding_native_active_adapter_v1.py",
+          "line_start": 80,
+          "line_end": 94,
+          "supports": "The existing ledger is committed; cancellation requires an explicit CANCEL operation"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 92,
+          "line_end": 94,
+          "supports": "Self-test source distinguishes 290+pending10 from confirmed 300; test not run"
+        }
+      ],
+      "limitation": "The unchanged TrainingPlanGateway implementation was not opened under the bounded source list; all other 43 runtime Python files hash-match the GTC parent."
+    },
+    {
+      "id": "ACTIVE_IOC_ABI_AND_NO_RESTING_PATH",
+      "status": "PASS",
+      "finding": "The strict adapter imports hftbacktest.order.IOC and sends ACTIVE as LIMIT+IOC at the current side ask; stack_replay asserts imported IOC==3. In the specified V49 reproduction source, Python order.py defines IOC=3 and Rust TimeInForce defines IOC=3. Rust exchange code executes immediately against opposing depth and expires unfilled remainder; GTC is the branch that registers resting orders. This supports source-level strict IOC/no-resting semantics.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/runtime/tools/open_funding_native_active_adapter_v1.py",
+          "line_start": 9,
+          "line_end": 12,
+          "supports": "Adapter imports IOC from hftbacktest.order"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/runtime/tools/open_funding_native_active_adapter_v1.py",
+          "line_start": 105,
+          "line_end": 118,
+          "supports": "ACTIVE submit uses IOC LIMIT; failure remains UNKNOWN/reserved"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/runtime/tools/open_funding_native_active_adapter_v1.py",
+          "line_start": 54,
+          "line_end": 59,
+          "supports": "ACTIVE price is current ask, except the separately declared finite-continuation depth branch"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 71,
+          "line_end": 74,
+          "supports": "Loader asserts IOC ABI value 3"
+        },
+        {
+          "file": "data/research/hft244_v49_repro_20261002_v1/release/engine/patched/py-hftbacktest/hftbacktest/order.py",
+          "line_start": 44,
+          "line_end": 54,
+          "supports": "The V49 reproduction Python order module defines IOC=3"
+        },
+        {
+          "file": "data/research/hft244_v49_repro_20261002_v1/release/engine/patched/hftbacktest/src/types.rs",
+          "line_start": 412,
+          "line_end": 420,
+          "supports": "Rust TimeInForce enum defines IOC=3"
+        },
+        {
+          "file": "data/research/hft244_v49_repro_20261002_v1/release/engine/patched/hftbacktest/src/backtest/proc/partialfillexchange.rs",
+          "line_start": 473,
+          "line_end": 487,
+          "supports": "IOC matches immediately and expires any remainder"
+        },
+        {
+          "file": "data/research/hft244_v49_repro_20261002_v1/release/engine/patched/hftbacktest/src/backtest/proc/partialfillexchange.rs",
+          "line_start": 489,
+          "line_end": 503,
+          "supports": "GTC may register a resting remainder"
+        }
+      ],
+      "limitation": "Source semantics only; this does not establish actual native receipt maker flags or return-hash identity."
+    },
+    {
+      "id": "GTC_PARENT_TO_STRICT_PACKAGE_DELTA",
+      "status": "DIFFERENCE",
+      "finding": "The child-vs-GTC source diff is scoped: the policy changes first-F capture from >=12s to exact 12s with a missing-F invalid guard, changes the cap from inventory+pending to confirmed inventory, and updates only related self-tests; the adapter changes ACTIVE GTC to IOC; the stack adds IOC ABI/result fields and expands the run from the two RV variants to the four frozen arms. Hashes show 44 runtime Python files in both packages, 43 identical and only runtime/tools/open_funding_native_active_adapter_v1.py changed. The SOURCE_PARENT runtime map matches all 44 GTC hashes and 43 strict hashes. All 185 META hashes are identical to the parent package.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/RULE_CONFORMANCE.patch",
+          "line_start": 14,
+          "line_end": 58,
+          "supports": "Explicit policy correction diff; RV threshold unchanged"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/RULE_CONFORMANCE.patch",
+          "line_start": 63,
+          "line_end": 84,
+          "supports": "Runtime adapter GTC-to-IOC change"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/FOLLOW_ON.patch",
+          "line_start": 1,
+          "line_end": 34,
+          "supports": "Follow-on corrects the IOC import and ABI assertion"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/RULE_CONFORMANCE.json",
+          "line_start": 1,
+          "line_end": 16,
+          "supports": "Declared corrections, unchanged criteria and one modified runtime file"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/SOURCE_PARENT.json",
+          "line_start": 2,
+          "line_end": 20,
+          "supports": "Source commit and 44-file runtime hash map"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/MANIFEST.json",
+          "line_start": 248,
+          "line_end": 262,
+          "supports": "Strict package declares 185 markets, four arms and scoped runtime changes"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/MANIFEST.json",
+          "line_start": 246,
+          "line_end": 256,
+          "supports": "GTC parent declares 185 markets and the two V1/V2 arms"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/runtime/tools/open_funding_native_active_adapter_v1.py",
+          "line_start": 102,
+          "line_end": 118,
+          "supports": "GTC parent adapter submitted ACTIVE orders with GTC"
+        }
+      ],
+      "intentional": "These are the requested strict-conformance corrections. No other threshold, side-selection rule, window, size, or sell action was added."
+    },
+    {
+      "id": "NO_UNDECLARED_STRATEGY_RULES",
+      "status": "PASS",
+      "finding": "The actual parent-to-child comparison_policy diff adds no new market signal or condition beyond the exact-F validity guard and confirmed-holdings predicate. Frozen threshold, windows, side and size remain unchanged. The four child arms are exactly FAV, UNDER, V1 and V2 in the spec; the parent package staged only V1/V2. The strict policy has no sell branch or outcome-dependent decision input.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "line_start": 16,
+          "line_end": 19,
+          "supports": "Complete frozen action and settlement definitions"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 9,
+          "line_end": 20,
+          "supports": "Only the declared RV arm switch"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 39,
+          "line_end": 74,
+          "supports": "FAV/UNDER decision predicates and emitted intents"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 174,
+          "line_end": 180,
+          "supports": "Four specified arms loop over each of 185 markets"
+        }
+      ],
+      "limitation": "The ACTIVE-to-IOC change applies to every non-PASSIVE operation handled by this isolated strict adapter; keep the strict package isolated from the GTC parent."
+    },
+    {
+      "id": "WINNER_IS_SETTLEMENT_ONLY",
+      "status": "PASS",
+      "finding": "The policy input signature has no winner or settlement field. The replay tape stub contains no winner or Target action; winner is passed to run_market but first used after the observation loop, response processing, ledger invariant and receipt reconciliation to calculate PnL and populate the result.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+          "line_start": 32,
+          "line_end": 33,
+          "supports": "Policy intent consumes time, book and ownership only"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 111,
+          "line_end": 115,
+          "supports": "Producer receives strategy/RV; tape stub carries no outcome"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 126,
+          "line_end": 149,
+          "supports": "Observation and reconciliation precede winner-based PnL/result serialization"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 171,
+          "line_end": 179,
+          "supports": "Labels are passed to run_market; they are not producer inputs"
+        }
+      ],
+      "limitation": "Static source-flow audit only; no runtime trace was opened."
+    },
+    {
+      "id": "META_185_INPUT_INTEGRITY",
+      "status": "PASS",
+      "finding": "The strict package contains exactly 185 META JSON files matching 185 unique market IDs; filenames match embedded IDs and each window is 300,000 ms. All strict META hashes match the strict manifest and the GTC parent manifest; all actual parent META hashes match its manifest. There are no missing, extra or changed META files. Child and parent each have 44 runtime Python files and all hashes match their own manifests. The eight requested child package code/patch/JSON inputs match the child manifest.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/MANIFEST.json",
+          "line_start": 11,
+          "line_end": 196,
+          "supports": "Manifest META path/hash entries parsed across all 185 markets"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/MANIFEST.json",
+          "line_start": 248,
+          "line_end": 262,
+          "supports": "Declared market count and strategy set"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/SOURCE_PARENT.json",
+          "line_start": 2,
+          "line_end": 20,
+          "supports": "Declared source commit and runtime file map"
+        }
+      ],
+      "metrics": {
+        "expected_markets": 185,
+        "strict_manifest_meta_count": 185,
+        "strict_actual_meta_files": 185,
+        "parent_actual_meta_files": 185,
+        "unique_market_ids": 185,
+        "filename_id_mismatches": 0,
+        "non_300000ms_windows": 0,
+        "strict_meta_manifest_hash_mismatches": 0,
+        "parent_meta_manifest_hash_mismatches": 0,
+        "strict_vs_parent_meta_hash_differences": 0,
+        "late_start_invalid_ids": [
+          2807895,
+          2809188
+        ],
+        "runtime_python_files_child": 44,
+        "runtime_python_files_parent": 44,
+        "runtime_python_identical_count": 43,
+        "runtime_python_changed_paths": [
+          "runtime/tools/open_funding_native_active_adapter_v1.py"
+        ],
+        "runtime_python_added_paths": [],
+        "runtime_python_removed_paths": [],
+        "actual_runtime_manifest_hash_mismatches": 0,
+        "source_parent_map_count": 44,
+        "source_parent_vs_gtc_hash_matches": 44,
+        "source_parent_vs_strict_hash_matches": 43,
+        "targeted_package_files_match_child_manifest": true
+      }
+    },
+    {
+      "id": "EXACT_12S_COHORT_VALIDITY",
+      "status": "UNKNOWN",
+      "finding": "The first source and received observations for the two listed markets begin after the 12-second anchor, so neither can have a valid F at 12 seconds; they remain INVALID_MISSING_12S_INITIAL_F. For the other 183, META shows starts by 12 seconds but does not prove a valid book at the exact 12-second decision clock. This bounded audit read no event arrays and does not certify or synthesize their F.",
+      "known_invalid_markets": [
+        {
+          "market_id": 2807895,
+          "source_start_gap_ms": 18813,
+          "received_start_gap_ms": 19696,
+          "meta_sha256": "52d283b05efe24635c9086e72178a8ae2118dc327a168e6d487e3ac105db18b6"
+        },
+        {
+          "market_id": 2809188,
+          "source_start_gap_ms": 96511,
+          "received_start_gap_ms": 97415,
+          "meta_sha256": "517530639f4de2bfccf8e8347e2ba6c6845c2fbfa831be6bf00948d32cebdf77"
+        }
+      ],
+      "other_markets_exact12_status": "UNKNOWN_FROM_META_ONLY",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/META/2807895.json",
+          "line_start": 1,
+          "line_end": 1,
+          "supports": "source_min_ms and received_min_ms are 18,813 ms and 19,696 ms after start"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/META/2809188.json",
+          "line_start": 1,
+          "line_end": 1,
+          "supports": "source_min_ms and received_min_ms are 96,511 ms and 97,415 ms after start"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+          "line_start": 108,
+          "line_end": 109,
+          "supports": "Runner would load events.npz; this audit did not access event arrays"
+        }
+      ]
+    },
+    {
+      "id": "ACTUAL_MAKER_RECEIPTS_AND_RETURN_HASH",
+      "status": "UNKNOWN",
+      "finding": "No native/worker execution, actual fill receipt, maker flag, return-hash or run result was examined in this audit. The source confirms the IOC request and reference-engine no-resting semantics only; actual maker receipt and binary/return-hash verification remain with the main agent.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/runtime/tools/open_funding_native_active_adapter_v1.py",
+          "line_start": 105,
+          "line_end": 118,
+          "supports": "IOC submit and send-uncertainty reservation path"
+        },
+        {
+          "file": "data/research/hft244_v49_repro_20261002_v1/release/engine/patched/hftbacktest/src/backtest/proc/partialfillexchange.rs",
+          "line_start": 473,
+          "line_end": 487,
+          "supports": "Reference IOC semantics only"
+        }
+      ],
+      "limitation": "No claim is made about observed fills or return-hash parity."
+    }
+  ],
+  "package_input_and_runtime_hash_audit": {
+    "expected_markets": 185,
+    "strict_manifest_meta_count": 185,
+    "strict_actual_meta_files": 185,
+    "parent_actual_meta_files": 185,
+    "unique_market_ids": 185,
+    "filename_id_mismatches": 0,
+    "non_300000ms_windows": 0,
+    "strict_meta_manifest_hash_mismatches": 0,
+    "parent_meta_manifest_hash_mismatches": 0,
+    "strict_vs_parent_meta_hash_differences": 0,
+    "late_start_invalid_ids": [
+      2807895,
+      2809188
+    ],
+    "runtime_python_files_child": 44,
+    "runtime_python_files_parent": 44,
+    "runtime_python_identical_count": 43,
+    "runtime_python_changed_paths": [
+      "runtime/tools/open_funding_native_active_adapter_v1.py"
+    ],
+    "runtime_python_added_paths": [],
+    "runtime_python_removed_paths": [],
+    "actual_runtime_manifest_hash_mismatches": 0,
+    "source_parent_map_count": 44,
+    "source_parent_vs_gtc_hash_matches": 44,
+    "source_parent_vs_strict_hash_matches": 43,
+    "targeted_package_files_match_child_manifest": true
+  },
+  "meta_market_rows": [
+    {
+      "market_id": 2802399,
+      "file": "META/2802399.json",
+      "sha256": "58345a5b93fdcc1b760c7ffda0285b50bc362fc423a829b1955a06804d95ceba",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 357,
+      "received_start_gap_ms": 1203,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802457,
+      "file": "META/2802457.json",
+      "sha256": "d6ae7e77d6490b1658d34dfb720060c28584ffb806a135d48e3342ba1aa60848",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 400,
+      "received_start_gap_ms": 1326,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802465,
+      "file": "META/2802465.json",
+      "sha256": "45a13eef6d4ad5d0f1383fb47f6b15dd57a2955e49f75f01f0e73468534bb34c",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 210,
+      "received_start_gap_ms": 1025,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802478,
+      "file": "META/2802478.json",
+      "sha256": "350a852a3fc05bfc816522155d47d4b1d52377a5a50cdc381998c2a198e4c96e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 271,
+      "received_start_gap_ms": 1193,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802523,
+      "file": "META/2802523.json",
+      "sha256": "beecc4e69ed870153d25abc910e6b0884f9407f3b9791d1becf9c9263b3c56cb",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 375,
+      "received_start_gap_ms": 1293,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802581,
+      "file": "META/2802581.json",
+      "sha256": "33c6fb491c774b4726c882ebecb004a8ceb61b19cba9057eafae00081e4bb89f",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 115,
+      "received_start_gap_ms": 1082,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802688,
+      "file": "META/2802688.json",
+      "sha256": "7624043e06c3d3f84c5d3b6173084ee2ddf6aa6bcbb093e4f39e66fad6bda248",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 60,
+      "received_start_gap_ms": 859,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802836,
+      "file": "META/2802836.json",
+      "sha256": "4216a312d50c32ae56a8abc9c38c67f65212927d482d7d2c00d269044e8c1eeb",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 417,
+      "received_start_gap_ms": 1370,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802854,
+      "file": "META/2802854.json",
+      "sha256": "cd62fd0fd352e3f71714640e0ebffd4e56f803dfb0491fdc0785d68bceda62cf",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 250,
+      "received_start_gap_ms": 1062,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802952,
+      "file": "META/2802952.json",
+      "sha256": "6609658b33beccb4e6497df5024fda1e595547c56038a706d29ca515d192cba8",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -61,
+      "received_start_gap_ms": 743,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802983,
+      "file": "META/2802983.json",
+      "sha256": "54cb4406a4995456ac59dd218092f7ab853cc3d7234ec41d227a874c17fe353e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 427,
+      "received_start_gap_ms": 1387,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2802995,
+      "file": "META/2802995.json",
+      "sha256": "2b8ced7b34401f2045d279c0ecf95085d3d703de4b99ff50194d4aa37fc9bd0f",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 191,
+      "received_start_gap_ms": 1069,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803007,
+      "file": "META/2803007.json",
+      "sha256": "e836ffcc4d25462a6680c525baec7f805b2cdd42dea1988eac40159eb5491fd5",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 311,
+      "received_start_gap_ms": 1292,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803125,
+      "file": "META/2803125.json",
+      "sha256": "cd10fcbe976d7e591a5480181766ded03afa1548ede11d7230d2184449e84596",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -307,
+      "received_start_gap_ms": 679,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803245,
+      "file": "META/2803245.json",
+      "sha256": "704c54eb2f2b248ecddab861f9742e0a547d475a7da6993cc522f5d51d6b6edf",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 93,
+      "received_start_gap_ms": 1129,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803301,
+      "file": "META/2803301.json",
+      "sha256": "38f459659cd583d259627689ff9ad8193541abd1de7cbf065371a297fffdfe39",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -262,
+      "received_start_gap_ms": 790,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803370,
+      "file": "META/2803370.json",
+      "sha256": "210ae4735f852759aefe8fa107694e41edbe1312c5ae5b92be883793bf5b5924",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -82,
+      "received_start_gap_ms": 821,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803390,
+      "file": "META/2803390.json",
+      "sha256": "986a0a45fe0f475229d3dc8606deec7ec78656c460315c474fdbd0075ca9313b",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 116,
+      "received_start_gap_ms": 945,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803458,
+      "file": "META/2803458.json",
+      "sha256": "bdd5cff5f889287480a772399bf89165b42c23698892272d9077be9ba918ab75",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 78,
+      "received_start_gap_ms": 995,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803462,
+      "file": "META/2803462.json",
+      "sha256": "81fef41da603f335f22fb26d487f0d1a66734ac3793acf949d395930a4c7e30d",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -82,
+      "received_start_gap_ms": 969,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803490,
+      "file": "META/2803490.json",
+      "sha256": "0c571e73067b281055d8c2400119319e8bdef3e115fa2744a71e46fa252fe20a",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 152,
+      "received_start_gap_ms": 1155,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803540,
+      "file": "META/2803540.json",
+      "sha256": "dc32cf7133ad6bbbc5bd02afd1758fd6d0363eee385feed287a5ae3d4d7bdfdd",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -200,
+      "received_start_gap_ms": 895,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803561,
+      "file": "META/2803561.json",
+      "sha256": "91abedc7965b48fbe02ceb6625ca13d72be91feefd13a8bf7aca72af6a4d417f",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -255,
+      "received_start_gap_ms": 696,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803615,
+      "file": "META/2803615.json",
+      "sha256": "c38a3fdaa588bf13dd184e732acd31383b1a927e5e933189c7bf7f7daba6a303",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 491,
+      "received_start_gap_ms": 1367,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2803675,
+      "file": "META/2803675.json",
+      "sha256": "348b0a6f352341372684988d1c617ff2f06338c1ce73ad91c7c6506af4083647",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -276,
+      "received_start_gap_ms": 854,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2804139,
+      "file": "META/2804139.json",
+      "sha256": "6e0f144427903162e45853808e00591d88e61db3069468228c21880fec4ffb49",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 43,
+      "received_start_gap_ms": 1010,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2804142,
+      "file": "META/2804142.json",
+      "sha256": "525aef214733767392aab9c08534ebe0b5a2dd7bd70366b511dc4d33cee5dae5",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 192,
+      "received_start_gap_ms": 1156,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2804452,
+      "file": "META/2804452.json",
+      "sha256": "ac93eec972c130af665bb86e63505a772c6e14f8306135da78a14fd02dc3e8c3",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 355,
+      "received_start_gap_ms": 1226,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2804574,
+      "file": "META/2804574.json",
+      "sha256": "bdcf5aeb974ebae01926497fbf29fa5330683f4764887113842558ebf3f250cc",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 320,
+      "received_start_gap_ms": 1286,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2805046,
+      "file": "META/2805046.json",
+      "sha256": "6563e8c2ed10a4e9c119a81fa6f4054edbc22172f1a1c195c910ca42d9d15e21",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 319,
+      "received_start_gap_ms": 1294,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2805216,
+      "file": "META/2805216.json",
+      "sha256": "f2a3a5e188e037b8103c70c03948fae6bfb958d49bc20d16b8751a26fad1885a",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 109,
+      "received_start_gap_ms": 1010,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2805223,
+      "file": "META/2805223.json",
+      "sha256": "fc21ff5863a6d8bd4b52ec72dc8f7b263306e1edf699a195a3199e35ac0fc527",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 403,
+      "received_start_gap_ms": 1388,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2805228,
+      "file": "META/2805228.json",
+      "sha256": "8813a3dab7806adac224633fe03fa53712ff70bc85ccd5f62c394bff4ec84da3",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 311,
+      "received_start_gap_ms": 1146,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2805305,
+      "file": "META/2805305.json",
+      "sha256": "46413fa49fd2c4cb6d02969a5a6f06815af87a4732cec079443a6cae2920eb6b",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 180,
+      "received_start_gap_ms": 1221,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2805349,
+      "file": "META/2805349.json",
+      "sha256": "bffd5a5d24feec6bfda0c890256f95c49c2ffe19c930a235fe314423458ccf11",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 174,
+      "received_start_gap_ms": 1132,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2805964,
+      "file": "META/2805964.json",
+      "sha256": "ecd08c9a5b15ea4bd30c511d1c0ae78b47167859e158b11808efaf3853708724",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -89,
+      "received_start_gap_ms": 1015,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2805967,
+      "file": "META/2805967.json",
+      "sha256": "119b885551928e51977588f6865e7fb4a96a283f525254370afea699f3f51992",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -225,
+      "received_start_gap_ms": 758,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2806497,
+      "file": "META/2806497.json",
+      "sha256": "2e43df476cc49468cdb1b1757b16f15ac2e08cf3852465c824eb8ec8096ea2cb",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 432,
+      "received_start_gap_ms": 1435,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2806933,
+      "file": "META/2806933.json",
+      "sha256": "d7c79b2e735a769621cfa1adb22bfcacf565ba3a16ed529e441320de10e2c644",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 101,
+      "received_start_gap_ms": 1015,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807061,
+      "file": "META/2807061.json",
+      "sha256": "2ab5487fe433e82a9f751cffbedf560f0dc9764e492d058bfb394bba0468aac3",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -92,
+      "received_start_gap_ms": 847,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807079,
+      "file": "META/2807079.json",
+      "sha256": "920295e1a5aafe3de32fcd55fefd9fb7658191abf1c48af1127f2cccd4491430",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -268,
+      "received_start_gap_ms": 891,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807092,
+      "file": "META/2807092.json",
+      "sha256": "66c76ac3bcdd3759779934f64df63847ecc18a2daf3407f37db8782c348cd7b0",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 535,
+      "received_start_gap_ms": 1524,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807096,
+      "file": "META/2807096.json",
+      "sha256": "b8106f1cff8b8a903b1f94722beccb7ff279f6e296c2136923bca82dbf791d8d",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -6,
+      "received_start_gap_ms": 883,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807151,
+      "file": "META/2807151.json",
+      "sha256": "2b40ce987b11abe23faddbc6c656207fb310fbfdbc1b1978587f23e8c264e564",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 152,
+      "received_start_gap_ms": 1007,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807156,
+      "file": "META/2807156.json",
+      "sha256": "83e24db7804c6146c69c757d5d65ea139d6a88adad1b5652057b67ab8199ab53",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -95,
+      "received_start_gap_ms": 972,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807193,
+      "file": "META/2807193.json",
+      "sha256": "f3aabcf7518d332dd0608bd18999a8fa574fb6f3cadd12ed38e6e958e5f26109",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 166,
+      "received_start_gap_ms": 1059,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807268,
+      "file": "META/2807268.json",
+      "sha256": "000d546a64419f987ed6e3f41d5dbb6f3ad8533f3a881fabc7f34fca051ef578",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 94,
+      "received_start_gap_ms": 1140,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807308,
+      "file": "META/2807308.json",
+      "sha256": "4b5525fb4f5ffb3461b762f4edeb2c48a566213185bdecfbf248998db4b51915",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 911,
+      "received_start_gap_ms": 1920,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807389,
+      "file": "META/2807389.json",
+      "sha256": "89b865af29d3d59c0ab67fb94939b325767052b1631e9548f42a29ba0006854e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -290,
+      "received_start_gap_ms": 836,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807574,
+      "file": "META/2807574.json",
+      "sha256": "e31d86dedefbb5ba1e05f6665fab1ebe7a64fbc73125c38e3697e217ff5074ef",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -70,
+      "received_start_gap_ms": 823,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807667,
+      "file": "META/2807667.json",
+      "sha256": "71a4a2c25c5947491768159b6e9f0b668fc19d72e9af26460af96f216c589f27",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 332,
+      "received_start_gap_ms": 1383,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807725,
+      "file": "META/2807725.json",
+      "sha256": "02fd41e1ecbbb484505e0a0cb913791982fdbe88050144ebaa28f3f90585d888",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -48,
+      "received_start_gap_ms": 981,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807745,
+      "file": "META/2807745.json",
+      "sha256": "79465292a22ac4ae80c499fcc7f638da8a05916592bd537e399ec47cc6e11921",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 93,
+      "received_start_gap_ms": 938,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807825,
+      "file": "META/2807825.json",
+      "sha256": "845017ede5a3f3c053df1cf54aa5743c98781d216f64d61cd835183a776636d0",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 179,
+      "received_start_gap_ms": 1156,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2807895,
+      "file": "META/2807895.json",
+      "sha256": "52d283b05efe24635c9086e72178a8ae2118dc327a168e6d487e3ac105db18b6",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 18813,
+      "received_start_gap_ms": 19696,
+      "exact_12s_context_status": "INVALID_MISSING_12S_INITIAL_F",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2808604,
+      "file": "META/2808604.json",
+      "sha256": "e57a786589beda1be64c8ab06704e1cd909e9a047946c04b25d5666014040be0",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -90,
+      "received_start_gap_ms": 1005,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2808964,
+      "file": "META/2808964.json",
+      "sha256": "99a53fcacea0b6765088a42ffc79f290390dd3630a84c643fc34b6568b5e70c4",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -111,
+      "received_start_gap_ms": 1042,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2808988,
+      "file": "META/2808988.json",
+      "sha256": "29d3c6dcde9ed222c567fa5b108b3d5089ef2e2a35e825ae9c89f7325631591e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -106,
+      "received_start_gap_ms": 986,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2808990,
+      "file": "META/2808990.json",
+      "sha256": "fc09e7c0b341572e12ba1afc3f2f3901ced28285b5ac9423ec783778c12793d7",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 365,
+      "received_start_gap_ms": 1386,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809018,
+      "file": "META/2809018.json",
+      "sha256": "2fe581db3f4b83abeec72901c4f7cfb54670ac69cad76b66b9261cb53b7e0d23",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -121,
+      "received_start_gap_ms": 888,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809074,
+      "file": "META/2809074.json",
+      "sha256": "d30f1d7029e11c6e9cc8ce4695cd9e8c64c2c5be331046a653168b4f8500f960",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 79,
+      "received_start_gap_ms": 1011,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809076,
+      "file": "META/2809076.json",
+      "sha256": "71a78dff1f6f2c77ee597a494f7a339995ac211f714d828b4b73b441a43dccd2",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 1015,
+      "received_start_gap_ms": 1974,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809086,
+      "file": "META/2809086.json",
+      "sha256": "702a301727028711993adc8d58bb471422006cd72d12dfb4884b3545151ae974",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 89,
+      "received_start_gap_ms": 1129,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809104,
+      "file": "META/2809104.json",
+      "sha256": "d434d6a227e04641c81c0bf35bc5cee4884ba86aec4781b1be091365ac1a6b03",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 77,
+      "received_start_gap_ms": 997,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809119,
+      "file": "META/2809119.json",
+      "sha256": "23dcf1661d589c97f86fc01b7931bb39c2044620437cff1a030c595b3deb4300",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 242,
+      "received_start_gap_ms": 1188,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809122,
+      "file": "META/2809122.json",
+      "sha256": "22b4325d18867ea1b94904dd01d3cc5e271149704263b690491847ab2c1fa0f1",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 62,
+      "received_start_gap_ms": 1122,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809188,
+      "file": "META/2809188.json",
+      "sha256": "517530639f4de2bfccf8e8347e2ba6c6845c2fbfa831be6bf00948d32cebdf77",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 96511,
+      "received_start_gap_ms": 97415,
+      "exact_12s_context_status": "INVALID_MISSING_12S_INITIAL_F",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809212,
+      "file": "META/2809212.json",
+      "sha256": "f25f4d60fb4a87682b928e151b6fc9bbd6b6fd110bf2de064977ffb623cceb81",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 336,
+      "received_start_gap_ms": 1261,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809222,
+      "file": "META/2809222.json",
+      "sha256": "f0a3a3c4386ab4d5da8d8be9a8d061b9b17820ff823faa4b1613b0e8687dad60",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -318,
+      "received_start_gap_ms": 804,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809251,
+      "file": "META/2809251.json",
+      "sha256": "c3e0df8951ef6cdd3d61d45411f6743740fd4588381dd9ce2d411fb312a4a2b4",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 98,
+      "received_start_gap_ms": 1084,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809252,
+      "file": "META/2809252.json",
+      "sha256": "9b0acc3cc5a5c6860ea2aab0e34af1ff7eb5d2411aa7bfdd552db28c9106aa40",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -82,
+      "received_start_gap_ms": 905,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809259,
+      "file": "META/2809259.json",
+      "sha256": "e3ee7a7657828d4f33cbd9fc78fc9641553d9f90e2f21c7492511ea6273ecad2",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -166,
+      "received_start_gap_ms": 920,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809322,
+      "file": "META/2809322.json",
+      "sha256": "f91310b7905b027e421b0d6570d15d81233f46550e10642429cecd9205b823b1",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 446,
+      "received_start_gap_ms": 1355,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809326,
+      "file": "META/2809326.json",
+      "sha256": "2362e4f390204b9b34d2af2d425f5fd5cd9118a7f1b01fa1fc8c301f06ed95c6",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 227,
+      "received_start_gap_ms": 1267,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809470,
+      "file": "META/2809470.json",
+      "sha256": "520aade496334415aaa8ab9922980a02540f7f4c76480750a1c64b562705309a",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 247,
+      "received_start_gap_ms": 1316,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809490,
+      "file": "META/2809490.json",
+      "sha256": "cec67c14dff3ef92c51b658c6a51321d2504fec4022f19f38cb892fc9be68e18",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 343,
+      "received_start_gap_ms": 1302,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809563,
+      "file": "META/2809563.json",
+      "sha256": "27af16135bf6d22f89f1b96356b115f419aefda19d95f91dac15f5ea4894ca4e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -99,
+      "received_start_gap_ms": 894,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809579,
+      "file": "META/2809579.json",
+      "sha256": "c911c89809873aeef6c1e2de17ac82fc74c4c2578411d09a64416f886e55b87f",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 248,
+      "received_start_gap_ms": 1191,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809633,
+      "file": "META/2809633.json",
+      "sha256": "fc0f752ed86853e6eab3bdf91f6cc738891debc943e69f9a72e74e01136892a2",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 84,
+      "received_start_gap_ms": 1244,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809635,
+      "file": "META/2809635.json",
+      "sha256": "48bfe9a1d681d168228745d70693318d10b7f4144948c609968315eaca7a3db6",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -333,
+      "received_start_gap_ms": 896,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809834,
+      "file": "META/2809834.json",
+      "sha256": "81f942acb4f6add2b205552921eeede8f43e88406612d0beb63f6ad8b2537a62",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -155,
+      "received_start_gap_ms": 896,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809925,
+      "file": "META/2809925.json",
+      "sha256": "8608e219fc3d4567c0dffeab01adc6f01efa38a76116c7afe3ee8d8922353f8b",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -113,
+      "received_start_gap_ms": 954,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809929,
+      "file": "META/2809929.json",
+      "sha256": "c7a566f10d993388b9828f1c2479e164a0f7a0eeb2bd060e195d150adf52f32d",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 97,
+      "received_start_gap_ms": 1157,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2809966,
+      "file": "META/2809966.json",
+      "sha256": "e5365dcb369f65a1498bb738e2505bee5f6bf37ea053f2140e2524359fd396ee",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -109,
+      "received_start_gap_ms": 1032,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810203,
+      "file": "META/2810203.json",
+      "sha256": "e778f299fe12ddc334dcf0edf4c62aedb7087903ef4ad1e3462465587531f472",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 426,
+      "received_start_gap_ms": 1421,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810219,
+      "file": "META/2810219.json",
+      "sha256": "5c103bcdc4b9a680983c97a4b5637dd3af6ba4cf27cdb71f176b27332c214eba",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 109,
+      "received_start_gap_ms": 1205,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810255,
+      "file": "META/2810255.json",
+      "sha256": "8827ef79fafa2c17d030829150132abcd2cc72a48814acfc2dcc199cbe551e5c",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -101,
+      "received_start_gap_ms": 1033,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810273,
+      "file": "META/2810273.json",
+      "sha256": "52ac097994414f55b6e98becbc0fc9fe139a23fd1e1ac79965a13c6e9a18c95c",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 98,
+      "received_start_gap_ms": 1236,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810275,
+      "file": "META/2810275.json",
+      "sha256": "1cabb4b25128cfc9cd405a3308749410ddbd7f48fc7196113d31c39b2d939dd0",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 974,
+      "received_start_gap_ms": 1963,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810278,
+      "file": "META/2810278.json",
+      "sha256": "2b77203387ffb32a2be7c5f75aaa4be84fa4f9fa8977b7c4858c40e405b1b516",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 152,
+      "received_start_gap_ms": 1200,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810332,
+      "file": "META/2810332.json",
+      "sha256": "e892194048861c2b27b9e5c9581865aa9c7d3873145664652e580e1fa3bfdcad",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 302,
+      "received_start_gap_ms": 1230,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810339,
+      "file": "META/2810339.json",
+      "sha256": "d9552ca6514d5c3755bea8068f77c1be3292e3248f6dff016040b35680d901b1",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -98,
+      "received_start_gap_ms": 989,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810422,
+      "file": "META/2810422.json",
+      "sha256": "a5a6cf06c8a83aa1858904091063fdf413b35ee1bf18dc72966797306a1a0770",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 30,
+      "received_start_gap_ms": 959,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810476,
+      "file": "META/2810476.json",
+      "sha256": "ee61ae14943f2e0b8a17f1aa18a60cfa421b5f17f129788f953f5f6fd075f79b",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 39,
+      "received_start_gap_ms": 1113,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810509,
+      "file": "META/2810509.json",
+      "sha256": "130375131af5a17c1f504eb294f4a31a7d8dc0133496caab925114ff17a22bf1",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 173,
+      "received_start_gap_ms": 1299,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810520,
+      "file": "META/2810520.json",
+      "sha256": "f5f73dc914b17abd562f303605bb16a6142e9dd09c4d0ae780684ef16a6660b9",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -198,
+      "received_start_gap_ms": 828,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810761,
+      "file": "META/2810761.json",
+      "sha256": "6b030243be5bcbda054fcab2369923c86bb6100b4c7b90cade17227c2a063e32",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 134,
+      "received_start_gap_ms": 1250,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810879,
+      "file": "META/2810879.json",
+      "sha256": "af2fc583173d5dea609111e04b6d79deecc0e5e64de1f4f4acf6986965f2baba",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 83,
+      "received_start_gap_ms": 1081,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810883,
+      "file": "META/2810883.json",
+      "sha256": "721138091e3dd218717b4a635ce479a71d610f641afef4108fe65c4a26feeefb",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -311,
+      "received_start_gap_ms": 690,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810901,
+      "file": "META/2810901.json",
+      "sha256": "4bdab65bb6c6daddb42657618ee7b28c4a03d3ab5e7b0cd052441de97e6e522d",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -111,
+      "received_start_gap_ms": 994,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810903,
+      "file": "META/2810903.json",
+      "sha256": "266f8785076f274bf71cdd9b78c90ecd998b67c752d9f51ce3ee7ca7e9e00e6e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -87,
+      "received_start_gap_ms": 1072,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810906,
+      "file": "META/2810906.json",
+      "sha256": "95ce30781e4f8c20168b60104eecc33ed23bb435abc5be23b30f258fb72fa197",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 386,
+      "received_start_gap_ms": 1432,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810926,
+      "file": "META/2810926.json",
+      "sha256": "87707fecef1ae1c57396ed3513622b6322e4f31555e813394e85edfcedcfd76c",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 171,
+      "received_start_gap_ms": 1313,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810966,
+      "file": "META/2810966.json",
+      "sha256": "23246184397b753442a6e7b5a8d221f00104bfd77b1616c8df00eaf574d1c806",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 130,
+      "received_start_gap_ms": 1245,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2810973,
+      "file": "META/2810973.json",
+      "sha256": "aec6e6b0811f4d961bffb80e3bbcc13a8d0ce169715d4579c9ca4091c4b8623a",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 60,
+      "received_start_gap_ms": 1035,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811052,
+      "file": "META/2811052.json",
+      "sha256": "161300b0f10afa5c9a63544b50f7c41e9024e6db3aa00c21391c6bb523145ce1",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 115,
+      "received_start_gap_ms": 1064,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811058,
+      "file": "META/2811058.json",
+      "sha256": "aec9ba048018509d891c940f3c3f52330c9516901b33e9506b72c9ccaed7fe00",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -288,
+      "received_start_gap_ms": 922,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811063,
+      "file": "META/2811063.json",
+      "sha256": "d3f874b7f0d753fa8f91d604898641a04c3603a9ffbaa3497b85ac46a1b0e4d4",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -297,
+      "received_start_gap_ms": 1171,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811122,
+      "file": "META/2811122.json",
+      "sha256": "8424de43b3ae3ffb159dd0ab1bbab3cbac0cec30cf403b26b0f8a7d1ca537210",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -274,
+      "received_start_gap_ms": 896,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811125,
+      "file": "META/2811125.json",
+      "sha256": "4baba37f223d8a6f869b19293c30979be8d8427d99bf153a382ffae0c98371b7",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -36,
+      "received_start_gap_ms": 979,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811129,
+      "file": "META/2811129.json",
+      "sha256": "726e44b7f37d95c79bf812837bb56757884c7afc434bd937e3ff6972a9fb8be5",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -216,
+      "received_start_gap_ms": 829,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811147,
+      "file": "META/2811147.json",
+      "sha256": "95968a43de3d7c2f2bcc53b3581e49dc6162653d6d337c86898d76b0f6cc504e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -308,
+      "received_start_gap_ms": 898,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811149,
+      "file": "META/2811149.json",
+      "sha256": "82ea33fc0c8467ae6b6f4cdb4c2d31e11f2c1554b03e6a93a61f7c69c7c0c68a",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -284,
+      "received_start_gap_ms": 868,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811152,
+      "file": "META/2811152.json",
+      "sha256": "c1e703d786b2616c15df21a1fe1e81d86dbc54c23e2642f4dad42a9bb7fe2c3e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 387,
+      "received_start_gap_ms": 1470,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811206,
+      "file": "META/2811206.json",
+      "sha256": "c9d6affbe1a801ff152ad94cb82b05f477e563358e66b92755fcbabbc1d4c2f2",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -103,
+      "received_start_gap_ms": 1052,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811210,
+      "file": "META/2811210.json",
+      "sha256": "63e2f7b7f6b2ee1fce006cebe9af6e63b8ac00f196638a943e77feed991089ae",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -73,
+      "received_start_gap_ms": 1015,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811213,
+      "file": "META/2811213.json",
+      "sha256": "dfb396f2df0caf25978d79c2aae7a0a169b611836faac8839974a59d59896d49",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 351,
+      "received_start_gap_ms": 1430,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811239,
+      "file": "META/2811239.json",
+      "sha256": "73dc0f84108304c3e0958066670a0c0e2a7174f19784a23c17f0d2c02b4d3978",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 217,
+      "received_start_gap_ms": 1291,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811302,
+      "file": "META/2811302.json",
+      "sha256": "ad279965cdcb0e8897a06896695fed88c710037e096dbfa2a2ec0d637ade85dc",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -96,
+      "received_start_gap_ms": 984,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811306,
+      "file": "META/2811306.json",
+      "sha256": "e9cc82ac489217fae42cb3fd36c15f0c7da4accc2a6255212e390a8840dbcd7a",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 428,
+      "received_start_gap_ms": 1490,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811324,
+      "file": "META/2811324.json",
+      "sha256": "c38ce3ebaef79d811e8445f933ce9deaae36bb1f4454f73caeecc13314da31d1",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -120,
+      "received_start_gap_ms": 1046,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811400,
+      "file": "META/2811400.json",
+      "sha256": "f52d0c17f0dc252633e7379d3d7f0c8b2a803c704e1e0d56fc31fe6672d26d4f",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -98,
+      "received_start_gap_ms": 1148,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811437,
+      "file": "META/2811437.json",
+      "sha256": "d051ce79ead320b45e7a8d939f7a01335b77d546b9b5589a05c8576379110840",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -110,
+      "received_start_gap_ms": 1048,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811456,
+      "file": "META/2811456.json",
+      "sha256": "278e8d58f54d1df88edffc3f452b7283af310f8af21b7da9f3ded9ddab4c3986",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 52,
+      "received_start_gap_ms": 1070,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811457,
+      "file": "META/2811457.json",
+      "sha256": "bd5fca6127d655be5cafcc29f76d9dee446b7cef76e77f9822633aec13ea075f",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 928,
+      "received_start_gap_ms": 1981,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811462,
+      "file": "META/2811462.json",
+      "sha256": "a31f3255a929f95b77faa87adaaa76f7548fceaae133fc84af50c8dde8dd7476",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -225,
+      "received_start_gap_ms": 866,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2811516,
+      "file": "META/2811516.json",
+      "sha256": "e5afc4c68290d06f6ea16547018c2470b5349e5a1795b6018b1b43b7e52c586d",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 247,
+      "received_start_gap_ms": 1338,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812106,
+      "file": "META/2812106.json",
+      "sha256": "d16a481d4ea75f6aac1fd5c98af920d6f1bfad8ba6c6e8325e3dc8ffab534e93",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 64,
+      "received_start_gap_ms": 1122,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812289,
+      "file": "META/2812289.json",
+      "sha256": "0ba1c63fea849f1bfd3a54fd1e72fae72242c337c639bf6d0ee691957d439cfc",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 437,
+      "received_start_gap_ms": 1444,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812307,
+      "file": "META/2812307.json",
+      "sha256": "8e5320856072acb963be227a595e882c14af40d7b404703f2c939dc6fd5558e6",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -454,
+      "received_start_gap_ms": 756,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812327,
+      "file": "META/2812327.json",
+      "sha256": "3bfb8c73087a95a4de35368c7153b799c5d7cc296a9a2babd5a625b3722d1461",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 168,
+      "received_start_gap_ms": 1171,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812333,
+      "file": "META/2812333.json",
+      "sha256": "2360c1d0a7d5f3d8575b5b7e7d9a3c9f92a1437fca2215d63d9b033584b468b2",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -308,
+      "received_start_gap_ms": 893,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812403,
+      "file": "META/2812403.json",
+      "sha256": "58bbbfb0ee6e495e59bd17a403cc8b5be85003e2e3a30295df166753b05ffddd",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 454,
+      "received_start_gap_ms": 1459,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812404,
+      "file": "META/2812404.json",
+      "sha256": "40e745a098f02293382a441b95ffc30d52d97449ed6336a6526c12aa1113e395",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -312,
+      "received_start_gap_ms": 767,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812407,
+      "file": "META/2812407.json",
+      "sha256": "86239e4887bf9bcc27bc8e00699eb836696ff133e26472dbf3429416c51d9bae",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 112,
+      "received_start_gap_ms": 1215,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812425,
+      "file": "META/2812425.json",
+      "sha256": "14471d380a59302236f7a3a74f424092e3ef26b176417d66574112810e39c632",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 143,
+      "received_start_gap_ms": 1241,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812427,
+      "file": "META/2812427.json",
+      "sha256": "b3cce80d44dc9e73e1138b39835587e7d8968b3f9165dd675b4d0e3bebd5eaf6",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -344,
+      "received_start_gap_ms": 958,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812431,
+      "file": "META/2812431.json",
+      "sha256": "b9a3fba4d9fed034ede1af75d4a7b271165f0e1da9757ab26cb8e5d506f44c29",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -242,
+      "received_start_gap_ms": 981,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812474,
+      "file": "META/2812474.json",
+      "sha256": "090888ca58d2eaba36bdc0aeaa553e4e4870f15b0f44f4d9b80cc99886a498a9",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -58,
+      "received_start_gap_ms": 1166,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812488,
+      "file": "META/2812488.json",
+      "sha256": "7b6695562cb192488a8f85bbde32edcc850cc9c5b79cdaff090f15d0c67418ec",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -79,
+      "received_start_gap_ms": 1104,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812491,
+      "file": "META/2812491.json",
+      "sha256": "833eec70e639cc0325ff3b422079c0ffca59ef313bb73b38d2757869faa9ecf3",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -93,
+      "received_start_gap_ms": 1005,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812514,
+      "file": "META/2812514.json",
+      "sha256": "f9a0316d9ffb38303db0773ed089eb1ed0559bdcb0a6a2cfbfa34162a20f0f77",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -69,
+      "received_start_gap_ms": 1170,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812605,
+      "file": "META/2812605.json",
+      "sha256": "c9e4611f40abdb55b09ee739ea1e8858f475e2ca415d8f89fade0d2a88773ddf",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -433,
+      "received_start_gap_ms": 755,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812645,
+      "file": "META/2812645.json",
+      "sha256": "d1283f3108508b9d28f09481f32ebb84ad00931581f4b7b6b5ea7c159bbcc053",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 209,
+      "received_start_gap_ms": 1312,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812793,
+      "file": "META/2812793.json",
+      "sha256": "3ee87bc1e0d1af80ff84b2cd2f82f4fdc599ced60721445b9a5851bd88e29eb0",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -53,
+      "received_start_gap_ms": 1096,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812795,
+      "file": "META/2812795.json",
+      "sha256": "27af9676d36dc988d9f3453cc93c20c3c3f5da20088f074c3cc89b5af361b979",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -432,
+      "received_start_gap_ms": 664,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812863,
+      "file": "META/2812863.json",
+      "sha256": "8b72535b9ff2f4d633eb603e100b7c7cc5034e1e239765c32c8b94b6d77fe663",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -364,
+      "received_start_gap_ms": 766,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2812881,
+      "file": "META/2812881.json",
+      "sha256": "8127b463a8b1e5c3f304782d9d663d41f0ba14d6dd1738b88cc63ccd59430fd5",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 122,
+      "received_start_gap_ms": 1153,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813213,
+      "file": "META/2813213.json",
+      "sha256": "6741261ce1c5085593dcbf61761adc3fb483b25a310822d2326115873a82d26e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -207,
+      "received_start_gap_ms": 857,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813227,
+      "file": "META/2813227.json",
+      "sha256": "158a98faa891d1a5a1e26f9b38265b558d06da1eb18e48b4c3aa72591f56ac87",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -295,
+      "received_start_gap_ms": 912,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813290,
+      "file": "META/2813290.json",
+      "sha256": "27a42932d7fa7638b643774273acfaf9e4ccc1b8db2312dabc2b55276409e24b",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -80,
+      "received_start_gap_ms": 1085,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813384,
+      "file": "META/2813384.json",
+      "sha256": "8f1f18193920ee3761b386397392c7333fc3ffcb6dee1ced5576aa127ba56201",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -306,
+      "received_start_gap_ms": 940,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813448,
+      "file": "META/2813448.json",
+      "sha256": "e96bd93d8624b7b7cdd2100a494b21d7e6f16cf5ef23430bd9a4fe62b3193bad",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 1185,
+      "received_start_gap_ms": 2242,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813524,
+      "file": "META/2813524.json",
+      "sha256": "c10c4785cb89c8e0e15c152b70be1099d653e8661e66f636e2c46ff45af0e788",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 138,
+      "received_start_gap_ms": 1242,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813837,
+      "file": "META/2813837.json",
+      "sha256": "49aa2109bda02f866b3138a817a5d1221ffb2f8bce6b95855d1ec73e61e34e06",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -370,
+      "received_start_gap_ms": 756,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813844,
+      "file": "META/2813844.json",
+      "sha256": "ed74efce428bba7fdc27b6cb3b67cd4b526ccf5d14a291fb5788505d3522abb6",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -373,
+      "received_start_gap_ms": 853,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813894,
+      "file": "META/2813894.json",
+      "sha256": "f275ee61814b97bc7696d195621302cf628231bf2041ba2a639cc6b8b5172a58",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -114,
+      "received_start_gap_ms": 1084,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813989,
+      "file": "META/2813989.json",
+      "sha256": "52a481897ce1391caaea03722f88eff0f27209e54f95d95d29f8f9da681686fc",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -217,
+      "received_start_gap_ms": 1040,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2813992,
+      "file": "META/2813992.json",
+      "sha256": "67484cb40d83c76ff6d88c854c4b339a71cf10769ce186291680daa8be380547",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 110,
+      "received_start_gap_ms": 1187,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814010,
+      "file": "META/2814010.json",
+      "sha256": "146e1794b0b16a2818a1834392d9166e804dc7b3bd0103f89cf0c66f602baeb1",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -299,
+      "received_start_gap_ms": 871,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814012,
+      "file": "META/2814012.json",
+      "sha256": "43238dbf732a19ed7734d2a0e05d4f5b3250b5a6059158ef2297dacb65d469d0",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -158,
+      "received_start_gap_ms": 1010,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814015,
+      "file": "META/2814015.json",
+      "sha256": "f1c35f6893a7ff265d511ddc563224074a5b24ded47ba51158d7434181f364ed",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 974,
+      "received_start_gap_ms": 2119,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814069,
+      "file": "META/2814069.json",
+      "sha256": "55b368a336ec83bd0c81f26e0fab8be4d3408f846e9d4cc4d75ff5074c75c824",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 200,
+      "received_start_gap_ms": 1420,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814099,
+      "file": "META/2814099.json",
+      "sha256": "b2f926d9cb86498c5daafeabd8d4eddf6f3b79a0c26a2d31f22d5f73295f69ba",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 190,
+      "received_start_gap_ms": 1293,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814103,
+      "file": "META/2814103.json",
+      "sha256": "e37e0f62e03a5512105a13a9e2304ba0f63e8b777bea331b4fc321f6013f8a38",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -439,
+      "received_start_gap_ms": 792,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814122,
+      "file": "META/2814122.json",
+      "sha256": "ae6f7a2996820f45ffac414b608bee3b77cc1573eb051266d15c44d2b162eca0",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 56,
+      "received_start_gap_ms": 1203,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814123,
+      "file": "META/2814123.json",
+      "sha256": "4d087e47fb755b60af1ac11b4792347af3a46d7a7fc03d89d0800887b45db079",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -202,
+      "received_start_gap_ms": 1086,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814126,
+      "file": "META/2814126.json",
+      "sha256": "6bb2ffafb10a88e1e40dd1ac0c44b5bf717ba22aac182c83c45bed20abaf065a",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -251,
+      "received_start_gap_ms": 1044,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814147,
+      "file": "META/2814147.json",
+      "sha256": "1fe3d25a9dde26cb59d8f7e5042f0a7d21a3d78a7524332d08e4e0e19d440238",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 77,
+      "received_start_gap_ms": 1166,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814149,
+      "file": "META/2814149.json",
+      "sha256": "72def1c603053e7037b5c8eefef06b725e9525373e11743105a5e2b5ba7da61e",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -293,
+      "received_start_gap_ms": 1102,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814156,
+      "file": "META/2814156.json",
+      "sha256": "9fe2853876f54b806989c7b29ca03c337e476a344329c5cecdaee81800030140",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -229,
+      "received_start_gap_ms": 990,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814250,
+      "file": "META/2814250.json",
+      "sha256": "ec2c220863a9bb64013beaee78966d41a720ba473beeaabf26fa7f165afd39ea",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 277,
+      "received_start_gap_ms": 1468,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814254,
+      "file": "META/2814254.json",
+      "sha256": "dd458b98fe12b081308e38a6519754e429e4a50008f3c6abc25665693b945c80",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 924,
+      "received_start_gap_ms": 2097,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814257,
+      "file": "META/2814257.json",
+      "sha256": "5d10afd13e236d1cab52aea0fb6481264c015395a289c2dad5e06e3739c569c3",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -305,
+      "received_start_gap_ms": 1105,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814277,
+      "file": "META/2814277.json",
+      "sha256": "3ace0e5cc0e17d47e9497187a99656bfa0141085070cc6589503a857fda5ce74",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -266,
+      "received_start_gap_ms": 1084,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814318,
+      "file": "META/2814318.json",
+      "sha256": "22696db71126c1f730ca8211d61148c6533827774b8c9313a6dbe8c1add69645",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -282,
+      "received_start_gap_ms": 1145,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814322,
+      "file": "META/2814322.json",
+      "sha256": "7d27055c99f6d8706c289a488e895326ded35a405f4b01169f398233f955c750",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -129,
+      "received_start_gap_ms": 1045,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814383,
+      "file": "META/2814383.json",
+      "sha256": "693068e723ca7a46c23fc832f2d78fa79a987877086ff8acd34d5e7aebed2647",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 155,
+      "received_start_gap_ms": 1323,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814443,
+      "file": "META/2814443.json",
+      "sha256": "ea99e971c09b3c0ce38cb0eece30108c746ed36d9e9a463f38c0ed24af5f615b",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 192,
+      "received_start_gap_ms": 1344,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814447,
+      "file": "META/2814447.json",
+      "sha256": "21e3a49db72309514b2f905b29751634f379cc8d2a7b024baf2b02c4a4c60518",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 414,
+      "received_start_gap_ms": 1536,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814462,
+      "file": "META/2814462.json",
+      "sha256": "72a56dab2d4e1ab95ed0543a953f5855bc2e0b993d4971db42a2535e61ecdc1a",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -271,
+      "received_start_gap_ms": 1044,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814559,
+      "file": "META/2814559.json",
+      "sha256": "83f012d4f066f0e0b54745d15f5a921967796ed55053df8b4c01df0b87a06537",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -291,
+      "received_start_gap_ms": 900,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814660,
+      "file": "META/2814660.json",
+      "sha256": "385ca027bc8d5f399ccc6cf5ebc75684b33ddb2269547394c03c43ddf0f692d2",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 1357,
+      "received_start_gap_ms": 2530,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814678,
+      "file": "META/2814678.json",
+      "sha256": "7c339e7ddd87110fe514f4d768949ce00ee976dcbfe4ef9b8b4b67efe86d53e0",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": 524,
+      "received_start_gap_ms": 1732,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    },
+    {
+      "market_id": 2814776,
+      "file": "META/2814776.json",
+      "sha256": "f9a0beff3f0cc91f41a426a3f6c7e711137840581e55a4008b0f7bf705579d2c",
+      "window_duration_ms": 300000,
+      "source_start_gap_ms": -292,
+      "received_start_gap_ms": 790,
+      "exact_12s_context_status": "UNKNOWN_EXACT_12S_BOOK_FROM_META_ONLY",
+      "strict_manifest_hash_match": true,
+      "parent_manifest_hash_match": true
+    }
+  ],
+  "source_sha256": [
+    {
+      "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+      "sha256": "db79135bac4d9b80680e1bf2f8be2afdd2c3e08153e9f2dfc229d08809b11588"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/comparison_policy.py",
+      "sha256": "3babaff221154e5f5fe0459b7fdbf6d2bc2a695e7303cdc2952cde3e6ce1d175"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/stack_replay.py",
+      "sha256": "1099add03680cb5f3501f02160157f938252fe812b182b2ee1b063859925e0de"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/runtime/tools/open_funding_native_active_adapter_v1.py",
+      "sha256": "bfc164e1a849ab45fe3848fd998f4290d6a58b8e744d81f3722792bf42e8225d"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/RULE_CONFORMANCE.patch",
+      "sha256": "3cce9518bc1d83b11bdadd761eb65e3fd8f1867996289544340f1d58d5545934"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/RULE_CONFORMANCE.json",
+      "sha256": "9e18d428c724a1b196f00cb95ffc0a856521fba6fcf1f8f1ba49c4098c80ba42"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/FOLLOW_ON.patch",
+      "sha256": "c6b2eda788b2ac246a382b2a1de0ba5c95706c2440e17f6c61ef6625737db400"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/FOLLOW_ON.json",
+      "sha256": "2a467a7dce072f43041c1d39ec81c0951d4f5c8ac927c3a9cccd3559d0d2f2cb"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/MANIFEST.json",
+      "sha256": "5857af01cf32fcb62812e7566d557574836aacfadf208289f1be685f1dfc7604"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_strict185_20261002_v2r1/SOURCE_PARENT.json",
+      "sha256": "eb470221db4871251bfa6b0217985e1ec77e9fcc19c8abb07cfba090135acc2e"
+    },
+    {
+      "file": "data/research/hft244_v49_repro_20261002_v1/release/engine/patched/hftbacktest/src/types.rs",
+      "sha256": "4229ba7b1bc51c8f82e1761c13ae6120d0f9e654ffaef7b79a12dbf4be4f8b7e"
+    },
+    {
+      "file": "data/research/hft244_v49_repro_20261002_v1/release/engine/patched/hftbacktest/src/backtest/proc/partialfillexchange.rs",
+      "sha256": "0ff437ffba959bf1163ac0c37e3c5c7d9429b66d71ba59128ddcd50484018b6a"
+    },
+    {
+      "file": "data/research/hft244_v49_repro_20261002_v1/release/engine/patched/py-hftbacktest/hftbacktest/order.py",
+      "sha256": "cad7e240f044ef7c3c65334add2cb225eafb48f66a2be2ad614564afe6e6c751"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/MANIFEST.json",
+      "sha256": "8db18b97e7ba4cb83ba171c8cde38d283fd4aad767e216bd4a7700cbc9d09ac9"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/comparison_policy.py",
+      "sha256": "5f8b115cd8c7f0b204d2f03b57b8319d6699074afb8bf2ee5e324fd31e7b6605"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/stack_replay.py",
+      "sha256": "3c056905338584f2af7a5186a2089e4d21c1dacbf53e3bbae820764aa2c51c41"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/runtime/tools/open_funding_native_active_adapter_v1.py",
+      "sha256": "1f058833b0868141271aee3695c79f2a857c73b13dfe51a7e372656f81d2c3c9"
+    }
+  ],
+  "source_parent_code_commit": "3bf09cf645e1d83284825c32196e483294fcd182",
+  "manifest_hash_check": [
+    {
+      "file": "comparison_policy.py",
+      "manifest_sha256": "3babaff221154e5f5fe0459b7fdbf6d2bc2a695e7303cdc2952cde3e6ce1d175",
+      "actual_sha256": "3babaff221154e5f5fe0459b7fdbf6d2bc2a695e7303cdc2952cde3e6ce1d175",
+      "matches": true
+    },
+    {
+      "file": "stack_replay.py",
+      "manifest_sha256": "1099add03680cb5f3501f02160157f938252fe812b182b2ee1b063859925e0de",
+      "actual_sha256": "1099add03680cb5f3501f02160157f938252fe812b182b2ee1b063859925e0de",
+      "matches": true
+    },
+    {
+      "file": "runtime/tools/open_funding_native_active_adapter_v1.py",
+      "manifest_sha256": "bfc164e1a849ab45fe3848fd998f4290d6a58b8e744d81f3722792bf42e8225d",
+      "actual_sha256": "bfc164e1a849ab45fe3848fd998f4290d6a58b8e744d81f3722792bf42e8225d",
+      "matches": true
+    },
+    {
+      "file": "RULE_CONFORMANCE.patch",
+      "manifest_sha256": "3cce9518bc1d83b11bdadd761eb65e3fd8f1867996289544340f1d58d5545934",
+      "actual_sha256": "3cce9518bc1d83b11bdadd761eb65e3fd8f1867996289544340f1d58d5545934",
+      "matches": true
+    },
+    {
+      "file": "RULE_CONFORMANCE.json",
+      "manifest_sha256": "9e18d428c724a1b196f00cb95ffc0a856521fba6fcf1f8f1ba49c4098c80ba42",
+      "actual_sha256": "9e18d428c724a1b196f00cb95ffc0a856521fba6fcf1f8f1ba49c4098c80ba42",
+      "matches": true
+    },
+    {
+      "file": "FOLLOW_ON.patch",
+      "manifest_sha256": "c6b2eda788b2ac246a382b2a1de0ba5c95706c2440e17f6c61ef6625737db400",
+      "actual_sha256": "c6b2eda788b2ac246a382b2a1de0ba5c95706c2440e17f6c61ef6625737db400",
+      "matches": true
+    },
+    {
+      "file": "FOLLOW_ON.json",
+      "manifest_sha256": "2a467a7dce072f43041c1d39ec81c0951d4f5c8ac927c3a9cccd3559d0d2f2cb",
+      "actual_sha256": "2a467a7dce072f43041c1d39ec81c0951d4f5c8ac927c3a9cccd3559d0d2f2cb",
+      "matches": true
+    },
+    {
+      "file": "SOURCE_PARENT.json",
+      "manifest_sha256": "eb470221db4871251bfa6b0217985e1ec77e9fcc19c8abb07cfba090135acc2e",
+      "actual_sha256": "eb470221db4871251bfa6b0217985e1ec77e9fcc19c8abb07cfba090135acc2e",
+      "matches": true
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+FAV_TAKER: common 185 | exact PnL match 185 (100%) | mean |diff| 0.0000 | max |diff| 0.000 | mean |shares diff| 0.0000 | mean |cost diff| 0.0000
+   market 2814776: cloud 122.850 local 122.850
+   market 2814678: cloud 99.600 local 99.600
+   market 2814660: cloud 108.250 local 108.250
+   market 2814559: cloud 114.600 local 114.600
+   market 2814462: cloud 60.600 local 60.600
+UNDER_TAKER: common 185 | exact PnL match 185 (100%) | mean |diff| 0.0000 | max |diff| 0.000 | mean |shares diff| 0.0000 | mean |cost diff| 0.0000
+   market 2814776: cloud -33.750 local -33.750
+   market 2814678: cloud -63.900 local -63.900
+   market 2814660: cloud -60.900 local -60.900
+   market 2814559: cloud -0.781 local -0.781
+   market 2814462: cloud -55.500 local -55.500

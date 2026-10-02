@@ -18268,6 +18268,16 @@
     "bytes": 573486,
     "index_sha256": "762d844e9c3c90a9dbd9d029a5640635a6b43e60936934e58b50826e8f224b7c",
     "sha256sums_sha256": "da767d09418f1f991e2da2a3c8a45be873694e926e1d5d61aab349ed5ec5aa02"
-  }
+  },
+    {
+      "id": "native_v49_stack185_20261002_v2r1",
+      "path": "comparisons/native_v49_stack185_20261002_v2r1",
+      "markets": 185,
+      "status": "COMPLETE_RULE_CORRECTED_FOUR_ARM_COMPARISON_WITH_FOUR_INVALID_INITIAL_CONTEXT_PATHS",
+      "files": 4729,
+      "bytes": 15875799,
+      "index_sha256": "6e56455f3ad6309213bf684b2ffdd4cd21ab775ed4f7147a3818725d2fe3f39e",
+      "sha256sums_sha256": "1ffc377f1a1385842b12ea7ff480154903a4988d4cb37b8852fd8d649b719415"
+    }
 ]
 }

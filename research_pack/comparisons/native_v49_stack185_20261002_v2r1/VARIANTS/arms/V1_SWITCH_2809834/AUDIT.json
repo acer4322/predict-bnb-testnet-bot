@@ -1,0 +1,9 @@
+{
+  "status": "PASS_OBSERVED_ACCOUNTING",
+  "receipt_native_reconciled": true,
+  "inventory_and_cost_reconciled": true,
+  "unresolved_owners": 0,
+  "EOF_terminal_gate": "PASS",
+  "legacy_active_matches_opportunity": "NOT_APPLICABLE_POLICY_REPLACEMENT_NOT_RETESTED",
+  "all_old_gates_passed": false
+}

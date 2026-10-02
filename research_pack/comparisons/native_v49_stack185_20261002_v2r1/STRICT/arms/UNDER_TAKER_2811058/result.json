@@ -1,0 +1,31 @@
+{
+  "market": 2811058,
+  "strategy": "UNDER_TAKER",
+  "pnl": -63.585200000000015,
+  "cost": 63.585200000000015,
+  "up": 304.73,
+  "dn": 0.0,
+  "win": "DOWN",
+  "inferred": false,
+  "pnl_fee_1pct": -64.22105200000001,
+  "pnl_fee_2pct": -64.85690400000001,
+  "submits": 21,
+  "fills": 22,
+  "average_fill_price": 0.2086607816755817,
+  "average_order_seconds": 193.33333333333334,
+  "unresolved_owners_at_eof": 0,
+  "owner_status": "ALL_TERMINAL",
+  "policy_validity": "VALID_OBSERVED_CONTEXT",
+  "effective_strategy": "UNDER_TAKER",
+  "time_in_force": "IOC",
+  "stats": {
+    "DECISION_CLOCKS": 144,
+    "UNDER_MID_BELOW_THRESHOLD": 111,
+    "INTENTS": 21,
+    "OWNED_GE_300": 12
+  },
+  "blocked": [],
+  "native_clock_ms": 1790903400746.0,
+  "accounting_reconciled": true,
+  "fits": 0
+}

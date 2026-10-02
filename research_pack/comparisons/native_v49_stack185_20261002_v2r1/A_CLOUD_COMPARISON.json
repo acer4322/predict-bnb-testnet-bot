@@ -1,0 +1,4471 @@
+{
+  "status": "PASS",
+  "markets": 185,
+  "tolerance_exclusive": 1e-06,
+  "strategies": {
+    "FAV_TAKER": {
+      "pass_count": 185,
+      "fail_count": 0,
+      "rows": [
+        {
+          "market_id": 2802399,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802457,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802465,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802478,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802523,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802581,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802688,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802836,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802854,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802952,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802983,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802995,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803007,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803125,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803245,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803301,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803370,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803390,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803458,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803462,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803490,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803540,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803561,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803615,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803675,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2804139,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2804142,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2804452,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2804574,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805046,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805216,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805223,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805228,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805305,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805349,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805964,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805967,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2806497,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2806933,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807061,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807079,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807092,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807096,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807151,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807156,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807193,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807268,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807308,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807389,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807574,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807667,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807725,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807745,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807825,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807895,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2808604,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2808964,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2808988,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2808990,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809018,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809074,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809076,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809086,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809104,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809119,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809122,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809188,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809212,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809222,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809251,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809252,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809259,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809322,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809326,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809470,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809490,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809563,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809579,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809633,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809635,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809834,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809925,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809929,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809966,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810203,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810219,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810255,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810273,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810275,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810278,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810332,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810339,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810422,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810476,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810509,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810520,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810761,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810879,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810883,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810901,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810903,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810906,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810926,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810966,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810973,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811052,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811058,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811063,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811122,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811125,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811129,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811147,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811149,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811152,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811206,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811210,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811213,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811239,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811302,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811306,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811324,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811400,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811437,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811456,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811457,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811462,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811516,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812106,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812289,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812307,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812327,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812333,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812403,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812404,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812407,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812425,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812427,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812431,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812474,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812488,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812491,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812514,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812605,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812645,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812793,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812795,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812863,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812881,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813213,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813227,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813290,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813384,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813448,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813524,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813837,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813844,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813894,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813989,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813992,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814010,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814012,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814015,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814069,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814099,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814103,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814122,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814123,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814126,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814147,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814149,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814156,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814250,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814254,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814257,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814277,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814318,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814322,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814383,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814443,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814447,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814462,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814559,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814660,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814678,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814776,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        }
+      ],
+      "max_absolute_difference": {
+        "pnl": 0.0,
+        "cost": 0.0,
+        "up": 0.0,
+        "dn": 0.0
+      }
+    },
+    "UNDER_TAKER": {
+      "pass_count": 185,
+      "fail_count": 0,
+      "rows": [
+        {
+          "market_id": 2802399,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802457,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802465,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802478,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802523,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802581,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802688,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802836,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802854,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802952,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802983,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2802995,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803007,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803125,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803245,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803301,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803370,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803390,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803458,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803462,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803490,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803540,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803561,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803615,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2803675,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2804139,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2804142,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2804452,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2804574,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805046,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805216,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805223,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805228,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805305,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805349,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805964,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2805967,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2806497,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2806933,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807061,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807079,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807092,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807096,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807151,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807156,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807193,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807268,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807308,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807389,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807574,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807667,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807725,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807745,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807825,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2807895,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2808604,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2808964,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2808988,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2808990,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809018,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809074,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809076,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809086,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809104,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809119,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809122,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809188,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809212,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809222,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809251,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809252,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809259,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809322,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809326,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809470,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809490,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809563,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809579,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809633,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809635,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809834,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809925,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809929,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2809966,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810203,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810219,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810255,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810273,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810275,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810278,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810332,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810339,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810422,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810476,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810509,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810520,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810761,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810879,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810883,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810901,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810903,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810906,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810926,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810966,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2810973,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811052,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811058,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811063,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811122,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811125,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811129,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811147,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811149,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811152,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811206,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811210,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811213,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811239,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811302,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811306,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811324,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811400,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811437,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811456,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811457,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811462,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2811516,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812106,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812289,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812307,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812327,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812333,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812403,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812404,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812407,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812425,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812427,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812431,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812474,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812488,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812491,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812514,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812605,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812645,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812793,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812795,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812863,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2812881,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813213,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813227,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813290,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813384,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813448,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813524,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813837,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813844,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813894,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813989,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2813992,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814010,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814012,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814015,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814069,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814099,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814103,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814122,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814123,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814126,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814147,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814149,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814156,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814250,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814254,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814257,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814277,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814318,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814322,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814383,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814443,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814447,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814462,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814559,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814660,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814678,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        },
+        {
+          "market_id": 2814776,
+          "pass": true,
+          "local_minus_cloud": {
+            "pnl": 0.0,
+            "cost": 0.0,
+            "up": 0.0,
+            "dn": 0.0
+          },
+          "winner_equal": true,
+          "classification_equal": true
+        }
+      ],
+      "max_absolute_difference": {
+        "pnl": 0.0,
+        "cost": 0.0,
+        "up": 0.0,
+        "dn": 0.0
+      }
+    }
+  }
+}

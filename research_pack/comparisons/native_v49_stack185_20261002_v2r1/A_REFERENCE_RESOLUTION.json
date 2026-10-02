@@ -1,0 +1,10 @@
+{
+  "status": "RESOLVED_PLATFORM_PASS",
+  "previous_packet": "../native_platform185_20261002_v1",
+  "previous_commit": "0fcb3703f3dee37398fbf9b604732521123249da",
+  "resolution_commit": "72095db1",
+  "final_comparison": "A_CLOUD_COMPARISON.json",
+  "earlier_missing_input_receipts": "Historical, preserved unchanged. Both required files now available under docs/research_specs/results.",
+  "rows": 370,
+  "max_absolute_difference": 0.0
+}

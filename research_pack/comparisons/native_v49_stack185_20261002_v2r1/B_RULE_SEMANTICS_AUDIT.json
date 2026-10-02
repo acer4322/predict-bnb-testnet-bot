@@ -1,0 +1,402 @@
+{
+  "version": "native_engine_comparison_b_rule_semantics_audit_v1",
+  "status": "DIFFERENCES_AND_UNKNOWNS",
+  "scope": {
+    "task_root": "data/research/native_engine_comparison_20261002_v1",
+    "source_files_only": [
+      "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+      "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+      "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+      "tools/hft_repro/strategy_lab.py",
+      "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/FOLLOW_ON.patch",
+      "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/FOLLOW_ON.json",
+      "data/research/native_engine_comparison_20261002_v1/analyze_complete.py"
+    ],
+    "performed": "Source-only semantic comparison of Section B rules, A's unchanged strategy_lab, the frozen V49 mixed-kernel wrapper, follow-on variant patch, and comparison-scope declarations.",
+    "not_performed": [
+      "No source or frozen file was edited.",
+      "No native engine, worker, replay, or analysis script was executed.",
+      "No per-market result, order receipt, market event, or outcome file was read for this report.",
+      "No causal component attribution was attempted.",
+      "The main-agent per-market B_PATH_VALIDITY artifact was not opened; its evidence is maintained separately."
+    ]
+  },
+  "summary": {
+    "pass": 3,
+    "difference": 6,
+    "unknown": 4,
+    "conclusion": "The frozen action producer matches key Section B timing and current-hot predicates, but the available sources do not support a claim of complete specification equivalence or original CG1AT-alpha replay."
+  },
+  "items": [
+    {
+      "id": "B_TIME_GRID_THRESHOLDS_AND_SIDE_RULES",
+      "status": "PASS",
+      "finding": "The comparison policy implements the 12+2k decision grid, exclusive 270s/290s stops, FAV current-hot [.55,.70] band, permanent F<=.40 stop, and UNDER current-hot >=.75/opposite-side selection. It emits 15-share ACTIVE intents at the side-owned ask price.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "lines": "16-17",
+          "excerpt": "FAV：...每 2 秒（12 ≤ t < 270）...；買冷門：每 2 秒（12 ≤ t < 290）...買「非熱門」那邊 15 股"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "43-65",
+          "excerpt": "12+2k grid; FAV_STOP270 / UNDER_STOP290; current_mid thresholds; qty=15 and side-owned ask price"
+        }
+      ],
+      "limitation": "This pass is limited to the action predicates, not order-lifetime or whole-kernel parity."
+    },
+    {
+      "id": "FAV_INITIAL_SIDE_EXACT_12S",
+      "status": "DIFFERENCE",
+      "finding": "The policy sets F on the first valid call with age>=12000, rather than requiring a valid snapshot exactly at 12s. Invalid quotes return before F is initialized. If the 12s call is absent or invalid, a later grid call can anchor F to a later mid; the self-test only exercises the exact-12s case.",
+      "cohort_occurrence": "UNKNOWN from the permitted source set; do not synthesize a 12s F for a market whose 12s quote is unavailable.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "33-39",
+          "excerpt": "invalid book returns; otherwise age>=12000 initializes self.fav"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "75-80",
+          "excerpt": "self-test calls exactly t=12000 and does not test a missing/invalid 12s frame"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "120-127",
+          "excerpt": "the loop begins at the first received-millisecond ceiling and advances at 1Hz"
+        }
+      ],
+      "limitation": "Code-level late-initialization behavior is established; whether a cohort market lacks a valid 12s frame is outside this source-only audit.",
+      "per_market_evidence_pointer": "Main-agent B_PATH_VALIDITY artifact; not opened or used as evidence in this source-only audit."
+    },
+    {
+      "id": "FAV_FIXED_F_VERSUS_CURRENT_HOT",
+      "status": "PASS",
+      "finding": "Section B uses fixed F only for the <=.40 permanent stop, while eligibility and purchase side use the current hot side. The frozen policy follows that distinction: fmid tracks initial F for the stop; current/current_mid select the band and side.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "lines": "16",
+          "excerpt": "F is defined at 12s; the band condition is the current hot mid; F has a separate <=.40 permanent stop"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "38-42",
+          "excerpt": "initial self.fav is stored and fmid drives the permanent stop"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "49-58",
+          "excerpt": "current side/current_mid drive the FAV band and emitted side"
+        }
+      ],
+      "limitation": "The separate exact-12s initialization limitation is recorded in FAV_INITIAL_SIDE_EXACT_12S."
+    },
+    {
+      "id": "300_SHARE_GATE_COUNTS_PENDING",
+      "status": "DIFFERENCE",
+      "finding": "Section B states a holdings/share gate. The implementation defines owned as inventory plus pending remaining quantity and blocks at owned>=300. The producer calculates pending from nonterminal live carriers. This is stricter than a holdings-only gate whenever unfilled orders exist. The 15-share amount is not clipped to the remaining capacity, so the code should not be described as enforcing a hard post-trade maximum of 300.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "lines": "16-17",
+          "excerpt": "且持股 < 300"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "48-53",
+          "excerpt": "owned = sum(inventory.values()) + sum(pending.values()); owned>=300 blocks"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "64-65",
+          "excerpt": "a passing intent still emits qty=15"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "46-49",
+          "excerpt": "pending is remaining quantity for live nonterminal carriers and is passed into intent()"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "88-89",
+          "excerpt": "self-test confirms inventory 290 plus pending 10 blocks"
+        }
+      ],
+      "comparison_to_original_lab": "The original strategy_lab also adds live unfilled quantity to shares before its <cap test (lines 45 and 52); that shared behavior does not make it holdings-only."
+    },
+    {
+      "id": "ORIGINAL_LAB_FAV_RULE_EQUIVALENCE",
+      "status": "DIFFERENCE",
+      "finding": "The unchanged strategy_lab adds a second FAV gate: fixed initial-F mid must itself remain in [.55,.70], then the current-hot mid must also be in [.55,.70]. Section B and comparison_policy gate only on current-hot mid, while fixed F is used for the permanent <=.40 stop. After F softens below .55 but remains above .40, the frozen B policy may buy the opposite current-hot side while the original lab blocks. Do not describe the two FAV producers as identical.",
+      "evidence": [
+        {
+          "file": "tools/hft_repro/strategy_lab.py",
+          "lines": "39-49",
+          "excerpt": "fixed fav/fm; fixed-F band at line 45; current side/current-mid band at lines 46-48"
+        },
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "lines": "16",
+          "excerpt": "B specifies current-hot band plus the fixed-F permanent stop"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "49-58",
+          "excerpt": "B policy gates on current_mid and buys current side"
+        }
+      ],
+      "causal_attribution": "Not assigned; this identifies a rule difference, not an observed PnL cause."
+    },
+    {
+      "id": "UNDER_CURRENT_HOT_RULE",
+      "status": "PASS",
+      "finding": "The B policy's UNDER condition uses current_hot_mid>=.75 and buys the opposite side; the original lab uses the same current-side threshold and opposite-side selection. Timing and cap/order-lifetime qualifications are audited separately.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "lines": "17",
+          "excerpt": "當前熱門中價 ≥ .75 ... 買非熱門那邊 15 股"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "59-65",
+          "excerpt": "UNDER_STOP290; current_mid<.75 blocks; opposite side emits 15"
+        },
+        {
+          "file": "tools/hft_repro/strategy_lab.py",
+          "lines": "51-56",
+          "excerpt": "sec<290; computes current hot side; buys its opposite side"
+        }
+      ]
+    },
+    {
+      "id": "STRICT_TAKER_ONLY_ENFORCEMENT",
+      "status": "DIFFERENCE",
+      "finding": "Section B requires only-taker execution. The B policy emits route=ACTIVE; the stack wrapper creates an ACTIVE NEW and reserves ACTIVE while labeling its role TAKER. The original lab uses GTC LIMIT for non-passive taker orders. The allowed sources show marketable ask prices but no IOC/FOK or immediate-remainder-cancel enforcement. A TAKER role string and ACTIVE route do not establish a taker-only fill constraint.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "lines": "16-17",
+          "excerpt": "只有吃單"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "64-65",
+          "excerpt": "route='ACTIVE'"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "51-57",
+          "excerpt": "NEW route ACTIVE; reserve ACTIVE; role label COMPARISON_FROZEN_TAKER"
+        },
+        {
+          "file": "tools/hft_repro/strategy_lab.py",
+          "lines": "17-19",
+          "excerpt": "submit uses LIMIT with GTX only for passive; otherwise GTC"
+        },
+        {
+          "file": "tools/hft_repro/strategy_lab.py",
+          "lines": "48-56",
+          "excerpt": "FAV/UNDER taker branches send the marketable side price with gtx=False"
+        }
+      ],
+      "limitation": "The report cannot certify complete compliance with the spec's only-taker requirement from these sources."
+    },
+    {
+      "id": "ACTIVE_GTC_MAKER_FILL_POSSIBILITY",
+      "status": "UNKNOWN",
+      "finding": "The source uses GTC LIMIT for taker-labelled orders and tracks NEW/PARTIALLY_FILLED orders as live; taker orders have no general immediate-cancel rule shown. A GTC remainder may therefore remain eligible for later matching, but the permitted sources do not include the V49 active adapter or matching-engine implementation needed to determine whether that remainder can actually receive maker-classified fills.",
+      "evidence": [
+        {
+          "file": "tools/hft_repro/strategy_lab.py",
+          "lines": "17-19",
+          "excerpt": "non-GTX orders are submitted as GTC LIMIT"
+        },
+        {
+          "file": "tools/hft_repro/strategy_lab.py",
+          "lines": "27-30",
+          "excerpt": "NEW and PARTIALLY_FILLED orders remain live"
+        },
+        {
+          "file": "tools/hft_repro/strategy_lab.py",
+          "lines": "43-50",
+          "excerpt": "flip cancels FAV orders; 10s TTL cancellation is limited to FAV_PASSIVE"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "73-80",
+          "excerpt": "the wrapper imports the active adapter and receipt classes, but their implementation is outside this allowed source set"
+        }
+      ],
+      "limitation": "Do not assert either that ACTIVE GTC did produce maker fills or that maker fills are impossible based on this source-only review."
+    },
+    {
+      "id": "V49_MIXED_KERNEL_INTEGRATION_SCOPE",
+      "status": "PASS",
+      "finding": "The frozen wrapper's declared integration path checks the selected backend binary hash, imports the V49 minimal-pair/quantity seam/active mixed adapter/receipt components, installs the adapter, and constructs a Student from make_mixed_training_class. This supports the bounded claim that the replay uses the V49 mixed whole-plan/owner/receipt wrapper path.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "64-85",
+          "excerpt": "candidate backend hash assertion; V49 runtime imports; mixed-class construction prerequisites"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "157-162",
+          "excerpt": "install unchanged V49 components and construct Student using make_mixed_training_class"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "1-5",
+          "excerpt": "describes the path as the actual V49 mixed whole-plan/receipt kernel"
+        }
+      ],
+      "limitation": "This is a source-level integration-path claim, not independent verification of every internal V49 adapter or binary semantic."
+    },
+    {
+      "id": "ORIGINAL_CG1AT_ALPHA_REPLAYED",
+      "status": "DIFFERENCE",
+      "finding": "The B experiment replaces CG1AT alpha decisions with the frozen FAV/UNDER producer. The script's declared results also state original_CG1AT_alpha_replayed=false. It is not an experiment of the original CG1AT alpha/learned progression.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "1-5",
+          "excerpt": "frozen FAV/UNDER producer replaces CG1AT alpha; no repair, passive conversion, or learned progression is added"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "167-176",
+          "excerpt": "baseline loops only FAV_TAKER/UNDER_TAKER; result sets original_CG1AT_alpha_replayed=false"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/analyze_complete.py",
+          "lines": "79",
+          "excerpt": "scope says frozen spec action producer on V49 mixed kernel; original CG1AT alpha not replayed"
+        }
+      ],
+      "implication": "Do not describe this as a replay or validation of the original CG1AT alpha."
+    },
+    {
+      "id": "V1_V2_AND_RV_INPUT_SCOPE",
+      "status": "DIFFERENCE",
+      "finding": "The frozen baseline runner executes only FAV_TAKER and UNDER_TAKER and marks V1_SWITCH/V2_THROTTLE not run for missing required RV5. The follow-on patch adds those as a separate per-market RV-selected run. Its metadata describes the RV table as a supplied exogenous input and says raw spot-bar reconstruction was not provided.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "lines": "18",
+          "excerpt": "V1/V2 require pre-window rv_5m and the specified threshold"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "9-20",
+          "excerpt": "RV threshold and V1/V2 effective-strategy selection"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "167-176",
+          "excerpt": "baseline runs FAV/UNDER; V1/V2 are marked NOT_RUN_MISSING_REQUIRED_RV5"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/FOLLOW_ON.patch",
+          "lines": "7-12,38-52",
+          "excerpt": "follow-on reads per-market RV5 and switches runner arms to V1_SWITCH/V2_THROTTLE"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/FOLLOW_ON.json",
+          "lines": "5-13",
+          "excerpt": "records RV table hash/row count and that independent raw spot-bar reconstruction was not provided"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/analyze_complete.py",
+          "lines": "79",
+          "excerpt": "variant cloud comparison is a composed reference, not a separately supplied cloud variant run"
+        }
+      ],
+      "associated_unknown": "UNKNOWN whether the supplied RV table can be independently reconstructed from raw spot bars; the raw bars are explicitly absent from the cited evidence."
+    },
+    {
+      "id": "V49_INTERNAL_PARITY_AND_CAUSAL_ATTRIBUTION",
+      "status": "UNKNOWN",
+      "finding": "The permitted wrapper shows which V49 components are imported and used, but does not establish semantic parity of every imported internal component. The analysis source explicitly states component causal attribution was not isolated by ablation. No kernel component is assigned as the cause of an observed difference here.",
+      "evidence": [
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "73-85,157-162",
+          "excerpt": "imports and invokes selected V49 components; their implementations are not among the permitted sources"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/analyze_complete.py",
+          "lines": "79",
+          "excerpt": "component_causal_attribution is NOT_ISOLATED_BY_ABLATION"
+        }
+      ],
+      "limitation": "Causal mechanism attribution remains UNKNOWN."
+    },
+    {
+      "id": "COMPLETE_SECTION_B_COMPLIANCE_CLAIM",
+      "status": "DIFFERENCE",
+      "finding": "Complete Section B compliance cannot be claimed from these sources: pending shares count toward the 300 gate; the only-taker constraint is not enforced explicitly by the cited GTC/ACTIVE actions; the exact-12s F anchor is conditional on a valid 12s call; V1/V2 are a separate follow-on and their raw RV input is not independently reconstructed; and original CG1AT alpha is not replayed.",
+      "evidence": [
+        {
+          "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+          "lines": "14-21",
+          "excerpt": "frozen B rules and requested comparison scope"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+          "lines": "33-65",
+          "excerpt": "first-valid-call F initialization, pending-inclusive gate, ACTIVE route"
+        },
+        {
+          "file": "tools/hft_repro/strategy_lab.py",
+          "lines": "17-19,39-56",
+          "excerpt": "GTC taker orders and the extra fixed-F band gate in original lab FAV"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+          "lines": "1-5,167-176",
+          "excerpt": "B producer replaces alpha; only FAV/UNDER baseline arms"
+        },
+        {
+          "file": "data/research/native_engine_comparison_20261002_v1/analyze_complete.py",
+          "lines": "79",
+          "excerpt": "original alpha not replayed; causal attribution not isolated"
+        }
+      ],
+      "allowed_claim": "A frozen Section B action producer was exercised through a selected V49 mixed execution wrapper for the FAV/UNDER baseline, with separately patched RV-selected follow-on sources. Do not call this complete original-strategy or strict-only-taker specification parity."
+    }
+  ],
+  "source_hashes_sha256": [
+    {
+      "file": "docs/research_specs/NATIVE_ENGINE_COMPARISON_SPEC_20261002_ZH.md",
+      "sha256": "db79135bac4d9b80680e1bf2f8be2afdd2c3e08153e9f2dfc229d08809b11588"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/comparison_policy.py",
+      "sha256": "5f8b115cd8c7f0b204d2f03b57b8319d6699074afb8bf2ee5e324fd31e7b6605"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack185_20261002_v1/stack_replay.py",
+      "sha256": "53196e98bbf9dc14e7c0d6422d26ce752d127a82a4545473b044237a70136bad"
+    },
+    {
+      "file": "tools/hft_repro/strategy_lab.py",
+      "sha256": "a76e5f773a6d0ea51156dddf08184b0ef16d253ecc7c8c903084558ddf1d6428"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/FOLLOW_ON.patch",
+      "sha256": "f3ea24563e2c8992fa71b72ffa3d78ed5a8ac33b19f1ef7063d080ef8c51a773"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/stage/native_engine_stack_variants185_20261002_v1/FOLLOW_ON.json",
+      "sha256": "b6f09a4473341ce11a3e10c826c2845982c5b49e85d5bc6c7495128a7316b31a"
+    },
+    {
+      "file": "data/research/native_engine_comparison_20261002_v1/analyze_complete.py",
+      "sha256": "1750c79704f7a7f1050cb5c89ca562b2739f6c4e5edd4857b2a502f07d20d281"
+    }
+  ]
+}

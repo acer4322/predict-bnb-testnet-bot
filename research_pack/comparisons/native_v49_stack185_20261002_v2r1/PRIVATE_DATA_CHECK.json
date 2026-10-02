@@ -1,0 +1,19 @@
+{
+  "status": "PASS_MANUALLY_REVIEWED",
+  "FLAGGED": 1,
+  "scan": "sync_research_pack FLAG patterns including gzip decompression",
+  "reviewed_flags": [
+    {
+      "file": "B_INDEPENDENT_AUDIT.json",
+      "sha256": "80409e1d9209e73b313761cf8a7da297cbb90ba951dac5a3ac9e3dc9a0cf5af8",
+      "pattern_indices": [
+        1
+      ],
+      "line": 8,
+      "disposition": "Generic credential vocabulary in privacy-scan scope prose only. Exact line manually examined; no credential value or private identifier. Original independent report preserved unchanged."
+    }
+  ],
+  "private_identifiers": 0,
+  "source_scope": "new research code, public metadata, simulated orders and native receipts; unchanged runtime source remains available in the pinned repro branch",
+  "allowed_ids": "public market_id and synthetic order_sequence; no private account address, wallet, observed order hash, or transaction hash"
+}

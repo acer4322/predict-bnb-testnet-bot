@@ -1,0 +1,9 @@
+{
+  "package": "native_engine_stack_strict185_20261002_v2",
+  "stage_preserved": true,
+  "status": "LOAD_ONLY_FAIL",
+  "error": "IOC is not a top-level hftbacktest export; hftbacktest.order.IOC and Rust TimeInForce::IOC both equal 3",
+  "native_executed": 0,
+  "submitted": false,
+  "repair_package": "native_engine_stack_strict185_20261002_v2r1"
+}

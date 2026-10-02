@@ -1,0 +1,13 @@
+{
+  "status": "COMPLETE_STACK_FAV_UNDER185",
+  "job_id": "native-engine-stack-fav-under-185-20261002-v1",
+  "markets": 185,
+  "rows": 370,
+  "elapsed_seconds": 225.86147019988857,
+  "V1_SWITCH": "NOT_RUN_MISSING_REQUIRED_RV5",
+  "V2_THROTTLE": "NOT_RUN_MISSING_REQUIRED_RV5",
+  "fits": 0,
+  "live_changes": 0,
+  "policy_scope": "FROZEN_SPEC_PRODUCER_ON_V49_MIXED_WHOLE_PLAN_OWNER_RECEIPT_KERNEL",
+  "original_CG1AT_alpha_replayed": false
+}

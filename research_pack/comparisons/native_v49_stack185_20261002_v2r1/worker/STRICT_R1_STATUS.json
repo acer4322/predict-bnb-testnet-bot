@@ -1,0 +1,29 @@
+{
+  "job_id": "native-engine-stack-strict-four185-20261002-v2r1",
+  "state": "succeeded",
+  "pid": 108764,
+  "return_code": 0,
+  "started_at": 1790939007.629557,
+  "ended_at": 1790939430.0306501,
+  "elapsed_seconds": 422.401,
+  "resource_class": "cpu",
+  "result_dir": "C:\\BTC5M-worker\\.lan_worker_v1\\results\\native-engine-stack-strict-four185-20261002-v2r1",
+  "stdout_bytes": 9279,
+  "stderr_bytes": 0,
+  "heartbeat": {
+    "job_id": "native-engine-stack-strict-four185-20261002-v2r1",
+    "observed_at": 1790939430.025786,
+    "runner_pid": 111320,
+    "child_pid": 108764,
+    "child_return_code": 0,
+    "elapsed_wall_seconds": 422.396,
+    "sample_number": -1,
+    "sleep_guard_active": false,
+    "sleep_guard_release_error": null,
+    "stdout_bytes": 9279,
+    "stderr_bytes": 0,
+    "process_sample_error": "psutil.NoSuchProcess(pid=108764, msg='process PID not found')",
+    "age_seconds": 154.553,
+    "stale_while_running": false
+  }
+}

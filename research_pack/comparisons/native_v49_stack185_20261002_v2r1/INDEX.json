@@ -1,0 +1,70 @@
+{
+  "id": "native_v49_stack185_20261002_v2r1",
+  "status": "COMPLETE_RULE_CORRECTED_FOUR_ARM_COMPARISON_WITH_FOUR_INVALID_INITIAL_CONTEXT_PATHS",
+  "markets": 185,
+  "rows": 740,
+  "diagnostic_GTC_rows": 740,
+  "jobs": [
+    {
+      "id": "native-engine-stack-fav-under-185-20261002-v1",
+      "state": "succeeded",
+      "return_code": 0,
+      "worker_elapsed_seconds": 227.878,
+      "submit_attempts": 1,
+      "parallel_paths": 1,
+      "max_threads": 4
+    },
+    {
+      "id": "native-engine-stack-switch-throttle-185-20261002-v1",
+      "state": "succeeded",
+      "return_code": 0,
+      "worker_elapsed_seconds": 192.85,
+      "submit_attempts": 1,
+      "parallel_paths": 1,
+      "max_threads": 4
+    },
+    {
+      "id": "native-engine-stack-strict-four185-20261002-v2r1",
+      "state": "succeeded",
+      "return_code": 0,
+      "worker_elapsed_seconds": 422.401,
+      "submit_attempts": 1,
+      "parallel_paths": 1,
+      "max_threads": 4
+    }
+  ],
+  "A_platform_acceptance": "PASS_MAX_DIFFERENCE_0",
+  "A_final_comparison": "A_CLOUD_COMPARISON.json",
+  "A_order_observation_job": "native-engine-platform-order-audit185-20261002-v1",
+  "B_comparison": "B_STRICT_CLOUD_COMPARISON.json",
+  "B_order_count_time_comparison": "B_ORDER_COMPARISON.json",
+  "B_classified_results": "B_STRICT_ALL_CLASSIFIED_RESULTS.json",
+  "B_path_validity": "B_STRICT_PATH_VALIDITY.json",
+  "strategies": [
+    "FAV_TAKER",
+    "UNDER_TAKER",
+    "V1_SWITCH",
+    "V2_THROTTLE"
+  ],
+  "numeric_gates": {
+    "FAV_TAKER": "FAIL",
+    "UNDER_TAKER": "PASS",
+    "V1_SWITCH": "PASS",
+    "V2_THROTTLE": "PASS"
+  },
+  "full_spec_acceptance": {
+    "FAV_TAKER": "INVALID_INCOMPLETE_INITIAL_F_CONTEXT",
+    "UNDER_TAKER": "PASS_DECLARED_NUMERIC_GATES",
+    "V1_SWITCH": "INVALID_INCOMPLETE_INITIAL_F_CONTEXT",
+    "V2_THROTTLE": "PASS_DECLARED_NUMERIC_GATES"
+  },
+  "strict_taker_only": "PASS_ZERO_OBSERVED_MAKER_FILLS_IOC",
+  "holdings_predicate": "CONFIRMED_INVENTORY_ONLY; pending ownership ledger preserved",
+  "original_CG1AT_alpha_replayed": false,
+  "cloud_order_sequence_comparison": "UNKNOWN_NOT_RECORDED; local A order sequence now observed",
+  "private_data": "ONLY_PUBLIC_INPUT_IDS_AND_SYNTHETIC_SIMULATOR_COUNTERS",
+  "engine_native_sha256": "033469835b44f94f1a022e419e79be61be72a9f2501ceea11b8e255b4824d145",
+  "all_old_gates_passed": false,
+  "model_fits": 0,
+  "live_changes": 0
+}

@@ -1,0 +1,58 @@
+--- A_parent/platform_worker.py
++++ A_order_observer/platform_worker.py
+@@ -14,6 +14,7 @@
+ 
+ P = Path(__file__).resolve().parent
+ OUT = Path(os.environ.get('BTC5M_LAN_RESULT_DIR', str(P/'not-dispatched')))
++FX = Path(r'C:\BTC5M-worker\.lan_worker_v1\staging\native_engine_platform185_20261002_v1\fixtures')
+ 
+ def sha(path):
+     with path.open('rb') as f:
+@@ -47,7 +48,7 @@
+     import numpy as np
+     for r in labels:
+         assert r['winner'] in ('UP','DOWN')
+-        fx = P/'fixtures'/str(r['market_id'])
++        fx = FX/str(r['market_id'])
+         with np.load(fx/'events.npz') as z:
+             assert len(z['data']) > 0 and z['data'].dtype == hftbacktest.event_dtype
+         assert isinstance(json.loads((fx/'FIXTURE.json').read_text())['conversion_info']['firstReceivedMs'], int)
+@@ -60,13 +61,17 @@
+     assert os.environ.get('BTC5M_LAN_RESULT_DIR') and not (OUT/'local.json').exists()
+     save(OUT/'ENGINE_READBACK.json', readback)
+     began = time.monotonic()
+-    sys.argv = [str(P/'strategy_lab.py'), str(P/'repro'), str(P/'fixtures'), str(P/'LABELS.json'), '--only','FAV_TAKER,UNDER_TAKER','--out',str(OUT/'local.json')]
++    sys.argv = [str(P/'strategy_lab.py'), str(P/'repro'), str(FX), str(P/'LABELS.json'), '--only','FAV_TAKER,UNDER_TAKER','--out',str(OUT/'local.json')]
+     # Observe completed Python run() returns; never replace a strategy or actuator.
+     # This also retains complete market rows if the unchanged final statistics fail.
+-    completed=[]
++    completed=[]; order_summaries=[]
+     def progress(frame, event, arg):
+         if event=='return' and frame.f_code.co_name=='run' and frame.f_code.co_filename==str(P/'strategy_lab.py') and isinstance(arg,dict) and 'pnl' in arg:
+             completed.append({'strategy':frame.f_locals['strat'], **arg})
++            mid=arg['market']; strategy=frame.f_locals['strat']
++            meta=json.loads((P/'META'/f'{mid}.json').read_text())
++            os=[{'order_sequence':o['n'],'place_ms':o['t'],'official_window_seconds':(o['t']-meta['window_start_ms'])/1000,'lab_window_seconds':(o['t']-frame.f_locals['start'])/1000,'side':o['side'],'qty':o['qty']} for o in frame.f_locals['orders'].values()]
++            order_summaries.append({'market_id':mid,'strategy':strategy,'orders':os,'order_count':len(os),'average_official_window_seconds':sum(o['official_window_seconds'] for o in os)/len(os) if os else None,'sum_order_seconds':sum(o['official_window_seconds'] for o in os),'observer':'sys.setprofile run return-frame read-only; original lab bytecode unchanged'})
+             if len(completed)%5==0 or len(completed)==370:
+                 save(OUT/'PARTIAL.json', {'completed':len(completed),'rows':completed})
+                 print(json.dumps({'completed':len(completed),'expected':370,'market':arg['market'],'strategy':frame.f_locals['strat']}),flush=True)
+@@ -75,6 +80,7 @@
+         runpy.run_path(str(P/'strategy_lab.py'), run_name='__main__')
+     finally:
+         sys.setprofile(None)
++    save(OUT/'A_ORDER_SUMMARIES.json', {'rows':order_summaries,'observer':'return-frame only; no advance, submit, cancel or strategy replacement in observer'})
+     result = json.loads((OUT/'local.json').read_text())
+     expected = {r['market_id'] for r in json.loads((P/'LABELS.json').read_text())['records']}
+     assert set(result) == {'FAV_TAKER','UNDER_TAKER'}
+@@ -82,8 +88,8 @@
+         assert len(rows) == 185 and {r['market'] for r in rows} == expected
+         assert all(r['inferred'] is False for r in rows)
+         assert all(__import__('math').isfinite(float(r[n])) for r in rows for n in ('pnl','cost','up','dn'))
+-    save(OUT/'RESULT.json', {'status':'COMPLETE_PLATFORM_LOCAL185', 'job_id':os.environ['BTC5M_LAN_WORKER_JOB_ID'], 'markets':185, 'strategy_market_rows':370, 'elapsed_seconds':time.monotonic()-began, 'local_sha256':sha(OUT/'local.json'), 'cloud_comparison':'PENDING_REQUIRED_CLOUD_RESULT_FILE', 'model_fits':0, 'live_changes':0})
+-    print(json.dumps({'status':'COMPLETE_PLATFORM_LOCAL185', 'rows':370}), flush=True)
++    save(OUT/'RESULT.json', {'status':'COMPLETE_PLATFORM_ORDER_AUDIT185', 'job_id':os.environ['BTC5M_LAN_WORKER_JOB_ID'], 'markets':185, 'strategy_market_rows':370, 'elapsed_seconds':time.monotonic()-began, 'local_sha256':sha(OUT/'local.json'), 'cloud_comparison':'PENDING_REQUIRED_CLOUD_RESULT_FILE', 'model_fits':0, 'live_changes':0})
++    print(json.dumps({'status':'COMPLETE_PLATFORM_ORDER_AUDIT185', 'rows':370}), flush=True)
+ 
+ if __name__ == '__main__':
+     ap=argparse.ArgumentParser(); ap.add_argument('--check-only',action='store_true')

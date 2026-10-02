@@ -1,0 +1,6 @@
+{
+  "parent": "native_engine_platform185_20261002_v1",
+  "strategy_lab_sha256_unchanged": "a76e5f773a6d0ea51156dddf08184b0ef16d253ecc7c8c903084558ddf1d6428",
+  "change": "Only read original run() locals at return for order count/time; no lab code or engine mutation. Same existing fixtures referenced.",
+  "fits": 0
+}

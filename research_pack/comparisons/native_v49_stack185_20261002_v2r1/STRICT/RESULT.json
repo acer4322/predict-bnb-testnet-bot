@@ -1,0 +1,14 @@
+{
+  "status": "COMPLETE_STACK_STRICT_FOUR_ARM185",
+  "job_id": "native-engine-stack-strict-four185-20261002-v2r1",
+  "markets": 185,
+  "rows": 740,
+  "elapsed_seconds": 420.294458999997,
+  "V1_SWITCH": "COMPLETE",
+  "V2_THROTTLE": "COMPLETE",
+  "rv_threshold": 3.1834e-05,
+  "fits": 0,
+  "live_changes": 0,
+  "policy_scope": "FROZEN_SPEC_PRODUCER_ON_V49_MIXED_WHOLE_PLAN_OWNER_RECEIPT_KERNEL",
+  "original_CG1AT_alpha_replayed": false
+}

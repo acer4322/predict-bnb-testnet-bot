@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "engine_executed": 0,
+  "fits": 0,
+  "coverage": [
+    "decision_grid",
+    "permanent_flip_stop",
+    "270/290_exclusive",
+    "side_own_price",
+    "confirmed_holdings_cap_pending_retained_by_ledger",
+    "missing_exact_12s_F_invalid",
+    "switch_boundary",
+    "missing_rv_rejected"
+  ]
+}

@@ -1,0 +1,34 @@
+--- v2/runtime/tools/open_funding_native_active_adapter_v1.py
++++ v2r1/runtime/tools/open_funding_native_active_adapter_v1.py
+@@ -8,6 +8,7 @@
+ """
+ from __future__ import annotations
+ from collections import Counter
++from hftbacktest.order import IOC
+ from copy import deepcopy
+ from dataclasses import asdict
+ 
+@@ -103,8 +104,8 @@
+                 else:
+                     n=self.n;self.n+=1;native_side,native_price=base.ex.native_order(op['side'],op['price'])
+                     try:
+-                        if native_side=='BUY':rc=int(self.bt.submit_buy_order(0,int(n),native_price,float(op['qty']),base.ex.hbt.IOC,base.ex.hbt.LIMIT,False))
+-                        else:rc=int(self.bt.submit_sell_order(0,int(n),native_price,float(op['qty']),base.ex.hbt.IOC,base.ex.hbt.LIMIT,False))
++                        if native_side=='BUY':rc=int(self.bt.submit_buy_order(0,int(n),native_price,float(op['qty']),IOC,base.ex.hbt.LIMIT,False))
++                        else:rc=int(self.bt.submit_sell_order(0,int(n),native_price,float(op['qty']),IOC,base.ex.hbt.LIMIT,False))
+                     except Exception:
+                         self.gateway.record_send(op['key'],'UNKNOWN',evidence='ACTIVE_NATIVE_SEND_EXCEPTION_KEEP_RESERVED');raise
+                     if rc!=0:
+
+--- v2/stack_replay.py
++++ v2r1/stack_replay.py
+@@ -69,7 +69,8 @@
+     sys.path.insert(0,str(Path(candidate['backend'])))
+     sys.path.insert(0,str(P/'runtime'));sys.path.insert(0,str(P/'runtime/src'))
+     import hftbacktest
+-    assert hasattr(hftbacktest,"IOC"), "IOC native capability required"
++    from hftbacktest.order import IOC
++    assert IOC==3, "IOC ABI must match the existing Rust TimeInForce enum"
+     assert Path(hftbacktest.__file__).resolve()==binary.parent/'__init__.py'
+     from tools import run_eth_role_separated_minimal_pair_safety_smoke as minimal
+     from tools.minimal_student_quantity_seam_v1 import make_student_class

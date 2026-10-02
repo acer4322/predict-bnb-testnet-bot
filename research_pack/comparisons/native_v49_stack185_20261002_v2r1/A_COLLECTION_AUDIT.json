@@ -1,0 +1,15 @@
+{
+  "status": "PASS_LOCAL_COMPLETENESS_AND_HASH",
+  "remote_local_hashes": {
+    "ENGINE_READBACK.json": "2916f00840d9618b0e5931f22a4fb8adada6c593852f6dd59cee06fff5baef01",
+    "local.json": "7bf82a59df62e69f2a4a1f42083c94c9edf34ffe17867eef120573d1d69b2b4c",
+    "PARTIAL.json": "da73e3d8a72a1dd1a8a5a73e59f7c900465dfc54af32c41cb5d46934ea51bbd5",
+    "RESULT.json": "b89435c3c08c523fcd1296be92316f981d7307f0f279890445936e5b9c4d36eb"
+  },
+  "markets": 185,
+  "rows": 370,
+  "official_labels": 185,
+  "cloud_comparison": "UNKNOWN_MISSING_REQUIRED_CLOUD_JSON",
+  "legacy_full_owner_audit": "NOT_APPLICABLE_A_DIRECT_NATIVE_LAB",
+  "no_economic_verdict": true
+}
