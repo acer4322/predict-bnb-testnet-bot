@@ -1,0 +1,26 @@
+{
+  "INSTALL.patch": {
+    "sha256": "9ac557db5b72ec6140b598af1eac6df29020003e739e067c1a4a53e80aa5fbde",
+    "bytes": 51915
+  },
+  "READ_ONLY_PROBE.json": {
+    "sha256": "251ef4f47cf665dcd5f95086f001562411299271a17a3f1a05652249430134a0",
+    "bytes": 2431
+  },
+  "README.md": {
+    "sha256": "f022259cad9ae1d8df79d76ffedd609ec0020e5482cd5d11e3941334a58125cf",
+    "bytes": 3272
+  },
+  "RUNBOOK.md": {
+    "sha256": "c1ae01de4024f438bd2e51b922e736953e08033167ee190b7b55a20a9c39ed43",
+    "bytes": 4830
+  },
+  "SOURCE_SHA256.json": {
+    "sha256": "3b7e0d17e558da90673653873025254d54dca27e9afe6cd0b9d340ceb0506e5c",
+    "bytes": 833
+  },
+  "VALIDATION.json": {
+    "sha256": "7335d206fe4e7a3d91a676c8c8c0604532f812df964c5ac88d408c7a05986ea9",
+    "bytes": 263
+  }
+}

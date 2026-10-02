@@ -1,0 +1,967 @@
+diff --git a/src/predict_bot/one_shot_latency_common_v1.py b/src/predict_bot/one_shot_latency_common_v1.py
+new file mode 100644
+--- /dev/null
++++ b/src/predict_bot/one_shot_latency_common_v1.py
+@@ -0,0 +1,81 @@
++"""Passive timing/serialization helpers shared by isolated latency experiments."""
++from __future__ import annotations
++
++import json
++import math
++import os
++import threading
++import time
++from pathlib import Path
++from typing import Any
++
++
++class ProbeError(RuntimeError):
++    pass
++
++
++def stamp() -> dict[str, int]:
++    return {"wall_ns": time.time_ns(), "mono_ns": time.monotonic_ns()}
++
++
++def atomic_json(path: Path, value: Any) -> None:
++    temporary = path.with_suffix(path.suffix + ".partial")
++    with temporary.open("w", encoding="utf-8") as handle:
++        json.dump(value, handle, ensure_ascii=False, indent=2, allow_nan=False)
++        handle.write("\n")
++        handle.flush()
++        os.fsync(handle.fileno())
++    os.replace(temporary, path)
++
++
++class Journal:
++    """In-memory hot path; durable checkpoints occur outside receive callbacks."""
++    def __init__(self, directory: Path):
++        self.directory = directory
++        self.rows: list[dict[str, Any]] = []
++        self.lock = threading.Lock()
++        self.clock_domain: str | None = None
++
++    def add(self, event: str, at: dict[str, int] | None = None, **fields: Any) -> dict[str, Any]:
++        row = {"event": event, "clock_domain": self.clock_domain, **(at or stamp()), **fields}
++        with self.lock:
++            row["seq"] = len(self.rows)
++            self.rows.append(row)
++        return row
++
++    def save(self) -> None:
++        with self.lock:
++            rows = list(self.rows)
++        atomic_json(self.directory / "timeline.json", {"records": rows})
++
++
++def clock_model(samples: list[dict[str, Any]]) -> dict[str, float]:
++    if not samples:
++        raise ProbeError("NO_CLOCK_SAMPLE")
++    sample = min(samples, key=lambda s: s["rtt_ms"])
++    return {"offset_ms": sample["offset_ms"], "uncertainty_ms": sample["rtt_ms"] / 2 + 1,
++            "rtt_ms": sample["rtt_ms"]}
++
++
++def parse_frame(raw: str | bytes, source: str, received: dict[str, int], market_id: int) -> dict[str, Any] | None:
++    payload = json.loads(raw)
++    if not isinstance(payload, dict):
++        return None
++    inner = payload.get("data", payload)
++    if not isinstance(inner, dict) or inner.get("e") not in {"depthUpdate", "aggTrade"} or inner.get("s") != "ETHUSDT":
++        return None
++    return {"source": "binance_spot", **received, "stream": inner["e"],
++            "exchange_event_ms": int(inner["E"]),
++            "exchange_trade_ms": int(inner["T"]) if "T" in inner else None}
++
++
++def stats(values: list[float]) -> dict[str, Any]:
++    values = sorted(x for x in values if math.isfinite(x))
++    if not values:
++        return {"n": 0, "median_ms": None, "p95_ms": None}
++    def quantile(q: float) -> float:
++        pos = (len(values) - 1) * q
++        lo = int(pos)
++        return values[lo] + (values[min(lo + 1, len(values) - 1)] - values[lo]) * (pos - lo)
++    return {"n": len(values), "median_ms": quantile(.5), "p95_ms": quantile(.95),
++            "min_ms": values[0], "max_ms": values[-1]}
+diff --git a/src/predict_bot/predict_direct_one_shot_latency_v1.py b/src/predict_bot/predict_direct_one_shot_latency_v1.py
+new file mode 100644
+--- /dev/null
++++ b/src/predict_bot/predict_direct_one_shot_latency_v1.py
+@@ -0,0 +1,612 @@
++"""Human-operated Predict.fun direct ETH5M BUY UP experiment; default read-only.
++
++This tool is isolated from strategies and services. Only the account owner runs
++submit. Authentication is the only POST permitted during automated preflight.
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import os
++import re
++import socket
++import sqlite3
++import threading
++import time
++import uuid
++from datetime import datetime
++from decimal import Decimal
++from pathlib import Path
++from typing import Any
++
++import httpx
++import websocket
++from eth_account import Account
++from eth_account.messages import encode_defunct
++from predict_sdk import (ApprovalScope, Book, BuildOrderInput, ChainId,
++                         MarketHelperValueInput, OrderBuilder, OrderBuilderOptions, Side)
++
++from .one_shot_latency_common_v1 import (
++    Journal, ProbeError, atomic_json, clock_model, parse_frame, stamp, stats,
++)
++
++CONTRACT = "ETH5M_PREDICT_DIRECT_BUY_UP_1USDT_ONCE_20261003_V1"
++ROOT = Path(__file__).resolve().parents[2]
++OUTPUT_ROOT = ROOT / "data/research/predict_direct_one_shot_latency_v1"
++GUARD = OUTPUT_ROOT / "once.sqlite"
++AMOUNT = 10**18
++SLIPPAGE_BPS = 1
++HASH = re.compile(r"0x[0-9a-fA-F]{64}\Z")
++WALLET_EVENTS = {"orderAccepted", "orderNotAccepted", "orderExpired", "orderCancelled",
++                 "orderTransactionSubmitted", "orderTransactionSuccess", "orderTransactionFailed"}
++
++
++def claim_once(path: Path, run_id: str) -> None:
++    path.parent.mkdir(parents=True, exist_ok=True)
++    with sqlite3.connect(path, timeout=2) as db:
++        db.execute("PRAGMA synchronous=FULL")
++        db.execute("CREATE TABLE IF NOT EXISTS attempts (contract TEXT PRIMARY KEY, run_id TEXT, claimed_wall_ns INTEGER)")
++        try:
++            db.execute("INSERT INTO attempts VALUES (?, ?, ?)", (CONTRACT, run_id, time.time_ns()))
++            db.commit()
++        except sqlite3.IntegrityError:
++            raise ProbeError("ONCE_GUARD_ALREADY_CONSUMED_USE_RECONCILE") from None
++
++
++def obj(payload: dict[str, Any]) -> dict[str, Any]:
++    data = payload.get("data")
++    return data if isinstance(data, dict) else {}
++
++
++class DirectClient:
++    def __init__(self, key: str, j: Journal, *, mode: str, transport: Any = None):
++        self.key, self.j, self.mode = key, j, mode
++        self.jwt: str | None = None
++        self.place_authorized = False
++        self.place_calls = 0
++        self.number = 0
++        self.http = httpx.Client(base_url="https://api.predict.fun", timeout=8, trust_env=False,
++                                 follow_redirects=False, transport=transport or httpx.HTTPTransport(retries=0),
++                                 headers={"x-api-key": key, "Accept": "application/json"})
++
++    def request(self, method: str, path: str, *, auth: bool = False, **kwargs: Any) -> dict[str, Any]:
++        readonly = (method == "GET" and (path in {"/v1/auth/message", "/v1/search"}
++                    or re.fullmatch(r"/v1/markets/[0-9]+(?:/orderbook)?", path)
++                    or re.fullmatch(r"/v1/orders/0x[0-9a-fA-F]{64}", path)))
++        if method == "POST" and path == "/v1/auth":
++            pass
++        elif method == "POST" and path == "/v1/orders":
++            if not (self.mode == "submit" and self.place_authorized and self.place_calls == 0):
++                raise ProbeError("ORDER_WRITE_DISABLED_OR_ALREADY_USED")
++            self.place_calls += 1  # Consume before transport/build failures; never retry.
++        elif not readonly:
++            raise ProbeError("UNSUPPORTED_ROUTE")
++        if auth and not self.jwt:
++            raise ProbeError("JWT_NOT_READY")
++        self.number += 1
++        rid = self.number
++        # A known order hash is a private identifier; journal only the route template.
++        route = "/v1/orders/{hash}" if path.startswith("/v1/orders/") else path
++        self.j.add("http_call_start", request_id=rid, route=route, method=method)
++        def trace(name: str, info: dict[str, Any]) -> None:
++            self.j.add("http_trace", request_id=rid, trace=name)  # Discard request/header info.
++        try:
++            headers = {"Authorization": "Bearer " + self.jwt} if auth else {}
++            request = self.http.build_request(method, path, headers=headers, **kwargs)
++            request.extensions["trace"] = trace
++            self.j.add("request_built", request_id=rid)
++            response = self.http.send(request, follow_redirects=False)
++            self.j.add("http_response_complete", request_id=rid, http_status=response.status_code)
++            payload = response.json()
++            self.j.add("json_parsed", request_id=rid)
++            if not isinstance(payload, dict):
++                raise ProbeError("NON_OBJECT_RESPONSE")
++            if response.status_code == 404 and method == "GET" and path.startswith("/v1/orders/"):
++                return {"success": True, "data": None}
++            if not 200 <= response.status_code < 300 or payload.get("success") is False:
++                self.j.add("api_rejected", request_id=rid, http_status=response.status_code)
++                raise ProbeError("API_REJECTED")
++            return payload
++        except ProbeError:
++            raise
++        except Exception as exc:
++            self.j.add("http_call_error", request_id=rid, error_class=type(exc).__name__)
++            raise ProbeError("REQUEST_FAILED_NO_RETRY") from None
++        finally:
++            self.j.add("http_call_end", request_id=rid)
++
++    def authenticate(self, builder: Any, account: Any, signer: str, smart: bool) -> None:
++        message = str(obj(self.request("GET", "/v1/auth/message")).get("message") or "")
++        if not message:
++            raise ProbeError("NO_AUTH_CHALLENGE")
++        self.j.add("auth_sign_start")
++        signature = (builder.sign_predict_account_message(message) if smart else
++                     "0x" + account.sign_message(encode_defunct(text=message)).signature.hex().removeprefix("0x"))
++        self.j.add("auth_sign_end")
++        self.jwt = str(obj(self.request("POST", "/v1/auth", json={
++            "signer": signer, "signature": signature, "message": message})).get("token") or "")
++        if not self.jwt:
++            raise ProbeError("NO_AUTH_TOKEN")
++        self.j.add("jwt_ready")
++
++    def close(self) -> None:
++        self.http.close()
++
++
++def calibrate(j: Journal, phase: str) -> dict[str, float]:
++    samples = []
++    with httpx.Client(timeout=5, trust_env=False) as http:
++        for index in range(5):
++            start = stamp()
++            response = http.get("https://api.binance.com/api/v3/time")
++            end = stamp()
++            response.raise_for_status()
++            server = int(response.json()["serverTime"])
++            rtt = (end["mono_ns"] - start["mono_ns"]) / 1e6
++            sample = {"phase": phase, "index": index, "rtt_ms": rtt,
++                      "offset_ms": server - (end["wall_ns"] + start["wall_ns"]) / 2e6,
++                      "wall_mono_disagreement_ms": (end["wall_ns"] - start["wall_ns"]) / 1e6 - rtt}
++            samples.append(sample)
++            j.add("clock_sample", **sample)
++    model = clock_model(samples)
++    j.add("clock_model", phase=phase, **model)
++    return model
++
++
++def iso_ms(value: Any) -> int:
++    return int(datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp() * 1000)
++
++
++def select_market(payload: dict[str, Any], now: int) -> tuple[dict[str, Any], int, int]:
++    candidates = []
++    for category in obj(payload).get("categories", []):
++        try:
++            start, end = iso_ms(category["startsAt"]), iso_ms(category["endsAt"])
++            if end - start != 300000 or not start <= now < end:
++                continue
++            if category.get("variantData", {}).get("priceFeedSymbol") != "ETHUSDT":
++                continue
++            for market in category.get("markets", []):
++                if market.get("tradingStatus") == "OPEN" and market.get("isVisible") is not False:
++                    candidates.append((market, start, end))
++        except (KeyError, ValueError, TypeError):
++            continue
++    if len(candidates) != 1:
++        raise ProbeError("REQUIRE_UNIQUE_CURRENT_OPEN_ETH5M_MARKET")
++    return candidates[0]
++
++
++def up_mapping(market: dict[str, Any]) -> tuple[str, bool]:
++    rows = market.get("outcomes", [])
++    names = {str(o.get("name", "")).upper(): o for o in rows}
++    if len(rows) != 2 or set(names) != {"UP", "DOWN"}:
++        raise ProbeError("UP_DOWN_MAPPING_UNKNOWN")
++    up = names["UP"]
++    if {int(o.get("indexSet", 0)) for o in rows} != {1, 2}:
++        raise ProbeError("BINARY_ORIENTATION_UNKNOWN")
++    token = str(up.get("onChainId") or up.get("tokenId") or "")
++    if not token.isdigit():
++        raise ProbeError("UP_TOKEN_MISSING")
++    return token, int(up["indexSet"]) == 1
++
++
++def up_book(raw: dict[str, Any], market_id: int, yes_up: bool) -> Book:
++    data = obj(raw) if "data" in raw else raw
++    if int(data.get("marketId", 0)) != market_id:
++        raise ProbeError("BOOK_MARKET_MISMATCH")
++    asks, bids = data.get("asks", []), data.get("bids", [])
++    if not yes_up:
++        asks = [[float(Decimal(1) - Decimal(str(p))), q] for p, q in bids]
++        bids = [[float(Decimal(1) - Decimal(str(p))), q] for p, q in data.get("asks", [])]
++    asks = sorted(asks, key=lambda x: Decimal(str(x[0])))
++    bids = sorted(bids, key=lambda x: Decimal(str(x[0])), reverse=True)
++    if not asks or any(not 0 < Decimal(str(p)) < 1 or Decimal(str(q)) <= 0 for p, q in asks):
++        raise ProbeError("UP_ASKS_UNAVAILABLE")
++    if sum(Decimal(str(p)) * Decimal(str(q)) for p, q in asks) < Decimal(1):
++        raise ProbeError("INSUFFICIENT_UP_DEPTH_FOR_ONE_USDT")
++    return Book(market_id=market_id, update_timestamp_ms=int(data.get("updateTimestampMs") or 0), asks=asks, bids=bids)
++
++
++def signed_payload(signed: Any, order_hash: str) -> dict[str, Any]:
++    return {"hash": order_hash, "salt": str(signed.salt), "maker": signed.maker,
++            "signer": signed.signer, "taker": signed.taker, "tokenId": str(signed.token_id),
++            "makerAmount": str(signed.maker_amount), "takerAmount": str(signed.taker_amount),
++            "expiration": int(signed.expiration), "nonce": str(signed.nonce),
++            "feeRateBps": str(signed.fee_rate_bps), "side": int(signed.side.value),
++            "signatureType": int(signed.signature_type.value), "signature": signed.signature}
++
++
++def validate_order(data: dict[str, Any], token: str, signer: str) -> None:
++    order = data["order"]
++    if not (data["strategy"] == "MARKET" and data["isFillOrKill"] is True
++            and data["isPostOnly"] is False and data["isMinAmountOut"] is True
++            and data["selfTradePrevention"] == "CANCEL_TAKER"
++            and int(data["slippageBps"]) == SLIPPAGE_BPS
++            and order["side"] == Side.BUY.value and str(order["tokenId"]) == token
++            and order["maker"].lower() == signer.lower() and order["signer"].lower() == signer.lower()
++            and 0 < int(order["makerAmount"]) <= AMOUNT and int(order["takerAmount"]) > 0
++            and HASH.fullmatch(order["hash"]) and order["signature"]):
++        raise ProbeError("SIGNED_ORDER_CONTRACT_MISMATCH")
++
++
++def prepare_order(builder: Any, j: Journal, market: dict[str, Any], raw_book: dict[str, Any], signer: str) -> dict[str, Any]:
++    token, yes_up = up_mapping(market)
++    j.add("amount_calculation_start")
++    book = up_book(raw_book, int(market["id"]), yes_up)
++    amounts = builder.get_market_order_amounts(
++        MarketHelperValueInput(side=Side.BUY, value_wei=AMOUNT, slippage_bps=SLIPPAGE_BPS,
++                               is_min_amount_out=True), book)
++    j.add("amount_calculation_end", maker_budget_within_one_usdt=0 < int(amounts.maker_amount) <= AMOUNT)
++    j.add("order_build_start")
++    order = builder.build_order("MARKET", BuildOrderInput(
++        side=Side.BUY, token_id=token, maker=signer, signer=signer,
++        maker_amount=str(amounts.maker_amount), taker_amount=str(amounts.taker_amount),
++        fee_rate_bps=str(int(market["feeRateBps"]))))
++    typed = builder.build_typed_data(order, is_neg_risk=market["isNegRisk"], is_yield_bearing=market["isYieldBearing"])
++    j.add("order_build_end")
++    j.add("order_sign_start")
++    signed = builder.sign_typed_data_order(typed)
++    order_hash = builder.build_typed_data_hash(typed)
++    j.add("order_sign_end")
++    data = {"order": signed_payload(signed, order_hash), "pricePerShare": str(amounts.price_per_share),
++            "strategy": "MARKET", "slippageBps": str(SLIPPAGE_BPS), "isFillOrKill": True,
++            "isPostOnly": False, "isMinAmountOut": True, "reservedBalancePolicy": "REJECT_MARKET_ORDER",
++            "selfTradePrevention": "CANCEL_TAKER"}
++    validate_order(data, token, signer)
++    j.add("order_validated", budget_usdt=1, sdk_rounding_may_spend_less=True)
++    return data
++
++
++def canonical_wallet_event(event: dict[str, Any], reference: dict[str, Any]) -> bool:
++    details = event.get("details") or {}
++    event_hash = str(details.get("orderHash") or event.get("orderHash") or "").lower()
++    event_id = str(details.get("orderId") or event.get("orderId") or "")
++    known_hash = str(reference.get("order_hash") or "").lower()
++    known_id = str(reference.get("order_id") or "")
++    if event_hash and known_hash and event_hash != known_hash:
++        return False
++    if event_id and known_id and event_id != known_id:
++        return False
++    return bool((event_hash and known_hash and event_hash == known_hash)
++                or (event_id and known_id and event_id == known_id))
++
++
++class Feed:
++    def __init__(self, client: DirectClient, j: Journal, market_id: int, reference: dict[str, Any]):
++        self.client, self.j, self.market_id, self.reference = client, j, market_id, reference
++        self.stop = threading.Event()
++        self.condition = threading.Condition()
++        self.latest: dict[str, Any] | None = None
++        self.ready: set[int] = set()
++        self.sockets: list[Any] = []
++        self.threads: list[threading.Thread] = []
++        self.pending: list[tuple[dict[str, Any], dict[str, int]]] = []
++        self.wallet_lock = threading.Lock()
++
++    def start(self) -> None:
++        for source in ("predict_direct", "binance_spot"):
++            thread = threading.Thread(target=self.run, args=(source,), daemon=True)
++            self.threads.append(thread)
++            thread.start()
++
++    def run(self, source: str) -> None:
++        url = ("wss://ws.predict.fun/ws" if source == "predict_direct" else
++               "wss://stream.binance.com:443/stream?streams=ethusdt@aggTrade/ethusdt@depth@100ms")
++        try:
++            ws = websocket.create_connection(url, timeout=5, header=["x-api-key: " + self.client.key] if source == "predict_direct" else None,
++                                             http_proxy_host=None, http_proxy_port=None)
++            self.sockets.append(ws)
++            self.j.add("ws_connected", source=source)
++            if source == "predict_direct":
++                for rid, topic in ((1, f"predictOrderbook/{self.market_id}"), (2, "predictWalletEvents/" + self.client.jwt)):
++                    ws.send(json.dumps({"method": "subscribe", "requestId": rid, "params": [topic]}))
++            ws.settimeout(1)
++            while not self.stop.is_set():
++                try:
++                    raw = ws.recv()
++                except websocket.WebSocketTimeoutException:
++                    continue
++                received = stamp()  # Clock first, before JSON/normalization.
++                if not raw:
++                    raise ProbeError("WS_CLOSED")
++                payload = json.loads(raw)
++                if source == "binance_spot":
++                    frame = parse_frame(raw, source, received, self.market_id)
++                    if frame:
++                        self.j.add("feed_frame", received, **{k: v for k, v in frame.items() if k not in received},
++                                   parse_ms=(time.monotonic_ns() - received["mono_ns"]) / 1e6)
++                    continue
++                if payload.get("type") == "R":
++                    rid = payload.get("requestId")
++                    ok = payload.get("success") is True
++                    self.j.add("ws_subscription", received, request_id=rid, success=ok)
++                    if ok:
++                        with self.condition:
++                            self.ready.add(rid)
++                            self.condition.notify_all()
++                    continue
++                topic, data = payload.get("topic"), payload.get("data")
++                if topic == "heartbeat":
++                    ws.send(json.dumps({"method": "heartbeat", "data": data}))
++                elif topic == f"predictOrderbook/{self.market_id}" and isinstance(data, dict):
++                    if int(data.get("marketId") or 0) != self.market_id:
++                        continue
++                    self.j.add("feed_frame", received, source=source, book_version_ms=data.get("updateTimestampMs"),
++                               parse_ms=(time.monotonic_ns() - received["mono_ns"]) / 1e6)
++                    with self.condition:
++                        self.latest = {**received, "book": data}
++                        self.condition.notify_all()
++                elif str(topic).startswith("predictWalletEvents/"):
++                    with self.wallet_lock:
++                        for event in data if isinstance(data, list) else [data]:
++                            if isinstance(event, dict) and event.get("type") in WALLET_EVENTS:
++                                self.pending.append((event, received))
++                    self.flush_wallet()
++                if len(self.j.rows) > 50000:
++                    raise ProbeError("FRAME_LIMIT")
++        except Exception as exc:
++            if not self.stop.is_set():
++                self.j.add("ws_error", source=source, error_class=type(exc).__name__)
++
++    def flush_wallet(self) -> None:
++        with self.wallet_lock:
++            remaining = []
++            for event, received in self.pending:
++                if canonical_wallet_event(event, self.reference):
++                    self.j.add("wallet_order_event", received, canonical_match=True, event_type=event["type"],
++                               source_event_timestamp_ms=event.get("timestamp"), actual_fill_time_ms=None)
++                else:
++                    remaining.append((event, received))
++            self.pending = remaining[-1000:]
++
++    def anchor(self, timeout: float = 15) -> dict[str, Any]:
++        after, deadline = time.monotonic_ns(), time.monotonic() + timeout
++        with self.condition:
++            while not ({1, 2} <= self.ready and self.latest and self.latest["mono_ns"] > after):
++                remaining = deadline - time.monotonic()
++                if remaining <= 0:
++                    raise ProbeError("REQUIRE_NEW_NATIVE_BOOK_AND_WALLET_SUBSCRIPTIONS")
++                self.condition.wait(remaining)
++            return dict(self.latest)
++
++    def close(self) -> None:
++        self.stop.set()
++        for ws in self.sockets:
++            try:
++                ws.close()
++            except Exception:
++                pass
++        for thread in self.threads:
++            thread.join(6)
++        self.flush_wallet()
++        self.j.add("unbound_wallet_events", count=len(self.pending))
++
++
++def execute_attempt(client: DirectClient, j: Journal, data: dict[str, Any], reference: dict[str, Any], guard: Path = GUARD) -> None:
++    validate_order(data, reference["up_token_id"], reference["signer"])
++    claim_once(guard, reference["run_id"])
++    reference.update(order_hash=data["order"]["hash"], stage="PLACE_INTENT_DURABLE")
++    atomic_json(j.directory / "PRIVATE_REFERENCE.json", reference)
++    j.add("once_guard_committed")
++    j.save()
++    client.place_authorized = True
++    j.add("place_start")
++    try:
++        placed = obj(client.request("POST", "/v1/orders", auth=True, json={"data": data}))
++        if not placed.get("orderId") or str(placed.get("orderHash", "")).lower() != reference["order_hash"].lower():
++            raise ProbeError("CANONICAL_ACK_MISMATCH")
++        reference.update(order_id=str(placed["orderId"]), stage="PREDICT_ACK_OBSERVED")
++        j.add("predict_ack_observed", canonical_match=True, internal_acceptance_time_ms=None)
++    except Exception:
++        reference["stage"] = "PLACE_OUTCOME_UNKNOWN_NO_RETRY"
++        j.add("place_outcome_unknown", retry_allowed=False)
++        raise
++    finally:
++        client.place_authorized = False
++        j.add("place_end")
++        atomic_json(j.directory / "PRIVATE_REFERENCE.json", reference)
++        j.save()
++
++
++def reconcile(client: DirectClient, j: Journal, reference: dict[str, Any], seconds: float) -> None:
++    order_hash = str(reference.get("order_hash") or "")
++    if not HASH.fullmatch(order_hash):
++        j.add("reconciliation_unknown", reason="NO_CANONICAL_SIGNED_HASH")
++        return
++    deadline = time.monotonic() + seconds
++    while time.monotonic() < deadline:
++        raw = client.request("GET", "/v1/orders/" + order_hash, auth=True)
++        row = obj(raw)
++        evidence = order_evidence(row, reference)
++        j.add("order_observation", canonical_match=bool(evidence), **(evidence or {}))
++        if evidence:
++            atomic_json(j.directory / "PRIVATE_ORDER_OBSERVATION.json", raw)
++        j.save()
++        if evidence and evidence["status"] in {"FILLED", "CANCELLED", "CANCELED", "EXPIRED"}:
++            return
++        time.sleep(min(.5, max(0, deadline - time.monotonic())))
++
++
++def order_evidence(row: dict[str, Any], reference: dict[str, Any]) -> dict[str, Any] | None:
++    if not row:
++        return None
++    nested = row.get("order", {})
++    returned_hash = str(row.get("orderHash") or nested.get("hash") or row.get("hash") or "").lower()
++    if returned_hash != str(reference.get("order_hash") or "").lower():
++        raise ProbeError("ORDER_READ_HASH_MISMATCH")
++    if reference.get("order_id") and str(row.get("id") or row.get("orderId")) != reference["order_id"]:
++        raise ProbeError("ORDER_READ_ID_MISMATCH")
++    if int(row.get("marketId", 0)) != reference["market_id"] or str(nested.get("tokenId")) != reference["up_token_id"] or int(nested.get("side", -1)) != Side.BUY.value:
++        raise ProbeError("ORDER_READ_MARKET_TOKEN_OR_SIDE_MISMATCH")
++    filled = Decimal(str(row.get("amountFilled") or 0)) > 0
++    return {"status": str(row.get("status") or "UNKNOWN").upper(), "positive_fill_observed": filled,
++            "fill_field": "amountFilled", "actual_fill_time_ms": None}
++
++
++def summarize(j: Journal, mode: str, outcome: str) -> dict[str, Any]:
++    rows = list(j.rows)
++    def first(event: str, predicate: Any = lambda r: True) -> dict[str, Any] | None:
++        return min((r for r in rows if r["event"] == event and predicate(r)), key=lambda r: r["mono_ns"], default=None)
++    def between(a: Any, b: Any) -> float | None:
++        return (b["mono_ns"] - a["mono_ns"]) / 1e6 if a and b and a.get("clock_domain") == b.get("clock_domain") else None
++    def duration(a: str, b: str) -> float | None:
++        return between(first(a), first(b))
++    anchor, ack, place = first("book_anchor"), first("predict_ack_observed"), first("place_start")
++    accepted = first("wallet_order_event", lambda r: r["event_type"] == "orderAccepted")
++    settled = first("wallet_order_event", lambda r: r["event_type"] == "orderTransactionSuccess")
++    filled = first("order_observation", lambda r: r.get("positive_fill_observed"))
++    clocks = [r for r in rows if r["event"] == "clock_model"]
++    frames = [r for r in rows if r["event"] == "feed_frame"]
++    def age(r: dict[str, Any], field: str) -> float | None:
++        models = [c for c in clocks if c["mono_ns"] <= r["mono_ns"] and c.get("clock_domain") == r.get("clock_domain")]
++        return r["wall_ns"] / 1e6 + models[-1]["offset_ms"] - r[field] if models and r.get(field) is not None else None
++    requests = []
++    for start in (r for r in rows if r["event"] == "http_call_start"):
++        group = [r for r in rows if r.get("request_id") == start["request_id"] and r["event"] != "ws_subscription"]
++        def marker(event: str, suffix: str = "") -> Any:
++            return next((r for r in group if r["event"] == event and (not suffix or r.get("trace", "").endswith(suffix))), None)
++        requests.append({"request_id": start["request_id"], "route": start["route"], "method": start["method"],
++                         "call_ms": between(start, marker("http_call_end")),
++                         "body_write_ms": between(marker("http_trace", "send_request_body.started"), marker("http_trace", "send_request_body.complete")),
++                         "body_complete_to_response_headers_ms": between(marker("http_trace", "send_request_body.complete"), marker("http_trace", "receive_response_headers.complete")),
++                         "response_headers_to_json_ms": between(marker("http_trace", "receive_response_headers.complete"), marker("json_parsed"))})
++    return {"contract": CONTRACT, "mode": mode, "outcome": outcome,
++            "fixed_order": {"venue": "Predict.fun direct", "symbol": "ETHUSDT", "window_ms": 300000,
++                            "side": "BUY", "outcome": "UP", "maximum_maker_usdt": 1,
++                            "order_type": "MARKET", "time_in_force": "FOK", "slippage_bps": SLIPPAGE_BPS},
++            "place_call_count": sum(r["event"] == "place_start" for r in rows),
++            "clock": [{k: c[k] for k in ("phase", "offset_ms", "uncertainty_ms", "rtt_ms")} for c in clocks],
++            "feed": {"binance_spot_event_to_receipt_ms": {stream: stats([a for r in frames if r.get("stream") == stream and (a := age(r, "exchange_event_ms")) is not None]) for stream in ("aggTrade", "depthUpdate")},
++                     "native_predict_book_frames": sum(r.get("source") == "predict_direct" for r in frames),
++                     "binance_spot_frames": sum(r.get("source") == "binance_spot" for r in frames),
++                     "ws_error_count": sum(r["event"] == "ws_error" for r in rows)},
++            "round_ms": {"native_book_receipt_to_decision": duration("book_anchor", "decision_fixed_buy_up"),
++                         "amount_calculation": duration("amount_calculation_start", "amount_calculation_end"),
++                         "order_build": duration("order_build_start", "order_build_end"),
++                         "order_sign": duration("order_sign_start", "order_sign_end"),
++                         "native_book_receipt_to_place_start": between(anchor, place),
++                         "place_to_predict_ack": between(place, ack),
++                         "native_book_receipt_to_predict_ack": between(anchor, ack),
++                         "place_to_orderAccepted_receipt": between(place, accepted),
++                         "native_book_receipt_to_orderAccepted_receipt": between(anchor, accepted),
++                         "place_to_orderTransactionSuccess_receipt": between(place, settled),
++                         "native_book_receipt_to_orderTransactionSuccess_receipt": between(anchor, settled),
++                         "native_book_receipt_to_first_positive_rest_fill": between(anchor, filled)},
++            "http_requests": requests, "predict_internal_acceptance_time_ms": None, "actual_fill_time_ms": None,
++            "meaning": "Same-host durations use monotonic clocks. Binance E-to-receipt age uses shortest-RTT midpoint calibration with RTT/2+1ms model uncertainty; it includes publication delay. orderAccepted and orderTransactionSuccess are notification RECEIPT times, not internal acceptance or fill clocks. Read-only preparation is not venue acceptance; market rounding may spend less than one USDT. No automatic retry, approval, transfer, cancellation or runtime mutation."}
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--mode", choices=("observe", "prepare", "submit", "reconcile"), default="observe")
++    parser.add_argument("--confirm-buy-up-1-usdt", action="store_true", help="Account owner runs this fixed one-shot order")
++    parser.add_argument("--warmup-seconds", type=float, default=20)
++    parser.add_argument("--tail-seconds", type=float, default=20)
++    parser.add_argument("--run-dir", type=Path)
++    args = parser.parse_args(argv)
++    if args.mode == "submit" and not args.confirm_buy_up_1_usdt:
++        parser.error("submit requires --confirm-buy-up-1-usdt")
++    if bool(args.run_dir) != (args.mode == "reconcile"):
++        parser.error("--run-dir required only for reconcile")
++    if not 0 <= args.warmup_seconds <= 60 or not 1 <= args.tail_seconds <= 60:
++        parser.error("warmup 0..60; tail 1..60 seconds")
++    key = os.getenv("PREDICT_FUN_API_KEY", "")
++    private = os.getenv("PREDICT_FUN_PRIVATE_KEY") or os.getenv("PREDICT_FUN_PRIVY_PRIVATE_KEY", "")
++    smart = os.getenv("PREDICT_FUN_ACCOUNT_ADDRESS", "")
++    if not key or not private:
++        print(json.dumps({"outcome": "MISSING_PREDICT_DIRECT_CREDENTIALS", "place_call_count": 0}))
++        return 2
++    rid = str(uuid.uuid4())
++    directory = args.run_dir.resolve() if args.run_dir else OUTPUT_ROOT / rid
++    directory.mkdir(parents=True, exist_ok=args.mode == "reconcile")
++    reference = (json.loads((directory / "PRIVATE_REFERENCE.json").read_text()) if args.mode == "reconcile" else
++                 {"run_id": rid, "stage": "NOT_SUBMITTED", "clock_domain": rid,
++                  "host_boot_wall_ns": time.time_ns() - time.monotonic_ns()})
++    j = Journal(directory)
++    same_boot = abs(time.time_ns() - time.monotonic_ns() - reference.get("host_boot_wall_ns", 0)) < 5_000_000_000
++    j.clock_domain = reference.get("clock_domain") if same_boot else rid
++    if args.mode == "reconcile":
++        j.rows.extend(json.loads((directory / "timeline.json").read_text())["records"])
++    else:
++        atomic_json(directory / "HOST_PRIVATE.json", {"hostname": socket.gethostname(), "pid": os.getpid(), "cwd": str(ROOT)})
++    j.add("run_start", mode=args.mode, previous_clock_continuity_valid=same_boot)
++    client = DirectClient(key, j, mode=args.mode)
++    client.number = max((r.get("request_id", 0) for r in j.rows if r["event"] == "http_call_start"), default=0)
++    feed, outcome = None, "NOT_SUBMITTED"
++    try:
++        model = calibrate(j, "before")
++        account = Account.from_key(private)
++        signer = smart or account.address
++        builder = OrderBuilder.make(ChainId.BNB_MAINNET, private, OrderBuilderOptions(predict_account=smart or None, log_level="ERROR"))
++        client.authenticate(builder, account, signer, bool(smart))
++        if args.mode == "reconcile":
++            reconcile(client, j, reference, args.tail_seconds)
++            outcome = "READ_ONLY_RECONCILIATION"
++        else:
++            now = int(time.time() * 1000 + model["offset_ms"])
++            market, start, end = select_market(client.request("GET", "/v1/search", params={"query": "Ethereum Up or Down", "includeResolved": "false", "limit": 30}), now)
++            expected_id = int(market["id"])
++            market = obj(client.request("GET", f"/v1/markets/{expected_id}"))
++            if int(market.get("id", 0)) != expected_id or market.get("tradingStatus") != "OPEN":
++                raise ProbeError("MARKET_NOT_OPEN")
++            token, yes_up = up_mapping(market)
++            reference.update(market_id=int(market["id"]), window_start_ms=start, window_end_ms=end,
++                             up_token_id=token, signer=signer)
++            atomic_json(directory / "PRIVATE_REFERENCE.json", reference)
++            if end - now < (args.warmup_seconds + 45) * 1000:
++                raise ProbeError("MARKET_WINDOW_TOO_SHORT_RUN_MANUALLY_IN_NEXT_WINDOW")
++            if args.mode in {"prepare", "submit"}:
++                j.add("approval_check_start")
++                checks = builder.check_approvals(builder.get_approval_steps(ApprovalScope(
++                    operation="TRADE", is_neg_risk=market["isNegRisk"], is_yield_bearing=market["isYieldBearing"], side=Side.BUY)))
++                j.add("approval_check_end", satisfied=bool(checks) and all(c.satisfied for c in checks))
++                if not checks or not all(c.satisfied for c in checks):
++                    raise ProbeError("EXISTING_BUY_APPROVALS_NOT_CONFIRMED_NO_TRANSACTION_SENT")
++                j.add("balance_check_start")
++                funded = builder.balance_of("USDT", address=signer) >= AMOUNT
++                j.add("balance_check_end", at_least_one_usdt=funded)
++                if not funded:
++                    raise ProbeError("DIRECT_WALLET_BALANCE_BELOW_ONE_USDT_NO_TRANSFER_SENT")
++            feed = Feed(client, j, int(market["id"]), reference)
++            feed.start()
++            time.sleep(args.warmup_seconds)
++            anchor = feed.anchor()
++            j.add("book_anchor", {k: anchor[k] for k in ("wall_ns", "mono_ns")})
++            if args.mode in {"prepare", "submit"}:
++                j.add("decision_fixed_buy_up")
++                data = prepare_order(builder, j, market, anchor["book"], signer)
++                if args.mode == "submit":
++                    if time.time() * 1000 + model["offset_ms"] >= end - 10000:
++                        raise ProbeError("MARKET_END_TOO_CLOSE")
++                    execute_attempt(client, j, data, reference)
++                    feed.flush_wallet()
++                    reconcile(client, j, reference, args.tail_seconds)
++                    outcome = "PREDICT_ACK_OBSERVED_CHECK_CANONICAL_EVENTS"
++                else:
++                    outcome = "SIGNED_MARKET_FOK_PREPARED_NO_ORDER"
++            else:
++                outcome = "READ_ONLY_OBSERVATION"
++    except Exception as exc:
++        reason = str(exc) if isinstance(exc, ProbeError) else type(exc).__name__
++        outcome = reference["stage"] if reference["stage"] == "PLACE_OUTCOME_UNKNOWN_NO_RETRY" else reason
++        j.add("run_error", reason=reason, error_class=type(exc).__name__)
++        if client.place_calls and reference.get("order_hash"):
++            try:
++                reconcile(client, j, reference, args.tail_seconds)
++            except Exception as error:
++                j.add("reconcile_error", error_class=type(error).__name__)
++    finally:
++        if feed:
++            time.sleep(args.tail_seconds)
++            feed.close()
++        try:
++            calibrate(j, "after")
++        except Exception as exc:
++            j.add("clock_after_error", error_class=type(exc).__name__)
++        client.close()
++        j.add("run_end", outcome=outcome)
++        j.save()
++        atomic_json(directory / "PRIVATE_REFERENCE.json", reference)
++        atomic_json(directory / "SUMMARY.json", summarize(j, args.mode, outcome))
++    print(json.dumps({"run_dir": str(directory), "outcome": outcome, "place_call_count": client.place_calls}))
++    return 0 if outcome in {"READ_ONLY_OBSERVATION", "SIGNED_MARKET_FOK_PREPARED_NO_ORDER", "READ_ONLY_RECONCILIATION", "PREDICT_ACK_OBSERVED_CHECK_CANONICAL_EVENTS"} else 2
+diff --git a/tools/run_predict_direct_one_shot_latency_v1.py b/tools/run_predict_direct_one_shot_latency_v1.py
+new file mode 100644
+--- /dev/null
++++ b/tools/run_predict_direct_one_shot_latency_v1.py
+@@ -0,0 +1,9 @@
++"""Standalone Predict.fun direct one-shot latency entry point."""
++from pathlib import Path
++import sys
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++from predict_bot.predict_direct_one_shot_latency_v1 import main
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/tests/test_predict_direct_one_shot_latency_v1.py b/tests/test_predict_direct_one_shot_latency_v1.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_predict_direct_one_shot_latency_v1.py
+@@ -0,0 +1,152 @@
++"""Offline tests: fake transports only; no credentials or financial requests."""
++import copy
++import json
++from types import SimpleNamespace
++
++import httpx
++import pytest
++
++from predict_bot import predict_direct_one_shot_latency_v1 as m
++
++H = "0x" + "a" * 64
++ADDRESS = "0x" + "1" * 40
++
++
++def intent():
++    return {"strategy": "MARKET", "isFillOrKill": True, "isPostOnly": False,
++            "isMinAmountOut": True, "slippageBps": "1", "selfTradePrevention": "CANCEL_TAKER",
++            "order": {"hash": H, "side": 0, "tokenId": "123", "maker": ADDRESS,
++                      "signer": ADDRESS, "makerAmount": str(m.AMOUNT), "takerAmount": str(2 * m.AMOUNT),
++                      "signature": "offline-fixture"}}
++
++
++def ref():
++    return {"run_id": "test", "order_hash": H, "market_id": 7, "up_token_id": "123", "signer": ADDRESS}
++
++
++def market():
++    return {"id": 7, "feeRateBps": 100, "isNegRisk": False, "isYieldBearing": True,
++            "outcomes": [{"name": "Up", "indexSet": 1, "onChainId": "123"},
++                         {"name": "Down", "indexSet": 2, "onChainId": "456"}]}
++
++
++@pytest.mark.parametrize("mutation", ["over_budget", "sell", "down", "passive", "not_fok", "other_account", "cancel_maker"])
++def test_contract_blocks_unrequested_order(mutation):
++    data = intent()
++    if mutation == "over_budget": data["order"]["makerAmount"] = str(m.AMOUNT + 1)
++    if mutation == "sell": data["order"]["side"] = 1
++    if mutation == "down": data["order"]["tokenId"] = "456"
++    if mutation == "passive": data["isPostOnly"] = True
++    if mutation == "not_fok": data["isFillOrKill"] = False
++    if mutation == "other_account": data["order"]["signer"] = "0xother"
++    if mutation == "cancel_maker": data["selfTradePrevention"] = "CANCEL_MAKER"
++    with pytest.raises(m.ProbeError): m.validate_order(data, "123", ADDRESS)
++
++
++def test_inverted_yes_orientation_buys_named_up():
++    raw = {"marketId": 7, "bids": [[.4, 100], [.3, 100]], "asks": [[.5, 100]]}
++    book = m.up_book(raw, 7, False)
++    assert book.asks == [[.6, 100], [.7, 100]]
++    assert book.bids == [[.5, 100]]
++
++
++def test_insufficient_depth_does_not_reduce_test_stake():
++    with pytest.raises(m.ProbeError, match="INSUFFICIENT"):
++        m.up_book({"marketId": 7, "asks": [[.5, .1]], "bids": []}, 7, True)
++
++
++def test_sdk_market_value_never_inflates_budget(tmp_path):
++    # Public arithmetic only. No signer, RPC, or credentials.
++    builder = m.OrderBuilder.make(m.ChainId.BNB_MAINNET)
++    book = m.up_book({"marketId": 7, "asks": [[.3, 1], [.6, 100]], "bids": []}, 7, True)
++    amounts = builder.get_market_order_amounts(m.MarketHelperValueInput(
++        side=m.Side.BUY, value_wei=m.AMOUNT, slippage_bps=1, is_min_amount_out=True), book)
++    assert 0 < amounts.maker_amount <= m.AMOUNT
++    assert amounts.taker_amount > 0
++
++
++def test_ambiguous_request_consumes_guard_and_never_resends(tmp_path):
++    calls = []
++    def transport(request):
++        calls.append(request)
++        raise httpx.ReadTimeout("private-token-do-not-log")
++    j = m.Journal(tmp_path)
++    client = m.DirectClient("offline", j, mode="submit", transport=httpx.MockTransport(transport))
++    client.jwt = "offline"
++    reference = ref()
++    with pytest.raises(m.ProbeError):
++        m.execute_attempt(client, j, intent(), reference, tmp_path / "guard.sqlite")
++    assert reference["stage"] == "PLACE_OUTCOME_UNKNOWN_NO_RETRY"
++    assert len(calls) == client.place_calls == 1
++    durable = json.loads((tmp_path / "PRIVATE_REFERENCE.json").read_text())
++    assert durable["order_hash"] == H
++    with pytest.raises(m.ProbeError, match="CONSUMED"):
++        m.execute_attempt(client, j, intent(), reference, tmp_path / "guard.sqlite")
++    assert len(calls) == 1
++    assert "private-token" not in json.dumps(j.rows)
++    client.close()
++
++
++@pytest.mark.parametrize("mode", ["observe", "prepare", "reconcile"])
++def test_readonly_modes_cannot_send_order(tmp_path, mode):
++    calls = []
++    client = m.DirectClient("offline", m.Journal(tmp_path), mode=mode,
++                            transport=httpx.MockTransport(lambda request: calls.append(request)))
++    client.place_authorized = True
++    with pytest.raises(m.ProbeError): client.request("POST", "/v1/orders", json={"data": intent()})
++    assert not calls
++    client.close()
++
++
++def test_create_401_is_not_authenticated_retry(tmp_path):
++    calls = []
++    def transport(request):
++        calls.append(request)
++        return httpx.Response(401, json={"success": False})
++    client = m.DirectClient("offline", m.Journal(tmp_path), mode="submit", transport=httpx.MockTransport(transport))
++    client.place_authorized, client.jwt = True, "offline"
++    with pytest.raises(m.ProbeError): client.request("POST", "/v1/orders", auth=True, json={"data": intent()})
++    with pytest.raises(m.ProbeError): client.request("POST", "/v1/orders", auth=True, json={"data": intent()})
++    assert len(calls) == client.place_calls == 1
++    client.close()
++
++
++def test_recovery_accepts_only_canonical_hash_market_and_up():
++    row = {"id": "8", "order": {"hash": H, "tokenId": "123", "side": 0},
++           "marketId": 7, "status": "FILLED", "amountFilled": "0.5"}
++    assert m.order_evidence(row, ref())["positive_fill_observed"] is True
++    for field, value in (("hash", "0x" + "b" * 64), ("tokenId", "456"), ("side", 1)):
++        bad = copy.deepcopy(row)
++        bad["order"][field] = value
++        with pytest.raises(m.ProbeError): m.order_evidence(bad, ref())
++
++
++def test_wallet_event_hash_overrides_conflicting_order_id():
++    reference = dict(ref(), order_id="8")
++    assert m.canonical_wallet_event({"orderHash": H, "orderId": "8"}, reference)
++    assert not m.canonical_wallet_event({"orderHash": "0x" + "b" * 64, "orderId": "8"}, reference)
++    assert not m.canonical_wallet_event({"orderHash": H, "orderId": "9"}, reference)
++    assert not m.canonical_wallet_event({"details": {"outcome": "UP", "quantity": "1"}}, reference)
++
++
++def test_clock_domain_change_does_not_produce_elapsed(tmp_path):
++    j = m.Journal(tmp_path)
++    j.clock_domain = "old"
++    j.add("book_anchor", {"wall_ns": 100, "mono_ns": 100})
++    j.clock_domain = "new"
++    j.add("predict_ack_observed", {"wall_ns": 200, "mono_ns": 200})
++    summary = m.summarize(j, "reconcile", "UNKNOWN")
++    assert summary["round_ms"]["native_book_receipt_to_predict_ack"] is None
++    assert summary["predict_internal_acceptance_time_ms"] is None
++
++
++def test_select_exact_eth_five_minute_window_rejects_btc_and_15m():
++    base = {"startsAt": "2026-10-03T00:00:00Z", "endsAt": "2026-10-03T00:05:00Z",
++            "variantData": {"priceFeedSymbol": "ETHUSDT"}, "markets": [dict(market(), tradingStatus="OPEN")]}
++    btc, longer = copy.deepcopy(base), copy.deepcopy(base)
++    btc["variantData"]["priceFeedSymbol"] = "BTCUSDT"
++    longer["endsAt"] = "2026-10-03T00:15:00Z"
++    now = m.iso_ms("2026-10-03T00:01:00Z")
++    selected, start, end = m.select_market({"data": {"categories": [btc, longer, base]}}, now)
++    assert selected["id"] == 7 and end - start == 300000
++    with pytest.raises(m.ProbeError): m.select_market({"data": {"categories": [base, base]}}, now)
+diff --git a/docs/predict_direct_one_shot_latency_v1.md b/docs/predict_direct_one_shot_latency_v1.md
+new file mode 100644
+--- /dev/null
++++ b/docs/predict_direct_one_shot_latency_v1.md
+@@ -0,0 +1,88 @@
++# Predict.fun direct one-shot ETH5M latency
++
++The account owner runs one BUY UP MARKET request with a maker commitment capped
++at 1 USDT and `isFillOrKill=true`. It goes directly to
++`https://api.predict.fun/v1/orders`, using the official Python SDK and the
++existing Predict.fun account. Public Binance ETHUSDT streams are collected for
++timing only. No Binance Prediction trading API is called.
++
++The tool is isolated from strategies, services, schedulers and live state.
++Default mode observes only. Automated validation uses `prepare`, which performs
++authentication, checks existing approvals and USDT balance, subscribes to native
++public books and own wallet events, then builds/signs an order locally. Preparation
++does not submit an order or prove that the venue accepts a 1 USDT order.
++
++Run from the repository root with its existing Python environment:
++
++```powershell
++python tools/run_predict_direct_one_shot_latency_v1.py --mode prepare
++```
++
++The account owner executes the financial request:
++
++```powershell
++python tools/run_predict_direct_one_shot_latency_v1.py --mode submit --confirm-buy-up-1-usdt
++```
++
++The direct test has its own persistent `once.sqlite` under
++`data/research/predict_direct_one_shot_latency_v1/`. It does not reuse or reset
++the completed Binance test's guard. Submit consumes the guard durably before the
++one order request. A failed or ambiguous attempt keeps it consumed, and there is
++no reset option or automatic retry. HTTP redirects, transport retries and auth
++replay of order POSTs are disabled. The SDK's five-significant-digit rounding may
++spend slightly less than 1 USDT; slippage deflates minimum shares out rather than
++inflating the USDT commitment. Insufficient depth, balance or existing approvals
++blocks the request. No approval, deposit, withdrawal, transfer, redemption or
++cancellation is performed. Self-trade prevention requests `CANCEL_TAKER`.
++
++If the current market has less than warmup + 45 seconds remaining, it exits with
++`MARKET_WINDOW_TOO_SHORT_RUN_MANUALLY_IN_NEXT_WINDOW` and zero order requests.
++Run again near the start of the next five-minute window only when the reported
++place count is zero and no submit attempt consumed the guard. An attempted POST
++is never repeated, including after timeouts, 401 or 5xx responses.
++
++Every run saves private `SUMMARY.json`, `timeline.json`, `HOST_PRIVATE.json` and
++`PRIVATE_REFERENCE.json`. A positive canonical order read additionally saves
++`PRIVATE_ORDER_OBSERVATION.json`. Preserve these locally; they may contain wallet,
++order, token and source-clock identifiers. Never publish raw files or signatures.
++
++Read-only recovery after an attempted order uses its exact signed hash, which is
++durable before POST even if no ACK arrived:
++
++```powershell
++python tools/run_predict_direct_one_shot_latency_v1.py --mode reconcile --run-dir "<run_dir>"
++```
++
++The timeline captures receipt before JSON parsing, fixed decision, amount
++calculation, SDK build/signing, guard persistence, HTTP call, body write, response
++headers/JSON, canonical Predict ACK, native `orderAccepted`, settlement submitted,
++transaction success/failure, and exact-hash REST order observations. Wallet events
++must match the signed hash or returned order ID; title, amount, direction and
++nearby timestamps are never used to guess identity. REST evidence also verifies
++market ID, named UP token and BUY side. Positive `amountFilled` is observed fill
++evidence. UNKNOWN and pending results remain unresolved.
++
++All on-host durations use `monotonic_ns`; cross-boot reconciliation leaves
++cross-domain durations unknown. Binance event-to-receipt ages use before/after
++five-sample `/api/v3/time` midpoint calibration, taking the shortest RTT with
++RTT/2 + 1 ms model uncertainty. This is not a proven bound on network asymmetry.
++Binance `E` age includes publication delay. Predict's `updateTimestampMs` has no
++documented exact network-send cutpoint. The `orderAccepted` notification means
++placed in the book; MARKET orders may instead go directly to match/settlement
++events. Notification receipt, API ACK and actual matching/acceptance clocks are
++distinct. Exact internal Predict acceptance and fill timestamps stay UNKNOWN.
++
++Validation uses fake HTTP transports and SDK public arithmetic only:
++
++```powershell
++python -m pytest tests/test_predict_direct_one_shot_latency_v1.py -q
++```
++
++Official references:
++
++- [Create order](https://dev.predict.fun/create-an-order-32534694e0)
++- [CreateOrderData schema](https://dev.predict.fun/createorderdata-14037465d0)
++- [SDK order/slippage guide](https://dev.predict.fun/how-to-create-or-cancel-orders-679306m0)
++- [Native WS topics and wallet events](https://dev.predict.fun/subscription-topics-1915507m0)
++- [Get own order by hash](https://dev.predict.fun/get-order-by-hash-25326901e0)
++- [Official Python SDK](https://github.com/PredictDotFun/sdk-python)

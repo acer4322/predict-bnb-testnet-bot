@@ -1,0 +1,65 @@
+{
+  "outcome": "SIGNED_MARKET_FOK_PREPARED_NO_ORDER",
+  "order_request_count": 0,
+  "once_guard_unconsumed": true,
+  "official_jwt_authentication": "PASS",
+  "existing_buy_approvals_satisfied": true,
+  "existing_direct_wallet_at_least_one_usdt": true,
+  "native_book_subscription": "PASS",
+  "native_wallet_event_subscription": "PASS",
+  "sdk_sign_and_one_usdt_contract_validation": "PASS",
+  "feed": {
+    "binance_spot_event_to_receipt_ms": {
+      "aggTrade": {
+        "n": 29,
+        "median_ms": 22.876953125,
+        "p95_ms": 56.91108398437494,
+        "min_ms": 21.108154296875,
+        "max_ms": 70.265869140625
+      },
+      "depthUpdate": {
+        "n": 58,
+        "median_ms": 21.1956787109375,
+        "p95_ms": 41.596228027343734,
+        "min_ms": 20.693359375,
+        "max_ms": 65.500732421875
+      }
+    },
+    "native_predict_book_frames": 28,
+    "binance_spot_frames": 87,
+    "ws_error_count": 0
+  },
+  "clock": [
+    {
+      "phase": "before",
+      "offset_ms": -1219.891357421875,
+      "uncertainty_ms": 23.05815,
+      "rtt_ms": 44.1163
+    },
+    {
+      "phase": "after",
+      "offset_ms": -1219.580322265625,
+      "uncertainty_ms": 22.6117,
+      "rtt_ms": 43.2234
+    }
+  ],
+  "preparation_round_ms": {
+    "native_book_receipt_to_decision": 0.1393,
+    "amount_calculation": 0.3241,
+    "order_build": 0.0415,
+    "order_sign": 9.1982,
+    "native_book_receipt_to_place_start": null,
+    "place_to_predict_ack": null,
+    "native_book_receipt_to_predict_ack": null,
+    "place_to_orderAccepted_receipt": null,
+    "native_book_receipt_to_orderAccepted_receipt": null,
+    "place_to_orderTransactionSuccess_receipt": null,
+    "native_book_receipt_to_orderTransactionSuccess_receipt": null,
+    "native_book_receipt_to_first_positive_rest_fill": null
+  },
+  "timeline_row_count": 214,
+  "sequence_contiguous": true,
+  "order_ack_or_fill_claimed": false,
+  "venue_minimum_and_actual_order_acceptance": "NOT_TESTED_NO_ORDER",
+  "meaning": "Same-host durations use monotonic clocks. Binance E-to-receipt age uses shortest-RTT midpoint calibration with RTT/2+1ms model uncertainty; it includes publication delay. orderAccepted and orderTransactionSuccess are notification RECEIPT times, not internal acceptance or fill clocks. Read-only preparation is not venue acceptance; market rounding may spend less than one USDT. No automatic retry, approval, transfer, cancellation or runtime mutation."
+}

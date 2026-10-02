@@ -1,0 +1,9 @@
+{
+  "source_test_count": 19,
+  "source_tests": "PASS",
+  "isolated_install_patch_apply": "PASS",
+  "isolated_installed_tests": "19 PASS",
+  "five_source_hashes_match": "PASS",
+  "test_transports": "FAKE_ONLY",
+  "live_order_requests_in_automated_validation": 0
+}
