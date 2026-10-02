@@ -1,0 +1,22 @@
+{
+  "market_id": 2797498,
+  "title": "Ethereum Up or Down - October 1, 4AM-4:05AM ET",
+  "status": "RESOLVED",
+  "marketVariant": "CRYPTO_UP_DOWN",
+  "categorySlug": "eth-updown-5m-1790841600",
+  "feeRateBps": 200,
+  "outcomes": [
+    {
+      "name": "Up",
+      "status": "WON"
+    },
+    {
+      "name": "Down",
+      "status": "LOST"
+    }
+  ],
+  "source": "https://api.predict.fun/v1/markets/2797498",
+  "fetched_at_ms": 1790940684362,
+  "label_rule": "Exactly one outcomes[].status=WON; RESOLVED/SETTLED market; UP or DOWN only",
+  "winner": "UP"
+}

@@ -1,0 +1,22 @@
+{
+  "market_id": 2814444,
+  "title": "Ethereum Up or Down - October 2, 3:05AM-3:10AM ET",
+  "status": "RESOLVED",
+  "marketVariant": "CRYPTO_UP_DOWN",
+  "categorySlug": "eth-updown-5m-1790924700",
+  "feeRateBps": 200,
+  "outcomes": [
+    {
+      "name": "Up",
+      "status": "WON"
+    },
+    {
+      "name": "Down",
+      "status": "LOST"
+    }
+  ],
+  "source": "https://api.predict.fun/v1/markets/2814444",
+  "fetched_at_ms": 1790940526433,
+  "label_rule": "Exactly one outcomes[].status=WON; RESOLVED/SETTLED market; UP or DOWN only",
+  "winner": "UP"
+}

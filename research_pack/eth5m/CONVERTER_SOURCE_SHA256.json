@@ -1,0 +1,8 @@
+{
+  "converter_source/btc_convert_batch.py": "d920e20d17a1336a6c0fc738c2fde2906048f94b630e6f0bad9e31dc73234ab6",
+  "converter_source/export_hft244_repro_samples.py": "55cea58d774406a10a94c81e83ec7304dad6e6c1e82182890b42234871791ad1",
+  "converter_source/hftbacktest_execution_shift_audit_v0.py": "4a43037583d6ebf576cd65d7e2cb9176e3dd18171b0750301963b2e990173741",
+  "converter_source/hftbacktest_execution_tape_feed_v1.py": "181a73b795d30078fdf90c3577a2658236044889a759b6e869afedf8264fd5de",
+  "converter_source/hftbacktest_true_match_calibration_v0.py": "929048bc5d86e5fb8112aa4f6033c6d1d14010fe990bf5f90a8ccc91212eda58",
+  "converter_source/types.py": "a2ff8a0d506476e8775f23e1e28f6ef222ce2ee1cb13e1b559eca0d00ecb4389"
+}

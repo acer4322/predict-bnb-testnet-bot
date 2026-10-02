@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "json_files_scanned": 3453,
+  "blocked_payload_keys": [
+    "apiKey",
+    "api_key",
+    "authorization",
+    "lastOrderSettled",
+    "maker",
+    "makers",
+    "privateKey",
+    "raw_json",
+    "raw_json_z",
+    "settlementsPending",
+    "taker",
+    "transactionHash",
+    "wallet",
+    "walletAddress",
+    "wallet_address"
+  ],
+  "identifier_patterns_found": 0,
+  "numeric_arrays_check": "order_id/ival/fval zero in all 861 NPZ; VALIDATION.json",
+  "raw_tapes_exported": false,
+  "credentials_exported": false,
+  "code_identifiers_or_credentials_scan": "PASS"
+}

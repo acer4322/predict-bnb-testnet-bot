@@ -1,0 +1,11 @@
+{
+  "market_id": 2796372,
+  "frames": 1259,
+  "empty_bid_frames": 0,
+  "empty_ask_frames": 9,
+  "chain_received_later_frames": 0,
+  "source_order": "source_ms then received_ms; checkpoint/delta reconstruction, matching BTC public exports",
+  "causal_availability": "max(received_ms,chain_received_max_ms); received_ms retains the actual callback timestamp",
+  "top_levels": "Up to five actual levels per side; no fabricated padding",
+  "public_sha256": "07fb5157a113a6355c974ddeb0e5219b53456d13671f42f89b98956e3301e15a"
+}

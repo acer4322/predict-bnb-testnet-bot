@@ -1,0 +1,66 @@
+{
+  "records": [
+    {
+      "market_id": 2736665,
+      "source_rows": 1431,
+      "public_frames": 1430,
+      "excluded_rows": 1,
+      "reason": "source_ms outside [start-2000,end+2000]",
+      "excluded_source_ms": [
+        1790696695157
+      ]
+    },
+    {
+      "market_id": 2736940,
+      "source_rows": 1402,
+      "public_frames": 1393,
+      "excluded_rows": 9,
+      "reason": "source_ms outside [start-2000,end+2000]",
+      "excluded_source_ms": [
+        1790697607654,
+        1790697607846,
+        1790697608008,
+        1790697608251,
+        1790697608442,
+        1790697608641,
+        1790697608800,
+        1790697609020,
+        1790697609608
+      ]
+    },
+    {
+      "market_id": 2799454,
+      "source_rows": 1135,
+      "public_frames": 1134,
+      "excluded_rows": 1,
+      "reason": "source_ms outside [start-2000,end+2000]",
+      "excluded_source_ms": [
+        1790852403394
+      ]
+    },
+    {
+      "market_id": 2809636,
+      "source_rows": 1073,
+      "public_frames": 1072,
+      "excluded_rows": 1,
+      "reason": "source_ms outside [start-2000,end+2000]",
+      "excluded_source_ms": [
+        1790894990555
+      ]
+    },
+    {
+      "market_id": 2810423,
+      "source_rows": 1158,
+      "public_frames": 1157,
+      "excluded_rows": 1,
+      "reason": "source_ms outside [start-2000,end+2000]",
+      "excluded_source_ms": [
+        1790898896322
+      ]
+    }
+  ],
+  "total_excluded_rows": 13,
+  "status": "PASS",
+  "market_cohort_unchanged": true,
+  "event_arrays_unchanged": true
+}

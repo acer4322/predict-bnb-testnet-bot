@@ -1,0 +1,24 @@
+{
+  "status": "PASS_WITH_OFFICIAL_NONBINARY",
+  "markets": 861,
+  "official_WON_labels": 860,
+  "official_nonbinary_results": 1,
+  "official_nonbinary_market_ids": [
+    2745523
+  ],
+  "initial_consecutive_unique_WON_markets": 112,
+  "consecutive_windows": true,
+  "frames": 1120345,
+  "events": 8813068,
+  "public_trades": 150408,
+  "collector_quality_counts": {
+    "COMPLETE_FORWARD_V1": 782,
+    "INCOMPLETE_FORWARD": 79
+  },
+  "chain_received_later_frames": 6,
+  "max_received_gap_ms": 256007,
+  "npz_readback_all": "PASS",
+  "native_executed": false,
+  "labels_inferred": false,
+  "private_fields_exported": false
+}

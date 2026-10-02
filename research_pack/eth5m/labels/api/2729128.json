@@ -1,0 +1,22 @@
+{
+  "market_id": 2729128,
+  "title": "Ethereum Up or Down - September 29, 8:05AM-8:10AM ET",
+  "status": "RESOLVED",
+  "marketVariant": "CRYPTO_UP_DOWN",
+  "categorySlug": "eth-updown-5m-1790683500",
+  "feeRateBps": 200,
+  "outcomes": [
+    {
+      "name": "Up",
+      "status": "LOST"
+    },
+    {
+      "name": "Down",
+      "status": "WON"
+    }
+  ],
+  "source": "https://api.predict.fun/v1/markets/2729128",
+  "fetched_at_ms": 1790940192330,
+  "label_rule": "Exactly one outcomes[].status=WON; RESOLVED/SETTLED market; UP or DOWN only",
+  "winner": "DOWN"
+}
