@@ -1,0 +1,17 @@
+{
+  "status": "PREPARED_NOT_TRADED",
+  "offline_tests_passed": 16,
+  "test_command": "python -m pytest -q tests/test_binance_prediction_one_shot_latency_v1.py",
+  "live_validation": "Read-only ETH5M book/Spot feeds, wallet lookup and one 1 USDT BUY UP MARKET quote preview passed; no place-order call.",
+  "actual_order_count": 0,
+  "submit_mode_executed": false,
+  "submit_guard_consumed": false,
+  "predict_internal_acceptance_time": "UNKNOWN",
+  "actual_fill_time": "UNKNOWN",
+  "privacy": "No raw request/response, wallet/user/order/quote/token identifiers, signatures, signed URLs, raw frames or host identity included.",
+  "installation_patch_validation": {
+    "applied_in_isolated_checkout": true,
+    "source_hashes_match_after_lf_normalization": true,
+    "installed_offline_tests_passed": 16
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "source_tree_head": "522274a2b874bf22e3104f9a354b57834c0bd9d9",
+  "new_files": [
+    {
+      "path": "src/predict_bot/binance_prediction_one_shot_latency_v1.py",
+      "bytes": 38599,
+      "sha256": "dcb3653322fa22ea0a7e8c92200fa3c3cee2dcff67632a4ded2cbe12af8d494c"
+    },
+    {
+      "path": "tools/run_binance_prediction_one_shot_latency_v1.py",
+      "bytes": 313,
+      "sha256": "bd11d3aed60a2eabd5160dcada2d5e93e324becd346831e2bdb7f1e3f6dbbca2"
+    },
+    {
+      "path": "tests/test_binance_prediction_one_shot_latency_v1.py",
+      "bytes": 9267,
+      "sha256": "22a10da87834cb0428213203892d80aa29637a9d2cbaa1440e206ef02cba5465"
+    },
+    {
+      "path": "docs/binance_prediction_one_shot_latency_v1.md",
+      "bytes": 7398,
+      "sha256": "00605ebd10174afe4ae34536979cd3d15b2171633b54a5154ee5cfb79a0b6702"
+    }
+  ],
+  "existing_dependencies": [
+    {
+      "path": "src/predict_bot/core.py",
+      "bytes": 35587,
+      "sha256": "c48522f69d398893e5696d3e6e25dd96adfbd480da110c9d317b5ef0829745c9"
+    },
+    {
+      "path": "src/predict_bot/binance_exact_market.py",
+      "bytes": 5882,
+      "sha256": "fb4805295c87741be0561f50fb9be36440f764612765d6d1eded25e066255e78"
+    },
+    {
+      "path": "src/predict_bot/microstructure.py",
+      "bytes": 110655,
+      "sha256": "4a93639738dcd1acfd05fd6c24f20c2cff76e2653e6c0c0b146d320d5170b5d4"
+    }
+  ],
+  "new_files_hash_basis": "UTF-8 source bytes with CRLF normalized to LF; Windows git apply may use CRLF."
+}
