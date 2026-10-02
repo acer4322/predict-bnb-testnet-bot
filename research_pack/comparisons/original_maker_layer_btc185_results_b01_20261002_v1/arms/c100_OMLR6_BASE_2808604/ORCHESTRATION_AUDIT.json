@@ -1,0 +1,10 @@
+{
+  "name": "c100_OMLR6_BASE_2808604",
+  "market": 2808604,
+  "arm": "BASE",
+  "rc": 0,
+  "status": "COMPLETE",
+  "execution_complete": true,
+  "legacy_active_matches_opportunity": true,
+  "all_old_gates_passed": false
+}

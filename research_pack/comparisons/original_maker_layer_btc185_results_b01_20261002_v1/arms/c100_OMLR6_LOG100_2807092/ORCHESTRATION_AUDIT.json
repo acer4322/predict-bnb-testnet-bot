@@ -1,0 +1,10 @@
+{
+  "name": "c100_OMLR6_LOG100_2807092",
+  "market": 2807092,
+  "arm": "LOG100",
+  "rc": 0,
+  "status": "COMPLETE",
+  "execution_complete": true,
+  "legacy_active_matches_opportunity": true,
+  "all_old_gates_passed": false
+}

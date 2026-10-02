@@ -1,0 +1,11 @@
+{
+  "name": "c100_OMLR7_BASE_2809212",
+  "market": 2809212,
+  "arm": "BASE",
+  "rc": 2,
+  "status": "COMPLETE",
+  "execution_complete": true,
+  "legacy_active_matches_opportunity": false,
+  "all_old_gates_passed": false,
+  "strict_completion_errors": []
+}

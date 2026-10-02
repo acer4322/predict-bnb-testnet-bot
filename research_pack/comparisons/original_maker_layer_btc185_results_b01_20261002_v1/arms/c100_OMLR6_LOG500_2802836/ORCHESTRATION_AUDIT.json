@@ -1,0 +1,10 @@
+{
+  "name": "c100_OMLR6_LOG500_2802836",
+  "market": 2802836,
+  "arm": "LOG500",
+  "rc": 2,
+  "status": "COMPLETE",
+  "execution_complete": true,
+  "legacy_active_matches_opportunity": false,
+  "all_old_gates_passed": false
+}
