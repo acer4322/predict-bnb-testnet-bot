@@ -1,0 +1,45 @@
+{
+  "accepted": true,
+  "job_id": "original-maker-layer-btc185-rest554-20261002-v1r6",
+  "launcher_pid": "123852",
+  "probe": {
+    "version": "BTC5M_LAN_WORKER_AGENT_V1",
+    "root": "C:\\BTC5M-worker",
+    "hostname": "DESKTOP-JIERAGF",
+    "python": "3.13.15",
+    "cpu_count": 16,
+    "cpu_pct": 3.9,
+    "memory": {
+      "total_gb": 39.95,
+      "free_gb": 18.35,
+      "used_pct": 54.0
+    },
+    "disk_free_gb": 61.7,
+    "robocopy_active": false,
+    "gpu": {
+      "available": true,
+      "gpus": [
+        {
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 3070 Ti",
+          "memory_total_mib": 8192,
+          "memory_free_mib": 7697,
+          "utilization_gpu_pct": 0,
+          "temperature_c": 43,
+          "driver_version": "591.86"
+        }
+      ]
+    },
+    "jobs_root": "C:\\BTC5M-worker\\.lan_worker_v1\\jobs",
+    "results_root": "C:\\BTC5M-worker\\.lan_worker_v1\\results",
+    "staging_root": "C:\\BTC5M-worker\\.lan_worker_v1\\staging"
+  },
+  "cancel_protected": false,
+  "auto_collector": {
+    "started": true,
+    "pid": 70524,
+    "log": "C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\lan_worker_returns\\_auto_collect_logs\\original-maker-layer-btc185-rest554-20261002-v1r6.log",
+    "console_visible": true,
+    "console_title": "BTC5M Worker - original-maker-layer-btc185-rest554-20261002-v1r6"
+  }
+}
