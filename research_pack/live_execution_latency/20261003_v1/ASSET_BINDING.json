@@ -1,0 +1,48 @@
+{
+  "status": "COHORT_BINDING_SUPPORTED",
+  "mapping_source": {
+    "path": "src/predict_bot/multi_asset_live_supervisor.py",
+    "sha256": "0b79109e746be0b2bebf873362175675ddf23dc217a0b7cbde75e41ef392e145",
+    "line_ranges": [
+      [
+        10,
+        15
+      ]
+    ]
+  },
+  "bindings": [
+    {
+      "source": "poly_gap_live.db",
+      "asset_cohort": "BTC",
+      "repository_db_symbol_mapping": "BTCUSDT",
+      "persisted_asset_name_runtime_event_types": [],
+      "per_market_official_asset_crosswalk_verified": false
+    },
+    {
+      "source": "poly_gap_live_eth.db",
+      "asset_cohort": "ETH",
+      "repository_db_symbol_mapping": "ETHUSDT",
+      "persisted_asset_name_runtime_event_types": [
+        "MULTI_ASSET_V3_SAFE_PAUSE",
+        "LEGACY_EXECUTION_RETIRED_TO_8781"
+      ],
+      "per_market_official_asset_crosswalk_verified": false
+    },
+    {
+      "source": "poly_gap_live_bnb.db",
+      "asset_cohort": "BNB",
+      "repository_db_symbol_mapping": "BNBUSDT",
+      "persisted_asset_name_runtime_event_types": [
+        "MULTI_ASSET_V3_SAFE_PAUSE",
+        "LEGACY_EXECUTION_RETIRED_TO_8781"
+      ],
+      "per_market_official_asset_crosswalk_verified": false
+    }
+  ],
+  "evidence_boundary": "Asset labels are the historical database/service cohorts, supported by repository DB/symbol routing and persisted asset runtime event names. Exact historical executable and per-market official symbol crosswalk are not preserved/verified here. This is not verification of a currently effective service configuration.",
+  "default_main_source": {
+    "path": "src/predict_bot/poly_gap_live.py",
+    "sha256": "f92f1d806a98d71a3078073207ee80c557410c6a0caa2afdd5101d2851d92d38",
+    "basis": "Default Binance symbol and database path in base module; main cohort label is BTC; exact historical env not independently reconstructed."
+  }
+}

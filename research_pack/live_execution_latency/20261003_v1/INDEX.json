@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "dataset": "HISTORICAL_REAL_ORDER_LATENCY_ANONYMIZED",
+  "path": "research_pack/live_execution_latency/20261003_v1",
+  "unit": "ms",
+  "primary_report": "README_ZH.md",
+  "selection": "All preserved rows per frozen source. Complete timing cohorts are explicit; no selection by speed or result.",
+  "headline": {
+    "ETH_BUY_MARKET_FOK": {
+      "n": 119,
+      "receipt_to_place_call_start": {
+        "n": 119,
+        "min": 99.0,
+        "median": 133.0,
+        "p90": 199.2,
+        "p95": 220.0,
+        "p99": 280.8399999999996,
+        "max": 367.0,
+        "mean": 146.0924369747899
+      },
+      "receipt_to_place_call_return": {
+        "n": 119,
+        "min": 340.0,
+        "median": 424.0,
+        "p90": 562.4000000000001,
+        "p95": 587.4,
+        "p99": 699.0399999999995,
+        "max": 891.0,
+        "mean": 447.16806722689074
+      }
+    },
+    "M0W_ORDINARY_LIMIT_GTC": {
+      "n": 456,
+      "receipt_to_place_call_start": {
+        "n": 456,
+        "min": 100.52300000097603,
+        "median": 231.12029999538208,
+        "p90": 702.554549992783,
+        "p95": 927.7581249989453,
+        "p99": 1160.071419991436,
+        "max": 1665.8907000000909,
+        "mean": 345.4761427631153
+      },
+      "receipt_to_place_call_return": {
+        "n": 456,
+        "min": 344.1630000015721,
+        "median": 501.50135000876617,
+        "p90": 1055.7629499962786,
+        "p95": 1198.975174982479,
+        "p99": 1502.1104999988884,
+        "max": 1948.243700000603,
+        "mean": 615.5398366222837
+      }
+    }
+  },
+  "wire_send_clock": "UNKNOWN",
+  "first_trade_clock": "UNKNOWN",
+  "full_fill_clock": "UNKNOWN",
+  "historical_latency_only": true,
+  "current_ETH5M_direct_passive_execution_latency_verified": false,
+  "data_files": [
+    "entries.ndjson.gz",
+    "attempts.ndjson.gz",
+    "manual_exits.ndjson.gz",
+    "gap_attempts.ndjson.gz",
+    "gap_rounds.ndjson.gz",
+    "shotgun_orders.ndjson.gz",
+    "engine_orders.ndjson.gz",
+    "canary_runs.ndjson.gz"
+  ],
+  "original_eth_public_pack_commit": "2d5c597265434e1df472cfc8823e213640edc697",
+  "eth_target_companion_commit": "32b00cbf2d5a813d98f2f4a9263a496d44264b8d"
+}

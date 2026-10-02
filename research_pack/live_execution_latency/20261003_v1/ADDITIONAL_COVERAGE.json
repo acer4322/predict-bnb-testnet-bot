@@ -1,0 +1,142 @@
+{
+  "BTC": {
+    "attempt_rows": 461,
+    "round_rows": 2314,
+    "shotgun_order_rows": 23,
+    "date_range_utc": [
+      "2026-08-10",
+      "2026-08-19"
+    ],
+    "attempt_outcome_counts": {
+      "ENTRY_SIGNED_QUOTE_ABOVE_MAX_ENTRY_PRICE": 31,
+      "SUBMITTED": 196,
+      "NO_FILL": 57,
+      "FILLED": 91,
+      "ENTRY_SIGNED_QUOTE_ABOVE_PRICE_CAP": 11,
+      "RETURNED_OPEN": 17,
+      "EXIT_QUOTE_REJECTED": 1,
+      "POLY_SIGNAL_GONE": 3,
+      "ENTRY_PLACE_REJECTED": 51,
+      "ENTRY_POST_QUOTE_EDGE_NON_POSITIVE": 3
+    },
+    "attempt_action_counts": {
+      "BUY": 336,
+      "SELL": 125
+    },
+    "complete_book_to_place_clock_rows": 318,
+    "selected_buy_submitted_clock_rows": 183
+  },
+  "ETH": {
+    "attempt_rows": 232,
+    "round_rows": 180,
+    "shotgun_order_rows": 0,
+    "date_range_utc": [
+      "2026-08-12",
+      "2026-08-19"
+    ],
+    "attempt_outcome_counts": {
+      "SUBMITTED": 119,
+      "NO_FILL": 16,
+      "FILLED": 65,
+      "ENTRY_SIGNED_QUOTE_ABOVE_PRICE_CAP": 8,
+      "POLY_SIGNAL_GONE": 7,
+      "ENTRY_SIGNED_QUOTE_ABOVE_MAX_ENTRY_PRICE": 6,
+      "ENTRY_PLACE_REJECTED": 7,
+      "ENTRY_POST_QUOTE_EDGE_NON_POSITIVE": 4
+    },
+    "attempt_action_counts": {
+      "BUY": 158,
+      "SELL": 74
+    },
+    "complete_book_to_place_clock_rows": 200,
+    "selected_buy_submitted_clock_rows": 119
+  },
+  "BNB": {
+    "attempt_rows": 192,
+    "round_rows": 135,
+    "shotgun_order_rows": 0,
+    "date_range_utc": [
+      "2026-08-12",
+      "2026-08-12"
+    ],
+    "attempt_outcome_counts": {
+      "NO_FILL": 18,
+      "SUBMITTED": 92,
+      "FILLED": 55,
+      "POLY_SIGNAL_GONE": 15,
+      "ENTRY_POST_QUOTE_EDGE_NON_POSITIVE": 4,
+      "ENTRY_SIGNED_QUOTE_ABOVE_PRICE_CAP": 5,
+      "ENTRY_SIGNED_QUOTE_ABOVE_MAX_ENTRY_PRICE": 2,
+      "ENTRY_PLACE_REJECTED": 1
+    },
+    "attempt_action_counts": {
+      "BUY": 133,
+      "SELL": 59
+    },
+    "complete_book_to_place_clock_rows": 165,
+    "selected_buy_submitted_clock_rows": 92
+  },
+  "engine": {
+    "order_rows": 64,
+    "status_counts": {
+      "REJECTED": 33,
+      "SUBMITTED": 31
+    },
+    "submitted_with_vendor_id": 31,
+    "cap100_drill_and_stress_tables_excluded": true,
+    "limit": "SUBMITTED alone is not proof of a fill; result/reconciliation presence flags are retained separately."
+  },
+  "canary": {
+    "run_rows": 301,
+    "mode_status_counts": [
+      {
+        "mode": "AUTO_MONITOR",
+        "status": "AUTO_QUOTE_READY",
+        "n": 32
+      },
+      {
+        "mode": "AUTO_MONITOR",
+        "status": "QUOTE_REJECTED",
+        "n": 193
+      },
+      {
+        "mode": "LIVE_ARMED_MONITOR",
+        "status": "ARMED_NO_ELIGIBLE_VARIANT",
+        "n": 60
+      },
+      {
+        "mode": "LIVE_ARMED_MONITOR",
+        "status": "ARMED_QUOTE_REJECTED",
+        "n": 9
+      },
+      {
+        "mode": "LIVE_ARMED_MONITOR",
+        "status": "ARMED_WAITING_SAFE_WALLET",
+        "n": 1
+      },
+      {
+        "mode": "LIVE_ARMED_MONITOR",
+        "status": "AUTO_QUOTE_READY",
+        "n": 1
+      },
+      {
+        "mode": "LIVE_ARMED_MONITOR",
+        "status": "PLACEMENT_INCOMPLETE_MANUAL_RECONCILE",
+        "n": 1
+      },
+      {
+        "mode": "dry-run",
+        "status": "DRY_RUN_READY",
+        "n": 1
+      },
+      {
+        "mode": "dry-run",
+        "status": "SKIPPED_NO_ELIGIBLE_VARIANT",
+        "n": 3
+      }
+    ],
+    "placement_incomplete_rows": 1,
+    "paper_xpair_trials_excluded": true,
+    "limit": "Historical incomplete placement remains unresolved; not treated as a completed order/fill."
+  }
+}

@@ -1,0 +1,1052 @@
+{
+  "selection": "All preserved rows from one frozen historical live ledger; no selection by speed, strategy, success or outcome.",
+  "entry_rows": 3925,
+  "manual_exit_rows": 41,
+  "latency_attempt_rows": 532,
+  "entry_signal_date_utc": [
+    "2026-07-18",
+    "2026-08-20"
+  ],
+  "telemetry_capture_date_utc": [
+    "2026-08-01",
+    "2026-08-11"
+  ],
+  "event_type_counts": {
+    "PREFLIGHT_OK": 615,
+    "QUOTE_PREFLIGHT_OK": 420,
+    "SIGNAL_ACCEPTED": 2153,
+    "ORDER_SUBMITTED": 1912,
+    "RUNTIME_PAUSED": 41,
+    "SKIPPED_PAUSED": 468,
+    "RUNTIME_RESUMED": 38,
+    "AUTO_REDEEM_ATTEMPTED": 908,
+    "AUTO_REDEEM_COMPLETED": 899,
+    "STRATEGY_SETTLED": 1834,
+    "QUOTE_REJECTED": 149,
+    "SKIPPED_M0_HOURLY_GUARD": 21,
+    "LIVE_RULES_UPDATED": 262,
+    "QUOTE_REPRICE_REQUESTED": 271,
+    "AUTO_REDEEM_SCAN_FAILED": 787,
+    "BLOCKED_MARKET_MISMATCH": 7,
+    "BLOCKED_INVALID_SIGNAL": 3,
+    "PAIR_QUOTE_ABORTED": 36,
+    "PAIR_SHARES_MATCHED": 4,
+    "PAIR_QUOTE_CAPACITY_LOW": 22,
+    "PAIR_FILL_MISMATCH_PAUSED": 2,
+    "PREFLIGHT_FAILED": 4,
+    "ORDER_SYNC_FAILED": 2058,
+    "BLOCKED_RESEARCH_PRICE_RANGE": 6,
+    "RESEARCH_SIGNAL_CONFLICT_SKIPPED": 1,
+    "RESEARCH_MARKET_ALREADY_CLAIMED": 1,
+    "FUTURES_LEAD_HEDGE_SUBMITTED": 1,
+    "BLOCKED_STRATEGY_OBSERVER": 1008,
+    "BLOCKED_FUTURES_LEAD_OBSERVER": 58,
+    "MANUAL_SELL_SUBMITTED": 18,
+    "MANUAL_SELL_PLACEMENT_REJECTED": 1,
+    "BLOCKED_DRAWDOWN_CONTROL": 106,
+    "SKIPPED_TWO_LOSS_COOLDOWN": 22,
+    "BLOCKED_PREFLIGHT": 1,
+    "BLOCKED_RELIABILITY_GATE": 4,
+    "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY": 1,
+    "MANUAL_EXIT_SETTLED": 32,
+    "BLOCKED_STALE_PREDICTION_BOOK": 4,
+    "BLOCKED_ESTIMATED_VWAP_TOO_HIGH": 2,
+    "PAIR_DYNAMIC_DEPTH_SIZED": 16,
+    "PAIR_EQUAL_SHARE_REQUOTE_REJECTED": 9,
+    "BLOCKED_PAIR_PROFITABLE_DEPTH": 3,
+    "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED": 1,
+    "BLOCKED_NON_DIRECT_PREDICTION_SOURCE": 3,
+    "BLOCKED_STALE_SPOT_DATA": 2,
+    "EXIT_098_SELL_SUBMITTED": 21,
+    "LOSS_STREAK_GUARD_RULE_UPDATED": 43,
+    "LOSS_STREAK_REDUCED_STAKE": 65,
+    "EXIT_098_QUOTE_REJECTED": 6,
+    "LOSS_STREAK_SETTLEMENT_RECONCILED": 14,
+    "SKIPPED_LOSS_STREAK_SHADOW": 30,
+    "MAXIMUM_NET_LOSS_COUNTER_RESET": 1,
+    "MANUAL_SELL_QUOTE_REJECTED": 1,
+    "POLY_LIVE_BRIDGE_READY": 109,
+    "BLOCKED_LOSS_STREAK_MINIMUM_STAKE": 22,
+    "API_RESTART_REQUESTED": 1
+  },
+  "entry_recorded_api_order_id_matches": 1912,
+  "entry_recorded_api_filled_confirmed": 1868,
+  "entry_status_counts": {
+    "FILLED": 1868,
+    "SKIPPED_PAUSED": 468,
+    "REJECTED": 241,
+    "CANCELLED": 7,
+    "EXPIRED": 35,
+    "SKIPPED_M0_HOURLY_GUARD": 21,
+    "PENDING": 2,
+    "BLOCKED_MARKET_MISMATCH": 7,
+    "BLOCKED_INVALID_SIGNAL": 3,
+    "BLOCKED_RESEARCH_PRICE_RANGE": 6,
+    "BLOCKED_STRATEGY_OBSERVER": 1008,
+    "BLOCKED_FUTURES_LEAD_OBSERVER": 58,
+    "BLOCKED_DRAWDOWN_CONTROL": 106,
+    "SKIPPED_TWO_LOSS_COOLDOWN": 22,
+    "BLOCKED_PREFLIGHT": 1,
+    "BLOCKED_RELIABILITY_GATE": 4,
+    "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY": 1,
+    "BLOCKED_STALE_PREDICTION_BOOK": 4,
+    "BLOCKED_ESTIMATED_VWAP_TOO_HIGH": 2,
+    "BLOCKED_PAIR_PROFITABLE_DEPTH": 3,
+    "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED": 1,
+    "BLOCKED_NON_DIRECT_PREDICTION_SOURCE": 3,
+    "BLOCKED_STALE_SPOT_DATA": 2,
+    "SKIPPED_LOSS_STREAK_SHADOW": 30,
+    "BLOCKED_LOSS_STREAK_MINIMUM_STAKE": 22
+  },
+  "manual_exit_status_counts": {
+    "FAILED": 6,
+    "FILLED": 33,
+    "REJECTED": 2
+  },
+  "attempt_outcome_counts": {
+    "SUBMITTED": 487,
+    "QUOTE_REJECTED": 37,
+    "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY": 1,
+    "BLOCKED_STALE_PREDICTION_BOOK": 4,
+    "BLOCKED_ESTIMATED_VWAP_TOO_HIGH": 2,
+    "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED": 1
+  },
+  "daily_counts": [
+    {
+      "date_utc": "2026-07-18",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 8
+    },
+    {
+      "date_utc": "2026-07-18",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 4
+    },
+    {
+      "date_utc": "2026-07-19",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "CANCELLED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-19",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-07-19",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 137
+    },
+    {
+      "date_utc": "2026-07-19",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "PENDING",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-19",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 8
+    },
+    {
+      "date_utc": "2026-07-19",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_M0_HOURLY_GUARD",
+      "n": 11
+    },
+    {
+      "date_utc": "2026-07-20",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-20",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 176
+    },
+    {
+      "date_utc": "2026-07-20",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-07-20",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_M0_HOURLY_GUARD",
+      "n": 6
+    },
+    {
+      "date_utc": "2026-07-20",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-21",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_MARKET_MISMATCH",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-21",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-07-21",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 136
+    },
+    {
+      "date_utc": "2026-07-21",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 6
+    },
+    {
+      "date_utc": "2026-07-21",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_M0_HOURLY_GUARD",
+      "n": 4
+    },
+    {
+      "date_utc": "2026-07-21",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 53
+    },
+    {
+      "date_utc": "2026-07-22",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_MARKET_MISMATCH",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-07-22",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 109
+    },
+    {
+      "date_utc": "2026-07-22",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 4
+    },
+    {
+      "date_utc": "2026-07-22",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-23",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_MARKET_MISMATCH",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-23",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-23",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 94
+    },
+    {
+      "date_utc": "2026-07-23",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "PENDING",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-23",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 5
+    },
+    {
+      "date_utc": "2026-07-24",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_MARKET_MISMATCH",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-24",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-07-24",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 146
+    },
+    {
+      "date_utc": "2026-07-24",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 7
+    },
+    {
+      "date_utc": "2026-07-25",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_MARKET_MISMATCH",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-07-25",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 69
+    },
+    {
+      "date_utc": "2026-07-25",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 7
+    },
+    {
+      "date_utc": "2026-07-26",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_INVALID_SIGNAL",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-07-26",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 135
+    },
+    {
+      "date_utc": "2026-07-26",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 79
+    },
+    {
+      "date_utc": "2026-07-26",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-07-27",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_RESEARCH_PRICE_RANGE",
+      "n": 5
+    },
+    {
+      "date_utc": "2026-07-27",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-07-27",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 74
+    },
+    {
+      "date_utc": "2026-07-27",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 23
+    },
+    {
+      "date_utc": "2026-07-27",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-07-28",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-07-28",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 57
+    },
+    {
+      "date_utc": "2026-07-29",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_FUTURES_LEAD_OBSERVER",
+      "n": 15
+    },
+    {
+      "date_utc": "2026-07-29",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_RESEARCH_PRICE_RANGE",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-29",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 88
+    },
+    {
+      "date_utc": "2026-07-29",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "CANCELLED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-29",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-07-29",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 96
+    },
+    {
+      "date_utc": "2026-07-29",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-30",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_DRAWDOWN_CONTROL",
+      "n": 5
+    },
+    {
+      "date_utc": "2026-07-30",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_FUTURES_LEAD_OBSERVER",
+      "n": 20
+    },
+    {
+      "date_utc": "2026-07-30",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 231
+    },
+    {
+      "date_utc": "2026-07-30",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 71
+    },
+    {
+      "date_utc": "2026-07-30",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_DRAWDOWN_CONTROL",
+      "n": 25
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_FUTURES_LEAD_OBSERVER",
+      "n": 8
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_PREFLIGHT",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_RELIABILITY_GATE",
+      "n": 4
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 121
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 53
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 7
+    },
+    {
+      "date_utc": "2026-07-31",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_TWO_LOSS_COOLDOWN",
+      "n": 4
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "BLOCKED_ESTIMATED_VWAP_TOO_HIGH",
+      "ledger_status": "BLOCKED_ESTIMATED_VWAP_TOO_HIGH",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY",
+      "ledger_status": "BLOCKED_INSUFFICIENT_TOP_LEVEL_CAPACITY",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "BLOCKED_STALE_PREDICTION_BOOK",
+      "ledger_status": "BLOCKED_STALE_PREDICTION_BOOK",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_DRAWDOWN_CONTROL",
+      "n": 6
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 136
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "EXPIRED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "FILLED",
+      "n": 39
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 24
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_TWO_LOSS_COOLDOWN",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "QUOTE_REJECTED",
+      "ledger_status": "REJECTED",
+      "n": 9
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "EXPIRED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-01",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 54
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_DRAWDOWN_CONTROL",
+      "n": 26
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_FUTURES_LEAD_OBSERVER",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_PAIR_PROFITABLE_DEPTH",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 123
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 8
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_TWO_LOSS_COOLDOWN",
+      "n": 6
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "QUOTE_REJECTED",
+      "ledger_status": "REJECTED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "EXPIRED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-08-02",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 66
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+      "ledger_status": "BLOCKED_PREDICTION_ORIENTATION_UNVERIFIED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "BLOCKED_STALE_PREDICTION_BOOK",
+      "ledger_status": "BLOCKED_STALE_PREDICTION_BOOK",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_DRAWDOWN_CONTROL",
+      "n": 20
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_FUTURES_LEAD_OBSERVER",
+      "n": 6
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_NON_DIRECT_PREDICTION_SOURCE",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_PAIR_PROFITABLE_DEPTH",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 125
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 14
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 31
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_TWO_LOSS_COOLDOWN",
+      "n": 4
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "QUOTE_REJECTED",
+      "ledger_status": "REJECTED",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "EXPIRED",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-08-03",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 35
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "BLOCKED_ESTIMATED_VWAP_TOO_HIGH",
+      "ledger_status": "BLOCKED_ESTIMATED_VWAP_TOO_HIGH",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "BLOCKED_STALE_PREDICTION_BOOK",
+      "ledger_status": "BLOCKED_STALE_PREDICTION_BOOK",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_DRAWDOWN_CONTROL",
+      "n": 8
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_FUTURES_LEAD_OBSERVER",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_PAIR_PROFITABLE_DEPTH",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STALE_SPOT_DATA",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 97
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "REJECTED",
+      "n": 7
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "QUOTE_REJECTED",
+      "ledger_status": "REJECTED",
+      "n": 10
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "EXPIRED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-04",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 63
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_DRAWDOWN_CONTROL",
+      "n": 6
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_FUTURES_LEAD_OBSERVER",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STALE_SPOT_DATA",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 16
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_LOSS_STREAK_SHADOW",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 20
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_TWO_LOSS_COOLDOWN",
+      "n": 7
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "QUOTE_REJECTED",
+      "ledger_status": "REJECTED",
+      "n": 6
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "CANCELLED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "EXPIRED",
+      "n": 5
+    },
+    {
+      "date_utc": "2026-08-05",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 154
+    },
+    {
+      "date_utc": "2026-08-06",
+      "attempt_outcome": "BLOCKED_STALE_PREDICTION_BOOK",
+      "ledger_status": "BLOCKED_STALE_PREDICTION_BOOK",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-06",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 57
+    },
+    {
+      "date_utc": "2026-08-06",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_LOSS_STREAK_SHADOW",
+      "n": 15
+    },
+    {
+      "date_utc": "2026-08-06",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 24
+    },
+    {
+      "date_utc": "2026-08-06",
+      "attempt_outcome": "QUOTE_REJECTED",
+      "ledger_status": "REJECTED",
+      "n": 7
+    },
+    {
+      "date_utc": "2026-08-06",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "CANCELLED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-06",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "EXPIRED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-06",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 27
+    },
+    {
+      "date_utc": "2026-08-07",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_DRAWDOWN_CONTROL",
+      "n": 10
+    },
+    {
+      "date_utc": "2026-08-07",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_FUTURES_LEAD_OBSERVER",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-08-07",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_STRATEGY_OBSERVER",
+      "n": 14
+    },
+    {
+      "date_utc": "2026-08-07",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_LOSS_STREAK_SHADOW",
+      "n": 3
+    },
+    {
+      "date_utc": "2026-08-07",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "CANCELLED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-08-07",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "EXPIRED",
+      "n": 1
+    },
+    {
+      "date_utc": "2026-08-07",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 63
+    },
+    {
+      "date_utc": "2026-08-08",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_LOSS_STREAK_SHADOW",
+      "n": 8
+    },
+    {
+      "date_utc": "2026-08-08",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 32
+    },
+    {
+      "date_utc": "2026-08-08",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 4
+    },
+    {
+      "date_utc": "2026-08-10",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_LOSS_STREAK_MINIMUM_STAKE",
+      "n": 10
+    },
+    {
+      "date_utc": "2026-08-10",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_LOSS_STREAK_SHADOW",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-08-10",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 28
+    },
+    {
+      "date_utc": "2026-08-11",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "BLOCKED_LOSS_STREAK_MINIMUM_STAKE",
+      "n": 12
+    },
+    {
+      "date_utc": "2026-08-11",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 22
+    },
+    {
+      "date_utc": "2026-08-11",
+      "attempt_outcome": "SUBMITTED",
+      "ledger_status": "FILLED",
+      "n": 2
+    },
+    {
+      "date_utc": "2026-08-12",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 74
+    },
+    {
+      "date_utc": "2026-08-13",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 16
+    },
+    {
+      "date_utc": "2026-08-15",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 4
+    },
+    {
+      "date_utc": "2026-08-16",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 7
+    },
+    {
+      "date_utc": "2026-08-17",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 14
+    },
+    {
+      "date_utc": "2026-08-18",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 34
+    },
+    {
+      "date_utc": "2026-08-19",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 41
+    },
+    {
+      "date_utc": "2026-08-20",
+      "attempt_outcome": "NO_TELEMETRY",
+      "ledger_status": "SKIPPED_PAUSED",
+      "n": 54
+    }
+  ]
+}

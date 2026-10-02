@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "dataset_kind": "HISTORICAL_REAL_ORDER_TIMING_EVIDENCE_ANONYMIZED",
+  "source_name": "live_m0w.db",
+  "snapshot_sha256": "a74b25d4c1db2a1f491c8460a4c1b998e8363e1ec070ba04b573da87fb7f937b",
+  "retrieval": "Read-only SQLite backup; offline export. No new real orders or authenticated API requests.",
+  "api_documentation_url": "https://developers.binance.com/en/docs/catalog/web3-wallet-prediction-trading/api/rest-api/trade",
+  "api_clock_limit": "createTime, modifyTime and terminalTime exist in the private frozen response evidence. Only presence flags are exported. They do not provide a same-clock local book-to-first/full-trade measurement.",
+  "route_limit": "Historical Binance Prediction REST route. Does not establish direct Predict.fun ETH5M latency, passive queue latency or current runtime latency.",
+  "source_version_limit": "Producing functions checked in current source; exact historical executing binary and trigger stream per attempt were not persisted in this telemetry table.",
+  "source_code": [
+    {
+      "path": "src/predict_bot/live_trading.py",
+      "sha256": "a2d2a04ea98af8ab410b6f6a869cccc2e051341547c37b343e730e2baf2c06e7",
+      "line_ranges": [
+        [
+          821,
+          844
+        ],
+        [
+          1391,
+          1433
+        ],
+        [
+          1708,
+          1724
+        ],
+        [
+          4000,
+          4019
+        ],
+        [
+          7297,
+          7324
+        ],
+        [
+          7582,
+          7708
+        ],
+        [
+          7750,
+          7865
+        ]
+      ]
+    },
+    {
+      "path": "src/predict_bot/core.py",
+      "sha256": "c48522f69d398893e5696d3e6e25dd96adfbd480da110c9d317b5ef0829745c9",
+      "line_ranges": [
+        [
+          299,
+          325
+        ],
+        [
+          452,
+          471
+        ],
+        [
+          495,
+          527
+        ]
+      ]
+    },
+    {
+      "path": "src/predict_bot/m_realtime.py",
+      "sha256": "d7c180a515d8cb3c1714840ea3bc5808803dd314b94532e3f9e2501e644f3991",
+      "line_ranges": [
+        [
+          819,
+          844
+        ],
+        [
+          1017,
+          1053
+        ]
+      ]
+    },
+    {
+      "path": "src/predict_bot/microstructure.py",
+      "sha256": "4a93639738dcd1acfd05fd6c24f20c2cff76e2653e6c0c0b146d320d5170b5d4",
+      "line_ranges": [
+        [
+          1640,
+          1659
+        ]
+      ]
+    }
+  ]
+}

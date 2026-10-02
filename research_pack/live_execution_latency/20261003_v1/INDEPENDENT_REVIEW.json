@@ -1,0 +1,120 @@
+{
+  "review_date_utc": "2026-10-03",
+  "status": "PASS",
+  "reviewer_scope": {
+    "package": "research_pack/live_execution_latency/20261003_v1",
+    "frozen_snapshots": "Private read-only frozen SQLite snapshots (6); SHA256 bindings in provenance.",
+    "method": "Rebuilt each exported row in memory from the six frozen SQLite snapshots opened with mode=ro and PRAGMA query_only=ON; compared ordered rows exactly. Did not modify package or snapshots, run exporter scripts, access network/APIs, or print source identifiers, exact timestamps, prices, quantities, responses, or balances.",
+    "scope_limitations": [
+      "This validates data payloads and summary metrics against the named frozen snapshots, not the added README or INDEX presentation, staging, or publication; root owns those checks.",
+      "It does not establish the exact historical executable version or claim wire-send, exchange-acceptance, first-trade, full-fill, or venue fill timestamps where those clocks are absent."
+    ]
+  },
+  "snapshot_bindings": {
+    "all_six_snapshot_sha256_values_match_package_provenance": true,
+    "mismatched_snapshots": 0
+  },
+  "row_parity": {
+    "exact_ordered_matches": true,
+    "mismatched_rows": 0,
+    "files": {
+      "entries.ndjson.gz": {
+        "source_rows": 3925,
+        "package_rows": 3925
+      },
+      "attempts.ndjson.gz": {
+        "source_rows": 532,
+        "package_rows": 532
+      },
+      "manual_exits.ndjson.gz": {
+        "source_rows": 41,
+        "package_rows": 41
+      },
+      "gap_attempts.ndjson.gz": {
+        "source_rows": 885,
+        "package_rows": 885
+      },
+      "gap_rounds.ndjson.gz": {
+        "source_rows": 2629,
+        "package_rows": 2629
+      },
+      "shotgun_orders.ndjson.gz": {
+        "source_rows": 23,
+        "package_rows": 23
+      },
+      "engine_orders.ndjson.gz": {
+        "source_rows": 64,
+        "package_rows": 64
+      },
+      "canary_runs.ndjson.gz": {
+        "source_rows": 301,
+        "package_rows": 301
+      }
+    },
+    "poly_gap_attempt_rows_by_asset": {
+      "BTC": 461,
+      "ETH": 232,
+      "BNB": 192
+    },
+    "complete_buy_submitted_book_place_clock_rows_by_asset": {
+      "BTC": 183,
+      "ETH": 119,
+      "BNB": 92
+    }
+  },
+  "independent_headline_recomputation": {
+    "quantile_method": "Linear interpolation at (n-1)*p with no prior rounding.",
+    "m0w_ordinary_ack_eventToPlaceResponseMs": {
+      "n": 456,
+      "median_ms": 501.50135000876617,
+      "p95_ms": 1198.975174982479,
+      "matches_packaged_summary": true,
+      "interpretation": "Recorded event-receipt-to-place-response; not book-receipt-to-send."
+    },
+    "eth_buy_submitted_book_receipt_to_place_call_return_ms": {
+      "n": 119,
+      "median_ms": 424.0,
+      "p95_ms": 587.4,
+      "matches_packaged_summary": true
+    },
+    "all_metrics_match_for_selected_buy_submitted_complete_clock_cohorts": {
+      "BTC_n": 183,
+      "ETH_n": 119,
+      "BNB_n": 92,
+      "metric_summaries_match": true
+    }
+  },
+  "cohort_and_outcome_checks": {
+    "m0w_ordinary_ack_rows": 456,
+    "all_are_submitted_with_recorded_api_order_id_match": true,
+    "quote_failure_or_local_block_rows_in_ordinary_ack_metrics": 0,
+    "confirmation_add_ack_rows_separately_labeled": 31,
+    "confirmation_add_rows_in_ordinary_headline": 0,
+    "eth_headline_rows_all_buy_submitted_with_recorded_order_id_and_complete_book_place_clock": true,
+    "row_outcomes_and_latency_fields_match_frozen_source_exactly": true,
+    "engine_order_statuses": {
+      "SUBMITTED": 31,
+      "REJECTED": 33
+    },
+    "engine_submitted_is_not_used_as_universal_fill_proof": true,
+    "engine_submitted_rows_with_no_positive_share_or_order_history_reconciliation_flag": 3
+  },
+  "privacy_and_clock_checks": {
+    "export_rows_scanned": 8400,
+    "synthetic_aliases_match_sequential_patterns": true,
+    "raw_record_identifier_or_response_fields_found": 0,
+    "exact_wall_timestamp_fields_found": 0,
+    "non_day_only_date_values_found": 0,
+    "non_boolean_price_quantity_or_amount_values_found": 0,
+    "stored_stamp_presence_fields_are_boolean_presence_flags": true,
+    "non_null_book_to_wire_or_trade_timestamp_claims": 0,
+    "actual_trade_timestamp_claims": false,
+    "m0w_api_time_fields_are_presence_flags_only": true
+  },
+  "limitations": [
+    "The M0W headline uses its recorded event-receipt anchor. The 31 confirmation-add events use a distinct signal-construction anchor and are excluded from the ordinary headline.",
+    "Poly-gap book receipt is locally stamped after the direct Binance Prediction book GET returns; placement wall clocks bracket the client method, while book/place RTT fields use monotonic durations. These rows do not contain actual trade-time stamps.",
+    "SUBMITTED is preserved separately from engine fill-evidence flags. No engine status alone is promoted to a universal fill claim.",
+    "No output field establishes a venue fill timestamp; all exported book-to-trade and book-to-fill values remain null or explicitly unknown."
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "source_files": [
+    {
+      "name": "poly_gap_live.db",
+      "snapshot_sha256": "3e507ce91fb93636066a956aac194594e834862763cbafce9e8195a070ead3ae"
+    },
+    {
+      "name": "poly_gap_live_eth.db",
+      "snapshot_sha256": "dec60400c9ba23f6e8ad9a0a0b2ffad42f0a2e62120c5c2805bf8afe8c6703db"
+    },
+    {
+      "name": "poly_gap_live_bnb.db",
+      "snapshot_sha256": "71cd13ce2234ec2ff31d6c0375683cfdd5fe28ab03ec65ca4dfe2abadc438b81"
+    },
+    {
+      "name": "echtgeld_engine_v1.db",
+      "snapshot_sha256": "a68b108694f47cda55fc3e968277006a8a039cf4c5705aa27a03f6375dadc756"
+    },
+    {
+      "name": "xpair_btc_eth_canary.db",
+      "snapshot_sha256": "1727e7c1c00e99bc56d1d3911b190e0c37c40825aa33ba45f72921ef1ebd3024"
+    }
+  ],
+  "source_database_opened_read_only": true,
+  "gap_route": "Polymarket public feed signal; Binance Prediction REST direct orderbook then signed MARKET/FOK placement.",
+  "gap_clock": "book_observed_at_ms is local time.time() ms AFTER book GET returns; placement wall clocks bracket client method. place_rtt_ms and quote_rtt_ms use monotonic duration.",
+  "unknowns": [
+    "Wire-send timestamp",
+    "Matching-engine acceptance timestamp",
+    "First trade timestamp",
+    "Full-fill timestamp",
+    "Historical exact binary/version per attempt",
+    "Wall-clock adjustments during elapsed spans"
+  ],
+  "privacy": "Exact timestamps, identifiers, prices, amounts, account/response payloads and freeform messages omitted; UTC day and elapsed durations retained.",
+  "source_code": [
+    {
+      "path": "src/predict_bot/poly_gap_live.py",
+      "sha256": "f92f1d806a98d71a3078073207ee80c557410c6a0caa2afdd5101d2851d92d38"
+    },
+    {
+      "path": "src/predict_bot/poly_gap_live_v9.py",
+      "sha256": "09ea3408572c22800d6c792b98d8a0a2c1d6aab3bec113ddbbf9b499a5552793"
+    },
+    {
+      "path": "src/predict_bot/poly_gap_live_v32.py",
+      "sha256": "08d923d9ff99f48fcdea6108d88f76eb273df058a6557ad9b22e22e924eaa4f1"
+    },
+    {
+      "path": "src/predict_bot/poly_gap_live_v34.py",
+      "sha256": "557ee83147ba021eafe449c20c98e389376063a36a7bf609967d05b314f53544"
+    },
+    {
+      "path": "src/predict_bot/poly_gap_live_v35.py",
+      "sha256": "6af9db08e4489e145f7f6e09e518325906bb0260665905c0511d7d99d404aee0"
+    },
+    {
+      "path": "src/predict_bot/poly_gap_live_v36.py",
+      "sha256": "fbb1ad55aea622d78cd92d48528bf590a876579f4f8b146ac33cdc7c2be670e7"
+    },
+    {
+      "path": "src/predict_bot/poly_gap_live_v37.py",
+      "sha256": "2d4b73c6cbceccad2760e1ff36d0e5dba4c2ec261ff93f7c5e9db7fb96b0aa56"
+    },
+    {
+      "path": "src/predict_bot/echtgeld_engine_v1.py",
+      "sha256": "6cb2f62f981ace52cc5922b5cf820dfaf8cb99ec74086d0041cbb42250373d40"
+    },
+    {
+      "path": "src/predict_bot/target_taker_live_execution_v4.py",
+      "sha256": "8137f64f619e908a30fef736279ef16ba4d1c76464b03fc932fbecd767f5db0d"
+    }
+  ]
+}
