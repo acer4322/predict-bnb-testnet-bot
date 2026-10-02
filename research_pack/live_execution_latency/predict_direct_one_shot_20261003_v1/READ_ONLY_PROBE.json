@@ -2,9 +2,6 @@
   "outcome": "SIGNED_MARKET_FOK_PREPARED_NO_ORDER",
   "order_request_count": 0,
   "once_guard_unconsumed": true,
-  "official_jwt_authentication": "PASS",
-  "existing_buy_approvals_satisfied": true,
-  "existing_direct_wallet_at_least_one_usdt": true,
   "native_book_subscription": "PASS",
   "native_wallet_event_subscription": "PASS",
   "sdk_sign_and_one_usdt_contract_validation": "PASS",
@@ -61,5 +58,6 @@
   "sequence_contiguous": true,
   "order_ack_or_fill_claimed": false,
   "venue_minimum_and_actual_order_acceptance": "NOT_TESTED_NO_ORDER",
-  "meaning": "Same-host durations use monotonic clocks. Binance E-to-receipt age uses shortest-RTT midpoint calibration with RTT/2+1ms model uncertainty; it includes publication delay. orderAccepted and orderTransactionSuccess are notification RECEIPT times, not internal acceptance or fill clocks. Read-only preparation is not venue acceptance; market rounding may spend less than one USDT. No automatic retry, approval, transfer, cancellation or runtime mutation."
+  "meaning": "Same-host durations use monotonic clocks. Binance E-to-receipt age uses shortest-RTT midpoint calibration with RTT/2+1ms model uncertainty; it includes publication delay. orderAccepted and orderTransactionSuccess are notification RECEIPT times, not internal acceptance or fill clocks. Read-only preparation is not venue acceptance; market rounding may spend less than one USDT. No automatic retry, approval, transfer, cancellation or runtime mutation.",
+  "private_account_preflight": "RESULTS_RETAINED_LOCALLY"
 }

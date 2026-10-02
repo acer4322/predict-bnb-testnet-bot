@@ -28,9 +28,10 @@ the previously completed Binance test. Failed or ambiguous order attempts keep
 it consumed. Existing native USDT balance and approvals are checked without
 transfers or approval transactions. The SDK may round spend slightly below 1 USDT.
 
-READ_ONLY_PROBE.json proves authentication, existing approvals/balance, both
-native subscriptions, received public data and local order signing/validation.
-It contains zero submitted orders. Venue minimum order size and real order
+READ_ONLY_PROBE.json records both native subscriptions, received public data
+and local order signing/validation, with zero submitted orders. Account-specific
+authentication, approval and balance check results are retained locally and
+omitted from this public report. Venue minimum order size and real order
 acceptance are untested. The read-only probe is not a live trade result.
 
 Timing includes native book receipt, fixed decision, SDK amount/build/sign,
