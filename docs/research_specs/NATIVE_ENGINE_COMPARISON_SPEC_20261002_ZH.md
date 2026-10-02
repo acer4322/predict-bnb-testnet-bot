@@ -3,7 +3,7 @@
 目的：量化「雲端簡化重播」「雲端 Linux 編譯的補丁版引擎」與「你本機的原生引擎／V49 策略堆疊」在同一批市場上的差距。不啟動 worker 以外的服務、不動 live。
 
 ## 資料（同一批 185 場）
-research-data 已有事件檔與官方真標籤：`events/hft244_feed_v1_20261002_v1`（最新 70 場有標籤）、`hft244_fresh_after2807162_20261002_batch01/02/03`（15＋15＋85 場）。雲端結果（每場、每策略）在 `docs/research_specs/data/CLOUD_LAB_RESULTS_20261002.json`；5 分鐘現貨波動表在 `docs/research_specs/data/SPOT_RV5_TABLE_20261002.json`（215 場）。
+research-data 已有事件檔與官方真標籤：`events/hft244_feed_v1_20261002_v1`（最新 70 場有標籤）、`hft244_fresh_after2807162_20261002_batch01/02/03`（15＋15＋85 場）。雲端結果（每場、每策略）在 `docs/research_specs/results/CLOUD_LAB_RESULTS_20261002.json`；5 分鐘現貨波動表在 `docs/research_specs/results/SPOT_RV5_TABLE_20261002.json`（215 場）。
 
 ## A. 平台對照（低工作量，先做）：同一份引擎碼、同一批事件，本機 vs 雲端
 1. 準備 fixtures：`python tools/hft_repro/make_fixture_dirs.py <events 批次目錄> <fixtures 輸出目錄> --copy`（每批各一次，輸出到同一個 fixtures 目錄）。
