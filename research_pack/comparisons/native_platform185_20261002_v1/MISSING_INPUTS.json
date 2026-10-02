@@ -1,0 +1,21 @@
+{
+  "required_files": [
+    {
+      "path": "docs/research_specs/data/CLOUD_LAB_RESULTS_20261002.json",
+      "local_exists": false,
+      "research_data_tree": [],
+      "known_commit_history": []
+    },
+    {
+      "path": "docs/research_specs/data/SPOT_RV5_TABLE_20261002.json",
+      "local_exists": false,
+      "research_data_tree": [],
+      "known_commit_history": []
+    }
+  ],
+  "code_revision": "1157f6f9d234ab033f509faedf614130a4536442",
+  "research_data_revision": "0237417a006fab192aaa2b2556b6414bc9941bca",
+  "platform_verdict": "UNKNOWN_PENDING_CLOUD_RESULTS",
+  "b_v1_v2": "NOT_RUN_MISSING_REQUIRED_PRE_WINDOW_RV5",
+  "no_imputation": true
+}

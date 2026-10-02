@@ -1,0 +1,29 @@
+{
+  "status": "LOAD_ONLY_PASS",
+  "native_executed": 0,
+  "host": "DESKTOP-JIERAGF",
+  "python": "3.13.15 (tags/v3.13.15:4061bc4, Aug  5 2026, 13:05:39) [MSC v.1944 64 bit (AMD64)]",
+  "engine_version": "2.4.4",
+  "native_sha256": "033469835b44f94f1a022e419e79be61be72a9f2501ceea11b8e255b4824d145",
+  "wrapper_hashes_verified": 7,
+  "versions": {
+    "numpy": "2.5.2",
+    "numba": "0.67.0",
+    "llvmlite": "0.49.0"
+  },
+  "lab_sha256": "a76e5f773a6d0ea51156dddf08184b0ef16d253ecc7c8c903084558ddf1d6428",
+  "manifest_sha256": "2771c9a8ac82bdf438300d7dd772a38e6cb59af798e37a50baf3a878991e7ac7",
+  "markets": 185,
+  "strategies": [
+    "FAV_TAKER",
+    "UNDER_TAKER"
+  ],
+  "entry_latency_ms": 250,
+  "response_latency_ms": 250,
+  "queue_model": "risk",
+  "fees": 0,
+  "tick_size": 0.01,
+  "lot_size": 0.01,
+  "parallel_paths": 1,
+  "max_threads": 4
+}

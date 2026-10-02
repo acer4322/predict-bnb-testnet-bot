@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "FLAGGED": 0,
+  "scan": "sync_research_pack FLAG patterns",
+  "scope": "native synthetic replay results, public input hashes, existing research source only",
+  "private_order_ids": 0,
+  "wallet_addresses": 0,
+  "transaction_hashes": 0,
+  "note": "field structure inspected; synthetic market IDs and engine order counters are not private account identities"
+}

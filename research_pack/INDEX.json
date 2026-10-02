@@ -18257,5 +18257,17 @@
       "index_sha256": "b4e7543738039093d0b30c2712b20b55a341b1f2010c3dedc5625cb20cb66426",
       "sha256sums_sha256": "dd176e2a268745c5bf42261e9766a41396ad7fb9b6a207ae102919b8ee1244ac"
     }
- ]
+ ],
+  "comparisons": [
+  {
+    "id": "native_platform185_20261002_v1",
+    "path": "comparisons/native_platform185_20261002_v1",
+    "markets": 185,
+    "status": "COMPLETE_LOCAL_A_CLOUD_COMPARISON_PENDING",
+    "files": 28,
+    "bytes": 573486,
+    "index_sha256": "762d844e9c3c90a9dbd9d029a5640635a6b43e60936934e58b50826e8f224b7c",
+    "sha256sums_sha256": "da767d09418f1f991e2da2a3c8a45be873694e926e1d5d61aab349ed5ec5aa02"
+  }
+]
 }

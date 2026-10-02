@@ -1,0 +1,31 @@
+{
+  "files": {
+    ".gitattributes": "8b9c3028d6467ff3be7c793141927841d70f47f52d0590677438f488ca154992",
+    "A/ENGINE_READBACK.json": "2916f00840d9618b0e5931f22a4fb8adada6c593852f6dd59cee06fff5baef01",
+    "A/local.json": "7bf82a59df62e69f2a4a1f42083c94c9edf34ffe17867eef120573d1d69b2b4c",
+    "A/PARTIAL.json": "da73e3d8a72a1dd1a8a5a73e59f7c900465dfc54af32c41cb5d46934ea51bbd5",
+    "A/RESULT.json": "b89435c3c08c523fcd1296be92316f981d7307f0f279890445936e5b9c4d36eb",
+    "A_COLLECTION_AUDIT.json": "10cd67a59d27272bb3d87ef369e90644407a0e6fe630f00f7aa6caae1f2b0a02",
+    "CANDIDATE.json": "19003c2cb0ea0a830fbea1a446bd753dca9275196e916219a046a1d35a184103",
+    "EXPECTED_BACKEND.json": "eb91de61793b41e15b958b9c2ad015eac13cc450074b13fcf95f5fe2e17bc41e",
+    "INDEX.json": "762d844e9c3c90a9dbd9d029a5640635a6b43e60936934e58b50826e8f224b7c",
+    "INPUT_AUDIT.json": "0306c954050b99a2964f50e9e43701e2a1dcd27a14fb78b6c88353d8949be133",
+    "INPUTS.json": "22ad52e39fe915b343886065a1eee81e135b3744b28f675ca3917fe612ef8b83",
+    "LABELS.json": "17037ac60e73a56be44838ccebafbde3fde50ba1e81f7f44a67c76fb76ebd6db",
+    "LOAD_ONLY.json": "081389227cd6fec6fb98e67355ad48ede5f84faad090ce0e8d6d85ea02d9d8c5",
+    "MANIFEST.json": "2771c9a8ac82bdf438300d7dd772a38e6cb59af798e37a50baf3a878991e7ac7",
+    "MISSING_INPUTS.json": "2fcac7ba79324e09d39704b1bb5389750f859642ba5cb98e75fc4d74a6957e9e",
+    "PRIVATE_DATA_CHECK.json": "8c83084d2cae764b3a58fd3841691a01f49641dd09bc3b34b795c01c43de68de",
+    "README_ZH.md": "dc407faa58b8590410d52cd1695c3d24c9650c92a0962df5f71ed373e68dfbbb",
+    "source/audit_comparison.py": "6f21bfbb134a15b8bf13e42c129f1bd7fbc1e1cd5f6eaf90d7aa5c9b5010c645",
+    "source/compare_lab_results.py": "c5c36e4226e00a2604078f37b32c455c168d8aec897db6414517704377acba81",
+    "source/hftbacktest_execution_shift_audit_v0.py": "4a43037583d6ebf576cd65d7e2cb9176e3dd18171b0750301963b2e990173741",
+    "source/lan_actions.py": "ab5c9c499827bc4c8947b5068141acf5ce99d5f0233aa09e14441924147b0266",
+    "source/make_fixture_dirs.py": "55f58b326abdf72ed7916c74f4e4328a605fa97770522a11631c89c3a6269bc9",
+    "source/platform_worker.py": "db21c1db177116ccab9cac45c5be2ac2b082287b90477b89e5820bbdd73c9d13",
+    "source/prepare_platform.py": "6514aa21c24f020892cc12014b4b3b5c08409bb2304395c26a89a6d2e6bcc1bb",
+    "source/strategy_lab.py": "a76e5f773a6d0ea51156dddf08184b0ef16d253ecc7c8c903084558ddf1d6428",
+    "SPEC_ZH.md": "f868ec08f5f9b2e5c33a6f78d7b2b989397921eeb1b3b98f721db7147347800f",
+    "STATUS.json": "89f9663465e47f241809694fc846ba911a56cd38f5f572fda66e9706e8ac14ea"
+  }
+}

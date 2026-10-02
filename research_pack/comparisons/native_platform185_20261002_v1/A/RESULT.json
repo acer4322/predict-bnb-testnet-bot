@@ -1,0 +1,11 @@
+{
+  "status": "COMPLETE_PLATFORM_LOCAL185",
+  "job_id": "native-engine-platform-185-20261002-v1",
+  "markets": 185,
+  "strategy_market_rows": 370,
+  "elapsed_seconds": 22.091197199886665,
+  "local_sha256": "7bf82a59df62e69f2a4a1f42083c94c9edf34ffe17867eef120573d1d69b2b4c",
+  "cloud_comparison": "PENDING_REQUIRED_CLOUD_RESULT_FILE",
+  "model_fits": 0,
+  "live_changes": 0
+}

@@ -1,0 +1,16 @@
+{
+  "id": "native_platform185_20261002_v1",
+  "status": "COMPLETE_LOCAL_A_CLOUD_COMPARISON_PENDING",
+  "markets": 185,
+  "rows": 370,
+  "job_id": "native-engine-platform-185-20261002-v1",
+  "data_source_commit": "0237417a006fab192aaa2b2556b6414bc9941bca",
+  "lab_source_commit": "1157f6f9d234ab033f509faedf614130a4536442",
+  "engine_source_branch": "research/hft244-v49-repro-20261002",
+  "engine_source_commit": "3bf09cf645e1d83284825c32196e483294fcd182",
+  "native_sha256": "033469835b44f94f1a022e419e79be61be72a9f2501ceea11b8e255b4824d145",
+  "local_results": "A/local.json",
+  "cloud_platform_verdict": "UNKNOWN_MISSING_CLOUD_LAB_RESULTS",
+  "no_model_fits": true,
+  "live_changes": 0
+}
