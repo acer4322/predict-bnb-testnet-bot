@@ -1,0 +1,24 @@
+{
+  "job_id": "original-maker-layer-btc185-20261002-v1r5",
+  "BTC_markets": 185,
+  "ETH": "pending separate fixed cohort job",
+  "arms": [
+    "BASE",
+    "LOG100",
+    "LOG500"
+  ],
+  "max_threads": 4,
+  "parallel_paths": 1,
+  "fits": 0,
+  "bootstrap": {
+    "replicates": 10000,
+    "seed": 20261002,
+    "CI_percentiles": [
+      2.5,
+      97.5
+    ]
+  },
+  "sensitivity_interpretation": "two joint assumption arms: log-prob100/100 and log-prob500/500; neither isolates latency vs queue effect",
+  "classification": "same A F at official +12s; strict-past unavailable => UNKNOWN, no replacement",
+  "engine_latency_only": true
+}

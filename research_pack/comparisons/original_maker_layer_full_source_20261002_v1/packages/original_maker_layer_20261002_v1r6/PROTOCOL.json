@@ -1,0 +1,55 @@
+{
+  "job_id": "original-maker-layer-btc185-rest554-20261002-v1r6",
+  "BTC_markets": 185,
+  "ETH": "pending separate fixed cohort job",
+  "arms": [
+    "BASE",
+    "LOG100",
+    "LOG500"
+  ],
+  "max_threads": 4,
+  "parallel_paths": 4,
+  "fits": 0,
+  "bootstrap": {
+    "replicates": 10000,
+    "seed": 20261002,
+    "CI_percentiles": [
+      2.5,
+      97.5
+    ]
+  },
+  "sensitivity_interpretation": "two joint assumption arms: log-prob100/100 and log-prob500/500; neither isolates latency vs queue effect",
+  "classification": "same A F at official +12s; strict-past unavailable => UNKNOWN, no replacement",
+  "engine_latency_only": true,
+  "native_threads_per_path": 1,
+  "reused_completed_cell": {
+    "job_id": "original-maker-layer-btc185-20261002-v1r5",
+    "path": "arms/c100_OMLR5_BASE_2802399",
+    "market_id": 2802399,
+    "arm": "BASE",
+    "files": {
+      "bpr_trace.json.gz": "014edaf9271755324213c1cd67d0d58e89f086deca1fc71c4f97699588170974",
+      "cheap_insurance_trace.json.gz": "47e4f08cf553d71d5758c92d8110def1f8edc77eb67e15cbbe2368f64076f306",
+      "clock_trace.json.gz": "ee54788d7996c632d365973ad389a4fdaffb037b41bbc15ec609f868c43abdb4",
+      "demand_scale_trace.json.gz": "fa6ec88aee2b412957e580d83ab480b4ea9f103def696f3db58d4f7fb41ef9a0",
+      "ENGINE_SETTINGS.json": "483c0dab8ae582272e68152932c3e12cc20ee9771b90b2e3f002f6b01f8bb207",
+      "EXECUTION.json": "4094583b71a9dacb945d303e92ccf08ed42c078db2ea549e30d4d78fa3ee959a",
+      "execution_clock.json": "2e0d2ad1eb115cffb14a4f18dce3bf9ecf658cb823e793e809e68c2bb3b538f9",
+      "flip_exit_trace.json.gz": "3d248c3637e103442edf98231551f1e1c192dbd7494deb14838e04d520e29275",
+      "governor_trace.json.gz": "827bae29ebc3e8e8929865fb6e692333d80a73b53908a5125d858e148f0a9606",
+      "passive_offset_trace.json": "f429732ea17517c086ae412f8ba970865db707866ec79f11dd8e4aa009a6d9f0",
+      "postflip_repair_trace.json.gz": "5f4c73c9dc1a4b5ab43fd748289b532b8f727821a1f52a604b2fe1e1d20a25ce",
+      "qualified_work_trace.json.gz": "be4ab656b321221a827eb222e2de434f3d1ee180d69b4b4de4862c8c96e1bb93",
+      "restoration_trace.json.gz": "f4c0c62f0f4da91fa9ffec67201f87ff37b4ca455b95119191ca28d5d78023c6",
+      "result.json": "d2cd03e898b5af1b66a5e7cba567bc2d0533ce9fae4403ba75226121335f1c0b",
+      "risk_floor_trace.json.gz": "d5eaf7394d900ae5655233b41099b7c96168435d260424e72d6e256e03dd76c2",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout.log": "db19ec6699f318f52fb44b87eb496207e31652e70484321d236f49b1613c9d2b",
+      "stop290_trace.json.gz": "a104c7f7833bdc806bb154906abfd03f7dcb5fc718f774807642f8308c2e4119",
+      "work_continuation_trace.json.gz": "16b5dae832fb3b27e30b07d81609b40079418dfc42c77ca36c8bb4485de44e29",
+      "w_ladder_trace.json.gz": "6c55e632385dcf5dc7a38399e29ea48343d5da5465b5e978922f7eaa76dfdf75",
+      "zone_mirror_trace.json.gz": "cf50b4caf330ff73806426a44ff08d3f1477d51bf9f47a4d5b64b8056b4d920e"
+    },
+    "legacy_gate_retained": false
+  }
+}

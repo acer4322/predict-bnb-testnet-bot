@@ -1,0 +1,1486 @@
+{
+  "status": "PASS",
+  "native_executed": 0,
+  "markets": [
+    {
+      "market_id": 2802399,
+      "updates": 1410,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "74b577c13966af7aa67dd04e3119b2bee4a76c579a5a603807c1ce3baf7123e1",
+      "source_sha256": "9c08f12e9d97e69dca58121704f54513b29aa3d064f4128603901919620cda72"
+    },
+    {
+      "market_id": 2802457,
+      "updates": 1451,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "0f426b0ccb06e1b3a297ad355eba60dead8bae8b1654f7367f75adc26abbc6bf",
+      "source_sha256": "2860dd0301e43680ccc289c1ba9105cc8c978702bd025aca6a36c64fc28025f0"
+    },
+    {
+      "market_id": 2802465,
+      "updates": 1469,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "4b744cec88e5ad571785ed4d6fd7ebb3721f174140a67a4495d9d1cd7625dcbf",
+      "source_sha256": "4bebf6931c99141d4b1774210942ca24df3287a807a8ef7f1f5b4a41f44ab241"
+    },
+    {
+      "market_id": 2802478,
+      "updates": 1439,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "82e5f654a62e1bae251e51b94ab23f44f2a828e0fb39a954341c2a5c50ae2174",
+      "source_sha256": "421a5aea0ea3333b7d0bd841c11040d6980178d22f39b38d1ae2a05ae3140be9"
+    },
+    {
+      "market_id": 2802523,
+      "updates": 1443,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "42fb8b34a1695b4ef09b6c9faac4c23f1a8e9663c2acb12fa3b1353b59b46878",
+      "source_sha256": "42b052ee2a6f188ba4ea0dc34a4eb9ec255c114d1539036732542e4081937a62"
+    },
+    {
+      "market_id": 2802581,
+      "updates": 1480,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "0f50d40df3a650b7cd456cb301f1cf5e6746d138939b869979fca6010bf04484",
+      "source_sha256": "5048b80cc2f2d2d321aee9c5e8e9d17bcbcd1bcc61804c88114627e5b79e7566"
+    },
+    {
+      "market_id": 2802688,
+      "updates": 1453,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "0517e188ad5adc6e2ef298ccc903ee6652a892de3a7ff630af577e53daec818d",
+      "source_sha256": "eb5997f56c44a694d1a598e05ade30033896fc7331d2ecdbb36f7575fea01590"
+    },
+    {
+      "market_id": 2802836,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "2c4662ff2c0343ac0fbbefc11e4666d5ba9e43bf1303dbc0821ec4d62780078b",
+      "source_sha256": "be3a04e20a0bf5e1ebf7961a2b086e351ad9970e9e3a31cd7fe725537852e2b5"
+    },
+    {
+      "market_id": 2802854,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "64e1984516d33c5d3d6e0caf6a24df0455208d45178dbf5c44bbcd35b0456501",
+      "source_sha256": "19c5a7c51cf8995c42273e685e4dacb06565e31dd9da28b10c4ca5bce3766a37"
+    },
+    {
+      "market_id": 2802952,
+      "updates": 1497,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "bfd4a3886a544551869f5a196de3cd159cc0b88610d488e3e83e410c2c905b3c",
+      "source_sha256": "11273aaf6790c252dc7f5f7fdfba6a7be953ded200b7d79505d267eabcdd7b70"
+    },
+    {
+      "market_id": 2802983,
+      "updates": 1277,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "7f786142a3374f4682887a660b9c5c5d07af3ba995b4a24764446565ce8df7db",
+      "source_sha256": "8810e0e2487128059a5af903adc207e4a72bd37ee853e7a9ead9f05dedf0625b"
+    },
+    {
+      "market_id": 2802995,
+      "updates": 1401,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "9b1ea17ffff5c53e11872145a33d0f74ba34b0d999b928ae4113ecad0f71c40d",
+      "source_sha256": "6e257aa945632203e20fb2edebc58f127077db8b724a865edcf1bfcf3e70a6c0"
+    },
+    {
+      "market_id": 2803007,
+      "updates": 1437,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "b21a7e4d7b609f7d1e46c49e004c04beef4a55ce8ddd71e30782b185ba036641",
+      "source_sha256": "11d6ecfeee99a94818d4a845f38498292b6bfc1a4fc0146f76ef3b8dcb241d50"
+    },
+    {
+      "market_id": 2803125,
+      "updates": 1482,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "e8f767f5ee78c0ae1d83379d5d9b5a735b46477e13251af74ae8beb394275103",
+      "source_sha256": "ccb39dee5da8aff58a2af7fe95aa154c835597a51d56169d625e2a6ab3dc54b7"
+    },
+    {
+      "market_id": 2803245,
+      "updates": 1424,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "f8d0ef43dffbe8cd3c39915db1ca2e60dc4f65267ae8aef201f6d922cfc04436",
+      "source_sha256": "073efadbdf7b537fdf195fb08c8a02a8ac7315e63dd1ab2c467c958d0f0cccec"
+    },
+    {
+      "market_id": 2803301,
+      "updates": 1489,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "36a84297bdca908f29f78a87d4663c8cf36b22721ab08a1ce28d113143dbf1d8",
+      "source_sha256": "31c24617b70008af40da04c736252dbe2e215105d8b17178659edcc216ca113e"
+    },
+    {
+      "market_id": 2803370,
+      "updates": 1484,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "1107f9db3985798e7a5379893119bac382e3c1b385b3cd7d4761a9f04ce13762",
+      "source_sha256": "11ecd0fdb8056e4f124f2a92875817e20baa435bdca74c633240c1f3edd20ec6"
+    },
+    {
+      "market_id": 2803390,
+      "updates": 1422,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "8318e6f08ada220b51b7a78af6e12a1e04f9f2af91c8a4430b4153bdf198cdf7",
+      "source_sha256": "bbb5c355dbc4f707e62709b077175c52fb980762b55628ed50531910ebc5c8da"
+    },
+    {
+      "market_id": 2803458,
+      "updates": 1497,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "af09714fdb0f3a1b421bdd5e8dfd6fb77cbf4fd32713964501f611e682d715c7",
+      "source_sha256": "2ee9d0918e720e31fa276cb985419c57edabc2657f03e958f3f62606c39cb3cd"
+    },
+    {
+      "market_id": 2803462,
+      "updates": 1424,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "da028204f38d185577958982c128868e64cb34cade507d54b5606eac746bc270",
+      "source_sha256": "1b1e9c418fc9c9ab10c4b7778d1f895b0810dcd2d7e3d09ec6da60206e9fa307"
+    },
+    {
+      "market_id": 2803490,
+      "updates": 1476,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "0d96c5aa6075495632393c4669fa498e65c35ef69f21850af2f48ab1fc1a1780",
+      "source_sha256": "20bde8f2224e4d4c69a72465db05a5fa99c0f9501e63f567886e932c92723395"
+    },
+    {
+      "market_id": 2803540,
+      "updates": 1431,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "083bd5d86fafc9dd04bb82234bd3b09019431435daa3c9042a0d08fb05860c81",
+      "source_sha256": "6fa5ae9e395a540e5a3bd9e50f2c1f13e0ee923e5fe5537fcf32774fe68b2415"
+    },
+    {
+      "market_id": 2803561,
+      "updates": 1459,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "0e30a8758a113e01eff831a1f8afc92169bf6cdee0686146c2c20c6699d1a01b",
+      "source_sha256": "0609022da91ca4a12aef50ad02d2b16312bb189ea87941df8dcf7f719296a6c7"
+    },
+    {
+      "market_id": 2803615,
+      "updates": 1491,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "cd755217baec55d6185490a69e5e01fce32a02e5a121c43b865701fb5e09f4ab",
+      "source_sha256": "5d4cfd0dc9a19f2527e3f90b760e54a2cdd84e1cc53209dfa338976d9b653ed7"
+    },
+    {
+      "market_id": 2803675,
+      "updates": 1463,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "567404f432645ca9503f1d11e9162e9aefa998cd6833a4d7cc83530a256ba88b",
+      "source_sha256": "bab7a70baa8314e00bd285cea1539370cd691bd0b31fe3350131a466aefb45c5"
+    },
+    {
+      "market_id": 2804139,
+      "updates": 1416,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "e01bcddfc77dcab13f52e26bb0ebe2941671572bcf9ad50e35e4774b92584cf6",
+      "source_sha256": "ed83b3b5e077e7b90df402b082c3e33258323a9eeb525ca45bafe57e1304ba65"
+    },
+    {
+      "market_id": 2804142,
+      "updates": 1499,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "0532f455d56a547dd9968bfc50e662323085124f3916c8a2eeacd171fddb7b28",
+      "source_sha256": "1c1c7502d784824576c62338a512811bcbba563f85e71386b01c5f0db9241233"
+    },
+    {
+      "market_id": 2804452,
+      "updates": 1472,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "2a195ba624d6e98a216d3a504608b0bcc28bdcf5256438d3651ae181c49f2c10",
+      "source_sha256": "364f69b972e3642541645bf5f48a8dcd6876bf51d716c5e8805c64a5e5d202c2"
+    },
+    {
+      "market_id": 2804574,
+      "updates": 1429,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "62c311029757731edf945c2ce9e9cd488a4a7a0ef3f7d8fc3f160cb2a1f9b84a",
+      "source_sha256": "664c60c0e0d6399c913eaeb23a7598742210ef030264ff2a227a44b75ceadf4a"
+    },
+    {
+      "market_id": 2805046,
+      "updates": 1454,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "79626597ea3c79fb86fbcb8fe7f37800bfd38a7a03352383ac1ec7cbc98b725b",
+      "source_sha256": "71cb062d480f1671295cbe3ba8a7dd8f662a73a1504049fee46e72d978319136"
+    },
+    {
+      "market_id": 2805216,
+      "updates": 1461,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "f97b3f69695fd100455eda7752216bda55cca542b3f94cb323042a267754ccc8",
+      "source_sha256": "493ebf48e1fafec529115c271d6ce0b017405edf81a54ea77ad0b7c85cc6878b"
+    },
+    {
+      "market_id": 2805223,
+      "updates": 1435,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c6fc53e57c2e5ed42c7d582d2d663c1e66db6c75caf2b2e926aa6648bed87525",
+      "source_sha256": "caa3417cb957ca4d1ac211ae22a12e23643fb2b072ffcfc0209886d155a39563"
+    },
+    {
+      "market_id": 2805228,
+      "updates": 1373,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "edd6f35524bf37b515c0c05c9b6e3d0b39d672fec11e25486d76e9dce8235c0d",
+      "source_sha256": "6093984dfe29124d82c752b304aaaf2823c6b46b57de01a797d3091a3e711460"
+    },
+    {
+      "market_id": 2805305,
+      "updates": 1402,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "cdb726e68ba9d87cb7c1b7336d93a73a5331d2c00e68e8c8d76ce477fab7f945",
+      "source_sha256": "994a7a991c5c0565b60df2b43d45e4ec415ac18ab841b493e40de1c5079ebc8b"
+    },
+    {
+      "market_id": 2805349,
+      "updates": 1498,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "06ca851dddc7926876b6b8d161e3269676ff61a7386d24391a762587eebe5c91",
+      "source_sha256": "c6e5314c3af688c3d90214661757b69169616b48d446192b3264b83b2bcf1444"
+    },
+    {
+      "market_id": 2805964,
+      "updates": 1425,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "77f64934e78515c3053dbe9cc23489eebcc714becc79f4f5555a9f613fdcda40",
+      "source_sha256": "77e07cc17692418e11f10f5b981cc4762f51ef7ef46dc1e4c1ca0f7ea6ce24c8"
+    },
+    {
+      "market_id": 2805967,
+      "updates": 1443,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "60f99b4366d41f3b57fc76b45714cad87d6ab38d328003f8d22bcc3baec8ab2c",
+      "source_sha256": "df1e201824106a4e46c64dbc761c19152665828036f071823648127455a9ed33"
+    },
+    {
+      "market_id": 2806497,
+      "updates": 1493,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c4d7b73b64262c307c5ea69010dac78d1a90bed54b08945371a5ce14bfe45cb9",
+      "source_sha256": "9e834976ee429813b3e63c470178a83451dd0a9540abad58b58defa289f14e16"
+    },
+    {
+      "market_id": 2806933,
+      "updates": 1360,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "e49d2988a3ab15d67133fd10a713adfb6530d26465dc45400c5eda4bb66de27b",
+      "source_sha256": "5322c948c5956c25d490f9b2c8e7841eb29668278bdceabedeffd1f5bc8e799d"
+    },
+    {
+      "market_id": 2807061,
+      "updates": 1497,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "ba58130a40f6ab40dee246befe85a3d0139cdbf3406563634b2204ab68c493c6",
+      "source_sha256": "16ac95ae8fec734ac9ed0e8d99181b1296d39a3785997e68670841e81784c208"
+    },
+    {
+      "market_id": 2807079,
+      "updates": 1340,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "6c6fe9df36a9fa84f10075fc170bbb672f43b60e39ac64ca0dcec3c510622ae6",
+      "source_sha256": "dae7b17bcff921dbb4698b3ea6488861385bc7a98f8d80ce15ab516dee46d111"
+    },
+    {
+      "market_id": 2807092,
+      "updates": 1382,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "f245cc43201f47238ff033c2b057ad076d2404ba8b61192528915e0119ab8965",
+      "source_sha256": "f7928ddee1f540763e5712bb3b0c04689522ca4abc13ace0aa5eba4a69f88738"
+    },
+    {
+      "market_id": 2807096,
+      "updates": 1490,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "3e7cf88919d7f51ad81e2a1e9804bb81bb5d87bc5a52dbbf7ef3fbeaf9b16cc7",
+      "source_sha256": "bcb4def3074c8314d9f8e7d0698cad10263e31d4b5dc81457fc43f7747eea884"
+    },
+    {
+      "market_id": 2807151,
+      "updates": 1467,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "1a7feea9447663983b910c663906b021e673f648886053f4bccd52e5ab209d85",
+      "source_sha256": "df65736c3e703666c0b1701ab2f119c24da8916e0f8cc95cb191d7f5687d6f9c"
+    },
+    {
+      "market_id": 2807156,
+      "updates": 1427,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "0246c1d05096eede130b68d1c0e38b695d0052f3c44ea343a56fa871996ac16f",
+      "source_sha256": "adb2613f5d55be6c77cf24500fb87479a1a9b6c5dc48a9534f9690ad6cabe075"
+    },
+    {
+      "market_id": 2807193,
+      "updates": 1389,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "3131b4860e88658ec354106a282e4ed06aa8dd2a30336b053b2388113f0a9af6",
+      "source_sha256": "4c5f7cae366c89fd68afb8e9b63a5b164e4735a315787c48a50e6b2b6dd9d110"
+    },
+    {
+      "market_id": 2807268,
+      "updates": 1475,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "fa378f76a8bbb154083e7696325146403be9e95536edf2d9993724e7aa27241c",
+      "source_sha256": "e57fb21595121c080bd9edbada5ac0c95e5773f20440aa60338ef0591f3d117e"
+    },
+    {
+      "market_id": 2807308,
+      "updates": 1439,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "16d825ecc863b4a3d7ee1beb0b5f4d95376cee9a61403d6919d3ba0ed75d076c",
+      "source_sha256": "aa2c01570acd5c18531e0adb66bea82f27deeed0935f63e58d79239599cac6c6"
+    },
+    {
+      "market_id": 2807389,
+      "updates": 1495,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "1982ec07af22d47505fa62c0466d73975456b21fb13d62518c7395635a01e00e",
+      "source_sha256": "aa554d7ea7271d2144efec61a0e4dac818c2fa4b59d049d31a0d8059c22f57df"
+    },
+    {
+      "market_id": 2807574,
+      "updates": 1491,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "11179daa085e0fae8a265b4889c3738f83a95ca3052a764ee3037e1f3d7c9894",
+      "source_sha256": "ae1456fa77b3683dac88cc3b62fe560613d80b3afb3379bbe728051ca28c83f9"
+    },
+    {
+      "market_id": 2807667,
+      "updates": 1441,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c38303c072551203f4f740b57342ae3acfb25851938f3591a0be8498f67d22f6",
+      "source_sha256": "4e7be1d510beda77d3cea7a3f521b4d9d7648952ceb741d0ad9104e1d8406c4c"
+    },
+    {
+      "market_id": 2807725,
+      "updates": 1490,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "a6a6de2cc389204f5cfc44b06f515599d61ac6d644020d486dd7075cd39f19c9",
+      "source_sha256": "9915f8c437c5932a7eff3bd838ffc1b90bbebbdc0894574153a06e0d22c0dfa4"
+    },
+    {
+      "market_id": 2807745,
+      "updates": 1450,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "4fee21d121740ee7b0a714bcf77527eea61d28af08edc2e1bfdd5b04c63f0cc6",
+      "source_sha256": "24f449258fac60e907364895ce22a47196d0e9d87c8ff4daadc472f6c0cf5b0a"
+    },
+    {
+      "market_id": 2807825,
+      "updates": 1388,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "4584a63c6ce78cf3cd420b5cacc00e2b9d893899e926419fecea096fcd094f1b",
+      "source_sha256": "77599ea36fb1331e5bbe9df49da58bb47c011edc207081b682c8fd63b3e537d2"
+    },
+    {
+      "market_id": 2807895,
+      "updates": 1399,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "266e98e3f4cc0d35e99ae462c31d0d86249e6d973c54e05f58c2d7e0f9d52c61",
+      "source_sha256": "11fa82c0cc37404e70dc38aa8176674914682a8536928675f2b35414d419c055"
+    },
+    {
+      "market_id": 2808604,
+      "updates": 1453,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "ae643b26851b58a8fe8f441440bdd8841c7440bdac57747ebce085c39d99ef52",
+      "source_sha256": "e0fc946e9034a1a3afd646393a3029c65ec53c74ee44d804ea069cc5cc4c7c79"
+    },
+    {
+      "market_id": 2808964,
+      "updates": 1483,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "bab2f72cea202334d17a00506e1fee604676f645330f9a609d3f86b1dda47059",
+      "source_sha256": "f9af01f5b932cda288801dbdd2dbaa5ef4debd8e2f2ad4a1e00da1dab17acfb6"
+    },
+    {
+      "market_id": 2808988,
+      "updates": 1487,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "9067c06c6e66fd3733498aac0b5046a0800ea4e7a1d00538b80e83447f97d387",
+      "source_sha256": "b8cd65a24080f9c0eb96f86241f2436e39dbfe5d5f6482874e0e6b5ad49a8973"
+    },
+    {
+      "market_id": 2808990,
+      "updates": 1480,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "1803f485b1be77b36b32954332ffc4b78a217111a086e15995b95a6ae9461d3a",
+      "source_sha256": "3914aff5a38c7c1cd91c1e5529b656d93901085f727d0286b7a06b3a5f369c25"
+    },
+    {
+      "market_id": 2809018,
+      "updates": 1480,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "105814e286c41b38e707dcf4efdad3ef3cc213acc0b2d24643d931cdd2a9d96e",
+      "source_sha256": "dea1622ce75deef648f1edd60c5579228b2ff59fd7ad1110da6afd39bc9a0b7a"
+    },
+    {
+      "market_id": 2809074,
+      "updates": 387,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "7429c87dbf397f0140d61752df303c638b60e66cf884e59540bf8741ed24da81",
+      "source_sha256": "6c85b6e35aa090e52fcf1c739ac99d91bbaf15b6fd77d5032005242bf4b6515e"
+    },
+    {
+      "market_id": 2809076,
+      "updates": 987,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "31a84d84fec418b8523f5e6690b20e4b6ad8edbfab3588aa8987edd0fd7f3f6a",
+      "source_sha256": "7b92cdc36bc4c3148ca20b340ab0db2ba8445634ce749eb866e166b1b861d9c2"
+    },
+    {
+      "market_id": 2809086,
+      "updates": 1481,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "26d566e0336bee8a6654dd819cb0d16d641ec99a660bfa77f66dc271dff37c95",
+      "source_sha256": "8c90846a9ed69671d0403d8c280be192e45be2bff000244de8c5c959844c970a"
+    },
+    {
+      "market_id": 2809104,
+      "updates": 1452,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "2bd18a67a8a48bc1e81d046ec18d550885ab4e6971f6f78f3b43e81595de3500",
+      "source_sha256": "f52abafcc99028ed2e152d9c8319f80f658eae0d7a697b125563df34bd2caf75"
+    },
+    {
+      "market_id": 2809119,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c739653293666850e3fb8b2be8928bdf52adc06f7a2ad0faa2c5ba34cfbd119f",
+      "source_sha256": "a1dde39619a82218c331d45a9cb7ae8c9c5eb23dfae9b1c992b49c7a233054ad"
+    },
+    {
+      "market_id": 2809122,
+      "updates": 1190,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "036c2c74098a7b23c462f8cb5fa41abbde101f388c25fa7c7a4fab7c76e21031",
+      "source_sha256": "7f5f612e9d4f0e633b619012adc8dd03f2dd76ce145d6178cef270c253897e44"
+    },
+    {
+      "market_id": 2809188,
+      "updates": 911,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "8731b423696597d2db5c195dd942dfc82742229a73e7665c19b7256359f6aa65",
+      "source_sha256": "340bb185589494718042d0eb91ddcba014caab550eb77fc8c3614c31db757da9"
+    },
+    {
+      "market_id": 2809212,
+      "updates": 1468,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "256368d2eefbfa2c9c06b8f538edaf9d15e299c89a5f7b44490359eeb1b22019",
+      "source_sha256": "480cd15324e942b5eab8f4d96a4b60af818795e423333a1eaf4a26123fcd067d"
+    },
+    {
+      "market_id": 2809222,
+      "updates": 1486,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "de577923860635c8f49d505df71f06c737c16cb70022a2fd5eaab2873d362500",
+      "source_sha256": "92fd7db41040082abd1ba25a415cca0fe824e0690207016f879e4d9cc83ba0a0"
+    },
+    {
+      "market_id": 2809251,
+      "updates": 1285,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "00fffd0055ca8a84b2b0c0f23d42c1a634bb44275ade4fe474b4af646b6da9d8",
+      "source_sha256": "69f9b87d4328c558d64654632d8011638fca162327d1311025186a3219298db2"
+    },
+    {
+      "market_id": 2809252,
+      "updates": 1490,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "43975ec3bec182820549a43a05a60ecfd2b3c24c09b51e58e6a1328bbe2c574c",
+      "source_sha256": "2f16efd94549fea8c4449bc0d0a83a9ec74c399ea4158e608f3a22d056436faf"
+    },
+    {
+      "market_id": 2809259,
+      "updates": 1464,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "5bfbd62d6b2e4746d2e5fc7629a033a707be63f0eba9406aa7f298a4d5893156",
+      "source_sha256": "53af3ef281ed7163184e9a6d5416022142d64acb5c4e87623d1eadf6c5c8e20a"
+    },
+    {
+      "market_id": 2809322,
+      "updates": 1497,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "6663b4a2051623b3852006288cd3258063cea0d54e7da1d85937e52824118d6d",
+      "source_sha256": "74901e141014e202371788ea363ca61acec05ea191831a964cc126f13554f877"
+    },
+    {
+      "market_id": 2809326,
+      "updates": 1493,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "80f7e318ad2868023af59499e955cd621a4d2ad13772dee51f8cc006410307bf",
+      "source_sha256": "e3c138dc3d0e3f056787ead4ab262f0df8e9f7436d130e29474ab6770a504fe2"
+    },
+    {
+      "market_id": 2809470,
+      "updates": 1478,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "b8286abe10676212b62b17975b149eb3966189169854ff19a5cff24db21c403d",
+      "source_sha256": "2e277d871dc415524785e26b8995a723d5975f5c3a638504c664362226fc6ccd"
+    },
+    {
+      "market_id": 2809490,
+      "updates": 1489,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "a50b6228a37a10fa7c17841c716431f201d9ff27310d65aca61f1cdf24692eb2",
+      "source_sha256": "1f7fab3a3e729d6f8011c841c0214f92c4e567677273401060ffca42d55f868f"
+    },
+    {
+      "market_id": 2809563,
+      "updates": 1278,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "9d64897e4948f443cb0d3978a1fe3b50b0d0a178c9f2f17cfd6fcc654459ea0e",
+      "source_sha256": "5f5044129655a33083cb0a8cfaef99581a90b87073723d9192291a8f91617595"
+    },
+    {
+      "market_id": 2809579,
+      "updates": 1382,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "00fba782a650ef24a2882a6fd864b7cf82da056caeb5f36c4b677459e053e0d0",
+      "source_sha256": "99c5a1a7953b442dacc5e40d88bad68936a40bf52221d561cbaed7a14adb92c4"
+    },
+    {
+      "market_id": 2809633,
+      "updates": 1460,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "e41f055fcdcce03369a7dfbf81ac882e24798b2574f91b44821722ab74245ada",
+      "source_sha256": "21c73fc86a353684cfd50277bd699259d35ccb53d5eab6694d1b7fc879529fc3"
+    },
+    {
+      "market_id": 2809635,
+      "updates": 1317,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "bd763e49cea226bbe203adaec9cfc38ec81abf9b068e447b57542a5c3dc2abbe",
+      "source_sha256": "1cc82b2e2022692cb54f43991281f2b3267075b6e70f01f3aef63e7b72d753a4"
+    },
+    {
+      "market_id": 2809834,
+      "updates": 1484,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "7997c7cb283adbc9aa2808f7dd3ecd02141d44b710d8d300fa5db9e53252f870",
+      "source_sha256": "e53a3d6e50a9906d684c3720f30e6df02f605b2d68d3403ec1d7f6f99660dd95"
+    },
+    {
+      "market_id": 2809925,
+      "updates": 1493,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "07d10b5962e6251bfee8c65ccab6a26d555b186979cbef8d8d6a52c15be5e6c9",
+      "source_sha256": "90fbfe9b18c1cab621b47b2cd14d7c357ebe11d05cf166468bdb6a53506727e3"
+    },
+    {
+      "market_id": 2809929,
+      "updates": 1456,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "31be3bc0b546a08ea3e4807c2eff8ff634be9b1253a05aa8cf46724bd7271407",
+      "source_sha256": "c9841c3cf192c82da008196e95ddcbdbf2840e302e40d06f09779f927ea82958"
+    },
+    {
+      "market_id": 2809966,
+      "updates": 1489,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "9aa03c162df3522feed73e065e7052079c4f00a45a9ddaa42bfe59f875a8caa1",
+      "source_sha256": "f4cc0b4a7cb8f3541f95e38eaf0bd8db2392a0192fbfe024d72da1166c950071"
+    },
+    {
+      "market_id": 2810203,
+      "updates": 1349,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "aa10b7b5f01ceaa42f00fd371e49d1b3638f00b393ce8417f2637b45e8cb31ad",
+      "source_sha256": "4ede315b332770ce622633cc91f1f35ade26f682cd2c1bd9fe3e969608555587"
+    },
+    {
+      "market_id": 2810219,
+      "updates": 1495,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "98b7d52f8cc6040c2fc7f3d9ebd8176cc833ac93b3c8da2d357640a260680678",
+      "source_sha256": "d5dd80ee2116c58029c00c8c65df5b963727fdbbb4a9061e1a564367348828b3"
+    },
+    {
+      "market_id": 2810255,
+      "updates": 1484,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "7e3644dbaecfd857b37d35ecf8cd3f311989032381cbfa7dd2faa93165174e83",
+      "source_sha256": "b11831f90ff76e07ed12c1be47f9042d70e0dab5179f19d05170aa7c5eaeb66e"
+    },
+    {
+      "market_id": 2810273,
+      "updates": 1390,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "d73725a93617c372ff36e85796bf0f2073700800552c26792e6383268ec3b307",
+      "source_sha256": "632331dbc2d86a14228ada0a08ef6b581d1cadb994dff1e615a2b0b0b2b1afeb"
+    },
+    {
+      "market_id": 2810275,
+      "updates": 1486,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "edc3b7c8c65dd0bdf4d433514279fc360656546594aafd2089ef98a6f515753b",
+      "source_sha256": "8aa9e97c64384f93741f17a3a039e0e14be35344a82be744ef87f82a4e4c059c"
+    },
+    {
+      "market_id": 2810278,
+      "updates": 1482,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "036c5690824d1d2c3ad98996d6d5ceceac40d17b2637cb11f4c52d546d7999d5",
+      "source_sha256": "59aee2919906353ff1350b87deea93b6c2f234690148096ba965aef03fda5199"
+    },
+    {
+      "market_id": 2810332,
+      "updates": 1455,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "d8e6e8eb99845e33f716e29df47084421207373b9681374a54e82c635b6bab2e",
+      "source_sha256": "b40a0172d182bc1936f831585c8f0f61fd50e04cb52ca3ea27f978928e36e1fa"
+    },
+    {
+      "market_id": 2810339,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "65c3e0965c5402e4451d0e63bb802b3910ed9e442ad02765cecf4365d9a2c680",
+      "source_sha256": "947f83d1f6c7af2628cdeff451e904a37e6e3e77390f295122690fbe87f65b81"
+    },
+    {
+      "market_id": 2810422,
+      "updates": 1347,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "b5abf259175470f4674146d381acc16edf91d7b10163bd221b4cf07781a47646",
+      "source_sha256": "f2b790551cca911ed3a73305031ae22fbebc8ecc1f5eb8e8519681fc6a10dfea"
+    },
+    {
+      "market_id": 2810476,
+      "updates": 1339,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "ee210c836e18c06be431c49839a1be64ac57df9206e88a33986aaa183befe46c",
+      "source_sha256": "896e8d5d6ebd2fd4f386ef9e62842d013424417a136b1669ed50ab13974b519f"
+    },
+    {
+      "market_id": 2810509,
+      "updates": 1484,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "fd49b3786dac7d6d0969aea31db7bca3d76c6a4892f24eccb385bf9d387659f5",
+      "source_sha256": "008e1d5bf9b11baa57aac536ffd7800551b55f4328928184b922fd916e23fc66"
+    },
+    {
+      "market_id": 2810520,
+      "updates": 1317,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "db59c4fb602a98cdabd6e6c85e6aa0e6c6c35cc18b1d4f2c4540122ca91a0f88",
+      "source_sha256": "4d83feb76cb802490855a95d8f0b50229fbc13bb18cbe1ce56bafb49cc1198bf"
+    },
+    {
+      "market_id": 2810761,
+      "updates": 1484,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "74587b16ee1a8df7af8ef79285a19dd65e011b758952f2f694867f53f4f17d03",
+      "source_sha256": "0e1f2d9b9c6511a20439e401c90c3064b26471373931470078f4c46599601d91"
+    },
+    {
+      "market_id": 2810879,
+      "updates": 1473,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "d61c621fe9aafb6f78d4432ff9f20cf6564c88997936e8847a940fd0f3034846",
+      "source_sha256": "adf91cf799107530b6dec86bfd4951fb2f398dd53bf0b76bc9bf72cb00ad5246"
+    },
+    {
+      "market_id": 2810883,
+      "updates": 1403,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "0d65ce3397c3e7855c655c20ccf723033b450214aba6736f86865c5664544cf5",
+      "source_sha256": "efd25feaddaf5b28cfd4acdb8f841f99cefeba06bc326ab75dd66ef73e5d5b6e"
+    },
+    {
+      "market_id": 2810901,
+      "updates": 1454,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "eb945b94345de13123b12ba5a94047feb3d6ba7a49964b7efd61ad2f06e49a16",
+      "source_sha256": "3d45cefac6d73d050f011df667b097c213ba02a7c8616fe7f30b4b96f87e3237"
+    },
+    {
+      "market_id": 2810903,
+      "updates": 1498,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "642c18c829d3000ba537878ac0b5954c7f852deaad67137da5815d8bf5a09a8a",
+      "source_sha256": "cea08cad1aeaec62a23f3372c1dda0c6965755ab936b7d1ed92316292c31bb9e"
+    },
+    {
+      "market_id": 2810906,
+      "updates": 1361,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "7dbce6fce03e31bda386a9aedc32f5008a6ab205c9bb98251dea0c02448568a3",
+      "source_sha256": "bcc18628757d7c49985ccb37f4127557e859c7126b357229765bbbb6bd8ee94b"
+    },
+    {
+      "market_id": 2810926,
+      "updates": 1474,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "41802561d202035742cd5b0d051cae644c085b4c2fa1c42290cf8859539a8343",
+      "source_sha256": "39c7decf226cb63fbd2556d7b47a830509937fa411e3d22f04c0aaeb8298d2a4"
+    },
+    {
+      "market_id": 2810966,
+      "updates": 1496,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "ff7a1fbca707e583a7f5a15b287922f390bfb08066c0e98c3e2189018287af27",
+      "source_sha256": "c9b9e0551c6496f4424c5260dd0b0eb9a3165b9aa568a85736318d28f40260e9"
+    },
+    {
+      "market_id": 2810973,
+      "updates": 1497,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "be08788f77afb6ec24554f820deff824d11bbb0825e7f60f9003fb34e616219d",
+      "source_sha256": "1bd0f5b064c342c5e858cc57e4859c449a8cb1d1e2dde45272e9b9876043143f"
+    },
+    {
+      "market_id": 2811052,
+      "updates": 1463,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "6e9f73254fad2cf6ca6abe058478d75325e40a1ed9c78c74534ad3253ddeb1bf",
+      "source_sha256": "daedf6b5eb495356f9425cbd29a578a332105225abbe35c1fafb12eeea0a8094"
+    },
+    {
+      "market_id": 2811058,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "f4d42106c279443d93c0d9cd5054340f37bcb840449c2dc2957371b418f6ae11",
+      "source_sha256": "4eae2036e048128ee3ca9b7114fe6ed4809da160805f2dac153310cdc5a87843"
+    },
+    {
+      "market_id": 2811063,
+      "updates": 1465,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "cc195aa948b611040372f04f24b97e532d2910362486be23fe25488c6795b41d",
+      "source_sha256": "373e80d7b922cd86ee2613ee488ada3d41e8c22ae689755307a675f493fb4d45"
+    },
+    {
+      "market_id": 2811122,
+      "updates": 1497,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "87e72fb44056c81cde2548f2c4c1055faa7bfdf2a29c024fcf493a5cfc5171c2",
+      "source_sha256": "fde29bec399328254ed9de8a3e02e729a24c9dc8ef4e792fd1f7c51423e76e5c"
+    },
+    {
+      "market_id": 2811125,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "3c21bd2f3685441ae86d4f98d5c6e9fdded28e400672fe700bad3c36ddb9cf7c",
+      "source_sha256": "213bee113ed7bce373040c83e2aafce0918318e7db3c997b162fb0804e1a0a48"
+    },
+    {
+      "market_id": 2811129,
+      "updates": 1482,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c8e15a08a1538cf731f70f181557dd7d7081c7b69438874f90d672cb09117953",
+      "source_sha256": "977df29dfd47b2b4959bcbea9f80c8cc6e924d80c8527e56eac0a82af8e9e3b8"
+    },
+    {
+      "market_id": 2811147,
+      "updates": 1498,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "cd287804de66a3b44620ee28d65d1131fe495420371ac2e0e01b67dbd32f1e2a",
+      "source_sha256": "21dad7d4bf272ca92a58424d36c077979de6454391fc0087e73e6bd6a9cfcbcc"
+    },
+    {
+      "market_id": 2811149,
+      "updates": 1501,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "19cb54ec22ef2934e02f1d14145e4c5df4b8c102c1cf8ea08c3d0c2eccecd02d",
+      "source_sha256": "37aa3d2c594d38035269bf5242f19fec2eb3e6cdf941b57cea88c27f0c9a906f"
+    },
+    {
+      "market_id": 2811152,
+      "updates": 1465,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "334afb78110a1eb2fafa67e654c835a271bc400692cc82ac9179fa09ccd72bb4",
+      "source_sha256": "b5445655c4ee09b821709b2a5d5084749a57fc8fa425f53ed8baad499fe6438f"
+    },
+    {
+      "market_id": 2811206,
+      "updates": 1285,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c936eb7fd48ad8adf30bdbe2f21415d5d4be183adfe8170b021a7dba0794b4e7",
+      "source_sha256": "a14b683b996ad6cc8715881ea31dc5711bbe64c15fe0b4a8ba48aef5b4ac485c"
+    },
+    {
+      "market_id": 2811210,
+      "updates": 1319,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "77dc4f9dfaf1021152513f82542821fbe4e22ea2e42f2d02c7c147781bedc92d",
+      "source_sha256": "980bc6aed14db7b43f197bb041a6a3dc480e981e8ceaa1e6206a640552aeb7f8"
+    },
+    {
+      "market_id": 2811213,
+      "updates": 1457,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "5445675cfb455a8613211e295d4d6050363023cc317b95ce9a851e41c98f74ca",
+      "source_sha256": "67b026a9affb6cfc3c7a081cae2dd292fc63c60afdff651dae0765c4275b445e"
+    },
+    {
+      "market_id": 2811239,
+      "updates": 1464,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "39ade89aca3556b1503aadd604766e5816e90c807036430985572787f064672a",
+      "source_sha256": "98efaae2fe4c20a8848724ec698653e039db13a6e079e7d3455ddd3d63dd1fd4"
+    },
+    {
+      "market_id": 2811302,
+      "updates": 1465,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "3dcd85bb4cd07d46f0822ff6b6ad304654b92e37108667c5de99198b5be95f96",
+      "source_sha256": "91291f496436b373af9c788b3908982a030aa1c809b864c602c0143dd44a3ba0"
+    },
+    {
+      "market_id": 2811306,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "cdc292ad4c230c5d2ae803a4ed6abb9333e87775146531836a269026e3d20f08",
+      "source_sha256": "d49a820f55342be97a32050828fac237294236c9f797d620c521e4023d6e36e4"
+    },
+    {
+      "market_id": 2811324,
+      "updates": 1402,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "cd51020e2716bae6e2d96b5a5412374133a18aba168f34650408761c97bd62c7",
+      "source_sha256": "374914e4c809a5d95b34bd24915140c41176b6aa29059414c1805dbcc33965be"
+    },
+    {
+      "market_id": 2811400,
+      "updates": 1417,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "3b48e12d98666928fb2ee9c57c836321f9d83992c20c674e884e5705ee217b54",
+      "source_sha256": "b67e42dbd808a7db887ac90bdd884186ed74c48205f7263a671c9399c1bbc1c8"
+    },
+    {
+      "market_id": 2811437,
+      "updates": 1446,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "1c3917509e7d145131eb2750d706ffd50274a25270001d395f7d6377e36dbb20",
+      "source_sha256": "223eb5890ed7acbd9ac9104903b43cdf9c7ae3e849f9e173e9badd0ba90180e7"
+    },
+    {
+      "market_id": 2811456,
+      "updates": 1500,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "dd4b769735237bc61a01f7191546f028dad1b256640148633e2c1cee91572758",
+      "source_sha256": "4b1c55ce47861e603c10e2c741038543620c1e3e41a1b813d2a7d18fecdba86a"
+    },
+    {
+      "market_id": 2811457,
+      "updates": 1491,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "51f2cb310318d1d678d2795ec6750bf1d5c23c6c88c9087a51b86ec0bbd7c787",
+      "source_sha256": "73b589e9ddbe724de14a31b38bc8608669f04c5927ae023e3a108c675f0fc071"
+    },
+    {
+      "market_id": 2811462,
+      "updates": 1346,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "dddaba0c98b2a36579523b617b07ab38232c61649284b9a4f195ccedc51479f7",
+      "source_sha256": "70c469a9542b4140f893245f5d7c1675a2c8090d31f43ec23e8d35d488cbdcf8"
+    },
+    {
+      "market_id": 2811516,
+      "updates": 1363,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "454f2c75d473a1d6f19be2633eed1f13b2edd54df7614e6b47fb6b1da888636e",
+      "source_sha256": "cd5facd0ac5095661b2d9ae3a268bcd49def2efbf33276f12f001556c9991475"
+    },
+    {
+      "market_id": 2812106,
+      "updates": 1492,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "315a2d9362793b8a530541d704ec04443f41e16dc78ba7716977d398675b346d",
+      "source_sha256": "ec2cdb1fd352f7ee102f21312c8030e3c7664501bbe79e9e3c4e2e6898df2e08"
+    },
+    {
+      "market_id": 2812289,
+      "updates": 1376,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "dd99a57109787deaaaf437d9b64cdabb9b213feaaade8000f4fd84c6076c875c",
+      "source_sha256": "a8bf4ce2104b9f538f7b80cf26b4659300b5ac8eaf7581fdab5bd89d5f60acaa"
+    },
+    {
+      "market_id": 2812307,
+      "updates": 1369,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "9826b5a826de2eef819cdfa12150764bae5bca6931c8096558d14407cc716fc7",
+      "source_sha256": "5becedfec535acea36dabea3279ff86bd7bac953a9d39a1f37284567bcfdd6a2"
+    },
+    {
+      "market_id": 2812327,
+      "updates": 1423,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "8265f56a219946de83d675521723b6a8c509e4ed8eeb25c8d92439bfdc1decba",
+      "source_sha256": "80bd1aaff606b62942aa58a3a2f1ccb41b363f1bb0b68bb28f11482a8fd3e585"
+    },
+    {
+      "market_id": 2812333,
+      "updates": 1358,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "63affd33d0c77f749fce637955975e773702b32cff834f864063a02ea7235ac9",
+      "source_sha256": "0aa3689ef3b33efcea77c9c79b2170f55cb44c105d331f59ee425c6c02b9ed4d"
+    },
+    {
+      "market_id": 2812403,
+      "updates": 1448,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "ff05a80419293d19172ad46030c54fbe7f8b8c00f2da8fb878912d9103e8cd82",
+      "source_sha256": "58856f14ed2139cd403e0a0ccb66b2c6473a35eb4da064b751572c5f39a0a864"
+    },
+    {
+      "market_id": 2812404,
+      "updates": 1501,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "1d2f99b126f20ffb92796e5557340309a0acabe2724732ce230cf17cf626db62",
+      "source_sha256": "cb2bd1838493ff46d5cd441bc7baaf1ab22012597ebebf0f560ee1eff8b6129f"
+    },
+    {
+      "market_id": 2812407,
+      "updates": 1464,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "5d6273d94938f025340e7a91a8a903a1580dceb536495639739db2d9e7b89a0c",
+      "source_sha256": "9622a2d6f2c7abb7ca91cea26ebaa96f1c06b19492050f6455f71ed7501eb330"
+    },
+    {
+      "market_id": 2812425,
+      "updates": 1323,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "b5ad5daa4c318401cea991ecb5b7d7c2d2f961c1bf22cce5969ae773edf457d9",
+      "source_sha256": "9451feaa7bc202f391180a29c6452076550b29573378e5f44d19c143bf9f15fc"
+    },
+    {
+      "market_id": 2812427,
+      "updates": 1497,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "86df47b2a473a3ecc477b326aace31f259109dd31b7df4f4b46675c2e18eb030",
+      "source_sha256": "3a3ff7db9fbf7c66f654c3921241ea05844488796b3d1a16393e36eef400c193"
+    },
+    {
+      "market_id": 2812431,
+      "updates": 1499,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "a97dfd70442b23bc0c8eb0e1a3a825d8e28b1696f27cff88235a8ff0383a5ef0",
+      "source_sha256": "d8da295983d2db7e6575dbfa99c1ee114ef88f0e8da5c532d61d4738f99dd0f0"
+    },
+    {
+      "market_id": 2812474,
+      "updates": 1491,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "34e656b7fd1f34ec4c411fb3e58f941601856bf9aeffacdfcecdbbd3a9243815",
+      "source_sha256": "1d38301731c442d18e41fad6d67ee5574a3757403d8b758124ab330c7238cd35"
+    },
+    {
+      "market_id": 2812488,
+      "updates": 1381,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "be9733d33824bc4d383d9ee8db81e9564082db5eefca64aaaa41a1a58ee39188",
+      "source_sha256": "4f6b588a9a36f150da5a971b9091a3a7a04c466056f228dbe3f5eabc71e8d6f3"
+    },
+    {
+      "market_id": 2812491,
+      "updates": 1499,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "11ae0fcc128f7a4c952f0ab244d142055f573dd8cc87e5abf37b0d089be84b48",
+      "source_sha256": "a5be4d100c4a2969d4acd04ddb5594e8623728daaadeab6624b8dc6fd0128eba"
+    },
+    {
+      "market_id": 2812514,
+      "updates": 1427,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "4bb50133ab2b73659791a3cc277fe830a6169048ea2c262a4710661749f7ae2f",
+      "source_sha256": "99aeddedba2fc983c8ccc27dc8eb1fb8783448e728d6ae146ce9a8da9d8ba436"
+    },
+    {
+      "market_id": 2812605,
+      "updates": 1419,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "9040e066f81e2035d702ab1f790d83a62b9c8688783108af54f92b008925c6a7",
+      "source_sha256": "2d3519bf369281623e5012fa3b9769c7f9a9a47d07a149cb438c8b37f2928f8d"
+    },
+    {
+      "market_id": 2812645,
+      "updates": 1488,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "e587d53a2d97df2d936df77dce8457410a7e712f204fa50a144b9c9976a97b54",
+      "source_sha256": "a6497c7af952134a401be04b7ca6414beae592ca623cc93fc91ed0865adcf357"
+    },
+    {
+      "market_id": 2812793,
+      "updates": 1327,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "e6d35c27a83d51d688c01cae8bdadfcd4b8c99ae1a2a9fea9ad2aec5a7eece06",
+      "source_sha256": "f599d6842dd08547594b8d01b314d811a8271bd23ede1254ca9a014faec86ef0"
+    },
+    {
+      "market_id": 2812795,
+      "updates": 1433,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "5683b84fa43366f8bfdc7fb0215e298a78c604730f9f1a9869c200969fc9fd5e",
+      "source_sha256": "d487ad7b1715d6e8eb194b7f84719e9ea18e55b8d55268ea37662153b6fb5a7e"
+    },
+    {
+      "market_id": 2812863,
+      "updates": 1404,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "2907f90872ccb713918ee44531d111d781f343899c873447c55116c54b6d17e2",
+      "source_sha256": "a2f0dec17958712f1d5d4502248b9775f42caa414d9452ce69ebbc00b66ade9f"
+    },
+    {
+      "market_id": 2812881,
+      "updates": 1444,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "4e504d88132c73bab44f50ea8812ddfcbbb5b8926fb02589058b5929510dbb7c",
+      "source_sha256": "76c11d19879657f3d27868b32fbe9895c1b43586859fba5bfcb7fee700831615"
+    },
+    {
+      "market_id": 2813213,
+      "updates": 1498,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "38e1357775bf88011bb54ef2333aff5b994bf1af5f9577d5c3d350ab1da22cdc",
+      "source_sha256": "4345ac43c4f23abcf6749b68041092563fcd45ed638915a7983cada372598a1f"
+    },
+    {
+      "market_id": 2813227,
+      "updates": 1484,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "6a2264e20fc7785d962fcff36c8c1881b4cb17fde492d80dac992158983402ad",
+      "source_sha256": "fe94de59e66fb668c1e9901782bb5f3562cc5d770f58000fa4169ec0801c75e1"
+    },
+    {
+      "market_id": 2813290,
+      "updates": 1407,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "bcbe01f09b72a58dd16e5c1c4450b18c7fb0b09d698907b52d2b47c568585efe",
+      "source_sha256": "5c3dc69b49aaf0680c42fbdfa73d3ad7ae01e858afda6eb366acbf483999bdab"
+    },
+    {
+      "market_id": 2813384,
+      "updates": 1477,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "eb226dcb7994f071ed4e15132e5906b5678048ab703da87e9e1a4463757f8be9",
+      "source_sha256": "ee5af5ea8135254c923d2a0d409e603b67da3f84c70a08a38fa42764467cbc5a"
+    },
+    {
+      "market_id": 2813448,
+      "updates": 1436,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "f007756685626be46b2885befee9fdc1410fccf7513abf9d6b0598f51fda4dc5",
+      "source_sha256": "83c6df23d89b1ee0c93b8ee84c60f7eaf5bd7c2dd65dcce849dc1efc50c97998"
+    },
+    {
+      "market_id": 2813524,
+      "updates": 1467,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "b81875111c5d87e345d233f0d7e5971868fa0e00646ca91a571c53eca36b3a27",
+      "source_sha256": "bd0a9b1d2a21f58ba990fbfab1b8c2d7f85d059fc0cc4b071d14e523be6e4b20"
+    },
+    {
+      "market_id": 2813837,
+      "updates": 1491,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "511940a31ba74d39f5a02ca6a3dfc4e29fe7d262bf1e0a1ee1b6db7799369124",
+      "source_sha256": "ade98a5af0ae81022e2bfc3e4dbfdb9a93fbf51f99d5434a2653c999aa49f690"
+    },
+    {
+      "market_id": 2813844,
+      "updates": 1500,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "e2aa1cc8969d873a6c7d580fb9d78ef64d037831af6fe89474a84215351bd238",
+      "source_sha256": "5d229adb6fa5c95cbb77fa40dc15df27dc588cae1918dcc1c18c8769ad6a3694"
+    },
+    {
+      "market_id": 2813894,
+      "updates": 1475,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "6d784405e502f0ff35d46fa14ef10eaeaaac30c40482c590d5ed75cef5c155b8",
+      "source_sha256": "8017ac78d6c627f096093c37e130a4dfb0cad4340a25cdea6939d00b17b3b7d5"
+    },
+    {
+      "market_id": 2813989,
+      "updates": 1457,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "56d48475f6e2aba6c1d5d674a376abb8be163b4939bf0ebcb61aa5f323b120f5",
+      "source_sha256": "c1cb2b16aa74ef15fbec4a5059bc960cd3299fd17fff215d17a4a65e001e85bb"
+    },
+    {
+      "market_id": 2813992,
+      "updates": 1485,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c8b0ddd8a9fb6051729ca5d8b08cc71d31adb3af1f4e5540463e50658f41bb4f",
+      "source_sha256": "5cafe5020984323f87b42a08b083d147c9343e4aaea5d83be3976ae90f57716f"
+    },
+    {
+      "market_id": 2814010,
+      "updates": 1493,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "316a568c9d0b0021325c509109b9d159e10a01c73aa2cfad106f0a6bb77831b5",
+      "source_sha256": "c24bcbd6a18ca0b9ad31c898bdabe0db9419af646599f829842a5d996fd3f49b"
+    },
+    {
+      "market_id": 2814012,
+      "updates": 1390,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "63788211752bafec9596209e23bdc736152671a21c6db59cd1e186b4a635d312",
+      "source_sha256": "27cdc999bafb0747d00620773ffb478edd0e02c0837e34cfbfdf89fc34e8ca30"
+    },
+    {
+      "market_id": 2814015,
+      "updates": 1396,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "a3c4512743f9a8312acbb1ba06b962e5b3e0243f4574c2e3fd12f5394d8c9f15",
+      "source_sha256": "0026cd45455c7e4f916203b3915f47d6af425484719b037b551b2485016d813d"
+    },
+    {
+      "market_id": 2814069,
+      "updates": 1485,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "fb907769d4287c81d10cafd5f885b50fa2e331a50640dcee317595f1c8eecad5",
+      "source_sha256": "4b4ec34fcbba3504f80a39826f17aa7183d76029f5e1306fe2486a3f6b25adc9"
+    },
+    {
+      "market_id": 2814099,
+      "updates": 1446,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "7476e1792f04ed17387e61c03c94dd4c412bee3d5ccf520edb78d2ca24545c09",
+      "source_sha256": "dc9113d489d145c07779b16ab1562932a3c3949431f8901fbef5b066fc94a860"
+    },
+    {
+      "market_id": 2814103,
+      "updates": 1499,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "6308105d78d331cc4f30b22d61c76e1605065fd0ee2d423aaf72ee79cb229dc4",
+      "source_sha256": "476ca754e772536ce7556119981e5b062fb954bc01df757a8f17fa04b059304f"
+    },
+    {
+      "market_id": 2814122,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "b66c07bae975339f43a4ffd85a4a24cb214f4b7ffbd78d0f469a1644fd88056e",
+      "source_sha256": "f3a08ee6fbd4db80aae84b81c9e83ce338e659c3807ac1923f9626342e3481de"
+    },
+    {
+      "market_id": 2814123,
+      "updates": 1380,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "4252d02fa1c67cd6fc49a60d2eaa286b78106c6a1caba0cc6a816e2b4fb58fc3",
+      "source_sha256": "712d2d44142567b064e11c915248b4928eadf9f4cda9cfc4732dd619230341d6"
+    },
+    {
+      "market_id": 2814126,
+      "updates": 1495,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "208447e1955274dbfec3f7ba99b4f8b65c7630eb92d7c952accb5550f3a345e0",
+      "source_sha256": "f86dff33ca09c385d44c40f3affab14310959146ed7d04e74b3fc80074a66c6f"
+    },
+    {
+      "market_id": 2814147,
+      "updates": 1440,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "d2918bf65db44f5a1d96a82dda826102d2b02bd3e4e74dc9c9ac02ba078f3d85",
+      "source_sha256": "d6c221ccb54e3a4817dc48841252852af8320882acdac6c914c29d08ae4d0d90"
+    },
+    {
+      "market_id": 2814149,
+      "updates": 1497,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "1b64c32271b076afe312661d37ff18c8a4d8a6f9d904f759b9129960730bda19",
+      "source_sha256": "9064457288a695ee23d60619c8cdba1c2baaa68455bb626235398cb20c704df0"
+    },
+    {
+      "market_id": 2814156,
+      "updates": 1500,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "036c6679a9e1806acb773abf3481636f014b04f753c19789544d41b015edccbc",
+      "source_sha256": "79f8be0896f2644697c74ae0a6557ecd7d8a4656ed72416682640fa6765d4d97"
+    },
+    {
+      "market_id": 2814250,
+      "updates": 1474,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "fd3aa52fdb19d0bd343b60c63e662ebd99de74b8fb44f2f6da8d4c7c5043b1d6",
+      "source_sha256": "d11b04b44f0084b4a268541603aecac960f33b708a0093608614630c585dd5c6"
+    },
+    {
+      "market_id": 2814254,
+      "updates": 1470,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "21daf8c5538be9da692630bcc6cb06af09c168e9a7376876440b6d7636a59b47",
+      "source_sha256": "d9affa1237f6e6c82afb4c0c156dee85b8b3aea1b2a22c82a9afdbd958890ead"
+    },
+    {
+      "market_id": 2814257,
+      "updates": 1493,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "6c336f63a48043ea76e486c5ead28d4140b3a321e891c383acaad3aa504868dc",
+      "source_sha256": "9562287089605082e7f78f3face1b11cc77247c430d034c78b56711c46892bd6"
+    },
+    {
+      "market_id": 2814277,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c5ce1aeabf3fa19558370830de9a98b109c256246e11ed8ad74afb376cae101b",
+      "source_sha256": "c4b75dc599c199abd6b0e0374731409e21a27135c0abd6b5e395a1d3b12043e2"
+    },
+    {
+      "market_id": 2814318,
+      "updates": 1495,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "75b31067102aa9041dca541649fdbc5ef3d9e539e6ef6c13163b13b35ce71073",
+      "source_sha256": "d3f03476285698fdbca9d4cdebecd3ff5c76955cf0af227c873dde6b55e34858"
+    },
+    {
+      "market_id": 2814322,
+      "updates": 1480,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "8739617a29fb832ebd43284bf2bc1dd20bb605881d6f5595fb3329a3b002796d",
+      "source_sha256": "0fc84ef909d1990a29788e5187ccee48f4033381fa9ce2367dfe9d27079ddcdb"
+    },
+    {
+      "market_id": 2814383,
+      "updates": 1484,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "1e429ba73fc1bb3e2196dbbe0009fa5ef7f66ea2cfd5e0d2ebcab94a146dfbea",
+      "source_sha256": "7b116fddf38f747c4ebe3b403ded016981a60f4b9019884c8a419f8e0d0efcf8"
+    },
+    {
+      "market_id": 2814443,
+      "updates": 1466,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "e09b35d5364b4bb96e8b86a7832396de7a15074314c9fc4920269d8d1b9c989f",
+      "source_sha256": "2f34ee279398e5f8ce07997337a055de3f3da9274278e3692f603be9b59cd60c"
+    },
+    {
+      "market_id": 2814447,
+      "updates": 1494,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c6a5f65426f2d34d1e461724c927dd6ca12764cc554584e8b7424e39d073a83c",
+      "source_sha256": "8fd05a3b41cf4a81f666f34a37a8bd87c276bf84cd3fc01c336a0fc237fbbc7b"
+    },
+    {
+      "market_id": 2814462,
+      "updates": 1498,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "8980169e29020ec2a2bf0cf4f2cfc377f70f5ad8c36a512a3c94454b23d31186",
+      "source_sha256": "7ab757b3d4fc3c9270fe3084051108fd5387a2a89c78ee48ebaae63e98710882"
+    },
+    {
+      "market_id": 2814559,
+      "updates": 1505,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "41d9f144c978fd86d4d93f78966cbd0b22224f44d4c1a4994ff72e38a614bc0f",
+      "source_sha256": "1099b034565710647e5b5cb485e2d1f1d7b0045ed141d755a351b304f082c5a7"
+    },
+    {
+      "market_id": 2814660,
+      "updates": 1490,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "c9b6a31c329d94842be81518f91ba6970ecb0091114e583f67737d3dffefa478",
+      "source_sha256": "c0ba33869e4fcee0aa82ca729e2ce8b8e10df7a606ca16bf7af82a6f938566b5"
+    },
+    {
+      "market_id": 2814678,
+      "updates": 1417,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "f61871180668452595873bca74cc9549dad74504de285175d1a0d8f4d5a7c1d4",
+      "source_sha256": "b62a5e57819ff987f8680cc9d586a9112e162fc826d9f854509ec746fddc2a2e"
+    },
+    {
+      "market_id": 2814776,
+      "updates": 1469,
+      "full7_public_columns": true,
+      "original_book_apply_all_rows": "PASS",
+      "sanitized_sha256": "d24044d10b81430077e89d4c1ad3ce204e06652b8c8b637c084b874e910724ba",
+      "source_sha256": "bee09aa61fb1724fdb079d304eaff4ba743867f13734d7b564c170ebc6dd8acc"
+    }
+  ]
+}
