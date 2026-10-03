@@ -1,0 +1,12 @@
+{
+  "queue_model": "risk",
+  "entry_latency_ms": 250,
+  "response_latency_ms": 250,
+  "tick": 0.01,
+  "lot": 0.01,
+  "maker_fee": 0,
+  "taker_fee": 0,
+  "exchange": "PartialFill",
+  "events_sha256": "04ff8c70b1ed54381193f6f3b27a5ada22bab2639288129a37df3cea34bf8831",
+  "strategy_source_changed": false
+}
