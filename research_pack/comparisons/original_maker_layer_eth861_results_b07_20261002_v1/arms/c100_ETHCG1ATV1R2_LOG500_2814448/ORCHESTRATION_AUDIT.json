@@ -1,0 +1,11 @@
+{
+  "name": "c100_ETHCG1ATV1R2_LOG500_2814448",
+  "market": 2814448,
+  "arm": "LOG500",
+  "rc": 0,
+  "status": "COMPLETE",
+  "execution_complete": true,
+  "legacy_active_matches_opportunity": true,
+  "all_old_gates_passed": false,
+  "strict_completion_errors": []
+}
