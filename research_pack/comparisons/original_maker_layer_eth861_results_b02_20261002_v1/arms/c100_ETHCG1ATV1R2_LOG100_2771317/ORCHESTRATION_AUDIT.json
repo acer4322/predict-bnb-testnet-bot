@@ -1,0 +1,11 @@
+{
+  "name": "c100_ETHCG1ATV1R2_LOG100_2771317",
+  "market": 2771317,
+  "arm": "LOG100",
+  "rc": 2,
+  "status": "COMPLETE",
+  "execution_complete": true,
+  "legacy_active_matches_opportunity": false,
+  "all_old_gates_passed": false,
+  "strict_completion_errors": []
+}

@@ -1,0 +1,12 @@
+{
+  "queue_model": "log",
+  "entry_latency_ms": 100,
+  "response_latency_ms": 100,
+  "tick": 0.01,
+  "lot": 0.01,
+  "maker_fee": 0,
+  "taker_fee": 0,
+  "exchange": "PartialFill",
+  "events_sha256": "fda20241ee9f8ef599dd57ff195bcd44d3c5c24ec515646de2b272e7882434f2",
+  "strategy_source_changed": false
+}
