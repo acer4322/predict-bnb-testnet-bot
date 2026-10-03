@@ -1,0 +1,16 @@
+{
+  "name": "c100_ETHCG1ATV1R2_LOG100_2772679",
+  "market": 2772679,
+  "arm": "LOG100",
+  "rc": 2,
+  "status": "ERROR",
+  "execution_complete": false,
+  "legacy_active_matches_opportunity": null,
+  "all_old_gates_passed": false,
+  "strict_completion_errors": [
+    "RAW_STATUS_NOT_COMPLETE",
+    "EXACT_EIGHT_BOOLEAN_GATES_REQUIRED",
+    "RAW_UNRESOLVED_OWNERS",
+    "SOURCE_FRAME_PRODUCER_COUNT_MISMATCH"
+  ]
+}
