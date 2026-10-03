@@ -1,0 +1,470 @@
+{
+  "schema_version": "btc-final-execution-audit-v1",
+  "audit_status": "PASS_COMPLETE_OWNER_AUDITS_AND_EOF_PREFIX_AUDITS",
+  "scope": {
+    "analysis_file": "data/research/original_maker_layer_20261002_v1/original_maker_layer_20261002_v1r7_ANALYSIS.json",
+    "paths": 555,
+    "partition": {
+      "R7_COMPLETE": 369,
+      "R7_EOF_PREFIX": 13,
+      "prior_reused_COMPLETE": 171,
+      "prior_reused_EOF_PREFIX": 2
+    },
+    "raw_eof_evidence_files": [
+      "execution_clock.json",
+      "result.json",
+      "failure_trace.json.gz"
+    ],
+    "prohibitions_observed": "No winner fields or economic calculations were used; no raw tape, JOBS, or engine was opened; no returns or frozen files were changed."
+  },
+  "complete_individual_owner_audit": {
+    "complete_paths": 540,
+    "status_counts": {
+      "PASS": 540
+    },
+    "nonpass_paths": [],
+    "receipt_accounting_status_counts": {
+      "PASS": 540
+    },
+    "receipt_accounting_nonpass_paths": []
+  },
+  "legacy_active_matches_opportunity": {
+    "source_field": "raw_safety_gate.active_matches_opportunity",
+    "analysis_alias": "legacy_active_matches_opportunity",
+    "raw_value_counts": {
+      "True": 198,
+      "False": 342,
+      "<missing>": 15
+    },
+    "alias_value_counts": {
+      "True": 198,
+      "False": 342,
+      "<missing>": 15
+    },
+    "raw_alias_mismatch_count": 0,
+    "grouped_by_result_job_and_raw_value": {
+      "original-maker-layer-btc185-20261002-v1r5|False": 1,
+      "original-maker-layer-btc185-rest382-20261002-v1r7|<missing>": 13,
+      "original-maker-layer-btc185-rest382-20261002-v1r7|False": 241,
+      "original-maker-layer-btc185-rest382-20261002-v1r7|True": 128,
+      "original-maker-layer-btc185-rest554-20261002-v1r6|<missing>": 2,
+      "original-maker-layer-btc185-rest554-20261002-v1r6|False": 100,
+      "original-maker-layer-btc185-rest554-20261002-v1r6|True": 70
+    }
+  },
+  "eof_prefix_owner_accounting": {
+    "paths": 15,
+    "owner_accounting_passes": 15,
+    "source_tail_advances_not_reached": 15,
+    "anomalies": [],
+    "path_results": [
+      {
+        "market_id": 2808988,
+        "arm": "BASE",
+        "name": "c100_OMLR6_BASE_2808988",
+        "result_job": "original-maker-layer-btc185-rest554-20261002-v1r6",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 52,
+        "receipt_count": 53,
+        "carrier_state_counts": {
+          "TERMINAL": 52
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1487,
+          "frames": 1486,
+          "producer_calls": 1486,
+          "source_call_count": 1487,
+          "last_source_index": 1486,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1486
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2808988,
+        "arm": "LOG100",
+        "name": "c100_OMLR6_LOG100_2808988",
+        "result_job": "original-maker-layer-btc185-rest554-20261002-v1r6",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 40,
+        "receipt_count": 40,
+        "carrier_state_counts": {
+          "TERMINAL": 40
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1487,
+          "frames": 1486,
+          "producer_calls": 1486,
+          "source_call_count": 1487,
+          "last_source_index": 1486,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1486
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2808988,
+        "arm": "LOG500",
+        "name": "c100_OMLR7_LOG500_2808988",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 51,
+        "receipt_count": 48,
+        "carrier_state_counts": {
+          "TERMINAL": 51
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1487,
+          "frames": 1486,
+          "producer_calls": 1486,
+          "source_call_count": 1487,
+          "last_source_index": 1486,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1486
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2809966,
+        "arm": "BASE",
+        "name": "c100_OMLR7_BASE_2809966",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 87,
+        "receipt_count": 101,
+        "carrier_state_counts": {
+          "TERMINAL": 87
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1489,
+          "frames": 1488,
+          "producer_calls": 1488,
+          "source_call_count": 1489,
+          "last_source_index": 1488,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1488
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2809966,
+        "arm": "LOG100",
+        "name": "c100_OMLR7_LOG100_2809966",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 67,
+        "receipt_count": 72,
+        "carrier_state_counts": {
+          "TERMINAL": 67
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1489,
+          "frames": 1488,
+          "producer_calls": 1488,
+          "source_call_count": 1489,
+          "last_source_index": 1488,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1488
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2809966,
+        "arm": "LOG500",
+        "name": "c100_OMLR7_LOG500_2809966",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 298,
+        "receipt_count": 237,
+        "carrier_state_counts": {
+          "TERMINAL": 298
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1489,
+          "frames": 1488,
+          "producer_calls": 1488,
+          "source_call_count": 1489,
+          "last_source_index": 1488,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1488
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2810255,
+        "arm": "BASE",
+        "name": "c100_OMLR7_BASE_2810255",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 66,
+        "receipt_count": 42,
+        "carrier_state_counts": {
+          "TERMINAL": 66
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1484,
+          "frames": 1483,
+          "producer_calls": 1483,
+          "source_call_count": 1484,
+          "last_source_index": 1483,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1483
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2810255,
+        "arm": "LOG100",
+        "name": "c100_OMLR7_LOG100_2810255",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 68,
+        "receipt_count": 43,
+        "carrier_state_counts": {
+          "TERMINAL": 68
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1484,
+          "frames": 1483,
+          "producer_calls": 1483,
+          "source_call_count": 1484,
+          "last_source_index": 1483,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1483
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2810255,
+        "arm": "LOG500",
+        "name": "c100_OMLR7_LOG500_2810255",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 65,
+        "receipt_count": 44,
+        "carrier_state_counts": {
+          "TERMINAL": 65
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1484,
+          "frames": 1483,
+          "producer_calls": 1483,
+          "source_call_count": 1484,
+          "last_source_index": 1483,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1483
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2811149,
+        "arm": "BASE",
+        "name": "c100_OMLR7_BASE_2811149",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 189,
+        "receipt_count": 225,
+        "carrier_state_counts": {
+          "TERMINAL": 189
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1501,
+          "frames": 1500,
+          "producer_calls": 1500,
+          "source_call_count": 1501,
+          "last_source_index": 1500,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1500
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2811149,
+        "arm": "LOG100",
+        "name": "c100_OMLR7_LOG100_2811149",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 172,
+        "receipt_count": 243,
+        "carrier_state_counts": {
+          "TERMINAL": 172
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1501,
+          "frames": 1500,
+          "producer_calls": 1500,
+          "source_call_count": 1501,
+          "last_source_index": 1500,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1500
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2811149,
+        "arm": "LOG500",
+        "name": "c100_OMLR7_LOG500_2811149",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 188,
+        "receipt_count": 212,
+        "carrier_state_counts": {
+          "TERMINAL": 188
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1501,
+          "frames": 1500,
+          "producer_calls": 1500,
+          "source_call_count": 1501,
+          "last_source_index": 1500,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1500
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2814559,
+        "arm": "BASE",
+        "name": "c100_OMLR7_BASE_2814559",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 99,
+        "receipt_count": 72,
+        "carrier_state_counts": {
+          "TERMINAL": 99
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1505,
+          "frames": 1504,
+          "producer_calls": 1504,
+          "source_call_count": 1505,
+          "last_source_index": 1504,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1504
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2814559,
+        "arm": "LOG100",
+        "name": "c100_OMLR7_LOG100_2814559",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 68,
+        "receipt_count": 71,
+        "carrier_state_counts": {
+          "TERMINAL": 68
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1505,
+          "frames": 1504,
+          "producer_calls": 1504,
+          "source_call_count": 1505,
+          "last_source_index": 1504,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1504
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      },
+      {
+        "market_id": 2814559,
+        "arm": "LOG500",
+        "name": "c100_OMLR7_LOG500_2814559",
+        "result_job": "original-maker-layer-btc185-rest382-20261002-v1r7",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "result_status": "ERROR",
+        "receipt_prefix_owner_audit": "PASS",
+        "carrier_count": 96,
+        "receipt_count": 73,
+        "carrier_state_counts": {
+          "TERMINAL": 96
+        },
+        "execution_clock_evidence": {
+          "source_updates": 1505,
+          "frames": 1504,
+          "producer_calls": 1504,
+          "source_call_count": 1505,
+          "last_source_index": 1504,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "failure_trace_plan_count": 1504
+        },
+        "source_tail_status": "LAST_EXPECTED_SOURCE_ADVANCE_NOT_REACHED",
+        "scope": "EOF prefix only; never treated as complete replay"
+      }
+    ]
+  },
+  "limitations": [
+    "The source input tapes were not opened, so the audit verifies from execution_clock that the last advertised source index was attempted but not reached; it does not inspect that input row payload. EOF paths remain censored prefixes.",
+    "A preliminary schema diagnostic inadvertently displayed some first-row economic summary scalars and a classification field. These were not used in the audit and are not copied into this report.",
+    "active_birth_count was not used as a passive-to-active conversion frequency; no conversion-frequency claim is made."
+  ],
+  "no_economic_fields_in_report": true,
+  "analysis_lineage": {
+    "analysis_job_id": "original-maker-layer-btc185-rest382-20261002-v1r7",
+    "source_result_job_status_counts": {
+      "original-maker-layer-btc185-20261002-v1r5|COMPLETE": 1,
+      "original-maker-layer-btc185-rest382-20261002-v1r7|COMPLETE": 369,
+      "original-maker-layer-btc185-rest382-20261002-v1r7|UNKNOWN_EOF_CENSORED": 13,
+      "original-maker-layer-btc185-rest554-20261002-v1r6|COMPLETE": 170,
+      "original-maker-layer-btc185-rest554-20261002-v1r6|UNKNOWN_EOF_CENSORED": 2
+    },
+    "interpretation": "555-path audit covers R5 and R6 reused cells plus all R7 new cells; EOF prefixes remain separately identified."
+  }
+}

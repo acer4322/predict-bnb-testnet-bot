@@ -1,0 +1,10 @@
+{
+  "prior_archive_directory_exists": false,
+  "prior_error": "\u547d\u4ee4\u5217\u592a\u9577\u3002\r\n",
+  "prior_command_chars": 8854,
+  "direct_command_chars": 3301,
+  "cause": "Windows default SSH shell command length; archive Python did not start",
+  "repair": "Direct pinned Python command, without nested PowerShell base64 expansion",
+  "native_submissions": 0,
+  "native_replays": 0
+}

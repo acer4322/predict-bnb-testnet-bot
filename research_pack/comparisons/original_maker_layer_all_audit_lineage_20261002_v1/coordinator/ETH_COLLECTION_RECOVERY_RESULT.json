@@ -1,0 +1,13 @@
+{
+  "status": "COLLECTED_HASH_VERIFIED",
+  "job_id": "original-maker-layer-eth861-20261002-v1r2",
+  "files": 56756,
+  "raw_bytes": 12274100368,
+  "archives": 63,
+  "archive_bytes": 2526364581,
+  "archive_manifest_sha256": "a60284094ebf7c6601bc099136325b86c8068255a570ed9659c39f3248716dcf",
+  "native_submissions": 0,
+  "native_replays": 0,
+  "initial_scp_errors_retained": true,
+  "transfer_events": "ETH_ARCHIVE_TRANSFER_EVENTS.jsonl"
+}

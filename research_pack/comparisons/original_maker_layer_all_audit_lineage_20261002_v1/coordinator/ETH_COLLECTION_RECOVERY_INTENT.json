@@ -1,0 +1,11 @@
+{
+  "job_id": "original-maker-layer-eth861-20261002-v1r2",
+  "pid": 50300,
+  "attempts": 1,
+  "recovery": "Verified small archives of already terminal unchanged outputs",
+  "prior_error": "recursive SCP connection reset; legacy collector removed its temporary directory",
+  "native_submissions": 0,
+  "native_replays": 0,
+  "staging": "C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\lan_worker_returns\\._collecting_recovery_original-maker-layer-eth861-20261002-v1r2_50300",
+  "remote_archive_dir": "C:/BTC5M-worker/.tmp/oml_eth_collection_archives_20261003_v1"
+}

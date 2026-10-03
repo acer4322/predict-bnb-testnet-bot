@@ -1,0 +1,11 @@
+{
+  "job_id": "original-maker-layer-eth861-20261002-v1r2",
+  "kind": "READ_ONLY_SSH_TIMEOUT",
+  "details": "30-second strict SSH request scanning finished orchestration records timed out; supervisor retried reads only",
+  "last_confirmed_before": 359,
+  "recovered_confirmed": 378,
+  "resubmits": 0,
+  "cancellations": 0,
+  "cause": "UNKNOWN",
+  "recorded_unix_seconds": 1790970703.3480287
+}

@@ -1,0 +1,17 @@
+{
+  "accepted_for_publication": true,
+  "audit_sha256": "21e3c96f61d996936b3703ff355edd4d2a1526ef0d2c814ecac52222f50cfea3",
+  "execution_valid_owner_accounting_pass": 2511,
+  "EOF_raw_clocks_independently_checked": 72,
+  "missing_source_updates_distribution": {
+    "1": 57,
+    "2": 15
+  },
+  "raw_carrier_state_counts": {
+    "TERMINAL": 21805
+  },
+  "legacy_raw_alias_equal": true,
+  "scope": "Canonical observed prefix only. Last attempted source advance failed; 15 paths have one additional unattempted source update. No full-tail or full-cohort profit inference.",
+  "fits": 0,
+  "native_submissions": 0
+}

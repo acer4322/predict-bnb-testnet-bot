@@ -1,0 +1,8 @@
+{
+  "job_id": "original-maker-layer-btc185-rest382-20261002-v1r7",
+  "attempts": 1,
+  "max_threads": 4,
+  "parallel_paths": 4,
+  "native_threads_per_path": 1,
+  "timeout_is_not_failure": true
+}

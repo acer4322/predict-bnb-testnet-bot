@@ -1,0 +1,9 @@
+{
+  "pid": 162076,
+  "attempts": 1,
+  "native_submissions": 0,
+  "native_replays": 0,
+  "source": "Already complete SHA-pinned 63 archives",
+  "policy": "At most 6 visibly logged read-only SCP attempts per batch; fresh attempt directory; preserve partials",
+  "staging": "C:\\Users\\acer4\\Documents\\Codex\\2026-07-16\\chatgpt-conversation-6a580831-27e8-83ee-9994\\outputs\\predict-bnb-testnet-bot\\data\\research\\lan_worker_returns\\._collecting_recovery_original-maker-layer-eth861-20261002-v1r2_178132"
+}

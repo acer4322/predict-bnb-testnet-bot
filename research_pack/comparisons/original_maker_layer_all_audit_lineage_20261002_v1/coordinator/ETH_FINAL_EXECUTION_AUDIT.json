@@ -1,0 +1,2328 @@
+{
+  "schema_version": "eth-final-execution-audit-v1",
+  "audit_status": "PASS_2511_EXECUTION_VALID_AND_72_EOF_PREFIX_ONLY",
+  "scope": {
+    "analysis": "data/research/original_maker_layer_20261002_v1/original_maker_layer_eth861_20261002_v1r2_ANALYSIS.json",
+    "path_count": 2583,
+    "status_counts": {
+      "COMPLETE": 2508,
+      "UNKNOWN_EOF_CENSORED": 72,
+      "UNKNOWN_OFFICIAL_NONBINARY": 3
+    },
+    "execution_valid_counts": {
+      "false": 72,
+      "true": 2511
+    },
+    "status_by_execution_valid": {
+      "COMPLETE|execution_valid=true": 2508,
+      "UNKNOWN_EOF_CENSORED|execution_valid=false": 72,
+      "UNKNOWN_OFFICIAL_NONBINARY|execution_valid=true": 3
+    },
+    "raw_files_read_for_EOF_only": [
+      "execution_clock.json",
+      "result.json"
+    ],
+    "analysis_fields_read": [
+      "status",
+      "market_id",
+      "arm",
+      "name",
+      "result_job",
+      "execution_valid",
+      "receipt_owner_audit",
+      "receipt_accounting",
+      "raw_safety_gate.active_matches_opportunity",
+      "legacy_active_matches_opportunity",
+      "receipt_prefix"
+    ],
+    "excluded": "No engine, JOBS, tape, return traces, or economic fields were selected, emitted, or used."
+  },
+  "complete_execution_paths": {
+    "execution_valid_count": 2511,
+    "owner_audit_status_counts": {
+      "PASS": 2511
+    },
+    "receipt_accounting_status_counts": {
+      "PASS": 2511
+    },
+    "nonpass_or_missing": []
+  },
+  "legacy_active_matches_opportunity": {
+    "raw_gate_value_counts": {
+      "MISSING": 72,
+      "false": 1919,
+      "true": 592
+    },
+    "legacy_alias_value_counts": {
+      "MISSING": 72,
+      "false": 1919,
+      "true": 592
+    },
+    "raw_alias_mismatch_count": 0,
+    "raw_alias_mismatches": []
+  },
+  "eof_prefix_paths": {
+    "count": 72,
+    "receipt_prefix_owner_audit_status_counts": {
+      "PASS": 72
+    },
+    "raw_result_status_counts": {
+      "ERROR": 72
+    },
+    "source_tail_evidence_counts": {
+      "LAST_SOURCE_ADVANCE_NOT_REACHED": 72
+    },
+    "missing_source_updates_distribution": {
+      "1": 57,
+      "2": 15
+    },
+    "carrier_state_counts_total": {
+      "TERMINAL": 21805
+    },
+    "nonpass_or_missing": [],
+    "paths": [
+      {
+        "market_id": 2731598,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2731598",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 200,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1462,
+        "receipt_prefix_source_updates": 1463,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1462,
+          "source_updates": 1463,
+          "producer_calls": 1462,
+          "source_frame_difference": 1,
+          "source_call_count": 1463,
+          "last_source_index": 1462,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 518
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2731598,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2731598",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 125,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1462,
+        "receipt_prefix_source_updates": 1463,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1462,
+          "source_updates": 1463,
+          "producer_calls": 1462,
+          "source_frame_difference": 1,
+          "source_call_count": 1463,
+          "last_source_index": 1462,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 543
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2731598,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2731598",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 210,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1462,
+        "receipt_prefix_source_updates": 1463,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1462,
+          "source_updates": 1463,
+          "producer_calls": 1462,
+          "source_frame_difference": 1,
+          "source_call_count": 1463,
+          "last_source_index": 1462,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 454
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2741750,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2741750",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 58,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1223,
+        "receipt_prefix_source_updates": 1224,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1223,
+          "source_updates": 1224,
+          "producer_calls": 1223,
+          "source_frame_difference": 1,
+          "source_call_count": 1224,
+          "last_source_index": 1223,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 101
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2741750,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2741750",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 46,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1223,
+        "receipt_prefix_source_updates": 1224,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1223,
+          "source_updates": 1224,
+          "producer_calls": 1223,
+          "source_frame_difference": 1,
+          "source_call_count": 1224,
+          "last_source_index": 1223,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 104
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2741750,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2741750",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 69,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1223,
+        "receipt_prefix_source_updates": 1224,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1223,
+          "source_updates": 1224,
+          "producer_calls": 1223,
+          "source_frame_difference": 1,
+          "source_call_count": 1224,
+          "last_source_index": 1223,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 102
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2747359,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2747359",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 87,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1337,
+        "receipt_prefix_source_updates": 1338,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1337,
+          "source_updates": 1338,
+          "producer_calls": 1337,
+          "source_frame_difference": 1,
+          "source_call_count": 1338,
+          "last_source_index": 1337,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 98
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2747359,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2747359",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 56,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1337,
+        "receipt_prefix_source_updates": 1338,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1337,
+          "source_updates": 1338,
+          "producer_calls": 1337,
+          "source_frame_difference": 1,
+          "source_call_count": 1338,
+          "last_source_index": 1337,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 120
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2747359,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2747359",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 106,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1337,
+        "receipt_prefix_source_updates": 1338,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1337,
+          "source_updates": 1338,
+          "producer_calls": 1337,
+          "source_frame_difference": 1,
+          "source_call_count": 1338,
+          "last_source_index": 1337,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 107
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2755447,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2755447",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 40,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1405,
+        "receipt_prefix_source_updates": 1406,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1405,
+          "source_updates": 1406,
+          "producer_calls": 1405,
+          "source_frame_difference": 1,
+          "source_call_count": 1406,
+          "last_source_index": 1405,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 69
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2755447,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2755447",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 23,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1405,
+        "receipt_prefix_source_updates": 1406,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1405,
+          "source_updates": 1406,
+          "producer_calls": 1405,
+          "source_frame_difference": 1,
+          "source_call_count": 1406,
+          "last_source_index": 1405,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 63
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2755447,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2755447",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 38,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1405,
+        "receipt_prefix_source_updates": 1406,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1405,
+          "source_updates": 1406,
+          "producer_calls": 1405,
+          "source_frame_difference": 1,
+          "source_call_count": 1406,
+          "last_source_index": 1405,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 72
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2758501,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2758501",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 74,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1410,
+        "receipt_prefix_source_updates": 1411,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1410,
+          "source_updates": 1411,
+          "producer_calls": 1410,
+          "source_frame_difference": 1,
+          "source_call_count": 1411,
+          "last_source_index": 1410,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 85
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2758501,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2758501",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 256,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1410,
+        "receipt_prefix_source_updates": 1411,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1410,
+          "source_updates": 1411,
+          "producer_calls": 1410,
+          "source_frame_difference": 1,
+          "source_call_count": 1411,
+          "last_source_index": 1410,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 804
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2758501,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2758501",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 87,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1410,
+        "receipt_prefix_source_updates": 1411,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1410,
+          "source_updates": 1411,
+          "producer_calls": 1410,
+          "source_frame_difference": 1,
+          "source_call_count": 1411,
+          "last_source_index": 1410,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 96
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2766327,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2766327",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 65,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1373,
+        "receipt_prefix_source_updates": 1374,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1373,
+          "source_updates": 1374,
+          "producer_calls": 1373,
+          "source_frame_difference": 1,
+          "source_call_count": 1374,
+          "last_source_index": 1373,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 128
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2766327,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2766327",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 38,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1373,
+        "receipt_prefix_source_updates": 1374,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1373,
+          "source_updates": 1374,
+          "producer_calls": 1373,
+          "source_frame_difference": 1,
+          "source_call_count": 1374,
+          "last_source_index": 1373,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 114
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2766327,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2766327",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 57,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1373,
+        "receipt_prefix_source_updates": 1374,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1373,
+          "source_updates": 1374,
+          "producer_calls": 1373,
+          "source_frame_difference": 1,
+          "source_call_count": 1374,
+          "last_source_index": 1373,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 111
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2767374,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2767374",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 19,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1159,
+        "receipt_prefix_source_updates": 1160,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1159,
+          "source_updates": 1160,
+          "producer_calls": 1159,
+          "source_frame_difference": 1,
+          "source_call_count": 1160,
+          "last_source_index": 1159,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 74
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2767374,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2767374",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 15,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1159,
+        "receipt_prefix_source_updates": 1160,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1159,
+          "source_updates": 1160,
+          "producer_calls": 1159,
+          "source_frame_difference": 1,
+          "source_call_count": 1160,
+          "last_source_index": 1159,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 84
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2767374,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2767374",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 31,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1159,
+        "receipt_prefix_source_updates": 1160,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1159,
+          "source_updates": 1160,
+          "producer_calls": 1159,
+          "source_frame_difference": 1,
+          "source_call_count": 1160,
+          "last_source_index": 1159,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 81
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2768509,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2768509",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 167,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1376,
+        "receipt_prefix_source_updates": 1378,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1376,
+          "source_updates": 1378,
+          "producer_calls": 1376,
+          "source_frame_difference": 2,
+          "source_call_count": 1377,
+          "last_source_index": 1376,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 473
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2768509,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2768509",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 8,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1376,
+        "receipt_prefix_source_updates": 1378,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1376,
+          "source_updates": 1378,
+          "producer_calls": 1376,
+          "source_frame_difference": 2,
+          "source_call_count": 1377,
+          "last_source_index": 1376,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 24
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2768509,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2768509",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 47,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1376,
+        "receipt_prefix_source_updates": 1378,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1376,
+          "source_updates": 1378,
+          "producer_calls": 1376,
+          "source_frame_difference": 2,
+          "source_call_count": 1377,
+          "last_source_index": 1376,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 94
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2770244,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2770244",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 201,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1462,
+        "receipt_prefix_source_updates": 1463,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1462,
+          "source_updates": 1463,
+          "producer_calls": 1462,
+          "source_frame_difference": 1,
+          "source_call_count": 1463,
+          "last_source_index": 1462,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 371
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2770244,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2770244",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 199,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1462,
+        "receipt_prefix_source_updates": 1463,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1462,
+          "source_updates": 1463,
+          "producer_calls": 1462,
+          "source_frame_difference": 1,
+          "source_call_count": 1463,
+          "last_source_index": 1462,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 697
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2770244,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2770244",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 213,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1462,
+        "receipt_prefix_source_updates": 1463,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1462,
+          "source_updates": 1463,
+          "producer_calls": 1462,
+          "source_frame_difference": 1,
+          "source_call_count": 1463,
+          "last_source_index": 1462,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 306
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2771993,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2771993",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 285,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1418,
+        "receipt_prefix_source_updates": 1419,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1418,
+          "source_updates": 1419,
+          "producer_calls": 1418,
+          "source_frame_difference": 1,
+          "source_call_count": 1419,
+          "last_source_index": 1418,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 698
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2771993,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2771993",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 212,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1418,
+        "receipt_prefix_source_updates": 1419,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1418,
+          "source_updates": 1419,
+          "producer_calls": 1418,
+          "source_frame_difference": 1,
+          "source_call_count": 1419,
+          "last_source_index": 1418,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 1093
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2771993,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2771993",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 340,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1418,
+        "receipt_prefix_source_updates": 1419,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1418,
+          "source_updates": 1419,
+          "producer_calls": 1418,
+          "source_frame_difference": 1,
+          "source_call_count": 1419,
+          "last_source_index": 1418,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 933
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2772409,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2772409",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 63,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1445,
+        "receipt_prefix_source_updates": 1446,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1445,
+          "source_updates": 1446,
+          "producer_calls": 1445,
+          "source_frame_difference": 1,
+          "source_call_count": 1446,
+          "last_source_index": 1445,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 103
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2772409,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2772409",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 4,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1445,
+        "receipt_prefix_source_updates": 1446,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1445,
+          "source_updates": 1446,
+          "producer_calls": 1445,
+          "source_frame_difference": 1,
+          "source_call_count": 1446,
+          "last_source_index": 1445,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 19
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2772409,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2772409",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 94,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1445,
+        "receipt_prefix_source_updates": 1446,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1445,
+          "source_updates": 1446,
+          "producer_calls": 1445,
+          "source_frame_difference": 1,
+          "source_call_count": 1446,
+          "last_source_index": 1445,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 140
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2772679,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2772679",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 43,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1416,
+        "receipt_prefix_source_updates": 1417,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1416,
+          "source_updates": 1417,
+          "producer_calls": 1416,
+          "source_frame_difference": 1,
+          "source_call_count": 1417,
+          "last_source_index": 1416,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 146
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2772679,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2772679",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 15,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1416,
+        "receipt_prefix_source_updates": 1417,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1416,
+          "source_updates": 1417,
+          "producer_calls": 1416,
+          "source_frame_difference": 1,
+          "source_call_count": 1417,
+          "last_source_index": 1416,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 145
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2772679,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2772679",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 53,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1416,
+        "receipt_prefix_source_updates": 1417,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1416,
+          "source_updates": 1417,
+          "producer_calls": 1416,
+          "source_frame_difference": 1,
+          "source_call_count": 1417,
+          "last_source_index": 1416,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 136
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2778667,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2778667",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 294,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1437,
+        "receipt_prefix_source_updates": 1438,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1437,
+          "source_updates": 1438,
+          "producer_calls": 1437,
+          "source_frame_difference": 1,
+          "source_call_count": 1438,
+          "last_source_index": 1437,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 1132
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2778667,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2778667",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 207,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1437,
+        "receipt_prefix_source_updates": 1438,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1437,
+          "source_updates": 1438,
+          "producer_calls": 1437,
+          "source_frame_difference": 1,
+          "source_call_count": 1438,
+          "last_source_index": 1437,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 1637
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2778667,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2778667",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 367,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1437,
+        "receipt_prefix_source_updates": 1438,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1437,
+          "source_updates": 1438,
+          "producer_calls": 1437,
+          "source_frame_difference": 1,
+          "source_call_count": 1438,
+          "last_source_index": 1437,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 1093
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2789379,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2789379",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 69,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1443,
+        "receipt_prefix_source_updates": 1445,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1443,
+          "source_updates": 1445,
+          "producer_calls": 1443,
+          "source_frame_difference": 2,
+          "source_call_count": 1444,
+          "last_source_index": 1443,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 111
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2789379,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2789379",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 61,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1443,
+        "receipt_prefix_source_updates": 1445,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1443,
+          "source_updates": 1445,
+          "producer_calls": 1443,
+          "source_frame_difference": 2,
+          "source_call_count": 1444,
+          "last_source_index": 1443,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 163
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2789379,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2789379",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 79,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1443,
+        "receipt_prefix_source_updates": 1445,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1443,
+          "source_updates": 1445,
+          "producer_calls": 1443,
+          "source_frame_difference": 2,
+          "source_call_count": 1444,
+          "last_source_index": 1443,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 99
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2793363,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2793363",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 62,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1453,
+        "receipt_prefix_source_updates": 1455,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1453,
+          "source_updates": 1455,
+          "producer_calls": 1453,
+          "source_frame_difference": 2,
+          "source_call_count": 1454,
+          "last_source_index": 1453,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 158
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2793363,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2793363",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 309,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1453,
+        "receipt_prefix_source_updates": 1455,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1453,
+          "source_updates": 1455,
+          "producer_calls": 1453,
+          "source_frame_difference": 2,
+          "source_call_count": 1454,
+          "last_source_index": 1453,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 1446
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2793363,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2793363",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 50,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1453,
+        "receipt_prefix_source_updates": 1455,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1453,
+          "source_updates": 1455,
+          "producer_calls": 1453,
+          "source_frame_difference": 2,
+          "source_call_count": 1454,
+          "last_source_index": 1453,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 90
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2794516,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2794516",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 105,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1348,
+        "receipt_prefix_source_updates": 1349,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1348,
+          "source_updates": 1349,
+          "producer_calls": 1348,
+          "source_frame_difference": 1,
+          "source_call_count": 1349,
+          "last_source_index": 1348,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 320
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2794516,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2794516",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 242,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1348,
+        "receipt_prefix_source_updates": 1349,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1348,
+          "source_updates": 1349,
+          "producer_calls": 1348,
+          "source_frame_difference": 1,
+          "source_call_count": 1349,
+          "last_source_index": 1348,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 968
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2794516,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2794516",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 110,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1348,
+        "receipt_prefix_source_updates": 1349,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1348,
+          "source_updates": 1349,
+          "producer_calls": 1348,
+          "source_frame_difference": 1,
+          "source_call_count": 1349,
+          "last_source_index": 1348,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 253
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2795174,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2795174",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 21,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1353,
+        "receipt_prefix_source_updates": 1354,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1353,
+          "source_updates": 1354,
+          "producer_calls": 1353,
+          "source_frame_difference": 1,
+          "source_call_count": 1354,
+          "last_source_index": 1353,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 86
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2795174,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2795174",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 13,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1353,
+        "receipt_prefix_source_updates": 1354,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1353,
+          "source_updates": 1354,
+          "producer_calls": 1353,
+          "source_frame_difference": 1,
+          "source_call_count": 1354,
+          "last_source_index": 1353,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 86
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2795174,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2795174",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 59,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1353,
+        "receipt_prefix_source_updates": 1354,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1353,
+          "source_updates": 1354,
+          "producer_calls": 1353,
+          "source_frame_difference": 1,
+          "source_call_count": 1354,
+          "last_source_index": 1353,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 111
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2798868,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2798868",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 10,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1328,
+        "receipt_prefix_source_updates": 1329,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1328,
+          "source_updates": 1329,
+          "producer_calls": 1328,
+          "source_frame_difference": 1,
+          "source_call_count": 1329,
+          "last_source_index": 1328,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 58
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2798868,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2798868",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 9,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1328,
+        "receipt_prefix_source_updates": 1329,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1328,
+          "source_updates": 1329,
+          "producer_calls": 1328,
+          "source_frame_difference": 1,
+          "source_call_count": 1329,
+          "last_source_index": 1328,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 64
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2798868,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2798868",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 10,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1328,
+        "receipt_prefix_source_updates": 1329,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1328,
+          "source_updates": 1329,
+          "producer_calls": 1328,
+          "source_frame_difference": 1,
+          "source_call_count": 1329,
+          "last_source_index": 1328,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 53
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2800919,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2800919",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 72,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1449,
+        "receipt_prefix_source_updates": 1450,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1449,
+          "source_updates": 1450,
+          "producer_calls": 1449,
+          "source_frame_difference": 1,
+          "source_call_count": 1450,
+          "last_source_index": 1449,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 132
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2800919,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2800919",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 67,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1449,
+        "receipt_prefix_source_updates": 1450,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1449,
+          "source_updates": 1450,
+          "producer_calls": 1449,
+          "source_frame_difference": 1,
+          "source_call_count": 1450,
+          "last_source_index": 1449,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 158
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2800919,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2800919",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 88,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1449,
+        "receipt_prefix_source_updates": 1450,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1449,
+          "source_updates": 1450,
+          "producer_calls": 1449,
+          "source_frame_difference": 1,
+          "source_call_count": 1450,
+          "last_source_index": 1449,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 118
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2800990,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2800990",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 152,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1434,
+        "receipt_prefix_source_updates": 1436,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1434,
+          "source_updates": 1436,
+          "producer_calls": 1434,
+          "source_frame_difference": 2,
+          "source_call_count": 1435,
+          "last_source_index": 1434,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 328
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2800990,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2800990",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 50,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1434,
+        "receipt_prefix_source_updates": 1436,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1434,
+          "source_updates": 1436,
+          "producer_calls": 1434,
+          "source_frame_difference": 2,
+          "source_call_count": 1435,
+          "last_source_index": 1434,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 163
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2800990,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2800990",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 173,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1434,
+        "receipt_prefix_source_updates": 1436,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1434,
+          "source_updates": 1436,
+          "producer_calls": 1434,
+          "source_frame_difference": 2,
+          "source_call_count": 1435,
+          "last_source_index": 1434,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 308
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2806496,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2806496",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 64,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1401,
+        "receipt_prefix_source_updates": 1402,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1401,
+          "source_updates": 1402,
+          "producer_calls": 1401,
+          "source_frame_difference": 1,
+          "source_call_count": 1402,
+          "last_source_index": 1401,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 125
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2806496,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2806496",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 101,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1401,
+        "receipt_prefix_source_updates": 1402,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1401,
+          "source_updates": 1402,
+          "producer_calls": 1401,
+          "source_frame_difference": 1,
+          "source_call_count": 1402,
+          "last_source_index": 1401,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 636
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2806496,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2806496",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 60,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1401,
+        "receipt_prefix_source_updates": 1402,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1401,
+          "source_updates": 1402,
+          "producer_calls": 1401,
+          "source_frame_difference": 1,
+          "source_call_count": 1402,
+          "last_source_index": 1401,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 74
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2809327,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2809327",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 207,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1319,
+        "receipt_prefix_source_updates": 1321,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1319,
+          "source_updates": 1321,
+          "producer_calls": 1319,
+          "source_frame_difference": 2,
+          "source_call_count": 1320,
+          "last_source_index": 1319,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 357
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2809327,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2809327",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 133,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1319,
+        "receipt_prefix_source_updates": 1321,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1319,
+          "source_updates": 1321,
+          "producer_calls": 1319,
+          "source_frame_difference": 2,
+          "source_call_count": 1320,
+          "last_source_index": 1319,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 432
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2809327,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2809327",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 184,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1319,
+        "receipt_prefix_source_updates": 1321,
+        "receipt_prefix_missing_source_updates": 2,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1319,
+          "source_updates": 1321,
+          "producer_calls": 1319,
+          "source_frame_difference": 2,
+          "source_call_count": 1320,
+          "last_source_index": 1319,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 247
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2809967,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2809967",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 40,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1140,
+        "receipt_prefix_source_updates": 1141,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1140,
+          "source_updates": 1141,
+          "producer_calls": 1140,
+          "source_frame_difference": 1,
+          "source_call_count": 1141,
+          "last_source_index": 1140,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 118
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2809967,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2809967",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 26,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1140,
+        "receipt_prefix_source_updates": 1141,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1140,
+          "source_updates": 1141,
+          "producer_calls": 1140,
+          "source_frame_difference": 1,
+          "source_call_count": 1141,
+          "last_source_index": 1140,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 108
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2809967,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2809967",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 39,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1140,
+        "receipt_prefix_source_updates": 1141,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1140,
+          "source_updates": 1141,
+          "producer_calls": 1140,
+          "source_frame_difference": 1,
+          "source_call_count": 1141,
+          "last_source_index": 1140,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 123
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2815215,
+        "arm": "BASE",
+        "name": "c100_ETHCG1ATV1R2_BASE_2815215",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 228,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1437,
+        "receipt_prefix_source_updates": 1438,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1437,
+          "source_updates": 1438,
+          "producer_calls": 1437,
+          "source_frame_difference": 1,
+          "source_call_count": 1438,
+          "last_source_index": 1437,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 483
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2815215,
+        "arm": "LOG100",
+        "name": "c100_ETHCG1ATV1R2_LOG100_2815215",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 19,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1437,
+        "receipt_prefix_source_updates": 1438,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1437,
+          "source_updates": 1438,
+          "producer_calls": 1437,
+          "source_frame_difference": 1,
+          "source_call_count": 1438,
+          "last_source_index": 1437,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 174
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      },
+      {
+        "market_id": 2815215,
+        "arm": "LOG500",
+        "name": "c100_ETHCG1ATV1R2_LOG500_2815215",
+        "result_job": "original-maker-layer-eth861-20261002-v1r2",
+        "analysis_status": "UNKNOWN_EOF_CENSORED",
+        "execution_valid": "false",
+        "receipt_prefix_scope": "Observed simulated receipt prefix only; excluded from formal complete-cohort gate",
+        "receipt_prefix_owner_audit_status": "PASS",
+        "receipt_prefix_receipt_count": 228,
+        "receipt_prefix_unresolved_owners": 0,
+        "receipt_prefix_frames": 1437,
+        "receipt_prefix_source_updates": 1438,
+        "receipt_prefix_missing_source_updates": 1,
+        "raw_execution_evidence": {
+          "result_status": "ERROR",
+          "frames": 1437,
+          "source_updates": 1438,
+          "producer_calls": 1437,
+          "source_frame_difference": 1,
+          "source_call_count": 1438,
+          "last_source_index": 1437,
+          "last_source_rc": 1,
+          "last_source_reached": false,
+          "carrier_state_counts": {
+            "TERMINAL": 487
+          },
+          "last_source_advance_not_reached": true
+        },
+        "issues": []
+      }
+    ]
+  },
+  "anomalies": {
+    "complete_owner_or_accounting": [],
+    "schema_or_partition": [],
+    "EOF_prefix_or_raw_evidence": []
+  },
+  "limitations": [
+    "EOF rows are observed prefixes only and are not complete replays.",
+    "The final-source claim is limited to execution_clock source/frame/producer counts and its last source-advance index/rc/reached fields; no source tape was opened, so input-row payload/content is unverified.",
+    "No active_birth_count or economic metric was used to infer conversion frequency or performance."
+  ]
+}

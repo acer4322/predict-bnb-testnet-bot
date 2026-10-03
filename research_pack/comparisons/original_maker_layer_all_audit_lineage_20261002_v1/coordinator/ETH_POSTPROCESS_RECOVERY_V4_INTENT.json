@@ -1,0 +1,14 @@
+{
+  "pid": 33904,
+  "attempts": 1,
+  "started": 1791008734.2121098,
+  "prior_state": {
+    "job_id": "original-maker-layer-eth861-20261002-v1r2",
+    "state": "STOPPED_FOR_INSPECTION",
+    "error": "RuntimeError('01_archive_collect exited 1; inspect preserved logs; no automatic retry')",
+    "native_submissions": 0,
+    "no_automatic_retry": true
+  },
+  "scope": "collection and postprocessing only",
+  "native_submissions": 0
+}

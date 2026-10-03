@@ -1,0 +1,79 @@
+{"phase": "RESUME", "verified_archives": 8, "pending": 55, "observed_at": 1791008735.4041271}
+{"phase": "TRANSFER", "batch": 1, "batches": 7, "attempt": 1, "archives": ["part_008.zip", "part_009.zip", "part_010.zip", "part_011.zip", "part_012.zip", "part_013.zip", "part_014.zip", "part_015.zip"], "observed_at": 1791008735.4067256}
+{"phase": "TRANSFER_RESULT", "batch": 1, "attempt": 1, "return_code": 0, "error": "", "remaining": [], "observed_at": 1791008765.131794}
+{"phase": "TRANSFER", "batch": 2, "batches": 7, "attempt": 1, "archives": ["part_016.zip", "part_017.zip", "part_018.zip", "part_019.zip", "part_020.zip", "part_021.zip", "part_022.zip", "part_023.zip"], "observed_at": 1791008765.1327899}
+{"phase": "TRANSFER_RESULT", "batch": 2, "attempt": 1, "return_code": 0, "error": "", "remaining": [], "observed_at": 1791008795.2303195}
+{"phase": "TRANSFER", "batch": 3, "batches": 7, "attempt": 1, "archives": ["part_024.zip", "part_025.zip", "part_026.zip", "part_027.zip", "part_028.zip", "part_029.zip", "part_030.zip", "part_031.zip"], "observed_at": 1791008795.231842}
+{"phase": "TRANSFER_RESULT", "batch": 3, "attempt": 1, "return_code": 0, "error": "", "remaining": [], "observed_at": 1791008824.3374085}
+{"phase": "TRANSFER", "batch": 4, "batches": 7, "attempt": 1, "archives": ["part_032.zip", "part_033.zip", "part_034.zip", "part_035.zip", "part_036.zip", "part_037.zip", "part_038.zip", "part_039.zip"], "observed_at": 1791008824.338271}
+{"phase": "TRANSFER_RESULT", "batch": 4, "attempt": 1, "return_code": 0, "error": "", "remaining": [], "observed_at": 1791008853.872385}
+{"phase": "TRANSFER", "batch": 5, "batches": 7, "attempt": 1, "archives": ["part_040.zip", "part_041.zip", "part_042.zip", "part_043.zip", "part_044.zip", "part_045.zip", "part_046.zip", "part_047.zip"], "observed_at": 1791008853.873252}
+{"phase": "TRANSFER_RESULT", "batch": 5, "attempt": 1, "return_code": 0, "error": "", "remaining": [], "observed_at": 1791008883.1789536}
+{"phase": "TRANSFER", "batch": 6, "batches": 7, "attempt": 1, "archives": ["part_048.zip", "part_049.zip", "part_050.zip", "part_051.zip", "part_052.zip", "part_053.zip", "part_054.zip", "part_055.zip"], "observed_at": 1791008883.1799898}
+{"phase": "TRANSFER_RESULT", "batch": 6, "attempt": 1, "return_code": 0, "error": "", "remaining": [], "observed_at": 1791008912.5304394}
+{"phase": "TRANSFER", "batch": 7, "batches": 7, "attempt": 1, "archives": ["part_056.zip", "part_057.zip", "part_058.zip", "part_059.zip", "part_060.zip", "part_061.zip", "part_062.zip"], "observed_at": 1791008912.5313885}
+{"phase": "TRANSFER_RESULT", "batch": 7, "attempt": 1, "return_code": 0, "error": "", "remaining": [], "observed_at": 1791008935.232051}
+{"phase": "EXTRACT_VERIFIED", "archive": 1, "total": 63, "observed_at": 1791008938.0884771}
+{"phase": "EXTRACT_VERIFIED", "archive": 2, "total": 63, "observed_at": 1791008941.0264878}
+{"phase": "EXTRACT_VERIFIED", "archive": 3, "total": 63, "observed_at": 1791008943.8223853}
+{"phase": "EXTRACT_VERIFIED", "archive": 4, "total": 63, "observed_at": 1791008946.7352397}
+{"phase": "EXTRACT_VERIFIED", "archive": 5, "total": 63, "observed_at": 1791008949.5885332}
+{"phase": "EXTRACT_VERIFIED", "archive": 6, "total": 63, "observed_at": 1791008952.4693346}
+{"phase": "EXTRACT_VERIFIED", "archive": 7, "total": 63, "observed_at": 1791008955.648256}
+{"phase": "EXTRACT_VERIFIED", "archive": 8, "total": 63, "observed_at": 1791008958.5955496}
+{"phase": "EXTRACT_VERIFIED", "archive": 9, "total": 63, "observed_at": 1791008963.6096048}
+{"phase": "EXTRACT_VERIFIED", "archive": 10, "total": 63, "observed_at": 1791008969.3409007}
+{"phase": "EXTRACT_VERIFIED", "archive": 11, "total": 63, "observed_at": 1791008977.9753854}
+{"phase": "EXTRACT_VERIFIED", "archive": 12, "total": 63, "observed_at": 1791008984.0185363}
+{"phase": "EXTRACT_VERIFIED", "archive": 13, "total": 63, "observed_at": 1791008989.5269752}
+{"phase": "EXTRACT_VERIFIED", "archive": 14, "total": 63, "observed_at": 1791008995.4144208}
+{"phase": "EXTRACT_VERIFIED", "archive": 15, "total": 63, "observed_at": 1791009001.4040418}
+{"phase": "EXTRACT_VERIFIED", "archive": 16, "total": 63, "observed_at": 1791009007.2327921}
+{"phase": "EXTRACT_VERIFIED", "archive": 17, "total": 63, "observed_at": 1791009014.944088}
+{"phase": "EXTRACT_VERIFIED", "archive": 18, "total": 63, "observed_at": 1791009023.8460457}
+{"phase": "EXTRACT_VERIFIED", "archive": 19, "total": 63, "observed_at": 1791009029.2161322}
+{"phase": "EXTRACT_VERIFIED", "archive": 20, "total": 63, "observed_at": 1791009034.7361357}
+{"phase": "EXTRACT_VERIFIED", "archive": 21, "total": 63, "observed_at": 1791009039.2055483}
+{"phase": "EXTRACT_VERIFIED", "archive": 22, "total": 63, "observed_at": 1791009044.1760948}
+{"phase": "EXTRACT_VERIFIED", "archive": 23, "total": 63, "observed_at": 1791009051.566596}
+{"phase": "EXTRACT_VERIFIED", "archive": 24, "total": 63, "observed_at": 1791009057.251195}
+{"phase": "EXTRACT_VERIFIED", "archive": 25, "total": 63, "observed_at": 1791009066.1644733}
+{"phase": "EXTRACT_VERIFIED", "archive": 26, "total": 63, "observed_at": 1791009072.6035557}
+{"phase": "EXTRACT_VERIFIED", "archive": 27, "total": 63, "observed_at": 1791009078.0860925}
+{"phase": "EXTRACT_VERIFIED", "archive": 28, "total": 63, "observed_at": 1791009083.767315}
+{"phase": "EXTRACT_VERIFIED", "archive": 29, "total": 63, "observed_at": 1791009091.7381334}
+{"phase": "EXTRACT_VERIFIED", "archive": 30, "total": 63, "observed_at": 1791009098.1730893}
+{"phase": "EXTRACT_VERIFIED", "archive": 31, "total": 63, "observed_at": 1791009104.9678645}
+{"phase": "EXTRACT_VERIFIED", "archive": 32, "total": 63, "observed_at": 1791009110.4960585}
+{"phase": "EXTRACT_VERIFIED", "archive": 33, "total": 63, "observed_at": 1791009115.7984855}
+{"phase": "EXTRACT_VERIFIED", "archive": 34, "total": 63, "observed_at": 1791009121.6862295}
+{"phase": "EXTRACT_VERIFIED", "archive": 35, "total": 63, "observed_at": 1791009127.1496317}
+{"phase": "EXTRACT_VERIFIED", "archive": 36, "total": 63, "observed_at": 1791009132.7115984}
+{"phase": "EXTRACT_VERIFIED", "archive": 37, "total": 63, "observed_at": 1791009138.5273533}
+{"phase": "EXTRACT_VERIFIED", "archive": 38, "total": 63, "observed_at": 1791009144.0992577}
+{"phase": "EXTRACT_VERIFIED", "archive": 39, "total": 63, "observed_at": 1791009150.8421395}
+{"phase": "EXTRACT_VERIFIED", "archive": 40, "total": 63, "observed_at": 1791009155.6862457}
+{"phase": "EXTRACT_VERIFIED", "archive": 41, "total": 63, "observed_at": 1791009161.6762364}
+{"phase": "EXTRACT_VERIFIED", "archive": 42, "total": 63, "observed_at": 1791009166.9296508}
+{"phase": "EXTRACT_VERIFIED", "archive": 43, "total": 63, "observed_at": 1791009174.647411}
+{"phase": "EXTRACT_VERIFIED", "archive": 44, "total": 63, "observed_at": 1791009183.7384899}
+{"phase": "EXTRACT_VERIFIED", "archive": 45, "total": 63, "observed_at": 1791009191.201802}
+{"phase": "EXTRACT_VERIFIED", "archive": 46, "total": 63, "observed_at": 1791009201.0705154}
+{"phase": "EXTRACT_VERIFIED", "archive": 47, "total": 63, "observed_at": 1791009209.118319}
+{"phase": "EXTRACT_VERIFIED", "archive": 48, "total": 63, "observed_at": 1791009216.590961}
+{"phase": "EXTRACT_VERIFIED", "archive": 49, "total": 63, "observed_at": 1791009224.9663072}
+{"phase": "EXTRACT_VERIFIED", "archive": 50, "total": 63, "observed_at": 1791009232.0977259}
+{"phase": "EXTRACT_VERIFIED", "archive": 51, "total": 63, "observed_at": 1791009238.1998127}
+{"phase": "EXTRACT_VERIFIED", "archive": 52, "total": 63, "observed_at": 1791009245.989952}
+{"phase": "EXTRACT_VERIFIED", "archive": 53, "total": 63, "observed_at": 1791009253.0956216}
+{"phase": "EXTRACT_VERIFIED", "archive": 54, "total": 63, "observed_at": 1791009259.0984008}
+{"phase": "EXTRACT_VERIFIED", "archive": 55, "total": 63, "observed_at": 1791009265.6590915}
+{"phase": "EXTRACT_VERIFIED", "archive": 56, "total": 63, "observed_at": 1791009273.2832415}
+{"phase": "EXTRACT_VERIFIED", "archive": 57, "total": 63, "observed_at": 1791009279.5536187}
+{"phase": "EXTRACT_VERIFIED", "archive": 58, "total": 63, "observed_at": 1791009285.938042}
+{"phase": "EXTRACT_VERIFIED", "archive": 59, "total": 63, "observed_at": 1791009291.9992673}
+{"phase": "EXTRACT_VERIFIED", "archive": 60, "total": 63, "observed_at": 1791009297.6027565}
+{"phase": "EXTRACT_VERIFIED", "archive": 61, "total": 63, "observed_at": 1791009304.1637309}
+{"phase": "EXTRACT_VERIFIED", "archive": 62, "total": 63, "observed_at": 1791009313.8724957}
+{"phase": "EXTRACT_VERIFIED", "archive": 63, "total": 63, "observed_at": 1791009314.4875925}
+{"status": "COLLECTED_HASH_VERIFIED", "job_id": "original-maker-layer-eth861-20261002-v1r2", "files": 56756, "raw_bytes": 12274100368, "archives": 63, "archive_bytes": 2526364581, "archive_manifest_sha256": "a60284094ebf7c6601bc099136325b86c8068255a570ed9659c39f3248716dcf", "native_submissions": 0, "native_replays": 0, "initial_scp_errors_retained": true, "transfer_events": "ETH_ARCHIVE_TRANSFER_EVENTS.jsonl", "observed_at": 1791009322.7846277}
