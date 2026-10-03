@@ -1,0 +1,30 @@
+{
+  "job_id": "original-maker-layer-eth861-20261002-v1r2",
+  "BTC_markets": 0,
+  "ETH": "all861 frozen inputs; no replacement",
+  "arms": [
+    "BASE",
+    "LOG100",
+    "LOG500"
+  ],
+  "max_threads": 4,
+  "parallel_paths": 4,
+  "fits": 0,
+  "bootstrap": {
+    "replicates": 10000,
+    "seed": 20261002,
+    "CI_percentiles": [
+      2.5,
+      97.5
+    ]
+  },
+  "sensitivity_interpretation": "two joint assumption arms: log-prob100/100 and log-prob500/500; neither isolates latency vs queue effect",
+  "classification": "strict-past received book at official+12s; unavailable or nonbinary direction => UNKNOWN, no replacement",
+  "engine_latency_only": true,
+  "native_threads_per_path": 1,
+  "ETH_markets": 861,
+  "ETH_binary_labels": 860,
+  "ETH_nonbinary_market": 2745523,
+  "completion_validation": "Exact eight boolean gates; rc0 all true or rc2 solely the preserved legacy active_matches_opportunity failure; terminal owners and equal positive frame counts required",
+  "independent_cell_failures": "Preserve failed raw result/plan/receipt prefix; complete all other fixed cells once; no retry/replacement; final full-cohort valuation gate cannot pass with missing or invalid cells"
+}
