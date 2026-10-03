@@ -1,0 +1,11 @@
+{
+  "name": "c100_ETHCG1ATV1R2_BASE_2792974",
+  "market": 2792974,
+  "arm": "BASE",
+  "rc": 0,
+  "status": "COMPLETE",
+  "execution_complete": true,
+  "legacy_active_matches_opportunity": true,
+  "all_old_gates_passed": false,
+  "strict_completion_errors": []
+}
